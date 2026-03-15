@@ -164,8 +164,12 @@ type Property = {
   loanCapitalRemaining: string;
   loanInterestAnnual: string;
   loanInsurance: boolean;       // assurance emprunteur oui/non
-  loanInsuranceRate: string;    // quotité DC (%)
+  loanInsuranceRate: string;    // quotité DC (%) — personne seule ou total
+  loanInsuranceRate1: string;   // quotité DC (%) — personne 1 (communauté/indivision)
+  loanInsuranceRate2: string;   // quotité DC (%) — personne 2 (communauté/indivision)
   loanInsurancePremium: string; // prime annuelle (€) — déductible loyers réel
+  indivisionShare1: string;     // % propriété personne 1 en indivision
+  indivisionShare2: string;     // % propriété personne 2 en indivision
 };
 
 type Beneficiary = {
@@ -1279,7 +1283,7 @@ function runSelfChecks() {
       name: "Locatif", type: "Location nue", ownership: "person1", propertyRight: "full",
       usufructAge: "", value: "300000", propertyTaxAnnual: "1000", rentGrossAnnual: "12000",
       insuranceAnnual: "300", worksAnnual: "500", otherChargesAnnual: "200",
-      loanCapitalRemaining: "50000", loanInterestAnnual: "1500", loanInsurance: false, loanInsuranceRate: "", loanInsurancePremium: "",
+      loanCapitalRemaining: "50000", loanInterestAnnual: "1500", loanInsurance: false, loanInsuranceRate: "", loanInsuranceRate1: "", loanInsuranceRate2: "", loanInsurancePremium: "", indivisionShare1: "", indivisionShare2: "",
     }],
     placements: [
       { name: "CT", type: "Compte à terme", ownership: "person1", value: "20000", annualIncome: "", taxableIncome: "", deathValue: "20000", openDate: "", pfuEligible: true, totalPremiumsNet: "", premiumsBefore70: "", premiumsAfter70: "", exemptFromSuccession: "", ucRatio: "", annualWithdrawal: "", beneficiaries: [] },
@@ -1332,18 +1336,61 @@ runSelfChecks();
 
 // ─── COMPOSANTS UI ────────────────────────────────────────────────────────────
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+// ── Tooltip d'aide ──
+function HelpTooltip({ text }: { text: string }) {
+  const [visible, setVisible] = React.useState(false);
+  return (
+    <span className="relative inline-flex items-center" style={{ verticalAlign: "middle" }}>
+      <button
+        type="button"
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        onFocus={() => setVisible(true)}
+        onBlur={() => setVisible(false)}
+        className="inline-flex items-center justify-center rounded-full text-[10px] font-bold leading-none transition-colors ml-1"
+        style={{ width: 15, height: 15, background: "rgba(38,66,139,0.13)", color: "#26428B", border: "1px solid rgba(38,66,139,0.25)", cursor: "help", flexShrink: 0 }}
+        tabIndex={-1}
+        aria-label="Aide"
+      >?</button>
+      {visible && (
+        <span
+          className="absolute z-50 rounded-xl shadow-xl text-xs leading-relaxed"
+          style={{
+            bottom: "calc(100% + 8px)",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#1a2d6b",
+            color: "#f0f4ff",
+            padding: "8px 12px",
+            minWidth: 200,
+            maxWidth: 280,
+            pointerEvents: "none",
+            whiteSpace: "normal",
+            borderRadius: 12,
+          }}
+        >
+          {text}
+          <span style={{ position: "absolute", bottom: -5, left: "50%", transform: "translateX(-50%)", width: 10, height: 10, background: "#1a2d6b", clipPath: "polygon(0 0, 100% 0, 50% 100%)" }} />
+        </span>
+      )}
+    </span>
+  );
+}
+
+function Field({ label, children, tooltip }: { label: string; children: React.ReactNode; tooltip?: string }) {
   return (
     <div className="space-y-2">
-      <Label className="text-[13px] font-semibold tracking-wide" style={{ color: BRAND.sky }}>{label}</Label>
+      <Label className="text-[13px] font-semibold tracking-wide flex items-center gap-0.5" style={{ color: BRAND.sky }}>
+        {label}{tooltip && <HelpTooltip text={tooltip} />}
+      </Label>
       {children}
     </div>
   );
 }
 
-function MoneyField({ label, value, onChange, compact }: { label: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; compact?: boolean }) {
+function MoneyField({ label, value, onChange, compact, tooltip }: { label: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; compact?: boolean; tooltip?: string }) {
   return (
-    <Field label={label}>
+    <Field label={label} tooltip={tooltip}>
       <Input
         value={value || ""}
         onChange={onChange}
@@ -1647,10 +1694,23 @@ function AppInner({ userId, onSignOut }: { userId: string; onSignOut: () => void
 
   const person1 = personLabel(data, 1);
   const person2 = personLabel(data, 2);
+
+  // Résout la quotité DC effective selon le propriétaire et la personne ciblée
+  const resolveInsuranceRate = (property: Property, target?: "person1" | "person2"): number => {
+    if (!property.loanInsurance) return 0;
+    const isMulti = property.ownership === "common" || property.ownership === "indivision";
+    if (!isMulti) return Math.min(100, Math.max(0, n(property.loanInsuranceRate)));
+    if (target === "person1") return Math.min(100, Math.max(0, n(property.loanInsuranceRate1)));
+    if (target === "person2") return Math.min(100, Math.max(0, n(property.loanInsuranceRate2)));
+    // Total : somme des deux quotités (pour calcul prime)
+    return Math.min(200, Math.max(0, n(property.loanInsuranceRate1) + n(property.loanInsuranceRate2)));
+  };
+
   const ownerOptions = [
     { value: "person1", label: person1 },
     { value: "person2", label: person2 },
     { value: "common", label: "Communauté" },
+    { value: "indivision", label: "Indivision" },
   ];
 
   // ── Setters ──
@@ -1665,7 +1725,7 @@ function AppInner({ userId, onSignOut }: { userId: string; onSignOut: () => void
 
   const addProperty = (type: string) => setData((prev) => ({
     ...prev,
-    properties: [...prev.properties, { name: "", type, ownership: "person1", propertyRight: "full", usufructAge: "", value: "", propertyTaxAnnual: "", rentGrossAnnual: "", insuranceAnnual: "", worksAnnual: "", otherChargesAnnual: "", loanCapitalRemaining: "", loanInterestAnnual: "", loanInsurance: false, loanInsuranceRate: "", loanInsurancePremium: "" }],
+    properties: [...prev.properties, { name: "", type, ownership: "person1", propertyRight: "full", usufructAge: "", value: "", propertyTaxAnnual: "", rentGrossAnnual: "", insuranceAnnual: "", worksAnnual: "", otherChargesAnnual: "", loanCapitalRemaining: "", loanInterestAnnual: "", loanInsurance: false, loanInsuranceRate: "", loanInsuranceRate1: "", loanInsuranceRate2: "", loanInsurancePremium: "", indivisionShare1: "", indivisionShare2: "" }],
   }));
   const updateProperty = (index: number, key: keyof Property, value: string | boolean) =>
     setData((prev) => ({ ...prev, properties: prev.properties.map((p, i) => i === index ? { ...p, [key]: value } : p) }));
@@ -3445,17 +3505,17 @@ ${activeHypos.length > 0 ? `
                           </div>
                           {/* Valeurs financières — grille adaptative, sans divs vides */}
                           <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(130px,1fr))]">
-                            <MoneyField label={property.propertyRight === "full" ? "Valeur estimée" : "Valeur PP"} value={property.value} onChange={(e) => updateProperty(index, "value", e.target.value)} compact />
-                            {property.propertyRight !== "full" && <MoneyField label="Âge usufruitier" value={property.usufructAge} onChange={(e) => updateProperty(index, "usufructAge", e.target.value)} compact />}
-                            {propertyNeedsPropertyTax(property.type) && <MoneyField label="Taxe foncière/an" value={property.propertyTaxAnnual} onChange={(e) => updateProperty(index, "propertyTaxAnnual", e.target.value)} compact />}
-                            {propertyNeedsRent(property.type) && <MoneyField label="Loyer brut/an" value={property.rentGrossAnnual} onChange={(e) => updateProperty(index, "rentGrossAnnual", e.target.value)} compact />}
-                            {propertyNeedsInsurance(property.type) && <MoneyField label="Assurance/an" value={property.insuranceAnnual} onChange={(e) => updateProperty(index, "insuranceAnnual", e.target.value)} compact />}
-                            {propertyNeedsWorks(property.type) && <MoneyField label="Travaux/an" value={property.worksAnnual} onChange={(e) => updateProperty(index, "worksAnnual", e.target.value)} compact />}
-                            {propertyNeedsRent(property.type) && <MoneyField label="Autres charges/an" value={property.otherChargesAnnual} onChange={(e) => updateProperty(index, "otherChargesAnnual", e.target.value)} compact />}
-                            {propertyNeedsLoan(property.type) && <MoneyField label="Capital restant dû" value={property.loanCapitalRemaining} onChange={(e) => updateProperty(index, "loanCapitalRemaining", e.target.value)} compact />}
-                            {propertyNeedsLoan(property.type) && <MoneyField label="Intérêts/an" value={property.loanInterestAnnual} onChange={(e) => updateProperty(index, "loanInterestAnnual", e.target.value)} compact />}
+                            <MoneyField label={property.propertyRight === "full" ? "Valeur estimée" : "Valeur PP"} tooltip="Valeur vénale actuelle du bien. En pleine propriété, c'est la valeur retenue pour l'IFI et la succession. En démembrement, seule la valeur de la pleine propriété est saisie ici." value={property.value} onChange={(e) => updateProperty(index, "value", e.target.value)} compact />
+                            {property.propertyRight !== "full" && <MoneyField label="Âge usufruitier" tooltip="Âge de l'usufruitier utilisé pour calculer la valeur de l'usufruit et de la nue-propriété selon le barème fiscal (art. 669 CGI). Ex : 60 ans → usufruit = 40 %, nue-propriété = 60 %." value={property.usufructAge} onChange={(e) => updateProperty(index, "usufructAge", e.target.value)} compact />}
+                            {propertyNeedsPropertyTax(property.type) && <MoneyField label="Taxe foncière/an" tooltip="Montant annuel de la taxe foncière. Déductible des revenus fonciers en régime réel." value={property.propertyTaxAnnual} onChange={(e) => updateProperty(index, "propertyTaxAnnual", e.target.value)} compact />}
+                            {propertyNeedsRent(property.type) && <MoneyField label="Loyer brut/an" tooltip="Total des loyers encaissés sur l'année, avant déduction des charges. Utilisé pour calculer le revenu foncier net imposable." value={property.rentGrossAnnual} onChange={(e) => updateProperty(index, "rentGrossAnnual", e.target.value)} compact />}
+                            {propertyNeedsInsurance(property.type) && <MoneyField label="Assurance/an" tooltip="Prime d'assurance habitation annuelle du bien locatif. Déductible des revenus fonciers en régime réel." value={property.insuranceAnnual} onChange={(e) => updateProperty(index, "insuranceAnnual", e.target.value)} compact />}
+                            {propertyNeedsWorks(property.type) && <MoneyField label="Travaux/an" tooltip="Dépenses de travaux d'entretien et de réparation annuelles. Déductibles des revenus fonciers en régime réel. Les travaux de construction ou d'agrandissement ne sont pas déductibles." value={property.worksAnnual} onChange={(e) => updateProperty(index, "worksAnnual", e.target.value)} compact />}
+                            {propertyNeedsRent(property.type) && <MoneyField label="Autres charges/an" tooltip="Autres charges déductibles : frais de gestion locative, charges de copropriété non récupérables, frais comptables, etc." value={property.otherChargesAnnual} onChange={(e) => updateProperty(index, "otherChargesAnnual", e.target.value)} compact />}
+                            {propertyNeedsLoan(property.type) && <MoneyField label="Capital restant dû" tooltip="Montant du capital restant à rembourser sur le prêt immobilier. Déduit de la valeur du bien pour le calcul de l'IFI (dette déductible) et du patrimoine net." value={property.loanCapitalRemaining} onChange={(e) => updateProperty(index, "loanCapitalRemaining", e.target.value)} compact />}
+                            {propertyNeedsLoan(property.type) && <MoneyField label="Intérêts/an" tooltip="Intérêts d'emprunt annuels. Déductibles des revenus fonciers en régime réel pour les biens locatifs. Non déductibles pour la résidence principale." value={property.loanInterestAnnual} onChange={(e) => updateProperty(index, "loanInterestAnnual", e.target.value)} compact />}
                             {propertyNeedsLoan(property.type) && (
-                              <Field label="Ass. emprunteur">
+                              <Field label="Ass. emprunteur" tooltip="Assurance Décès-Invalidité (DC) couvrant le remboursement du prêt en cas de décès ou d'invalidité. La prime est déductible des revenus fonciers en régime réel.">
                                 <Select value={property.loanInsurance ? "yes" : "no"} onValueChange={(v) => updateProperty(index, "loanInsurance", v === "yes")}>
                                   <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
                                   <SelectContent><SelectItem value="yes">Oui</SelectItem><SelectItem value="no">Non</SelectItem></SelectContent>
@@ -3463,10 +3523,25 @@ ${activeHypos.length > 0 ? `
                               </Field>
                             )}
                             {propertyNeedsLoan(property.type) && property.loanInsurance && (
-                              <MoneyField label="Quotité DC (%)" value={property.loanInsuranceRate} onChange={(e) => updateProperty(index, "loanInsuranceRate", e.target.value)} compact />
+                              property.ownership === "person1" || property.ownership === "person2" ? (
+                                // Propriétaire unique → une seule quotité DC
+                                <MoneyField label="Quotité DC (%)" tooltip="Pourcentage du capital assuré en cas de décès. 100% = le prêt est intégralement remboursé. En couple, la somme des deux quotités est souvent 100% à 200%." value={property.loanInsuranceRate} onChange={(e) => updateProperty(index, "loanInsuranceRate", e.target.value)} compact />
+                              ) : (
+                                // Communauté ou Indivision → quotité DC par personne
+                                <>
+                                  <MoneyField label={`Quotité DC ${person1} (%)`} tooltip={`Part du capital couverte par l'assurance DC pour ${person1}. La somme des deux quotités est généralement entre 100% et 200%.`} value={property.loanInsuranceRate1} onChange={(e) => updateProperty(index, "loanInsuranceRate1", e.target.value)} compact />
+                                  <MoneyField label={`Quotité DC ${person2} (%)`} tooltip={`Part du capital couverte par l'assurance DC pour ${person2}. La somme des deux quotités est généralement entre 100% et 200%.`} value={property.loanInsuranceRate2} onChange={(e) => updateProperty(index, "loanInsuranceRate2", e.target.value)} compact />
+                                </>
+                              )
                             )}
                             {propertyNeedsLoan(property.type) && property.loanInsurance && (
-                              <MoneyField label="Ass. crédit/an" value={property.loanInsurancePremium} onChange={(e) => updateProperty(index, "loanInsurancePremium", e.target.value)} compact />
+                              <MoneyField label="Ass. crédit/an" tooltip="Prime annuelle de l'assurance emprunteur. Déductible des revenus fonciers en régime réel pour les biens locatifs." value={property.loanInsurancePremium} onChange={(e) => updateProperty(index, "loanInsurancePremium", e.target.value)} compact />
+                            )}
+                            {property.ownership === "indivision" && (
+                              <>
+                                <MoneyField label={`% ${person1}`} tooltip={`Quote-part de propriété de ${person1} dans l'indivision. La somme des deux parts doit égaler 100%.`} value={property.indivisionShare1} onChange={(e) => updateProperty(index, "indivisionShare1", e.target.value)} compact />
+                                <MoneyField label={`% ${person2}`} tooltip={`Quote-part de propriété de ${person2} dans l'indivision. La somme des deux parts doit égaler 100%.`} value={property.indivisionShare2} onChange={(e) => updateProperty(index, "indivisionShare2", e.target.value)} compact />
+                              </>
                             )}
                           </div>
                         </CardContent>
@@ -3516,7 +3591,7 @@ ${activeHypos.length > 0 ? `
                                     <SelectContent>{ownerOptions.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                                   </Select>
                                 </Field>
-                                <MoneyField label="Encours" value={placement.value} onChange={(e) => updatePlacementStr(index, "value", e.target.value)} compact />
+                                <MoneyField label="Encours" tooltip="Valeur actuelle du placement (valeur de rachat pour une assurance-vie, solde pour un compte). Utilisée pour le calcul du patrimoine net et de l'IFI le cas échéant." value={placement.value} onChange={(e) => updatePlacementStr(index, "value", e.target.value)} compact />
                               </div>
                               <Button variant="outline" className="h-8 w-8 shrink-0 rounded-xl p-0 mb-0.5" onClick={() => removePlacement(index)}><Trash2 className="h-3.5 w-3.5" /></Button>
                             </div>
@@ -3529,9 +3604,9 @@ ${activeHypos.length > 0 ? `
 
                             {/* Champs selon type — grille dense sans divs vides */}
                             <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(145px,1fr))]">
-                              {!isAVType && !isCash && <MoneyField label="Revenu annuel" value={placement.annualIncome} onChange={(e) => updatePlacementStr(index, "annualIncome", e.target.value)} compact />}
-                              {placementNeedsTaxableIncome(placement.type) && <MoneyField label="Part taxable" value={placement.taxableIncome} onChange={(e) => updatePlacementStr(index, "taxableIncome", e.target.value)} compact />}
-                              {!isAVType && !isCash && <MoneyField label="Valeur au décès" value={placement.deathValue} onChange={(e) => updatePlacementStr(index, "deathValue", e.target.value)} compact />}
+                              {!isAVType && !isCash && <MoneyField label="Revenu annuel" tooltip="Revenus générés par le placement sur l'année (coupons, dividendes, intérêts). Utilisés dans le calcul de l'impôt sur le revenu." value={placement.annualIncome} onChange={(e) => updatePlacementStr(index, "annualIncome", e.target.value)} compact />}
+                              {placementNeedsTaxableIncome(placement.type) && <MoneyField label="Part taxable" tooltip="Fraction des revenus soumise à l'impôt après abattements éventuels. Pour les dividendes : abattement de 40% en régime au barème. À saisir après abattement." value={placement.taxableIncome} onChange={(e) => updatePlacementStr(index, "taxableIncome", e.target.value)} compact />}
+                              {!isAVType && !isCash && <MoneyField label="Valeur au décès" tooltip="Valeur du placement retenue pour le calcul de la succession. Peut différer de l'encours (ex : contrat de capitalisation transmis par testament)." value={placement.deathValue} onChange={(e) => updatePlacementStr(index, "deathValue", e.target.value)} compact />}
                               {!isAVType && placementNeedsOpenDate(placement.type) && (
                                 <Field label="Date d'ouverture"><Input type="date" value={placement.openDate} onChange={(e) => updatePlacementStr(index, "openDate", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
                               )}
@@ -3543,13 +3618,13 @@ ${activeHypos.length > 0 ? `
                                   </Select>
                                 </Field>
                               )}
-                              {isAVType && <MoneyField label="Primes nettes" value={placement.totalPremiumsNet} onChange={(e) => updatePlacementStr(index, "totalPremiumsNet", e.target.value)} compact />}
-                              {isAVType && <MoneyField label="Primes < 70 ans" value={placement.premiumsBefore70} onChange={(e) => updatePlacementStr(index, "premiumsBefore70", e.target.value)} compact />}
-                              {isAVType && <MoneyField label="Primes ≥ 70 ans" value={placement.premiumsAfter70} onChange={(e) => updatePlacementStr(index, "premiumsAfter70", e.target.value)} compact />}
+                              {isAVType && <MoneyField label="Primes nettes" tooltip="Total des versements effectués sur le contrat d'assurance-vie nets de retraits partiels. Sert de base au calcul de la fiscalité des rachats et de l'abattement successoral." value={placement.totalPremiumsNet} onChange={(e) => updatePlacementStr(index, "totalPremiumsNet", e.target.value)} compact />}
+                              {isAVType && <MoneyField label="Primes < 70 ans" tooltip="Versements effectués avant les 70 ans de l'assuré. Bénéficient d'un abattement de 152 500 € par bénéficiaire hors succession (art. 990 I CGI)." value={placement.premiumsBefore70} onChange={(e) => updatePlacementStr(index, "premiumsBefore70", e.target.value)} compact />}
+                              {isAVType && <MoneyField label="Primes ≥ 70 ans" tooltip="Versements effectués après les 70 ans de l'assuré. Abattement global de 30 500 € réparti entre tous les bénéficiaires, puis intégration aux droits de succession (art. 757 B CGI)." value={placement.premiumsAfter70} onChange={(e) => updatePlacementStr(index, "premiumsAfter70", e.target.value)} compact />}
                               {isAVType && placementNeedsOpenDate(placement.type) && (
                                 <Field label="Date d'ouverture"><Input type="date" value={placement.openDate} onChange={(e) => updatePlacementStr(index, "openDate", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
                               )}
-                              {isAVType && <MoneyField label="Capital exonéré succ." value={placement.exemptFromSuccession} onChange={(e) => updatePlacementStr(index, "exemptFromSuccession", e.target.value)} compact />}
+                              {isAVType && <MoneyField label="Capital exonéré succ." tooltip="Montant du capital transmis hors succession grâce à la clause bénéficiaire (art. 990 I). Correspond aux primes versées avant 70 ans × abattement 152 500 € par bénéficiaire." value={placement.exemptFromSuccession} onChange={(e) => updatePlacementStr(index, "exemptFromSuccession", e.target.value)} compact />}
                               {isUCorCapi && (
                                 <Field label="Part UC (%)">
                                   <Input type="number" min="0" max="100" placeholder="ex: 70" value={placement.ucRatio} onChange={(e) => updatePlacementStr(index, "ucRatio", e.target.value)} className="rounded-xl h-8 text-sm" />
@@ -3574,7 +3649,7 @@ ${activeHypos.length > 0 ? `
                               const above150k = primesNettes > 150000;
                               return (
                                 <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(145px,1fr))]">
-                                  <MoneyField label="Retrait annuel (€)" value={placement.annualWithdrawal || ""} onChange={(e) => updatePlacementStr(index, "annualWithdrawal", e.target.value)} compact />
+                                  <MoneyField label="Retrait annuel (€)" tooltip="Montant du retrait annuel programmé. Permet d'estimer la fiscalité des rachats partiels et l'impact sur l'encours projeté." value={placement.annualWithdrawal || ""} onChange={(e) => updatePlacementStr(index, "annualWithdrawal", e.target.value)} compact />
                                   {retrait > 0 && (
                                     <div className="col-span-full rounded-xl border px-3 py-2.5 text-xs space-y-1.5" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
                                       <div className="font-semibold" style={{ color: BRAND.sky }}>Simulation fiscale rachat</div>
@@ -3683,18 +3758,18 @@ ${activeHypos.length > 0 ? `
 
                 {/* KPIs principaux sur une ligne */}
                 <div className="grid gap-3 md:grid-cols-4">
-                  <MetricCard label="IR total" value={euro(ir.finalIR)} />
-                  <MetricCard label="Revenu net global" value={euro(ir.revenuNetGlobal)} />
-                  <MetricCard label="TMI" value={`${Math.round(ir.marginalRate * 100)} %`} />
-                  <MetricCard label="Taux moyen" value={`${Math.round(ir.averageRate * 1000) / 10} %`} />
+                  <MetricCard label="IR total" value={euro(ir.finalIR)} hint="Barème progressif + PFU + prélèvements sociaux fonciers" />
+                  <MetricCard label="Revenu net global" value={euro(ir.revenuNetGlobal)} hint="Salaires + revenus fonciers + pensions, après déductions" />
+                  <MetricCard label="TMI" value={`${Math.round(ir.marginalRate * 100)} %`} hint="Taux Marginal d'Imposition : taux de la dernière tranche atteinte" />
+                  <MetricCard label="Taux moyen" value={`${Math.round(ir.averageRate * 1000) / 10} %`} hint="IR total / revenu net imposable. Taux effectif réellement supporté" />
                 </div>
 
                 {/* Détail horizontal */}
                 <div className="grid gap-3 md:grid-cols-4">
-                  <MetricCard label="Barème progressif" value={euro(ir.bareme)} />
-                  <MetricCard label="PFU" value={euro(ir.totalPFU)} />
-                  <MetricCard label="Quotient familial" value={euro(ir.quotient)} hint={`${ir.parts} part(s)`} />
-                  <MetricCard label="Plafonnement QF" value={euro(ir.quotientFamilialCapAdjustment)} hint={`Avantage retenu : ${euro(Math.min(ir.qfBenefit, ir.qfCap))}`} />
+                  <MetricCard label="Barème progressif" value={euro(ir.bareme)} hint="IR calculé par tranches sur le quotient familial, avant PFU et réductions" />
+                  <MetricCard label="PFU" value={euro(ir.totalPFU)} hint="Prélèvement Forfaitaire Unique de 30 % (12,8 % IR + 17,2 % PS) sur les revenus de capitaux mobiliers et plus-values" />
+                  <MetricCard label="Quotient familial" value={euro(ir.quotient)} hint={`${ir.parts} part(s) — Revenu net divisé par le nombre de parts`} />
+                  <MetricCard label="Plafonnement QF" value={euro(ir.quotientFamilialCapAdjustment)} hint={`Avantage retenu : ${euro(Math.min(ir.qfBenefit, ir.qfCap))} — L'avantage fiscal par demi-part supplémentaire est plafonné à 1 759 € (2024)`} />
                 </div>
 
                 {/* Options frais + régime foncier — 2 personnes + 1 col régime côte à côte */}
@@ -3704,7 +3779,7 @@ ${activeHypos.length > 0 ? `
                     {/* P1 */}
                     <div className="space-y-3">
                       <div className="text-xs font-medium text-slate-500">{person1}</div>
-                      <Field label="Mode de frais">
+                      <Field label="Mode de frais" tooltip="Abattement 10 % : déduction forfaitaire de 10 % du salaire brut (min. 504 €, max. 14 426 €). Frais réels : déduction des frais professionnels réels justifiés (transport, repas, etc.). Choisir frais réels si le montant dépasse 10 % du salaire.">
                         <Select value={irOptions.expenseMode1} onValueChange={(v: "standard" | "actual") => setIrOptions((prev) => ({ ...prev, expenseMode1: v }))}>
                           <SelectTrigger className="rounded-xl bg-white border border-slate-300 shadow-sm"><SelectValue /></SelectTrigger>
                           <SelectContent><SelectItem value="standard">Abattement 10 %</SelectItem><SelectItem value="actual">Frais réels</SelectItem></SelectContent>
@@ -3712,11 +3787,11 @@ ${activeHypos.length > 0 ? `
                       </Field>
                       {irOptions.expenseMode1 === "actual" && (
                         <div className="grid gap-2 grid-cols-2">
-                          <MoneyField label="Km professionnels" value={irOptions.km1} onChange={(e) => setIrOptions((prev) => ({ ...prev, km1: e.target.value }))} />
-                          <MoneyField label="CV fiscal" value={irOptions.cv1} onChange={(e) => setIrOptions((prev) => ({ ...prev, cv1: e.target.value }))} />
-                          <MoneyField label="Nb repas" value={irOptions.mealCount1} onChange={(e) => setIrOptions((prev) => ({ ...prev, mealCount1: e.target.value }))} />
-                          <MoneyField label="€ / repas" value={irOptions.mealUnit1} onChange={(e) => setIrOptions((prev) => ({ ...prev, mealUnit1: e.target.value }))} />
-                          <div className="col-span-2"><MoneyField label="Autres frais" value={irOptions.other1} onChange={(e) => setIrOptions((prev) => ({ ...prev, other1: e.target.value }))} /></div>
+                          <MoneyField label="Km professionnels" tooltip="Nombre de kilomètres parcourus à titre professionnel avec votre véhicule personnel. Multipliés par le barème kilométrique fiscal selon la puissance du véhicule." value={irOptions.km1} onChange={(e) => setIrOptions((prev) => ({ ...prev, km1: e.target.value }))} />
+                          <MoneyField label="CV fiscal" tooltip="Puissance fiscale du véhicule en chevaux-vapeur (CV). Détermine le barème kilométrique applicable : ex. 5 CV = 0,548 €/km jusqu'à 5 000 km." value={irOptions.cv1} onChange={(e) => setIrOptions((prev) => ({ ...prev, cv1: e.target.value }))} />
+                          <MoneyField label="Nb repas" tooltip="Nombre de repas pris hors domicile pour raison professionnelle. Chaque repas est déductible pour la différence entre son coût réel et la valeur d'un repas à domicile (~5 €)." value={irOptions.mealCount1} onChange={(e) => setIrOptions((prev) => ({ ...prev, mealCount1: e.target.value }))} />
+                          <MoneyField label="€ / repas" tooltip="Coût moyen d'un repas professionnel. La fraction déductible est : coût réel − valeur repas domicile (environ 5,20 € en 2024)." value={irOptions.mealUnit1} onChange={(e) => setIrOptions((prev) => ({ ...prev, mealUnit1: e.target.value }))} />
+                          <div className="col-span-2"><MoneyField label="Autres frais" tooltip="Autres frais professionnels réels : abonnement transport, fournitures, formation, cotisations syndicales, etc. À justifier en cas de contrôle." value={irOptions.other1} onChange={(e) => setIrOptions((prev) => ({ ...prev, other1: e.target.value }))} /></div>
                           <div className="col-span-2 rounded-lg bg-white/70 px-3 py-2 text-xs text-slate-600">
                             IK : <strong>{euro(computeKilometricAllowance(n(irOptions.km1), n(irOptions.cv1)))}</strong> · Repas : <strong>{euro(n(irOptions.mealCount1) * n(irOptions.mealUnit1))}</strong>
                           </div>
@@ -3726,7 +3801,7 @@ ${activeHypos.length > 0 ? `
                     {/* P2 */}
                     <div className="space-y-3">
                       <div className="text-xs font-medium text-slate-500">{person2}</div>
-                      <Field label="Mode de frais">
+                      <Field label="Mode de frais" tooltip="Abattement 10 % : déduction forfaitaire de 10 % du salaire brut (min. 504 €, max. 14 426 €). Frais réels : déduction des frais professionnels réels justifiés (transport, repas, etc.). Choisir frais réels si le montant dépasse 10 % du salaire.">
                         <Select value={irOptions.expenseMode2} onValueChange={(v: "standard" | "actual") => setIrOptions((prev) => ({ ...prev, expenseMode2: v }))}>
                           <SelectTrigger className="rounded-xl bg-white border border-slate-300 shadow-sm"><SelectValue /></SelectTrigger>
                           <SelectContent><SelectItem value="standard">Abattement 10 %</SelectItem><SelectItem value="actual">Frais réels</SelectItem></SelectContent>
@@ -3734,11 +3809,11 @@ ${activeHypos.length > 0 ? `
                       </Field>
                       {irOptions.expenseMode2 === "actual" && (
                         <div className="grid gap-2 grid-cols-2">
-                          <MoneyField label="Km professionnels" value={irOptions.km2} onChange={(e) => setIrOptions((prev) => ({ ...prev, km2: e.target.value }))} />
-                          <MoneyField label="CV fiscal" value={irOptions.cv2} onChange={(e) => setIrOptions((prev) => ({ ...prev, cv2: e.target.value }))} />
-                          <MoneyField label="Nb repas" value={irOptions.mealCount2} onChange={(e) => setIrOptions((prev) => ({ ...prev, mealCount2: e.target.value }))} />
-                          <MoneyField label="€ / repas" value={irOptions.mealUnit2} onChange={(e) => setIrOptions((prev) => ({ ...prev, mealUnit2: e.target.value }))} />
-                          <div className="col-span-2"><MoneyField label="Autres frais" value={irOptions.other2} onChange={(e) => setIrOptions((prev) => ({ ...prev, other2: e.target.value }))} /></div>
+                          <MoneyField label="Km professionnels" tooltip="Nombre de kilomètres parcourus à titre professionnel avec votre véhicule personnel. Multipliés par le barème kilométrique fiscal selon la puissance du véhicule." value={irOptions.km2} onChange={(e) => setIrOptions((prev) => ({ ...prev, km2: e.target.value }))} />
+                          <MoneyField label="CV fiscal" tooltip="Puissance fiscale du véhicule en chevaux-vapeur (CV). Détermine le barème kilométrique applicable : ex. 5 CV = 0,548 €/km jusqu'à 5 000 km." value={irOptions.cv2} onChange={(e) => setIrOptions((prev) => ({ ...prev, cv2: e.target.value }))} />
+                          <MoneyField label="Nb repas" tooltip="Nombre de repas pris hors domicile pour raison professionnelle. Chaque repas est déductible pour la différence entre son coût réel et la valeur d'un repas à domicile (~5 €)." value={irOptions.mealCount2} onChange={(e) => setIrOptions((prev) => ({ ...prev, mealCount2: e.target.value }))} />
+                          <MoneyField label="€ / repas" tooltip="Coût moyen d'un repas professionnel. La fraction déductible est : coût réel − valeur repas domicile (environ 5,20 € en 2024)." value={irOptions.mealUnit2} onChange={(e) => setIrOptions((prev) => ({ ...prev, mealUnit2: e.target.value }))} />
+                          <div className="col-span-2"><MoneyField label="Autres frais" tooltip="Autres frais professionnels réels : abonnement transport, fournitures, formation, cotisations syndicales, etc. À justifier en cas de contrôle." value={irOptions.other2} onChange={(e) => setIrOptions((prev) => ({ ...prev, other2: e.target.value }))} /></div>
                           <div className="col-span-2 rounded-lg bg-white/70 px-3 py-2 text-xs text-slate-600">
                             IK : <strong>{euro(computeKilometricAllowance(n(irOptions.km2), n(irOptions.cv2)))}</strong> · Repas : <strong>{euro(n(irOptions.mealCount2) * n(irOptions.mealUnit2))}</strong>
                           </div>
@@ -3748,7 +3823,7 @@ ${activeHypos.length > 0 ? `
                     {/* Foncier */}
                     <div className="space-y-3">
                       <div className="text-xs font-medium text-slate-500">Revenus fonciers</div>
-                      <Field label="Régime foncier">
+                      <Field label="Régime foncier" tooltip="Micro-foncier : abattement forfaitaire de 30 % si revenus fonciers bruts < 15 000 €/an. Régime réel : déduction des charges réelles (intérêts, travaux, assurance…). Le régime réel est souvent plus avantageux en présence d'un emprunt.">
                         <Select value={irOptions.foncierRegime} onValueChange={(v: "micro" | "real") => setIrOptions((prev) => ({ ...prev, foncierRegime: v }))}>
                           <SelectTrigger className="rounded-xl bg-white border border-slate-300 shadow-sm"><SelectValue /></SelectTrigger>
                           <SelectContent><SelectItem value="micro">Micro-foncier (30 %)</SelectItem><SelectItem value="real">Régime réel</SelectItem></SelectContent>
@@ -3778,10 +3853,10 @@ ${activeHypos.length > 0 ? `
                 <div className="grid gap-4 md:grid-cols-[1fr_2fr]">
                   <div className="space-y-3">
                     <div className="grid gap-3 grid-cols-2 md:grid-cols-1">
-                      <MetricCard label="Actif net taxable IFI" value={euro(ifi.netTaxable)} />
-                      <MetricCard label="IFI brut" value={euro(ifi.grossIfi)} />
-                      <MetricCard label="Décote" value={euro(ifi.decote)} />
-                      <MetricCard label="IFI net dû" value={euro(ifi.ifi)} />
+                      <MetricCard label="Actif net taxable IFI" value={euro(ifi.netTaxable)} hint="Valeur brute des biens − passif déductible − abattement RP 30 %" />
+                      <MetricCard label="IFI brut" value={euro(ifi.grossIfi)} hint="IFI calculé par le barème progressif avant décote" />
+                      <MetricCard label="Décote" value={euro(ifi.decote)} hint="Réduction appliquée si l'actif net taxable est entre 1,3 M€ et 1,4 M€. Calcul : 17 500 − 1,25 % × actif net" />
+                      <MetricCard label="IFI net dû" value={euro(ifi.ifi)} hint="IFI brut − décote. Exigible uniquement si l'actif net taxable dépasse 1 300 000 €" />
                     </div>
                   </div>
                   <BracketFillChart title="Barème IFI" data={ifi.bracketFill} referenceValue={ifi.netTaxable} valueLabel="Base taxable" />
@@ -3838,13 +3913,13 @@ ${activeHypos.length > 0 ? `
 
                 {/* Paramètres + KPIs sur une même zone */}
                 <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr]">
-                  <Field label="Décès simulé de">
+                  <Field label="Décès simulé de" tooltip="Personne dont on simule le décès. Détermine qui est le défunt et qui est le conjoint survivant, ainsi que la composition de la masse successorale.">
                     <Select value={successionData.deceasedPerson} onValueChange={(v: "person1" | "person2") => setSuccessionData((prev) => ({ ...prev, deceasedPerson: v }))}>
                       <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                       <SelectContent><SelectItem value="person1">{person1}</SelectItem><SelectItem value="person2">{person2}</SelectItem></SelectContent>
                     </Select>
                   </Field>
-                  <Field label="Option conjoint survivant">
+                  <Field label="Option conjoint survivant" tooltip="Le conjoint survivant peut choisir entre : Usufruit universel (usage de tous les biens), Pleine propriété de la quotité disponible (en pleine propriété, selon le nombre d'enfants), ou 1/4 en pleine propriété. L'option usufruit est souvent avantageuse fiscalement.">
                     <Select value={effectiveSpouseOption} onValueChange={(v) => setSuccessionData((prev) => ({ ...prev, spouseOption: v }))}>
                       <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                       <SelectContent>{spouseOptions.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
@@ -3896,7 +3971,7 @@ ${activeHypos.length > 0 ? `
                             <SelectContent>{TESTAMENT_RELATION_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                           </Select>
                         </Field>
-                        <MoneyField label="Donations antérieures" value={heir.priorDonations} onChange={(e) => updateTestamentHeir(index, "priorDonations", e.target.value)} />
+                        <MoneyField label="Donations antérieures" tooltip="Donations consenties à cet héritier dans les 15 dernières années. Réintégrées dans la masse successorale pour le calcul des droits (rappel fiscal). Réduisent l'abattement restant disponible." value={heir.priorDonations} onChange={(e) => updateTestamentHeir(index, "priorDonations", e.target.value)} />
                         <Button variant="outline" className="h-9 w-9 rounded-xl p-0" onClick={() => removeTestamentHeir(index)}><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     ))}
@@ -3905,12 +3980,12 @@ ${activeHypos.length > 0 ? `
 
                 {/* KPIs succession en 2 lignes de 3 */}
                 <div className="grid gap-3 md:grid-cols-3">
-                  <MetricCard label="Actif successoral net" value={euro(succession.activeNet)} />
-                  <MetricCard label="Droits de succession" value={euro(succession.totalSuccessionRights)} />
-                  <MetricCard label="Fiscalité AV" value={euro(succession.totalAvRights)} hint={`Total combiné : ${euro(succession.totalRights)}`} />
-                  <MetricCard label="Immobilier retenu" value={euro(succession.collectedPropertyEstate)} />
-                  <MetricCard label="Placements retenus" value={euro(succession.placementsSuccession)} />
-                  <MetricCard label="Forfait mobilier 5 %" value={euro(succession.furnitureForfait)} />
+                  <MetricCard label="Actif successoral net" value={euro(succession.activeNet)} hint="Immobilier + placements hors AV + mobilier 5 % − dettes" />
+                  <MetricCard label="Droits de succession" value={euro(succession.totalSuccessionRights)} hint="Droits calculés par héritier après abattements légaux et barème progressif" />
+                  <MetricCard label="Fiscalité AV" value={euro(succession.totalAvRights)} hint={`Total combiné : ${euro(succession.totalRights)} — Taxation des primes AV selon art. 990 I (primes < 70 ans) et art. 757 B (primes ≥ 70 ans)`} />
+                  <MetricCard label="Immobilier retenu" value={euro(succession.collectedPropertyEstate)} hint="Part des biens immobiliers du défunt intégrée à la masse successorale" />
+                  <MetricCard label="Placements retenus" value={euro(succession.placementsSuccession)} hint="Valeur des placements hors assurance-vie (CTO, PEA, PER…) intégrés à la succession" />
+                  <MetricCard label="Forfait mobilier 5 %" value={euro(succession.furnitureForfait)} hint="Évaluation forfaitaire du mobilier meublant à 5 % de l'actif brut successoral, en l'absence d'inventaire notarial" />
                 </div>
 
                 {/* Tables compactes côte à côte */}
