@@ -16,6 +16,7 @@ import { useClients, ClientManager } from "./useClients";
 import type { ClientRecord, ClientPayload } from "./useClients";
 import { useAuth } from "./hooks/useAuth";
 import { AuthGate } from "./components/AuthGate";
+import { supabase } from "./lib/supabase";
 
 // ─── BRAND & SURFACE ─────────────────────────────────────────────────────────
 
@@ -162,6 +163,9 @@ type Property = {
   otherChargesAnnual: string;
   loanCapitalRemaining: string;
   loanInterestAnnual: string;
+  loanInsurance: boolean;       // assurance emprunteur oui/non
+  loanInsuranceRate: string;    // quotité DC (%)
+  loanInsurancePremium: string; // prime annuelle (€) — déductible loyers réel
 };
 
 type Beneficiary = {
@@ -318,6 +322,9 @@ type SuccessionPropertyLine = {
   grossEstateValue: number;
   residenceAbatement: number;
   debtShare: number;
+  debtShareGross: number;
+  insuranceCover: number;
+  insuranceRate: number;
   netEstateValue: number;
   note: string;
 };
@@ -596,7 +603,8 @@ function computeIR(data: PatrimonialData, irOptions: IrOptions) {
   for (const property of data.properties) {
     if (["Location nue", "SCI IR", "SCI IS", "LMNP", "LMP", "Local professionnel", "Autre"].includes(property.type)) {
       foncierBrut += n(property.rentGrossAnnual);
-      foncierCharges += n(property.propertyTaxAnnual) + n(property.insuranceAnnual) + n(property.worksAnnual) + n(property.otherChargesAnnual);
+      foncierCharges += n(property.propertyTaxAnnual) + n(property.insuranceAnnual) + n(property.worksAnnual) + n(property.otherChargesAnnual)
+        + (property.loanInsurance ? n(property.loanInsurancePremium) : 0); // prime assurance emprunteur déductible
       foncierInterests += n(property.loanInterestAnnual);
     }
   }
@@ -616,7 +624,7 @@ function computeIR(data: PatrimonialData, irOptions: IrOptions) {
       taxablePlacements += n(placement.taxableIncome);
       if (placement.pfuEligible) pfuBase += n(placement.taxableIncome);
     } else {
-      const retrait = n((placement as any).annualWithdrawal || "");
+      const retrait = n(placement.annualWithdrawal || "");
       if (retrait > 0) {
         const valeur = n(placement.value);
         const primesNettes = n(placement.totalPremiumsNet);
@@ -695,9 +703,12 @@ function computeIFI(data: PatrimonialData) {
   const lines = data.properties.map((property) => {
     const fullValue = Math.max(0, n(property.value));
     const debt = Math.max(0, n(property.loanCapitalRemaining));
+    // Assurance DC réduit le passif IFI
+    const insuranceRateIfi = property.loanInsurance ? Math.min(100, Math.max(0, n(property.loanInsuranceRate))) : 0;
+    const netDebt = Math.max(0, debt * (1 - insuranceRateIfi / 100));
     const residenceAbatement = property.type === "Résidence principale" ? fullValue * 0.3 : 0;
     const taxableGross = Math.max(0, fullValue - residenceAbatement);
-    const deductibleDebt = Math.min(debt, taxableGross);
+    const deductibleDebt = Math.min(netDebt, taxableGross);
     const included = property.propertyRight !== "bare";
     const taxableNet = included ? Math.max(0, taxableGross - deductibleDebt) : 0;
     return {
@@ -879,12 +890,20 @@ function computeSuccession(successionData: SuccessionData, data: PatrimonialData
       ? debt * 0.5
       : property.ownership === deceasedKey ? debt : 0;
 
+    // Assurance emprunteur DC — réduit le passif successoral
+    const insuranceRate = property.loanInsurance ? Math.min(100, Math.max(0, n(property.loanInsuranceRate))) : 0;
+    const insuranceCover = debtShare * insuranceRate / 100;
+    const netDebtShare = Math.max(0, debtShare - insuranceCover);
+
     return {
       name: property.name || property.type,
       grossEstateValue: estateValue,
       residenceAbatement,
-      debtShare,
-      netEstateValue: Math.max(0, estateValue - residenceAbatement - debtShare),
+      debtShare: netDebtShare,
+      debtShareGross: debtShare,
+      insuranceCover,
+      insuranceRate,
+      netEstateValue: Math.max(0, estateValue - residenceAbatement - netDebtShare),
       note,
     };
   });
@@ -1260,7 +1279,7 @@ function runSelfChecks() {
       name: "Locatif", type: "Location nue", ownership: "person1", propertyRight: "full",
       usufructAge: "", value: "300000", propertyTaxAnnual: "1000", rentGrossAnnual: "12000",
       insuranceAnnual: "300", worksAnnual: "500", otherChargesAnnual: "200",
-      loanCapitalRemaining: "50000", loanInterestAnnual: "1500",
+      loanCapitalRemaining: "50000", loanInterestAnnual: "1500", loanInsurance: false, loanInsuranceRate: "", loanInsurancePremium: "",
     }],
     placements: [
       { name: "CT", type: "Compte à terme", ownership: "person1", value: "20000", annualIncome: "", taxableIncome: "", deathValue: "20000", openDate: "", pfuEligible: true, totalPremiumsNet: "", premiumsBefore70: "", premiumsAfter70: "", exemptFromSuccession: "", ucRatio: "", annualWithdrawal: "", beneficiaries: [] },
@@ -1507,8 +1526,9 @@ function AppInner({ userId, onSignOut }: { userId: string; onSignOut: () => void
       return next;
     });
   };
-  const { clients, createClient, saveClient, deleteClient, duplicateClient, renameClient } = useClients(userId)
+  const { clients, syncStatus, syncNow, createClient, saveClient, deleteClient, duplicateClient, renameClient } = useClients(userId)
   const [activeClient, setActiveClient] = useState<ClientRecord | null>(null)
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
   // Couleurs dynamiques tirées des paramètres cabinet
   const CAB = {
     navy: cabinet.colorNavy,
@@ -1609,6 +1629,22 @@ function AppInner({ userId, onSignOut }: { userId: string; onSignOut: () => void
   ]);
   const [baseSnapshot, setBaseSnapshot] = useState<BaseSnapshot>({ savedAt: null, data: null, successionData: null, irOptions: null });
 
+  // ── Autosave ──
+  useEffect(() => {
+    if (!activeClient) return;
+    setAutoSaveStatus("saving");
+    const timer = setTimeout(() => {
+      const payload = {
+        clientName, notes, data, irOptions, successionData, hypotheses, baseSnapshot, mission,
+      };
+      const displayName = clientName || activeClient.displayName;
+      saveClient(activeClient.id, payload as ClientPayload, displayName);
+      setAutoSaveStatus("saved");
+      setTimeout(() => setAutoSaveStatus("idle"), 2500);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [data, clientName, notes, irOptions, successionData, hypotheses, baseSnapshot, mission, activeClient]);
+
   const person1 = personLabel(data, 1);
   const person2 = personLabel(data, 2);
   const ownerOptions = [
@@ -1629,9 +1665,9 @@ function AppInner({ userId, onSignOut }: { userId: string; onSignOut: () => void
 
   const addProperty = (type: string) => setData((prev) => ({
     ...prev,
-    properties: [...prev.properties, { name: "", type, ownership: "person1", propertyRight: "full", usufructAge: "", value: "", propertyTaxAnnual: "", rentGrossAnnual: "", insuranceAnnual: "", worksAnnual: "", otherChargesAnnual: "", loanCapitalRemaining: "", loanInterestAnnual: "" }],
+    properties: [...prev.properties, { name: "", type, ownership: "person1", propertyRight: "full", usufructAge: "", value: "", propertyTaxAnnual: "", rentGrossAnnual: "", insuranceAnnual: "", worksAnnual: "", otherChargesAnnual: "", loanCapitalRemaining: "", loanInterestAnnual: "", loanInsurance: false, loanInsuranceRate: "", loanInsurancePremium: "" }],
   }));
-  const updateProperty = (index: number, key: keyof Property, value: string) =>
+  const updateProperty = (index: number, key: keyof Property, value: string | boolean) =>
     setData((prev) => ({ ...prev, properties: prev.properties.map((p, i) => i === index ? { ...p, [key]: value } : p) }));
   const removeProperty = (index: number) =>
     setData((prev) => ({ ...prev, properties: prev.properties.filter((_, i) => i !== index) }));
@@ -1835,7 +1871,12 @@ function AppInner({ userId, onSignOut }: { userId: string; onSignOut: () => void
     const dateStr = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
     const dateTimeStr = new Date().toLocaleString("fr-FR");
     const immobilierBrut = data.properties.reduce((s, p) => s + n(p.value), 0);
-    const immobilierNet = data.properties.reduce((s, p) => s + Math.max(0, n(p.value) - n(p.loanCapitalRemaining)), 0);
+    const immobilierNet = data.properties.reduce((s, p) => {
+      const debt = n(p.loanCapitalRemaining);
+      const insurRate = p.loanInsurance ? Math.min(100, Math.max(0, n(p.loanInsuranceRate))) : 0;
+      const netDebt = Math.max(0, debt * (1 - insurRate / 100));
+      return s + Math.max(0, n(p.value) - netDebt);
+    }, 0);
     const placementsTotal = data.placements.reduce((s, p) => s + n(p.value), 0);
     const avTotal = data.placements.filter((p) => isAV(p.type)).reduce((s, p) => s + n(p.value), 0);
     const patrimoineTotal = immobilierNet + placementsTotal;
@@ -2443,7 +2484,12 @@ ${activeHypos.length > 0 ? `
   const generateMissionPdf = () => {
     const dateStr = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
     const dateTimeStr = new Date().toLocaleString("fr-FR");
-    const immobilierNet = data.properties.reduce((s, p) => s + Math.max(0, n(p.value) - n(p.loanCapitalRemaining)), 0);
+    const immobilierNet = data.properties.reduce((s, p) => {
+      const debt = n(p.loanCapitalRemaining);
+      const insurRate = p.loanInsurance ? Math.min(100, Math.max(0, n(p.loanInsuranceRate))) : 0;
+      const netDebt = Math.max(0, debt * (1 - insurRate / 100));
+      return s + Math.max(0, n(p.value) - netDebt);
+    }, 0);
     const placementsTotal = data.placements.reduce((s, p) => s + n(p.value), 0);
     const coupleLabel: Record<string, string> = { married: "Marié(s)", pacs: "Pacsé(s)", cohabitation: "Concubinage", single: "Célibataire", divorced: "Divorcé(e)" };
     const p1 = [data.person1FirstName, data.person1LastName].filter(Boolean).join(" ") || "—";
@@ -3119,6 +3165,8 @@ ${activeHypos.length > 0 ? `
     return (
       <ClientManager
         clients={clients}
+        syncStatus={syncStatus}
+        syncNow={syncNow}
         onOpen={handleOpenClient}
         onCreate={handleCreateClient}
         onDelete={deleteClient}
@@ -3150,6 +3198,12 @@ ${activeHypos.length > 0 ? `
                 <button onClick={() => { handleSaveAndClose(); onSignOut(); }} style={{ background: "rgba(255,255,255,0.10)", border: "none", borderRadius: "10px", padding: "6px 14px", color: "rgba(255,255,255,0.7)", fontSize: "12px", cursor: "pointer" }}>
                   Déconnexion
                 </button>
+                {autoSaveStatus === "saving" && (
+                  <span className="text-xs text-white/60 animate-pulse">Sauvegarde…</span>
+                )}
+                {autoSaveStatus === "saved" && (
+                  <span className="text-xs text-green-300 font-medium">✓ Sauvegardé</span>
+                )}
                 <img src={logoSrc} alt="Vision Ecopatrimoine" className="h-16 w-auto object-contain md:h-20 drop-shadow-md" />
               </div>
               <div className="flex flex-col gap-3 md:flex-row md:items-end md:gap-4">
@@ -3400,6 +3454,20 @@ ${activeHypos.length > 0 ? `
                             {propertyNeedsRent(property.type) && <MoneyField label="Autres charges/an" value={property.otherChargesAnnual} onChange={(e) => updateProperty(index, "otherChargesAnnual", e.target.value)} compact />}
                             {propertyNeedsLoan(property.type) && <MoneyField label="Capital restant dû" value={property.loanCapitalRemaining} onChange={(e) => updateProperty(index, "loanCapitalRemaining", e.target.value)} compact />}
                             {propertyNeedsLoan(property.type) && <MoneyField label="Intérêts/an" value={property.loanInterestAnnual} onChange={(e) => updateProperty(index, "loanInterestAnnual", e.target.value)} compact />}
+                            {propertyNeedsLoan(property.type) && (
+                              <Field label="Ass. emprunteur">
+                                <Select value={property.loanInsurance ? "yes" : "no"} onValueChange={(v) => updateProperty(index, "loanInsurance", v === "yes")}>
+                                  <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                                  <SelectContent><SelectItem value="yes">Oui</SelectItem><SelectItem value="no">Non</SelectItem></SelectContent>
+                                </Select>
+                              </Field>
+                            )}
+                            {propertyNeedsLoan(property.type) && property.loanInsurance && (
+                              <MoneyField label="Quotité DC (%)" value={property.loanInsuranceRate} onChange={(e) => updateProperty(index, "loanInsuranceRate", e.target.value)} compact />
+                            )}
+                            {propertyNeedsLoan(property.type) && property.loanInsurance && (
+                              <MoneyField label="Ass. crédit/an" value={property.loanInsurancePremium} onChange={(e) => updateProperty(index, "loanInsurancePremium", e.target.value)} compact />
+                            )}
                           </div>
                         </CardContent>
                       </Card>
@@ -3491,7 +3559,7 @@ ${activeHypos.length > 0 ? `
 
                             {/* Retrait annuel AV + simulateur fiscal */}
                             {isAVType && (() => {
-                              const retrait = n((placement as any).annualWithdrawal || "");
+                              const retrait = n(placement.annualWithdrawal || "");
                               const valeur = n(placement.value);
                               const primesNettes = n(placement.totalPremiumsNet);
                               const plusValues = Math.max(0, valeur - primesNettes);
@@ -3506,7 +3574,7 @@ ${activeHypos.length > 0 ? `
                               const above150k = primesNettes > 150000;
                               return (
                                 <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(145px,1fr))]">
-                                  <MoneyField label="Retrait annuel (€)" value={(placement as any).annualWithdrawal || ""} onChange={(e) => updatePlacementStr(index, "annualWithdrawal" as any, e.target.value)} compact />
+                                  <MoneyField label="Retrait annuel (€)" value={placement.annualWithdrawal || ""} onChange={(e) => updatePlacementStr(index, "annualWithdrawal", e.target.value)} compact />
                                   {retrait > 0 && (
                                     <div className="col-span-full rounded-xl border px-3 py-2.5 text-xs space-y-1.5" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
                                       <div className="font-semibold" style={{ color: BRAND.sky }}>Simulation fiscale rachat</div>
@@ -3867,7 +3935,12 @@ ${activeHypos.length > 0 ? `
                                   <div className="text-slate-400">{line.note}</div>
                                 </td>
                                 <td className="px-3 py-2 text-right">{euro(line.grossEstateValue)}</td>
-                                <td className="px-3 py-2 text-right text-slate-500">- {euro(line.residenceAbatement + line.debtShare)}</td>
+                                <td className="px-3 py-2 text-right text-slate-500">
+                                  - {euro(line.residenceAbatement + line.debtShare)}
+                                  {line.insuranceCover > 0 && (
+                                    <div className="text-xs text-green-600">dont ass. DC : -{euro(line.insuranceCover)}</div>
+                                  )}
+                                </td>
                                 <td className="px-3 py-2 text-right font-semibold" style={{ color: BRAND.navy }}>{euro(line.netEstateValue)}</td>
                               </tr>
                             ))}
@@ -4695,19 +4768,24 @@ ${activeHypos.length > 0 ? `
 export default function App() {
   const auth = useAuth();
 
+  // Écran de chargement pendant la vérification de session
   if (auth.authState === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "radial-gradient(circle at top left, rgba(227,175,100,0.18) 0%, rgba(248,246,247,1) 34%, rgba(251,236,215,0.62) 62%, rgba(238,242,255,1) 100%)" }}>
-        <div className="text-slate-400 text-sm animate-pulse">Chargement...</div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 rounded-full border-2 border-[#26428B] border-t-transparent animate-spin" />
+          <div className="text-slate-400 text-sm">Vérification de la session...</div>
+        </div>
       </div>
     );
   }
 
+  // Pas connecté ou session expirée → écran de connexion
   if (auth.authState === "unauthenticated" || auth.authState === "expired") {
     return (
       <AuthGate
         authHook={auth}
-        logoSrc={""}
+        logoSrc={typeof window !== "undefined" ? (localStorage.getItem("vision_ecopatrimoine_cabinet") ? JSON.parse(localStorage.getItem("vision_ecopatrimoine_cabinet") || "{}").logoSrc || "" : "") : ""}
         colorNavy={"#101B3B"}
         colorGold={"#E3AF64"}
         colorSky={"#26428B"}
@@ -4716,5 +4794,36 @@ export default function App() {
     );
   }
 
-  return <AppInner userId={auth.user?.id ?? ""} onSignOut={auth.signOut} />;
+  // Mode grace (hors-ligne mais session récente) ou authentifié → accès à l'app
+  // En mode grace, auth.user est null → on récupère le userId depuis le localStorage
+  const resolveUserId = (): string => {
+    if (auth.user?.id) return auth.user.id;
+    if (auth.authState === "grace") {
+      // Chercher la clé clients la plus récente pour retrouver le userId
+      try {
+        const key = Object.keys(localStorage)
+          .filter(k => k.startsWith("ecopatrimoine_clients_") && k.length > "ecopatrimoine_clients_".length)
+          .sort((a, b) => {
+            // Préférer la clé avec le plus de données
+            return (localStorage.getItem(b) ?? "").length - (localStorage.getItem(a) ?? "").length;
+          })[0];
+        if (key) return key.replace("ecopatrimoine_clients_", "");
+      } catch { /* ignore */ }
+    }
+    return "";
+  };
+  const userId = resolveUserId();
+
+  if (!userId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "radial-gradient(circle at top left, rgba(227,175,100,0.18) 0%, rgba(248,246,247,1) 34%, rgba(251,236,215,0.62) 62%, rgba(238,242,255,1) 100%)" }}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 rounded-full border-2 border-[#26428B] border-t-transparent animate-spin" />
+          <div className="text-slate-400 text-sm">Chargement du profil...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return <AppInner userId={userId} onSignOut={auth.signOut} />;
 }
