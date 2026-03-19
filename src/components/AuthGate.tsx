@@ -60,22 +60,45 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
     if (ok) setSuccessMsg("Email de réinitialisation envoyé !");
   };
 
-  const SURFACE = `radial-gradient(circle at top left, rgba(227,175,100,0.18) 0%, rgba(248,246,247,1) 34%, rgba(251,236,215,0.62) 62%, rgba(238,242,255,1) 100%)`;
+  const SURFACE_CREAM = "#FBF7F0";
+
+  const geoKeyframes = `
+    @keyframes float1 { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(20px,-15px) rotate(12deg); } }
+    @keyframes float2 { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(-15px,20px) rotate(-8deg); } }
+    @keyframes float3 { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(10px,25px) rotate(15deg); } }
+    @keyframes float4 { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(-20px,-10px) rotate(-12deg); } }
+    @keyframes float5 { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(15px,10px) rotate(6deg); } }
+  `;
+
+  const shapes: React.CSSProperties[] = [
+    { position: "absolute", top: "8%", left: "5%", width: 120, height: 120, borderRadius: "50%", background: colorNavy, opacity: 0.06, animation: "float1 12s ease-in-out infinite" },
+    { position: "absolute", bottom: "12%", right: "8%", width: 160, height: 160, borderRadius: "50%", background: colorNavy, opacity: 0.05, animation: "float2 14s ease-in-out infinite" },
+    { position: "absolute", top: "20%", right: "12%", width: 80, height: 140, borderRadius: 16, background: colorGold, opacity: 0.08, animation: "float3 10s ease-in-out infinite" },
+    { position: "absolute", bottom: "25%", left: "8%", width: 100, height: 60, borderRadius: 12, background: colorGold, opacity: 0.07, animation: "float4 11s ease-in-out infinite" },
+    { position: "absolute", top: "55%", left: "15%", width: 70, height: 70, borderRadius: 14, background: colorSky, opacity: 0.06, animation: "float5 13s ease-in-out infinite" },
+    { position: "absolute", top: "10%", right: "25%", width: 50, height: 50, borderRadius: 10, background: colorSky, opacity: 0.07, animation: "float1 15s ease-in-out infinite" },
+    { position: "absolute", bottom: "35%", right: "20%", width: 40, height: 40, borderRadius: "50%", background: colorGold, opacity: 0.1, animation: "float2 9s ease-in-out infinite" },
+    { position: "absolute", top: "40%", left: "3%", width: 55, height: 55, borderRadius: "50%", background: colorNavy, opacity: 0.04, animation: "float3 16s ease-in-out infinite" },
+    { position: "absolute", bottom: "5%", left: "30%", width: 180, height: 40, borderRadius: 20, background: colorNavy, opacity: 0.04, animation: "float4 14s ease-in-out infinite" },
+    { position: "absolute", top: "3%", right: "3%", width: 90, height: 90, borderRadius: "50%", background: colorSky, opacity: 0.05, animation: "float5 11s ease-in-out infinite" },
+  ];
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: SURFACE }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: SURFACE_CREAM, position: "relative", overflow: "hidden" }}>
+      <style>{geoKeyframes}</style>
+      {shapes.map((style, i) => <div key={i} style={style} />)}
 
       {/* Logo + titre */}
-      <div className="flex flex-col items-center mb-8 gap-3">
-        <img src={VISION_LOGO} alt="Vision Ecopatrimoine" className="h-20 w-auto object-contain drop-shadow-md" />
+      <div className="flex flex-col items-center mb-10 gap-4" style={{ position: "relative", zIndex: 1 }}>
+        <img src={VISION_LOGO} alt="Vision Ecopatrimoine" className="h-28 w-auto object-contain drop-shadow-lg" />
         <div className="text-center">
-          <div className="text-2xl font-bold" style={{ color: colorNavy }}>Vision Ecopatrimoine</div>
-          <div className="text-sm font-medium mt-1" style={{ color: colorSky }}>Logiciel de gestion patrimoniale</div>
+          <div className="text-3xl font-bold tracking-tight" style={{ color: colorNavy }}>Vision Ecopatrimoine</div>
+          <div className="text-sm font-medium mt-1.5 tracking-wide" style={{ color: colorSky }}>Logiciel de gestion patrimoniale</div>
         </div>
       </div>
 
       {/* Carte */}
-      <Card className="w-full max-w-md rounded-3xl border-0 shadow-2xl shadow-slate-200/60">
+      <Card className="w-full max-w-md rounded-3xl border-0" style={{ position: "relative", zIndex: 1, boxShadow: "0 8px 40px rgba(16,27,59,0.10), 0 2px 12px rgba(227,175,100,0.08)" }}>
         <CardContent className="p-8 space-y-5">
 
           {/* Titre mode */}
@@ -202,7 +225,7 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
         </CardContent>
       </Card>
 
-      <p className="text-xs text-slate-400 mt-6">© Vision Ecopatrimoine — Données stockées localement</p>
+      <p className="text-xs text-slate-400 mt-6" style={{ position: "relative", zIndex: 1 }}>© Vision Ecopatrimoine — Données stockées localement</p>
     </div>
   );
 }

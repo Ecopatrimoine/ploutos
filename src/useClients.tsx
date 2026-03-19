@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy, Pencil, FolderOpen, Database, Cloud, CloudOff, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, FolderOpen, Database, Cloud, CloudOff, RefreshCw, Search } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
@@ -408,6 +408,7 @@ export function ClientManager({
   colorCream,
 }: ClientManagerProps) {
   const [newName, setNewName] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -425,6 +426,37 @@ export function ClientManager({
     setRenamingId(null);
     setRenameValue("");
   };
+
+  // Extraire le nom du client depuis le payload
+  const getClientPersonName = (client: ClientRecord): string | null => {
+    const d = (client.payload as any)?.data;
+    if (!d) return null;
+    const full = [d.person1FirstName, d.person1LastName].filter(Boolean).join(" ").trim();
+    return full || null;
+  };
+
+  // Filtrer par recherche (nom dossier + nom client)
+  const filteredClients = clients.filter((c) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    if (c.displayName.toLowerCase().includes(q)) return true;
+    const personName = getClientPersonName(c);
+    if (personName && personName.toLowerCase().includes(q)) return true;
+    return false;
+  });
+
+  // Couleur indicateur ancienneté
+  const getAgeColor = (updatedAt: string): string => {
+    const days = (Date.now() - new Date(updatedAt).getTime()) / (1000 * 60 * 60 * 24);
+    if (days < 7) return colorGold;   // or = récent
+    if (days < 30) return colorSky;   // sky = < 30j
+    return "#9ca3af";                 // gris = plus ancien
+  };
+
+  // Dernière sync (plus récent updatedAt)
+  const lastSyncDate = clients.length > 0
+    ? new Date(Math.max(...clients.map(c => new Date(c.updatedAt).getTime())))
+    : null;
 
   const SURFACE_APP = `radial-gradient(circle at top left, rgba(227,175,100,0.18) 0%, rgba(248,246,247,1) 34%, rgba(251,236,215,0.62) 62%, rgba(238,242,255,1) 100%)`;
 
@@ -450,31 +482,52 @@ export function ClientManager({
     );
   };
 
+  const CITATIONS = [
+    "« La gestion de patrimoine, c'est l'art de transformer l'épargne en sérénité. »",
+    "« Chaque dossier bien préparé est une promesse de confiance tenue. »",
+    "« Anticiper, c'est protéger ceux qui comptent. »",
+    "« Le patrimoine se construit jour après jour, avec méthode et vision. »",
+  ];
+  const citation = CITATIONS[new Date().getDay() % CITATIONS.length];
+
   return (
-    <div className="min-h-screen" style={{ background: SURFACE_APP }}>
-      {/* Header */}
+    <div className="min-h-screen flex flex-col" style={{ background: SURFACE_APP }}>
+      {/* Header imposant */}
       <div
-        className="w-full px-6 py-5 flex items-center justify-between shadow-xl"
+        className="w-full px-6 py-6 shadow-xl"
         style={{ background: `linear-gradient(135deg, ${colorNavy} 0%, ${colorSky} 60%, ${colorGold} 100%)` }}
       >
-        <div className="flex items-center gap-4">
-          <img src={logoSrc} alt={cabinetName} className="h-14 w-auto object-contain drop-shadow-md" />
-          <div>
-            <div className="text-white font-bold text-lg leading-tight">{cabinetName}</div>
-            <div className="text-white/60 text-xs font-medium tracking-wide">Gestion des dossiers clients</div>
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <img src={logoSrc} alt={cabinetName} className="h-16 w-auto object-contain drop-shadow-md" />
+              <div>
+                <div className="text-white font-bold text-xl leading-tight">{cabinetName}</div>
+                <div className="text-white/60 text-xs font-medium tracking-wide mt-0.5">Gestion des dossiers clients</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 text-white/70 text-sm">
+              <SyncIndicator />
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-4 text-white/70 text-sm">
-          <SyncIndicator />
-          <div className="flex items-center gap-2">
-            <Database className="h-4 w-4" />
-            <span>{clients.length} dossier{clients.length !== 1 ? "s" : ""}</span>
+          {/* Stats bar */}
+          <div className="flex items-center gap-6 mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.15)" }}>
+            <div className="flex items-center gap-2 text-white/90">
+              <Database className="h-4 w-4" />
+              <span className="text-sm font-semibold">{clients.length}</span>
+              <span className="text-xs text-white/60">dossier{clients.length !== 1 ? "s" : ""}</span>
+            </div>
+            {lastSyncDate && (
+              <div className="text-xs text-white/50">
+                Dernière modification : {lastSyncDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Main */}
-      <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
+      <div className="max-w-4xl mx-auto px-6 py-10 space-y-8 flex-1 w-full">
 
         {/* Créer un nouveau dossier */}
         <Card className="rounded-3xl border-0 shadow-xl shadow-slate-200/60">
@@ -504,6 +557,20 @@ export function ClientManager({
           </CardContent>
         </Card>
 
+        {/* Barre de recherche */}
+        {clients.length > 0 && (
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher par nom de dossier ou nom du client…"
+              className="rounded-2xl text-sm pl-10 h-11"
+              style={{ borderColor: "rgba(227,175,100,0.25)", background: "rgba(255,255,255,0.95)" }}
+            />
+          </div>
+        )}
+
         {/* Bannière hors-ligne */}
         {(syncStatus === "offline" || syncStatus === "pending") && (
           <div className="rounded-2xl px-4 py-3 text-sm flex items-center justify-between"
@@ -524,76 +591,102 @@ export function ClientManager({
 
         {/* Liste des dossiers */}
         <div className="space-y-3">
-          {clients.length === 0 ? (
+          {filteredClients.length === 0 ? (
             <div className="text-center py-16 text-slate-400 text-sm">
-              Aucun dossier client. Créez-en un ci-dessus.
+              {clients.length === 0
+                ? "Aucun dossier client. Créez-en un ci-dessus."
+                : "Aucun dossier ne correspond à votre recherche."}
             </div>
           ) : (
-            clients.map((client) => (
-              <Card
-                key={client.id}
-                className="rounded-2xl border-0 shadow-md shadow-slate-100/80 hover:shadow-lg transition-shadow"
-                style={{ background: "rgba(255,255,255,0.95)" }}
-              >
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="flex-1 min-w-0">
-                    {renamingId === client.id ? (
-                      <div className="flex gap-2 items-center">
-                        <Input
-                          value={renameValue}
-                          onChange={(e) => setRenameValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleRenameConfirm(client.id);
-                            if (e.key === "Escape") setRenamingId(null);
-                          }}
-                          autoFocus
-                          className="rounded-lg text-sm h-8"
-                          style={{ borderColor: "rgba(227,175,100,0.4)" }}
-                        />
-                        <Button onClick={() => handleRenameConfirm(client.id)} className="rounded-lg text-xs h-8 px-3" style={{ background: colorNavy, color: "#fff" }}>OK</Button>
-                        <button onClick={() => setRenamingId(null)} className="text-xs text-slate-400 hover:text-slate-600">Annuler</button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="font-semibold text-sm truncate" style={{ color: colorNavy }}>{client.displayName}</div>
-                        <div className="text-xs text-slate-400 mt-0.5">
-                          Modifié le {new Date(client.updatedAt).toLocaleDateString("fr-FR", {
-                            day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"
-                          })}
-                        </div>
-                      </>
-                    )}
-                  </div>
+            filteredClients.map((client) => {
+              const personName = getClientPersonName(client);
+              const showSubtitle = personName && personName !== client.displayName;
+              const ageColor = getAgeColor(client.updatedAt);
 
-                  {renamingId !== client.id && (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button title="Renommer" onClick={() => { setRenamingId(client.id); setRenameValue(client.displayName); }} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button title="Dupliquer" onClick={() => onDuplicate(client.id)} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500">
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
-                      {confirmDeleteId === client.id ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-red-500 font-medium">Confirmer ?</span>
-                          <button onClick={() => { onDelete(client.id); setConfirmDeleteId(null); }} className="text-xs font-semibold text-red-600 hover:text-red-800 px-2 py-0.5 rounded-lg bg-red-50">Oui</button>
-                          <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-slate-400 hover:text-slate-600">Non</button>
+              return (
+                <Card
+                  key={client.id}
+                  className="rounded-2xl border-0 shadow-md shadow-slate-100/80 hover:shadow-lg transition-shadow"
+                  style={{ background: "rgba(255,255,255,0.95)", overflow: "hidden" }}
+                >
+                  <CardContent className="p-0 flex items-stretch">
+                    {/* Indicateur coloré d'ancienneté */}
+                    <div className="w-1.5 shrink-0 rounded-l-2xl" style={{ background: ageColor }} />
+
+                    <div className="p-4 flex items-center gap-4 flex-1 min-w-0">
+                      <div className="flex-1 min-w-0">
+                        {renamingId === client.id ? (
+                          <div className="flex gap-2 items-center">
+                            <Input
+                              value={renameValue}
+                              onChange={(e) => setRenameValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleRenameConfirm(client.id);
+                                if (e.key === "Escape") setRenamingId(null);
+                              }}
+                              autoFocus
+                              className="rounded-lg text-sm h-8"
+                              style={{ borderColor: "rgba(227,175,100,0.4)" }}
+                            />
+                            <Button onClick={() => handleRenameConfirm(client.id)} className="rounded-lg text-xs h-8 px-3" style={{ background: colorNavy, color: "#fff" }}>OK</Button>
+                            <button onClick={() => setRenamingId(null)} className="text-xs text-slate-400 hover:text-slate-600">Annuler</button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="font-semibold text-sm truncate" style={{ color: colorNavy }}>{client.displayName}</div>
+                            {showSubtitle && (
+                              <div className="text-xs font-medium mt-0.5 truncate" style={{ color: colorNavy, opacity: 0.55 }}>
+                                {personName}
+                              </div>
+                            )}
+                            <div className="text-xs text-slate-400 mt-0.5">
+                              Modifié le {new Date(client.updatedAt).toLocaleDateString("fr-FR", {
+                                day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"
+                              })}
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {renamingId !== client.id && (
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button title="Renommer" onClick={() => { setRenamingId(client.id); setRenameValue(client.displayName); }} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button title="Dupliquer" onClick={() => onDuplicate(client.id)} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500">
+                            <Copy className="h-3.5 w-3.5" />
+                          </button>
+                          {confirmDeleteId === client.id ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-red-500 font-medium">Confirmer ?</span>
+                              <button onClick={() => { onDelete(client.id); setConfirmDeleteId(null); }} className="text-xs font-semibold text-red-600 hover:text-red-800 px-2 py-0.5 rounded-lg bg-red-50">Oui</button>
+                              <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-slate-400 hover:text-slate-600">Non</button>
+                            </div>
+                          ) : (
+                            <button title="Supprimer" onClick={() => setConfirmDeleteId(client.id)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-slate-400 hover:text-red-500">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          <Button onClick={() => onOpen(client)} className="rounded-xl px-4 h-8 text-xs font-semibold shadow-sm ml-1" style={{ background: colorNavy, color: "#fff" }}>
+                            <FolderOpen className="h-3.5 w-3.5 mr-1.5" />
+                            Ouvrir
+                          </Button>
                         </div>
-                      ) : (
-                        <button title="Supprimer" onClick={() => setConfirmDeleteId(client.id)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-slate-400 hover:text-red-500">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
                       )}
-                      <Button onClick={() => onOpen(client)} className="rounded-xl px-4 h-8 text-xs font-semibold shadow-sm ml-1" style={{ background: colorNavy, color: "#fff" }}>
-                        <FolderOpen className="h-3.5 w-3.5 mr-1.5" />
-                        Ouvrir
-                      </Button>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
+        </div>
+      </div>
+
+      {/* Footer — citation inspirante */}
+      <div className="w-full py-8 px-6 mt-auto">
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="text-sm italic" style={{ color: colorNavy, opacity: 0.35 }}>{citation}</p>
+          <p className="text-xs mt-3" style={{ color: "#9ca3af" }}>© Vision Ecopatrimoine</p>
         </div>
       </div>
     </div>
