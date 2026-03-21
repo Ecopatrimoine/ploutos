@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EcoPatrimoine — Feedback</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #101B3B 0%, #26428B 50%, #516AC7 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 32px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .icon-bug  { background: #FEF2F2; }
+    .icon-sugg { background: #EFF6FF; }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #101B3B;
+    }
+
+    h1 span {
+      display: block;
+      font-size: 13px;
+      font-weight: 400;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #26428B;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 10px;
+      font-size: 14px;
+      color: #1e293b;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: #516AC7;
+      box-shadow: 0 0 0 3px rgba(81,106,199,0.12);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 11px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+
+    .btn-cancel {
+      background: #F1F5F9;
+      color: #64748b;
+    }
+
+    .btn-send {
+      background: linear-gradient(135deg, #26428B, #516AC7);
+      color: #fff;
+    }
+
+    .btn-send:hover { opacity: 0.92; }
+    .btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .status {
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      display: none;
+    }
+
+    .status.success {
+      background: #F0FDF4;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+      display: block;
+    }
+
+    .status.error {
+      background: #FEF2F2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+      display: block;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #F1F5F9;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="icon" id="icon">🐛</div>
+      <h1 id="title">
+        Signaler un bug
+        <span id="subtitle">Décrivez le problème rencontré</span>
+      </h1>
+    </div>
+
+    <div class="field">
+      <label>Module concerné</label>
+      <select id="module">
+        <option value="">— Sélectionnez un module —</option>
+        <option>Collecte patrimoniale</option>
+        <option>Immobilier</option>
+        <option>Placements</option>
+        <option>Impôt sur le revenu (IR)</option>
+        <option>IFI</option>
+        <option>Succession</option>
+        <option>Hypothèses</option>
+        <option>Rapport PDF</option>
+        <option>Lettre de mission PDF</option>
+        <option>Paramètres cabinet</option>
+        <option>Gestion des dossiers clients</option>
+        <option>Autre</option>
+      </select>
+    </div>
+
+    <div class="field" id="fieldDescription">
+      <label id="labelDescription">Description du problème</label>
+      <textarea id="description" placeholder="Décrivez précisément ce qui ne fonctionne pas..."></textarea>
+    </div>
+
+    <div class="field" id="fieldSteps" style="display:none">
+      <label>Étapes pour reproduire</label>
+      <textarea id="steps" placeholder="1. Aller sur...&#10;2. Cliquer sur...&#10;3. Observer que..." style="min-height:80px"></textarea>
+    </div>
+
+    <div class="field" id="fieldExpected" style="display:none">
+      <label>Comportement attendu</label>
+      <input type="text" id="expected" placeholder="Ce qui devrait se passer..." />
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-cancel" onclick="window.close()">Annuler</button>
+      <button class="btn btn-send" id="btnSend" onclick="send()">
+        <span id="btnLabel">Envoyer</span>
+      </button>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    // Récupérer les paramètres depuis l'URL
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get("type") || "bug";
+    const conseiller = params.get("conseiller") || "Utilisateur";
+
+    if (type === "suggestion") {
+      document.getElementById("icon").textContent = "💡";
+      document.getElementById("icon").classList.remove("icon-bug");
+      document.getElementById("icon").classList.add("icon-sugg");
+      document.getElementById("title").childNodes[0].textContent = "Faire une suggestion";
+      document.getElementById("subtitle").textContent = "Partagez votre idée d'amélioration";
+      document.getElementById("labelDescription").textContent = "Description de votre suggestion";
+      document.getElementById("description").placeholder = "Décrivez votre idée en détail...";
+      document.title = "EcoPatrimoine — Suggestion";
+    } else {
+      document.getElementById("fieldSteps").style.display = "block";
+      document.getElementById("fieldExpected").style.display = "block";
+    }
+
+    async function send() {
+      const module = document.getElementById("module").value;
+      const description = document.getElementById("description").value.trim();
+
+      if (!description) {
+        showStatus("error", "Veuillez remplir la description avant d'envoyer.");
+        return;
+      }
+
+      const btn = document.getElementById("btnSend");
+      const label = document.getElementById("btnLabel");
+      btn.disabled = true;
+      label.textContent = "Envoi en cours...";
+
+      const payload = {
+        type,
+        conseiller,
+        module: module || "Non précisé",
+        description,
+        steps: document.getElementById("steps")?.value || "",
+        expected: document.getElementById("expected")?.value || "",
+      };
+
+      try {
+        const result = await window.feedbackAPI.sendFeedback(payload);
+        if (result.success) {
+          showStatus("success", "✓ Message envoyé avec succès ! Merci pour votre retour.");
+          btn.style.display = "none";
+          setTimeout(() => window.close(), 2500);
+        } else {
+          showStatus("error", "Erreur lors de l'envoi : " + (result.error || "Erreur inconnue"));
+          btn.disabled = false;
+          label.textContent = "Envoyer";
+        }
+      } catch (e) {
+        showStatus("error", "Erreur : " + e.message);
+        btn.disabled = false;
+        label.textContent = "Envoyer";
+      }
+    }
+
+    function showStatus(type, msg) {
+      const el = document.getElementById("status");
+      el.className = "status " + type;
+      el.textContent = msg;
+    }
+  </script>
+</body>
+</html>

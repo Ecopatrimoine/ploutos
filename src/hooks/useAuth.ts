@@ -17,6 +17,7 @@ export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
   const [authState, setAuthState] = useState<AuthState>("loading");
   const [error, setError] = useState<string>("");
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   // Éviter le double appel verifySession (getSession + onAuthStateChange INITIAL_SESSION)
   const initializedRef = useRef(false);
 
@@ -44,53 +45,70 @@ export function useAuth() {
   const verifySession = useCallback(async (currentSession: Session | null) => {
     if (!currentSession) {
       setUser(null);
-      setAuthState(checkGracePeriod() ? "grace" : "unauthenticated");
+      // Pas de session du tout → forcer l'écran de connexion
+      // (grace uniquement si on avait une session récente qui a disparu pour cause réseau)
+      // Si hasSession est false dès le départ, c'est que les tokens ont été purgés → reconnecter
+      setAuthState("unauthenticated");
       return;
     }
 
     try {
-      const { data, error } = await supabase.auth.getUser();
+      // Étape 1 : tenter un refreshSession silencieux d'abord
+      // Cela renouvelle le JWT expiré si le refresh token est encore valide
+      // et permet de passer directement en "authenticated" même si le JWT a expiré
+      const { data: refreshData, error: refreshError } = await Promise.race([
+        supabase.auth.refreshSession(),
+        new Promise<{ data: { session: null; user: null }; error: { message: string } }>(
+          (_, reject) => setTimeout(() => reject(new Error("timeout")), 6000)
+        )
+      ]).catch(() => ({ data: { session: null, user: null }, error: { message: "timeout" } })) as any;
 
-      // Refresh token invalide ou introuvable → purge + déconnexion propre
-      if (error) {
-        const isInvalidToken =
-          error.message?.includes("Invalid Refresh Token") ||
-          error.message?.includes("Refresh Token Not Found") ||
-          error.message?.includes("token is expired") ||
-          error.status === 400 || error.status === 401;
-
-        if (isInvalidToken) {
-          purgeSupabaseTokens();
-          await supabase.auth.signOut({ scope: "local" }); // local : pas d'appel réseau si token mort
-          localStorage.removeItem(LAST_VERIFIED_KEY);
+      if (!refreshError && refreshData?.user) {
+        // Refresh OK → authentifié directement, pas besoin de getUser()
+        const isActive = refreshData.user.user_metadata?.active !== false;
+        if (!isActive) {
           setUser(null);
-          setSession(null);
-          setAuthState("unauthenticated");
+          setAuthState("expired");
           return;
         }
+        markVerified();
+        setSession(refreshData.session);
+        setUser(refreshData.user);
+        setAuthState("authenticated");
+        return;
+      }
 
-        // Autre erreur (ex: réseau) → grace period
+      // Refresh échoué (token révoqué, réseau indispo…) → vérifier avec getUser()
+      const isNetworkError = refreshError?.message === "timeout" ||
+        refreshError?.message?.toLowerCase().includes("network") ||
+        refreshError?.message?.toLowerCase().includes("fetch");
+
+      if (isNetworkError) {
+        // Pas de réseau → mode grace si session récente
         setUser(null);
         setAuthState(checkGracePeriod() ? "grace" : "expired");
         return;
       }
 
-      if (!data.user) {
+      // Token révoqué/invalide → purge et déconnexion
+      const isInvalidToken =
+        refreshError?.message?.includes("Invalid Refresh Token") ||
+        refreshError?.message?.includes("Refresh Token Not Found") ||
+        (refreshError as any)?.status === 400 || (refreshError as any)?.status === 401;
+
+      if (isInvalidToken) {
+        purgeSupabaseTokens();
+        await supabase.auth.signOut({ scope: "local" });
+        localStorage.removeItem(LAST_VERIFIED_KEY);
         setUser(null);
-        setAuthState(checkGracePeriod() ? "grace" : "expired");
+        setSession(null);
+        setAuthState("unauthenticated");
         return;
       }
 
-      const isActive = data.user.user_metadata?.active !== false;
-      if (!isActive) {
-        setUser(null);
-        setAuthState("expired");
-        return;
-      }
-
-      markVerified();
-      setUser(data.user);
-      setAuthState("authenticated");
+      // Autre cas → grace si session récente
+      setUser(null);
+      setAuthState(checkGracePeriod() ? "grace" : "expired");
     } catch {
       // Hors-ligne ou erreur réseau → grace period sans purge
       setAuthState(checkGracePeriod() ? "grace" : "expired");
@@ -109,6 +127,12 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       // INITIAL_SESSION est géré par getSession ci-dessus
       if (event === "INITIAL_SESSION") return;
+
+      // PASSWORD_RECOVERY : l'utilisateur arrive depuis un lien de reset
+      if (event === "PASSWORD_RECOVERY") {
+        setIsPasswordRecovery(true);
+        return;
+      }
 
       // TOKEN_REFRESHED : mettre à jour la session silencieusement sans re-vérifier
       if (event === "TOKEN_REFRESHED" && session) {
@@ -140,7 +164,19 @@ export function useAuth() {
       options: { data: { cabinet_name: cabinetName, active: true } },
     });
     if (error) { setError(error.message); return false; }
+    // Le trigger Supabase crée automatiquement une licence trial de 15 jours
     return true;
+  }, []);
+
+  // Utilitaire admin : attribuer une licence lifetime (à appeler manuellement)
+  const grantLifetimeLicence = useCallback(async (targetUserId: string) => {
+    const { error } = await supabase.from("licences").upsert({
+      user_id: targetUserId,
+      type: "lifetime",
+      status: "active",
+      trial_end: null,
+    });
+    return !error;
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
@@ -165,11 +201,38 @@ export function useAuth() {
   const resetPassword = useCallback(async (email: string) => {
     setError("");
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: window.location.origin,
     });
     if (error) { setError(error.message); return false; }
     return true;
   }, []);
 
-  return { user, session, authState, error, signUp, signIn, signOut, resetPassword };
+
+  const updatePassword = useCallback(async (newPassword: string) => {
+    setError("");
+    try {
+      // Vérifier que la session est bien active avant de mettre à jour
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (!currentSession) {
+        setError("Session expirée. Recommencez la procédure de réinitialisation.");
+        return false;
+      }
+      // Timeout de 10s pour ne pas bloquer indéfiniment
+      const updatePromise = supabase.auth.updateUser({ password: newPassword });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 10000)
+      );
+      const { error } = await Promise.race([updatePromise, timeoutPromise]) as any;
+      if (error) { setError(error.message === "timeout" ? "Délai dépassé. Réessayez." : error.message); return false; }
+      setIsPasswordRecovery(false);
+      return true;
+    } catch (e) {
+      setError("Erreur réseau. Vérifiez votre connexion.");
+      return false;
+    }
+  }, []);
+
+  const clearPasswordRecovery = useCallback(() => setIsPasswordRecovery(false), []);
+
+  return { user, session, authState, error, signUp, signIn, signOut, resetPassword, updatePassword, grantLifetimeLicence, isPasswordRecovery, clearPasswordRecovery };
 }
