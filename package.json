@@ -1,7 +1,7 @@
 {
-  "name": "vision-ecopatrimoine",
+  "name": "ploutos",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.1.0",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -12,7 +12,11 @@
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "electron:build": "npm run build && electron-builder",
     "electron:build:win": "npm run build && electron-builder --win",
-    "release": "npm run build && electron-builder --win --publish always"
+    "release": "npm run build && electron-builder --win --publish always",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "electron:build:mac": "npm run build && electron-builder --mac",
+    "release:mac": "npm run build && electron-builder --mac --publish always"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
@@ -26,6 +30,7 @@
     "electron-log": "^5.4.3",
     "electron-updater": "^6.8.3",
     "lucide-react": "^0.577.0",
+    "nodemailer": "^8.0.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-is": "^19.2.4",
@@ -54,12 +59,13 @@
     "vite": "^8.0.0",
     "vite-plugin-pwa": "^0.21.0",
     "wait-on": "^9.0.4",
-    "workbox-window": "^7.4.0"
+    "workbox-window": "^7.4.0",
+    "vitest": "^2.0.0"
   },
   "build": {
-    "appId": "com.visionecopatrimoine.app",
-    "productName": "Vision Ecopatrimoine",
-    "copyright": "© Vision Ecopatrimoine",
+    "appId": "com.ploutos.app",
+    "productName": "Ploutos",
+    "copyright": "© Ploutos",
     "directories": {
       "output": "dist-electron"
     },
@@ -85,12 +91,47 @@
       "allowElevation": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Vision Ecopatrimoine"
+      "shortcutName": "Ploutos"
     },
     "publish": {
       "provider": "github",
       "owner": "Ecopatrimoine",
-      "repo": "vision-ecopatrimoine"
+      "repo": "ploutos"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.finance",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "title": "Ploutos",
+      "icon": "build/icon.icns",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 540,
+        "height": 380
+      }
     }
   }
 }
