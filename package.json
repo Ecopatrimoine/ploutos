@@ -1,7 +1,7 @@
 {
   "name": "ploutos",
   "private": true,
-  "version": "1.1.2",
+  "version": "1.1.4",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -97,6 +97,12 @@
       "target": [
         {
           "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
           "arch": [
             "arm64"
           ]
