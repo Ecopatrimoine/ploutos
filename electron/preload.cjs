@@ -15,4 +15,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   writeClients: (userId, data) => ipcRenderer.invoke("write-clients", userId, data),
   getStorageDir: () => ipcRenderer.invoke("get-storage-dir"),
   setStorageDir: () => ipcRenderer.invoke("set-storage-dir"),
+
+  // ─── Paramètres cabinet (logo, couleurs, coordonnées) ───
+  readCabinet: () => ipcRenderer.invoke("read-cabinet"),
+  writeCabinet: (data) => ipcRenderer.invoke("write-cabinet", data),
 });

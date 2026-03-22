@@ -524,7 +524,7 @@ export function ClientManager({
   };
 
   return (
-    <div className="min-h-screen" style={{ background: SURFACE_APP, position:"relative", overflow:"hidden", display:"flex", flexDirection:"column" }}>
+    <div className="min-h-screen" style={{ background: SURFACE_APP, position:"relative", overflowX:"hidden", overflowY:"auto", display:"flex", flexDirection:"column" }}>
 
       {/* Formes géométriques fond dossiers */}
       <div style={{ position:"absolute", inset:0, pointerEvents:"none", zIndex:0 }}>
