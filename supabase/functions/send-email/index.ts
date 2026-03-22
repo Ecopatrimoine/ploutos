@@ -18,7 +18,7 @@ const FOOTER = `
 
 interface EmailPayload {
   to: string;
-  type: "welcome_trial" | "licence_activated" | "trial_expiring";
+  type: "welcome_trial" | "welcome_trial_mac" | "licence_activated" | "trial_expiring";
   cabinet_name?: string;
   trial_end?: string;
 }
@@ -27,6 +27,62 @@ function getEmailContent(payload: EmailPayload): { subject: string; html: string
   const name = payload.cabinet_name || "votre cabinet";
 
   switch (payload.type) {
+
+    case "welcome_trial_mac":
+      return {
+        subject: "Bienvenue sur Ploutos — comment lancer l'app sur Mac",
+        html: `
+          <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#101B3B">
+            ${HEADER}
+            <div style="padding:32px;background:#fff">
+              <h2 style="color:#101B3B">Bienvenue sur Ploutos !</h2>
+              <p>Votre compte pour <strong>${name}</strong> a bien été créé.</p>
+              <p>Vous bénéficiez d'un <strong>essai gratuit de 15 jours</strong> avec accès à toutes les fonctionnalités.</p>
+
+              <div style="background:#FBECD7;border-left:4px solid #E3AF64;border-radius:8px;padding:20px 24px;margin:24px 0">
+                <p style="font-weight:bold;color:#101B3B;margin:0 0 12px">📦 Installer Ploutos sur Mac — 3 étapes</p>
+                <div style="display:flex;align-items:flex-start;margin-bottom:12px">
+                  <div style="background:#101B3B;color:#E3AF64;border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;margin-right:12px;margin-top:1px">1</div>
+                  <div>
+                    <strong>Téléchargez le fichier .dmg</strong> depuis la page de téléchargement<br>
+                    <a href="https://ploutos-cgp.fr#telechargements" style="color:#26428B;font-size:13px">ploutos-cgp.fr → section Téléchargements → macOS</a>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:flex-start;margin-bottom:12px">
+                  <div style="background:#101B3B;color:#E3AF64;border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;margin-right:12px;margin-top:1px">2</div>
+                  <div>
+                    <strong>Clic droit sur le fichier Ploutos.dmg → Ouvrir</strong><br>
+                    <span style="color:#666;font-size:13px">⚠️ Ne pas double-cliquer — utiliser impérativement le clic droit</span>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:flex-start">
+                  <div style="background:#101B3B;color:#E3AF64;border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;margin-right:12px;margin-top:1px">3</div>
+                  <div>
+                    <strong>Dans le popup de sécurité Apple → cliquer "Ouvrir"</strong><br>
+                    <span style="color:#666;font-size:13px">Cette confirmation n'est demandée qu'une seule fois. Les mises à jour suivantes s'installent automatiquement.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="background:#f0f4ff;border-radius:8px;padding:16px 20px;margin:20px 0">
+                <p style="margin:0;font-size:13px;color:#26428B">
+                  <strong>Pourquoi ce message ?</strong> L'application n'est pas encore certifiée Apple Developer (programme payant). Cette procédure clic droit est standard pour toute application indépendante sur Mac — elle est sûre et ne se répète pas.
+                </p>
+              </div>
+
+              <p>Une fois l'app ouverte, connectez-vous avec vos identifiants pour retrouver tous vos dossiers synchronisés.</p>
+
+              <div style="text-align:center;margin:32px 0">
+                <a href="https://app.ploutos-cgp.fr" style="background:#101B3B;color:#E3AF64;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px">
+                  Accéder à Ploutos web →
+                </a>
+              </div>
+
+              <p style="color:#888;font-size:13px">Un problème à l'installation ? Répondez à cet email, nous vous guidons en moins de 24h.</p>
+            </div>
+            ${FOOTER}
+          </div>`
+      };
 
     case "welcome_trial":
       return {

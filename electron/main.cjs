@@ -335,7 +335,7 @@ ${conseillerName}`
         },
         {
           label: "Site web",
-          click: () => shell.openExternal("https://ecopatrimoine-conseil.com"),
+          click: () => shell.openExternal("https://ploutos-cgp.fr"),
         },
       ],
     },

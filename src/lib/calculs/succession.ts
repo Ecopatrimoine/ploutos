@@ -608,10 +608,8 @@ export function computeSuccession(successionData: SuccessionData, data: Patrimon
     );
     const profile = getSuccessionTaxProfile(heir.relation, heirIsHandicap);
     // FIX #2 : base = grossReceived + nueValue uniquement (pas usufructTaxValue)
-    const successionTaxable = Math.max(
-      0,
-      grossReceived + nueValue - profile.allowance - Math.max(0, n(heir.priorDonations))
-    );
+    const residualAllowance = Math.max(0, profile.allowance - Math.max(0, n(heir.priorDonations)));
+const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowance);
     const successionCalc = profile.brackets.length > 0
       ? computeTaxFromBrackets(successionTaxable, profile.brackets)
       : { tax: 0, fill: [] as FilledBracket[] };

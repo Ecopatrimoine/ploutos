@@ -57,6 +57,17 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
     const ok = await signUp(email, password, cabinetName);
     setLoading(false);
     if (ok) {
+      // Détecter Mac pour envoyer les instructions de lancement spécifiques
+      const isMac = typeof navigator !== "undefined" &&
+        (navigator.platform?.toLowerCase().includes("mac") ||
+         navigator.userAgent?.toLowerCase().includes("macintosh"));
+      const emailType = isMac ? "welcome_trial_mac" : "welcome_trial";
+      // Fire-and-forget — ne bloque pas l UI si la fonction échoue
+      fetch("https://ysbgfiqsuvdwzkcsiqir.supabase.co/functions/v1/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: email, type: emailType, cabinet_name: cabinetName }),
+      }).catch(() => {});
       setSuccessMsg("Compte créé ! Vérifiez votre email pour confirmer votre inscription.");
       setMode("login");
     }

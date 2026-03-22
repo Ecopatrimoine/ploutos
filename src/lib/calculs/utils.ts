@@ -82,7 +82,7 @@ export function calcCapitalRemaining(capital: number, rateAnnual: number, durati
   const tm = rateAnnual / 100 / 12;
   const n = durationYears * 12;
   const k = Math.floor(yearsElapsed * 12);
-  return capital * (Math.pow(1 + tm, n) - Math.pow(1 + tm, k)) / (Math.pow(1 + tm, n) - 1);
+  return Math.max(0, capital * (Math.pow(1 + tm, n) - Math.pow(1 + tm, k)) / (Math.pow(1 + tm, n) - 1));
 }
 export function calcAnnualInterests(capital: number, rateAnnual: number, durationYears: number, yearsElapsed: number): number {
   if (capital <= 0 || rateAnnual <= 0) return 0;
@@ -104,7 +104,9 @@ export function calcIfiInFineDeduction(capital: number, durationYears: number, y
 }
 export function yearsElapsedSince(startDate: string): number {
   if (!startDate) return 0;
-  return Math.max(0, (Date.now() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+  const d = new Date(startDate);
+  if (isNaN(d.getTime())) return 0;
+  return Math.max(0, (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
 }
 export function resolveLoanValues(property: Property): { capital: number; interestAnnual: number; ifiDeduction: number; monthlyPayment: number } {
   if (!property.loanEnabled) return { capital: 0, interestAnnual: 0, ifiDeduction: 0, monthlyPayment: 0 };
