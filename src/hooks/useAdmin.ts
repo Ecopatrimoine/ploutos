@@ -54,10 +54,9 @@ export function useAdminDashboard(isAdmin: boolean) {
 
       const licenceMap = new Map(licences?.map(l => [l.user_id, l]) ?? []);
 
-      // Récupérer les noms de cabinets via la vue users_info
+      // Récupérer les noms de cabinets via la fonction sécurisée (admins only)
       const { data: usersInfo } = await supabase
-        .from("users_info")
-        .select("user_id, email, cabinet_name, created_at");
+        .rpc("get_users_info");
 
       const userMap = new Map<string, { name: string; email: string; created_at: string }>();
       usersInfo?.forEach(u => {
