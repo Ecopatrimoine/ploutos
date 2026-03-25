@@ -102,6 +102,24 @@ export function HelpMenu({ colorNavy, colorGold, colorSky, cabinetName = "Utilis
               >
                 💡 Faire une suggestion
               </button>
+              <div style={{ height: "1px", background: "rgba(0,0,0,0.06)", margin: "0 12px" }} />
+              <a
+                href="/Ploutos_Collecte_Patrimoniale.pdf"
+                download="Ploutos_Collecte_Patrimoniale.pdf"
+                onClick={() => setOpen(false)}
+                style={{
+                  display: "flex", alignItems: "center", gap: "10px",
+                  width: "100%", padding: "12px 16px",
+                  background: "transparent", cursor: "pointer", textAlign: "left",
+                  fontSize: "13px", fontFamily: "'Lato', sans-serif", fontWeight: 600,
+                  color: colorNavy, transition: "background 0.15s",
+                  textDecoration: "none", boxSizing: "border-box" as const,
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(16,27,59,0.05)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+              >
+                📋 Fiche de collecte PDF
+              </a>
             </div>
           </>
         )}

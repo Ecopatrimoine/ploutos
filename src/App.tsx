@@ -18,7 +18,7 @@ import { useAuth } from "./hooks/useAuth";
 import { useLicense } from "./hooks/useLicense";
 import { useAdmin } from "./hooks/useAdmin";
 import { AdminDashboard } from "./components/AdminDashboard";
-import { LicenceGate } from "./components/LicenceGate";
+import  LicenceGate  from "./components/LicenceGate";
 import { LicenceBanner } from "./components/LicenceBanner";
 import { AuthGate } from "./components/AuthGate";
 import { LoginTransition } from "./components/LoginTransition";
@@ -1174,10 +1174,6 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
         licence={licence}
         userId={userId}
         onSignOut={onSignOut}
-        colorNavy={cabinet.colorNavy || "#101B3B"}
-        colorSky={cabinet.colorSky || "#26428B"}
-        colorGold={cabinet.colorGold || "#E3AF64"}
-        logoSrc={logoSrc}
       />
     );
   }

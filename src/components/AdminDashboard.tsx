@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAdminDashboard } from "../hooks/useAdmin";
 import type { AdminUser } from "../hooks/useAdmin";
+import { supabase } from "../lib/supabase";
 
 interface AdminDashboardProps {
   colorNavy: string;
@@ -67,6 +68,44 @@ export function AdminDashboard({ colorNavy, colorSky, colorGold, colorCream, onC
 
   const handleContactDirect = (u: AdminUser) => {
     window.location.href = `mailto:${u.email}`;
+  };
+
+  const handleDeleteUser = async (u: AdminUser) => {
+    // Double confirmation RGPD
+    if (!confirm(`⚠️ SUPPRESSION RGPD
+
+Vous allez supprimer DÉFINITIVEMENT :
+• Tous les dossiers clients
+• Les paramètres cabinet
+• La licence
+• Le compte
+
+Cabinet : ${u.cabinet_name || u.email}
+
+Cette action est IRRÉVERSIBLE.
+
+Continuer ?`)) return;
+    const typed = prompt(`Pour confirmer, saisissez exactement l'email du compte :
+${u.email}`);
+    if (typed !== u.email) { notify("❌ Email incorrect — suppression annulée"); return; }
+    notify("🔄 Suppression en cours...");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`https://ysbgfiqsuvdwzkcsiqir.supabase.co/functions/v1/delete-user`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ target_user_id: u.id }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Erreur serveur");
+      notify(`✅ Compte ${u.email} supprimé définitivement (RGPD)`);
+      fetchUsers();
+    } catch (err: any) {
+      notify(`❌ Erreur : ${err.message}`);
+    }
   };
 
   const handleLifetime = async (u: AdminUser) => {
@@ -248,6 +287,14 @@ export function AdminDashboard({ colorNavy, colorSky, colorGold, colorCream, onC
                       disabled={!u.email}
                       title={u.email ? `Contacter ${u.email}` : "Email inconnu"}>
                       ✉
+                    </Button>
+
+                    {/* Supprimer RGPD */}
+                    <Button variant="outline"
+                      className="rounded-lg h-7 text-xs px-2 text-red-700 border-red-300 hover:bg-red-50"
+                      onClick={() => handleDeleteUser(u)}
+                      title="Supprimer toutes les données (RGPD)">
+                      🗑️
                     </Button>
                   </div>
                 </div>
