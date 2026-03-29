@@ -52,6 +52,7 @@ import type { Loan } from "./types/patrimoine";
 import { computeIR } from "./lib/calculs/ir";
 import { computeIFI } from "./lib/calculs/ifi";
 import { computeSuccession } from "./lib/calculs/succession";
+import { applyDonationsToData } from "./lib/calculs/donation";
 import { buildHypothesisDifferenceLines } from "./lib/hypotheses";
 import { runSelfChecks } from "./lib/selfChecks";
 
@@ -402,6 +403,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const [chargesPdfLoading, setChargesPdfLoading] = useState(false);
   const [exportFallbackContent, setExportFallbackContent] = useState("");
   const [exportFallbackFileName, setExportFallbackFileName] = useState("");
+  const [activeDonations, setActiveDonations] = useState<import("./types/patrimoine").DonationItem[]>([]);
   const [hypotheses, setHypotheses] = useState<Hypothesis[]>([
     { id: 1, name: "Hypothèse 1", notes: "", objective: "", savedAt: null, data: null, successionData: null, irOptions: null },
     { id: 2, name: "Hypothèse 2", notes: "", objective: "", savedAt: null, data: null, successionData: null, irOptions: null },
@@ -477,7 +479,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
 
   const addProperty = useCallback((type: string) => setData((prev) => ({
     ...prev,
-    properties: [...prev.properties, { name: "", type, ownership: "person1", propertyRight: "full", usufructAge: "", value: "", propertyTaxAnnual: "", rentGrossAnnual: "", insuranceAnnual: "", worksAnnual: "", otherChargesAnnual: "", loanEnabled: false, loanType: "amortissable", loanAmount: "", loanRate: "", loanDuration: "", loanStartDate: "", loanCapitalRemaining: "", loanInterestAnnual: "", loanPledgedPlacementIndex: "-1", loanInsurance: false, loanInsuranceGuarantees: "dc", loanInsuranceRate: "", loanInsuranceRate1: "", loanInsuranceRate2: "", loanInsurancePremium: "", loanInsuranceCoverage: "banque", indivisionShare1: "", indivisionShare2: "" }],
+    properties: [...prev.properties, { name: "", type, ownership: "person1", propertyRight: "full", usufructAge: "", counterpartKey: "", counterpartBirthDate: "", counterpartRelation: "", counterpartName: "", value: "", propertyTaxAnnual: "", rentGrossAnnual: "", insuranceAnnual: "", worksAnnual: "", otherChargesAnnual: "", loanEnabled: false, loanType: "amortissable", loanAmount: "", loanRate: "", loanDuration: "", loanStartDate: "", loanCapitalRemaining: "", loanInterestAnnual: "", loanPledgedPlacementIndex: "-1", loanInsurance: false, loanInsuranceGuarantees: "dc", loanInsuranceRate: "", loanInsuranceRate1: "", loanInsuranceRate2: "", loanInsurancePremium: "", loanInsuranceCoverage: "banque", indivisionShare1: "", indivisionShare2: "" }],
   })), []);
   const updateProperty = useCallback((index: number, key: keyof Property, value: string | boolean | Loan[]) =>
     setData((prev) => ({ ...prev, properties: prev.properties.map((p, i) => i === index ? { ...p, [key]: value } : p) })), []);
@@ -595,13 +597,20 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     data.properties, data.coupleStatus, data.matrimonialRegime,
   ]);
   // Succession : biens, placements, enfants, régime, dates de naissance
-  const succession = useMemo(() => computeSuccession(successionData, data), [
+  // Quand une hypothèse avec donation est chargée, appliquer les donations (vision > 15 ans)
+  const successionData_effective = useMemo(() =>
+    activeDonations.length > 0 ? applyDonationsToData(activeDonations, data) : data,
+    [activeDonations, data.properties, data.placements]
+  );
+  const succession = useMemo(() => computeSuccession(successionData, successionData_effective), [
     successionData,
+    successionData_effective,
     data.properties, data.placements, data.childrenData,
     data.coupleStatus, data.matrimonialRegime,
     data.person1BirthDate, data.person2BirthDate,
     data.person1FirstName, data.person1LastName,
     data.person2FirstName, data.person2LastName,
+    activeDonations,
   ]);
   const spouseOptions = useMemo(() => getAvailableSpouseOptions(data, successionData.deceasedPerson), [
     data.coupleStatus, data.childrenData, successionData.deceasedPerson,
@@ -944,9 +953,25 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     setData(deepClone(selected.data));
     setSuccessionData(deepClone(selected.successionData));
     setIrOptions(deepClone(selected.irOptions));
+    setActiveDonations(selected.donations ? deepClone(selected.donations) : []);
   };
-  const clearHypothesis = (id: number) =>
+  const clearHypothesis = (id: number) => {
     setHypotheses((prev) => prev.map((h) => h.id === id ? { ...h, notes: "", objective: "", savedAt: null, data: null, successionData: null, irOptions: null } : h));
+    setActiveDonations([]);
+  };
+
+  const addDonation = (hypoId: number, donation: import("./types/patrimoine").DonationItem) =>
+    setHypotheses((prev) => prev.map((h) =>
+      h.id === hypoId ? { ...h, donations: [...(h.donations || []), donation] } : h
+    ));
+  const updateDonation = (hypoId: number, donation: import("./types/patrimoine").DonationItem) =>
+    setHypotheses((prev) => prev.map((h) =>
+      h.id === hypoId ? { ...h, donations: (h.donations || []).map((d) => d.id === donation.id ? donation : d) } : h
+    ));
+  const removeDonation = (hypoId: number, donationId: string) =>
+    setHypotheses((prev) => prev.map((h) =>
+      h.id === hypoId ? { ...h, donations: (h.donations || []).filter((d) => d.id !== donationId) } : h
+    ));
 
   // ── PDF ──
   // ── Sauvegarde client et retour liste ──
@@ -1535,7 +1560,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
                   <TabFamiliale data={data} setField={setField} addChild={addChild} updateChild={updateChild} removeChild={removeChild} person1={person1} person2={person2} />
                   <TabTravail data={data} setField={setField} setChargesDetailField={setChargesDetailField} chargesDialogOpen={chargesDialogOpen} setChargesDialogOpen={setChargesDialogOpen} irOptions={irOptions} setIrOptions={setIrOptions} ir={ir} person1={person1} person2={person2} />
                   <TabRevenus data={data} setField={setField} setData={setData} setChargesDialogOpen={setChargesDialogOpen} irOptions={irOptions} setIrOptions={setIrOptions} ir={ir} person1={person1} person2={person2} />
-                  <TabImmobilier data={data} setField={setField} addProperty={addProperty} updateProperty={updateProperty} removeProperty={removeProperty} addLoan={addLoan} updateLoan={updateLoan} removeLoan={removeLoan} loanModalIndex={loanModalIndex} setLoanModalIndex={setLoanModalIndex} ownerOptions={ownerOptions} person1={person1} person2={person2} />
+                  <TabImmobilier data={activeDonations.length > 0 ? successionData_effective : data} setField={setField} addProperty={addProperty} updateProperty={updateProperty} removeProperty={removeProperty} addLoan={addLoan} updateLoan={updateLoan} removeLoan={removeLoan} loanModalIndex={loanModalIndex} setLoanModalIndex={setLoanModalIndex} ownerOptions={ownerOptions} person1={person1} person2={person2} activeDonations={activeDonations} restoreBaseSnapshot={restoreBaseSnapshot} />
                   <TabPlacements data={data} placementFamily={placementFamily} setPlacementFamily={setPlacementFamily} addPlacement={addPlacement} updatePlacementStr={updatePlacementStr} updatePlacementBool={updatePlacementBool} removePlacement={removePlacement} addPlacementBeneficiary={addPlacementBeneficiary} updatePlacementBeneficiary={updatePlacementBeneficiary} removePlacementBeneficiary={removePlacementBeneficiary} importFamilyBeneficiaries={importFamilyBeneficiaries} setField={setField} setData={setData} ownerOptions={ownerOptions} ir={ir} irOptions={irOptions} person1={person1} person2={person2} />
                   <TabCredits data={data} setField={setField} setData={setData} person1={person1} person2={person2} />
                 </Tabs>
@@ -1551,6 +1576,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
 
           {/* ════ SUCCESSION ════ */}
           <TabSuccession
+            activeDonations={activeDonations}
             data={data} successionData={successionData} setSuccessionData={setSuccessionData}
             succession={succession} syncCollectedHeirs={syncCollectedHeirs} getFamilyMembers={getFamilyMembers}
             importFamilyToTestament={importFamilyToTestament}
@@ -1579,6 +1605,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
             updateHypothesisObjective={updateHypothesisObjective}
             saveBaseSnapshot={saveBaseSnapshot} restoreBaseSnapshot={restoreBaseSnapshot}
             saveHypothesis={saveHypothesis} loadHypothesis={loadHypothesis} clearHypothesis={clearHypothesis}
+            addDonation={addDonation} updateDonation={updateDonation} removeDonation={removeDonation}
             person1={person1} person2={person2}
           />
 

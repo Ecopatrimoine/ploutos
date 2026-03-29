@@ -295,16 +295,73 @@ export function computeSuccession(successionData: SuccessionData, data: Patrimon
     let estateValue = 0;
     let note = "";
 
+    // Helper : calcule la valeur successorale d'une quote-part selon son droit
+    const calcPartValue = (
+      share: number,
+      right: string,
+      cpBirthDate: string,
+      cpAge_fallback: string,
+      cpLabel: string
+    ): { value: number; noteStr: string } => {
+      if (right === "usufruct") return { value: 0, noteStr: "Usufruit non retenu" };
+      if (right === "bare") {
+        const usufAge = cpBirthDate
+          ? getAgeFromBirthDate(cpBirthDate)
+          : (cpAge_fallback ? n(cpAge_fallback) : null);
+        const dp = usufAge !== null ? getDemembrementPercentages(usufAge) : null;
+        if (!dp) {
+          warnings.push(`Le bien « ${property.name || property.type} » (NP) : âge de l'usufruitier manquant.`);
+          return { value: 0, noteStr: "NP non valorisable" };
+        }
+        return {
+          value: fullValue * share * dp.nuePropriete,
+          noteStr: `NP (${cpLabel} · ${usufAge} ans · ${Math.round(dp.nuePropriete * 100)}%)`,
+        };
+      }
+      return { value: fullValue * share, noteStr: "PP" };
+    };
+
     if (!belongsToDeceased) {
       note = "Bien hors succession du défunt";
+    } else if ((property.ownership === "common" || property.ownership === "indivision") && (property.dismemberP1 || property.dismemberP2)) {
+      // ── Démembrement dissocié par personne ──
+      const isP1Deceased = deceasedKey === "person1";
+      const dismember = isP1Deceased ? property.dismemberP1 : property.dismemberP2;
+      if (dismember) {
+        if (dismember.propertyRight === "usufruct") {
+          // Usufruit du défunt s'éteint au décès — hors succession
+          estateValue = 0;
+          note = "Usufruit non retenu à l'actif successoral (s'éteint au décès)";
+        } else {
+          // NP ou PP : entre en succession
+          const usufCounterpart = (dismember.counterparts || [])[0];
+          const cpBirthDate = usufCounterpart?.birthDate || "";
+          const cpLabel = usufCounterpart?.name || usufCounterpart?.relation || "usufruitier";
+          const { value: v, noteStr } = calcPartValue(
+            baseShare,
+            dismember.propertyRight,
+            cpBirthDate,
+            "",
+            cpLabel
+          );
+          estateValue = v;
+          note = `${noteStr} (quote-part ${Math.round(baseShare * 100)}%)${debtNote}`;
+        }
+      } else {
+        estateValue = fullValue * baseShare;
+        note = `Part retenue (${Math.round(baseShare * 100)}%)${debtNote}`;
+      }
     } else if (property.propertyRight === "usufruct") {
-      note = "Usufruit non retenu à l'actif successoral";
+      note = "Usufruit non retenu à l'actif successoral (s'éteint au décès)";
     } else if (property.propertyRight === "bare") {
-      const usufAge = property.usufructAge ? n(property.usufructAge) : null;
+      const usufAge = property.counterpartBirthDate
+        ? getAgeFromBirthDate(property.counterpartBirthDate)
+        : (property.usufructAge ? n(property.usufructAge) : null);
       const dePercent = usufAge !== null ? getDemembrementPercentages(usufAge) : null;
       estateValue = fullValue * baseShare * (dePercent ? dePercent.nuePropriete : 0);
+      const counterLabel = property.counterpartName || property.counterpartRelation || "usufruitier";
       note = dePercent
-        ? `Nue-propriété retenue — CGI art. 669 (âge usufruitier : ${usufAge} ans)`
+        ? `Nue-propriété retenue — CGI art. 669 (âge ${counterLabel} : ${usufAge} ans)`
         : "Nue-propriété non valorisable sans âge de l'usufruitier";
       if (!dePercent)
         warnings.push(`Le bien « ${property.name || property.type} » est en nue-propriété mais l'âge de l'usufruitier n'est pas renseigné.`);

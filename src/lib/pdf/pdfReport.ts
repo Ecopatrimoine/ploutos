@@ -108,14 +108,109 @@ export function buildAndPrintPdf(params: PdfReportParams) {
     }).join("")}</svg>`;
   };
 
+  // ── Donut SVG ──────────────────────────────────────────────────────────────
+  const donut = (segs:{value:number;color:string;label:string}[], cx=80, cy=80, r=60, ri=40) => {
+    const total=segs.reduce((s,i)=>s+i.value,0); if(total<=0) return "";
+    let angle=-Math.PI/2;
+    const paths=segs.map(seg=>{
+      const a=seg.value/total*2*Math.PI;
+      const x1=cx+r*Math.cos(angle); const y1=cy+r*Math.sin(angle);
+      const x2=cx+r*Math.cos(angle+a); const y2=cy+r*Math.sin(angle+a);
+      const ix1=cx+ri*Math.cos(angle+a); const iy1=cy+ri*Math.sin(angle+a);
+      const ix2=cx+ri*Math.cos(angle); const iy2=cy+ri*Math.sin(angle);
+      const lg=a>Math.PI?1:0;
+      const path=`M${x1},${y1} A${r},${r} 0 ${lg},1 ${x2},${y2} L${ix1},${iy1} A${ri},${ri} 0 ${lg},0 ${ix2},${iy2} Z`;
+      angle+=a;
+      return `<path d="${path}" fill="${seg.color}" opacity="0.9"/>`;
+    }).join("");
+    const legend=segs.map((seg,i)=>`<g transform="translate(0,${i*14})"><circle cx="5" cy="5" r="4" fill="${seg.color}"/><text x="13" y="9" font-size="7" fill="#444" font-family="Lato,sans-serif">${seg.label} (${Math.round(seg.value/total*100)}%)</text></g>`).join("");
+    return `<svg width="240" height="180" xmlns="http://www.w3.org/2000/svg"><g transform="translate(10,10)">${paths}</g><g transform="translate(180,30)">${legend}</g></svg>`;
+  };
+
+  // ── Jauge demi-cercle ───────────────────────────────────────────────────────
+  const gauge = (pct:number, label:string, value:string, color:string, w=130) => {
+    const r=50; const cx=w/2; const cy=58;
+    const clampedPct=Math.min(1,Math.max(0,pct));
+    const angle=Math.PI+clampedPct*Math.PI;
+    const nx=cx+r*Math.cos(angle); const ny=cy+r*Math.sin(angle);
+    const zones=[{c:"#22c55e",f:0,t:0.33},{c:"#E3AF64",f:0.33,t:0.66},{c:"#dc2626",f:0.66,t:1}];
+    const arcPath=(from:number,to:number)=>{
+      const a1=Math.PI+from*Math.PI; const a2=Math.PI+to*Math.PI;
+      const x1=cx+r*Math.cos(a1); const y1=cy+r*Math.sin(a1);
+      const x2=cx+r*Math.cos(a2); const y2=cy+r*Math.sin(a2);
+      return `M${x1},${y1} A${r},${r} 0 0,1 ${x2},${y2}`;
+    };
+    return `<svg width="${w}" height="70" viewBox="0 0 ${w} 70" xmlns="http://www.w3.org/2000/svg">
+      ${zones.map(z=>`<path d="${arcPath(z.f,z.t)}" fill="none" stroke="${z.c}" stroke-width="10" stroke-linecap="butt"/>`).join("")}
+      <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#101B3B" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="${cx}" cy="${cy}" r="4" fill="#101B3B"/>
+      <text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="8" font-weight="700" fill="#101B3B" font-family="Lato,sans-serif">${value}</text>
+      <text x="${cx}" y="${cy+24}" text-anchor="middle" font-size="6.5" fill="#888" font-family="Lato,sans-serif">${label}</text>
+    </svg>`;
+  };
+
+  // ── Waterfall successoral ───────────────────────────────────────────────────
+  const succWaterfall = () => {
+    const avCapital=(succession.avLines||[]).reduce((s:number,l:any)=>s+l.amount,0);
+    const avTax=(succession.avLines||[]).reduce((s:number,l:any)=>s+l.totalTax,0);
+    const totalDroits=succession.totalSuccessionRights||0;
+    const netSucc=succession.activeNet-totalDroits;
+    const netAv=avCapital-avTax;
+    const total=Math.max(succession.activeNet+avCapital,1);
+    const steps=[
+      {label:"Actif successoral",value:succession.activeNet,color:"#101B3B",ratio:succession.activeNet/total},
+      {label:"Droits succession",value:-totalDroits,color:"#dc2626",ratio:totalDroits/total},
+      {label:"Net succession",value:netSucc,color:"#16a34a",ratio:netSucc/total,sep:true},
+      ...(avCapital>0?[
+        {label:"Capital AV",value:avCapital,color:"#26428B",ratio:avCapital/total},
+        {label:"Fiscalité AV",value:-avTax,color:"#f97316",ratio:avTax/total},
+        {label:"Net AV",value:netAv,color:"#16a34a",ratio:netAv/total,sep:true},
+      ]:[]),
+      {label:"Total net transmis",value:netSucc+netAv,color:"#101B3B",ratio:(netSucc+netAv)/total,total:true},
+    ];
+    const W=420; const lW=130; const bW=W-lW-90; const rowH=24;
+    const svgH=steps.length*rowH+8;
+    return `<svg width="${W}" height="${svgH}" xmlns="http://www.w3.org/2000/svg">${steps.map((s:any,i)=>{
+      const bw=Math.max(2,Math.abs(s.ratio)*bW); const y=i*rowH+4;
+      const isNeg=s.value<0;
+      const sepLine=s.sep?`<line x1="${lW}" y1="${y}" x2="${W-85}" y2="${y}" stroke="#e5e0d8" stroke-width="0.5"/>`:"";
+      return `${sepLine}
+        <text x="${lW-6}" y="${y+13}" text-anchor="end" font-size="7.5" fill="${isNeg?"#c2410c":s.total?"#101B3B":"#555"}" font-family="Lato,sans-serif" font-weight="${s.total?700:400}">${s.label}</text>
+        <rect x="${lW}" y="${y+2}" width="${bw}" height="14" rx="3" fill="${isNeg?"rgba(220,38,38,0.15)":s.color}" opacity="${s.total?1:0.8}"/>
+        <text x="${lW+bw+6}" y="${y+13}" font-size="7.5" fill="${isNeg?"#dc2626":s.color}" font-family="Lato,sans-serif" font-weight="${s.total?700:400}">${isNeg?"−":""}${euro(Math.abs(s.value))}</text>`;
+    }).join("")}</svg>`;
+  };
+
+  // ── Barres comparatives hypothèses ─────────────────────────────────────────
+  const hypoBarChart = () => {
+    if(activeHypos.length===0) return "";
+    const cats=["IR","IFI","Succession"];
+    const baseVals=[ir.finalIR,ifi.ifi,succession.totalRights||0];
+    const colors=["#101B3B","#26428B","#E3AF64","#8094D4","#C4A882"];
+    const allHypos=[{name:"Base",vals:baseVals,color:"#9ca3af"},...activeHypos.slice(0,4).map((h,i)=>({name:h.hypothesis.name,vals:[h.ir!.finalIR,h.ifi!.ifi,h.succession!.totalRights||0],color:colors[i]}))];
+    const maxVal=Math.max(...allHypos.flatMap(h=>h.vals),1);
+    const W=420; const H=150; const bW=Math.floor((W-60)/(cats.length*allHypos.length+cats.length)); const gapCat=12;
+    return `<svg width="${W}" height="${H+30}" xmlns="http://www.w3.org/2000/svg">
+      ${cats.map((cat,ci)=>{
+        const xBase=30+ci*(allHypos.length*bW+gapCat);
+        return `${allHypos.map((h,hi)=>{
+          const val=h.vals[ci]; const bh=Math.max(2,val/maxVal*H); const x=xBase+hi*bW; const y=H-bh;
+          return `<rect x="${x}" y="${y}" width="${bW-2}" height="${bh}" rx="2" fill="${h.color}" opacity="0.85"/>`;
+        }).join("")}
+        <text x="${xBase+allHypos.length*bW/2}" y="${H+12}" text-anchor="middle" font-size="7.5" fill="#555" font-family="Lato,sans-serif">${cat}</text>`;
+      }).join("")}
+      <g transform="translate(0,${H+22})">${allHypos.map((h,i)=>`<g transform="translate(${i*80},0)"><rect x="0" y="0" width="8" height="8" rx="2" fill="${h.color}"/><text x="12" y="8" font-size="6.5" fill="#444" font-family="Lato,sans-serif">${h.name.substring(0,10)}</text></g>`).join("")}</g>
+    </svg>`;
+  };
+
   const activeHypos=hypothesisResults.filter(h=>h.ir&&h.ifi&&h.succession&&h.hypothesis.savedAt);
   const sign=(v:number)=>v>0?"+":"";
   const cls=(v:number)=>Math.abs(v)<1?"neutral":v<0?"pos":"neg";
   const heirRows=succession.results.map((r:any)=>[
     r.name||"—",r.relation,
-    euro(r.grossReceived+r.nueRawValue+r.avReceived),
+    euro(r.grossReceived+r.nueValue+(r.usufructRawValue||0)*(succession.demembrementPct?.usufruct??1)+r.avReceived),
     euro(r.successionTaxable),euro(r.avDuties>0?r.avDuties:0),
-    euro(r.duties),`<strong>${euro(r.netReceived)}</strong>`,
+    euro(r.successionDuties),`<strong>${euro(r.grossReceived+r.nueValue+(r.usufructRawValue||0)*(succession.demembrementPct?.usufruct??1)-r.successionDuties+(r.avNetReceived||0))}</strong>`,
   ]);
 
   const css=`
@@ -143,11 +238,11 @@ export function buildAndPrintPdf(params: PdfReportParams) {
   .page-header-client{font-size:8pt;color:${cabinet.colorSky};font-weight:600;}
   .page-footer{margin-top:20px;border-top:1px solid #e5e0d8;padding-top:7px;font-size:7pt;color:#aaa;display:flex;justify-content:space-between;}
   .section{margin-bottom:18px;}
-  .section-title{font-size:9.5pt;font-weight:700;color:${cabinet.colorSky};border-left:3px solid ${cabinet.colorGold};padding-left:8px;margin-bottom:9px;text-transform:uppercase;letter-spacing:0.4px;}
+  .section-title{font-size:8.5pt;font-weight:700;color:${cabinet.colorSky};border-left:3px solid ${cabinet.colorGold};padding-left:8px;margin-bottom:9px;text-transform:uppercase;letter-spacing:0.5px;padding-bottom:2px;}
   .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px;}
   .kpi-grid-3{grid-template-columns:repeat(3,1fr);}
   .kpi-grid-2{grid-template-columns:repeat(2,1fr);}
-  .kpi{background:linear-gradient(160deg,${cabinet.colorCream} 0%,#fff8f0 100%);border:1px solid rgba(227,175,100,0.3);border-radius:8px;padding:9px 11px;}
+  .kpi{background:linear-gradient(160deg,${cabinet.colorCream} 0%,#fff8f0 100%);border:0.5px solid rgba(227,175,100,0.3);border-radius:10px;padding:9px 11px;box-shadow:0 1px 2px rgba(0,0,0,0.03);}
   .kpi-label{font-size:6.5pt;color:${cabinet.colorSky};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;}
   .kpi-value{font-size:13pt;font-weight:700;color:#101B3B;line-height:1;}
   .kpi-sub{font-size:7pt;color:#777;margin-top:2px;}
@@ -160,7 +255,7 @@ export function buildAndPrintPdf(params: PdfReportParams) {
   td{padding:4px 7px;border-bottom:1px solid rgba(0,0,0,0.05);vertical-align:top;}
   .row-even{background:#fff;} .row-odd{background:rgba(251,236,215,0.14);}
   td.highlight{font-weight:700;color:#101B3B;}
-  .graph-box{background:#f8f7f6;border:1px solid rgba(227,175,100,0.18);border-radius:8px;padding:12px 14px;margin-bottom:8px;}
+  .graph-box{background:linear-gradient(160deg,#f9f8f7 0%,#fff 100%);border:0.5px solid rgba(227,175,100,0.25);border-radius:10px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
   .graph-title{font-size:7.5pt;font-weight:700;color:${cabinet.colorSky};text-transform:uppercase;letter-spacing:0.3px;margin-bottom:9px;}
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:10px;}
   .info-block{background:#f8f7f6;border:1px solid rgba(227,175,100,0.18);border-radius:8px;padding:11px 14px;margin-bottom:8px;}
@@ -175,7 +270,7 @@ export function buildAndPrintPdf(params: PdfReportParams) {
   .demarche-step:last-child{margin-bottom:0;}
   .demarche-num{width:26px;height:26px;border-radius:50%;background:${cabinet.colorNavy};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9.5pt;font-weight:700;flex-shrink:0;}
   .demarche-text{font-size:8.5pt;line-height:1.5;} .demarche-text strong{color:${cabinet.colorNavy};}
-  .hypo-block{background:#f8f7f6;border:1px solid rgba(227,175,100,0.25);border-radius:10px;padding:14px 16px;margin-bottom:14px;}
+  .hypo-block{background:linear-gradient(160deg,#f9f8f7 0%,#fff 100%);border:0.5px solid rgba(227,175,100,0.3);border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
   .hypo-title{font-size:11pt;font-weight:700;color:${cabinet.colorNavy};margin-bottom:3px;}
   .hypo-notes{font-size:8pt;color:#555;font-style:italic;background:rgba(227,175,100,0.1);padding:5px 9px;border-radius:4px;margin-bottom:9px;border-left:3px solid ${cabinet.colorGold};}
   .hypo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:9px 0;}
@@ -202,32 +297,52 @@ export function buildAndPrintPdf(params: PdfReportParams) {
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   }`;
 
-  const makeCover = (docType: string) => `
+  const makeCover = (docType: string) => {
+    const totalFiscal=ir.finalIR+ifi.ifi+(succession.totalRights||0);
+    const maxFiscal=Math.max(totalFiscal,ir.salaries+ir.foncierBrut+(ir.taxablePlacements||0),1);
+    const irPct=ir.finalIR/Math.max(ir.salaries+ir.foncierBrut+(ir.taxablePlacements||0),1);
+    const ifiPct=ifi.ifi>0?Math.min(1,ifi.ifi/Math.max(ifi.netTaxable,1)):0;
+    const succPct=Math.min(1,(succession.totalRights||0)/Math.max(succession.activeNet||1,1));
+    return `
 <div class="cover">
-  <div class="cover-shape1"></div>
-  <div class="cover-shape2"></div>
-  <div class="cover-shape3"></div>
-  <div class="cover-shape4"></div>
+  <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
+  <!-- Bandeau top dégradé -->
+  <div style="position:absolute;top:0;left:0;width:100%;height:6px;background:linear-gradient(90deg,${cabinet.colorNavy} 0%,${cabinet.colorGold} 60%,${cabinet.colorSky} 100%);z-index:4;"></div>
+  <!-- Barre verticale gauche -->
   <div class="cover-shape5"></div>
   <div class="cover-inner">
-    <div>${logoSrc2
-      ? `<img src="${logoSrc2}" class="cover-logo" alt="Logo"/>`
-      : `<div style="font-size:17pt;font-weight:900;color:${cabinet.colorNavy}">${cabinet.cabinetName||"Ploutos"}</div>`}
+    <!-- Header logo + date -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>${logoSrc2?`<img src="${logoSrc2}" class="cover-logo" alt="Logo"/>`:`<div style="font-size:17pt;font-weight:900;color:${cabinet.colorNavy}">${cabinet.cabinetName||"Ploutos"}</div>`}</div>
+      <div style="text-align:right;font-size:7.5pt;color:#aaa;margin-top:4px;">${cabinet.orias?`ORIAS n° <strong style="color:#666">${cabinet.orias}</strong><br/>`:""}${dateStr}</div>
     </div>
+    <!-- Corps cover -->
     <div class="cover-body">
-      <div class="cover-doc-type">${docType}</div>
+      <div style="display:inline-block;background:${cabinet.colorNavy};color:${cabinet.colorGold};font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:2px;padding:5px 16px;border-radius:20px;margin-bottom:22px;">${docType}</div>
       <div class="cover-client">${clientName2}</div>
+      ${data.coupleStatus!=="single"&&[data.person2FirstName,data.person2LastName].filter(Boolean).join(" ")?`<div style="font-size:13pt;color:${cabinet.colorSky};font-weight:600;margin-top:-4px;margin-bottom:10px;">&amp; ${[data.person2FirstName,data.person2LastName].filter(Boolean).join(" ")}</div>`:"<div style='margin-bottom:16px'></div>"}
       <div class="cover-date">${dateStr}</div>
       <div class="cover-bar"></div>
-      <div class="cover-tagline">${docType === "Rapport patrimonial"
-        ? "Analyse fiscale · Bilan patrimonial · Succession"
-        : "En application des articles L.521-2 et R.521-2 du code des assurances"}</div>
+      <!-- Accroche sans données sensibles -->
+      <div style="margin-top:28px;max-width:480px;">
+        <div style="background:rgba(16,27,59,0.04);border-radius:12px;padding:16px 18px;border-left:4px solid ${cabinet.colorGold};">
+          <div style="font-size:9pt;font-weight:700;color:${cabinet.colorNavy};margin-bottom:6px;">Analyse patrimoniale complète</div>
+          <div style="font-size:8pt;color:#666;line-height:1.6;">Ce rapport présente une synthèse de votre situation patrimoniale, fiscale et successorale, établie sur la base des informations recueillies lors de notre entretien.</div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+          ${sections.bilan?`<div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${cabinet.colorNavy};font-weight:600;">📊 Bilan patrimonial</div>`:""}
+          ${sections.ir?`<div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${cabinet.colorNavy};font-weight:600;">📈 Fiscalité IR</div>`:""}
+          ${showIFI&&sections.ifi?`<div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${cabinet.colorNavy};font-weight:600;">🏛️ IFI</div>`:""}
+          ${sections.succession?`<div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${cabinet.colorNavy};font-weight:600;">⚖️ Succession</div>`:""}
+          ${sections.hypos&&activeHypos.length>0?`<div style="background:rgba(227,175,100,0.15);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${cabinet.colorNavy};font-weight:600;">💡 ${activeHypos.length} scénario${activeHypos.length>1?"s":""}</div>`:""}
+        </div>
+      </div>
     </div>
-    <div class="cover-footer">
-      ${cabinet.cabinetName||"Ploutos"}${cabinet.orias?` · ORIAS n° ${cabinet.orias}`:""} · Document confidentiel · Simulation à titre indicatif
-    </div>
+    <div class="cover-footer">${cabinet.cabinetName||"Ploutos"}${cabinet.orias?` · ORIAS n° ${cabinet.orias}`:""} · Rapport confidentiel · ${dateStr}</div>
   </div>
 </div>`;
+  };
+
 
   const pageCabinet = () => `<div class="page">
   ${pH("Notre cabinet & notre démarche")}
@@ -343,8 +458,18 @@ export function buildAndPrintPdf(params: PdfReportParams) {
     ${kpi("Passif",euro(data.properties.reduce((s,p)=>s+n(p.loanCapitalRemaining),0)))}
   </div>
   <div class="two-col">
-    ${patItems.length>0?`<div>${sec("Répartition",`<div class="graph-box"><div class="graph-title">Par classe d'actifs</div>${hbar(patItems,240)}</div>`)}</div>`:"<div></div>"}
-    ${t2>0?`<div>${sec("Exposition",`<div class="graph-box"><div class="graph-title">Sécurisé vs Dynamique</div>${segB([{label:"Sécurisé",value:s2,color:"#101B3B"},{label:"Dynamique",value:d2,color:"#E3AF64"}],240)}</div>`)}</div>`:"<div></div>"}
+    ${patItems.length>0?`<div>${sec("Répartition patrimoniale",`<div class="graph-box"><div class="graph-title">Par classe d'actifs</div>${donut(patItems.map(i=>({value:i.value,color:i.color,label:i.label})),80,80,65,38)}</div>`)}</div>`:"<div></div>"}
+    <div>
+      ${t2>0?sec("Exposition au risque",`<div class="graph-box"><div class="graph-title">Sécurisé vs Dynamique</div>${segB([{label:"Sécurisé",value:s2,color:"#101B3B"},{label:"Dynamique",value:d2,color:"#E3AF64"}],240)}</div>`):""}
+      ${patrimoineTotal>0?sec("Fiscalité patrimoniale",`<div class="graph-box">
+        <div class="graph-title">Charge fiscale annuelle estimée</div>
+        ${hbar([
+          ...(ir.finalIR>0?[{label:"Impôt sur le revenu",value:ir.finalIR,color:"#101B3B"}]:[]),
+          ...(ifi.ifi>0?[{label:"IFI",value:ifi.ifi,color:"#dc2626"}]:[]),
+          ...(succession.totalRights>0?[{label:"Droits succession",value:succession.totalRights,color:"#E3AF64"}]:[]),
+        ],240)}
+      </div>`):""}
+    </div>
   </div>
   ${data.properties.length>0?sec("Immobilier",tbl(["Bien","Type","Valeur brute","Cap. restant","Loyer/an"],data.properties.map(p=>[p.name||p.type,p.type,euro(n(p.value)),n(p.loanCapitalRemaining)>0?euro(n(p.loanCapitalRemaining)):"—",n(p.rentGrossAnnual)>0?euro(n(p.rentGrossAnnual)):"—"]))):""}
   ${data.placements.length>0?sec("Placements",tbl(["Placement","Type","Propriétaire","Valeur"],data.placements.map(p=>[p.name||p.type,p.type,p.ownership==="common"?"Commun":p.ownership==="person1"?[data.person1FirstName,data.person1LastName].filter(Boolean).join(" ")||"P1":[data.person2FirstName,data.person2LastName].filter(Boolean).join(" ")||"P2",euro(n(p.value))]))):""}
@@ -390,7 +515,10 @@ export function buildAndPrintPdf(params: PdfReportParams) {
     ${kpi("Défunt",succession.deceasedKey==="person1"?[data.person1FirstName,data.person1LastName].filter(Boolean).join(" "):[data.person2FirstName,data.person2LastName].filter(Boolean).join(" "))}
     ${succession.pieData&&succession.pieData.length>0?kpi("Réserve légale",euro(succession.pieData[0]?.value||0)):kpi("Héritiers",`${succession.results.length}`)}
   </div>
-  ${succession.receivedPieData&&succession.receivedPieData.length>0?sec("Répartition par héritier",`<div class="graph-box"><div class="graph-title">Montant reçu par héritier</div>${hbar(succession.receivedPieData.map((d:any,i:number)=>({label:d.name||`Héritier ${i+1}`,value:d.value,color:["#101B3B","#26428B","#E3AF64","#8094D4","#C4A882"][i%5]})),420)}</div>`):""}
+  <div class="two-col" style="margin-bottom:10px">
+    ${succession.activeNet>0?`<div>${sec("De l'actif au net transmis",`<div class="graph-box"><div class="graph-title">Flux successoral consolidé</div>${succWaterfall()}</div>`)}</div>`:"<div></div>"}
+    ${succession.receivedPieData&&succession.receivedPieData.length>0?`<div>${sec("Répartition par héritier",`<div class="graph-box"><div class="graph-title">Net reçu par héritier</div>${hbar(succession.receivedPieData.map((d:any,i:number)=>({label:d.name||"Héritier "+(i+1),value:d.value,color:["#101B3B","#26428B","#E3AF64","#8094D4","#C4A882"][i%5]})),240)}</div>`)}</div>`:"<div></div>"}
+  </div>
   ${succession.results.length>0?sec("Détail par héritier",tbl(
     ["Héritier","Lien","Actif reçu","Base taxable","Droits AV","Droits succ.","Net estimé"],
     heirRows,6
@@ -400,18 +528,19 @@ export function buildAndPrintPdf(params: PdfReportParams) {
 
   const pageHypos = () => activeHypos.length>0?`<div class="page">
   ${pH("Scénarios d'optimisation")}
+  ${sec("Comparatif graphique",`<div class="graph-box"><div class="graph-title">IR / IFI / Succession — Base vs Scénarios</div>${hypoBarChart()}</div>`)}
   ${activeHypos.map(h=>{
-    const hIR=h.ir!.finalIR; const hIFI=h.ifi!.ifi; const hSucc=h.succession!.totalRights;
-    const dIR=hIR-ir.finalIR; const dIFI=hIFI-ifi.ifi; const dSucc=hSucc-succession.totalRights;
+    const hIR=h.ir!.finalIR; const hIFI=h.ifi!.ifi; const hSucc=h.succession!.totalRights||0;
+    const dIR=hIR-ir.finalIR; const dIFI=hIFI-ifi.ifi; const dSucc=hSucc-(succession.totalRights||0);
     return `<div class="hypo-block">
       <div class="hypo-title">${h.hypothesis.name}</div>
       ${h.hypothesis.objective?`<div style="font-size:8pt;color:#26428B;font-weight:600;margin-bottom:3px">Objectif : ${h.hypothesis.objective}</div>`:""}
       ${h.hypothesis.notes?`<div class="hypo-notes">${h.hypothesis.notes}</div>`:""}
       <div class="hypo-grid">
-        <div class="hypo-kpi"><div class="hypo-kpi-label">IR</div><div class="hypo-kpi-value">${euro(hIR)}</div><div class="hypo-kpi-delta ${cls(dIR)}">${sign(dIR)}${euro(dIR)}</div></div>
-        <div class="hypo-kpi"><div class="hypo-kpi-label">IFI</div><div class="hypo-kpi-value">${euro(hIFI)}</div><div class="hypo-kpi-delta ${cls(dIFI)}">${sign(dIFI)}${euro(dIFI)}</div></div>
-        <div class="hypo-kpi"><div class="hypo-kpi-label">Succession</div><div class="hypo-kpi-value">${euro(hSucc)}</div><div class="hypo-kpi-delta ${cls(dSucc)}">${sign(dSucc)}${euro(dSucc)}</div></div>
-        <div class="hypo-kpi"><div class="hypo-kpi-label">Total fiscal</div><div class="hypo-kpi-value">${euro(hIR+hIFI+hSucc)}</div><div class="hypo-kpi-delta ${cls(dIR+dIFI+dSucc)}">${sign(dIR+dIFI+dSucc)}${euro(dIR+dIFI+dSucc)}</div></div>
+        <div class="hypo-kpi"><div class="hypo-kpi-label">IR</div><div class="hypo-kpi-value">${euro(hIR)}</div><div class="hypo-kpi-delta ${cls(dIR)}">${sign(dIR)}${euro(Math.abs(dIR))}</div></div>
+        <div class="hypo-kpi"><div class="hypo-kpi-label">IFI</div><div class="hypo-kpi-value">${euro(hIFI)}</div><div class="hypo-kpi-delta ${cls(dIFI)}">${sign(dIFI)}${euro(Math.abs(dIFI))}</div></div>
+        <div class="hypo-kpi"><div class="hypo-kpi-label">Succession</div><div class="hypo-kpi-value">${euro(hSucc)}</div><div class="hypo-kpi-delta ${cls(dSucc)}">${sign(dSucc)}${euro(Math.abs(dSucc))}</div></div>
+        <div class="hypo-kpi"><div class="hypo-kpi-label">Total fiscal</div><div class="hypo-kpi-value">${euro(hIR+hIFI+hSucc)}</div><div class="hypo-kpi-delta ${cls(dIR+dIFI+dSucc)}">${sign(dIR+dIFI+dSucc)}${euro(Math.abs(dIR+dIFI+dSucc))}</div></div>
       </div>
     </div>`;
   }).join("")}

@@ -143,9 +143,9 @@ export function buildAndPrintMission(params: PdfMissionParams) {
 
   const heirRows=succession.results.map((r:any)=>[
     r.name||"—",r.relation,
-    euro(r.grossReceived+r.nueRawValue+r.avReceived),
+    euro(r.grossReceived+r.nueValue+r.usufructRawValue*(succession.demembrementPct?.usufruct??1)+r.avReceived),
     euro(r.successionTaxable),euro(r.avDuties>0?r.avDuties:0),
-    euro(r.duties),`<strong>${euro(r.netReceived)}</strong>`,
+    euro(r.successionDuties),`<strong>${euro(r.grossReceived+r.nueValue+r.usufructRawValue*(succession.demembrementPct?.usufruct??1)-r.successionDuties+(r.avNetReceived||0))}</strong>`,
   ]);
 
   const css=`
@@ -173,7 +173,7 @@ export function buildAndPrintMission(params: PdfMissionParams) {
   .page-header-client{font-size:8pt;color:${cabinet.colorSky};font-weight:600;}
   .page-footer{margin-top:20px;border-top:1px solid #e5e0d8;padding-top:7px;font-size:7pt;color:#aaa;display:flex;justify-content:space-between;}
   .section{margin-bottom:18px;}
-  .section-title{font-size:9.5pt;font-weight:700;color:${cabinet.colorSky};border-left:3px solid ${cabinet.colorGold};padding-left:8px;margin-bottom:9px;text-transform:uppercase;letter-spacing:0.4px;}
+  .section-title{font-size:8.5pt;font-weight:700;color:${cabinet.colorSky};border-left:3px solid ${cabinet.colorGold};padding-left:8px;margin-bottom:9px;text-transform:uppercase;letter-spacing:0.5px;padding-bottom:2px;}
   .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px;}
   .kpi-grid-3{grid-template-columns:repeat(3,1fr);}
   .kpi{background:linear-gradient(160deg,${cabinet.colorCream} 0%,#fff8f0 100%);border:1px solid rgba(227,175,100,0.3);border-radius:8px;padding:9px 11px;}
@@ -215,17 +215,40 @@ export function buildAndPrintMission(params: PdfMissionParams) {
 
   const cover = `<div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div><div class="cover-shape5"></div>
+  <!-- Bande navy gauche + gradient top -->
+  <div style="position:absolute;top:0;left:0;width:100%;height:5px;background:linear-gradient(90deg,${cabinet.colorNavy} 0%,${cabinet.colorGold} 60%,${cabinet.colorSky} 100%);z-index:4;"></div>
   <div class="cover-inner">
-    <div>${logoSrc3?`<img src="${logoSrc3}" class="cover-logo" alt="Logo"/>`:
-      `<div style="font-size:17pt;font-weight:900;color:${cabinet.colorNavy}">${cabinet.cabinetName||"Ploutos"}</div>`}</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>${logoSrc3?`<img src="${logoSrc3}" class="cover-logo" alt="Logo"/>`:
+        `<div style="font-size:17pt;font-weight:900;color:${cabinet.colorNavy}">${cabinet.cabinetName||"Ploutos"}</div>`}</div>
+      <div style="text-align:right;font-size:7.5pt;color:#999;margin-top:4px;">
+        ${cabinet.orias?`ORIAS n° <strong>${cabinet.orias}</strong><br/>`:""}
+        ${dateStr}
+      </div>
+    </div>
     <div class="cover-body">
-      <div class="cover-doc-type">Lettre de mission & Fiche Conseil</div>
+      <div style="display:inline-block;background:${cabinet.colorNavy};color:${cabinet.colorGold};font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:2px;padding:5px 14px;border-radius:20px;margin-bottom:20px;">
+        Lettre de mission &amp; Fiche Conseil
+      </div>
       <div class="cover-client">${clientName3}</div>
+      ${data.coupleStatus!=="single"&&p2n!=="—"?`<div style="font-size:12pt;color:${cabinet.colorSky};font-weight:600;margin-top:-4px;margin-bottom:10px;">&amp; ${p2n}</div>`:"<div style='margin-bottom:16px'></div>"}
       <div class="cover-date">${dateStr}</div>
       <div class="cover-bar"></div>
-      <div class="cover-tagline">En application des articles L.521-2 et R.521-2 du code des assurances</div>
+      <div style="margin-top:24px;max-width:480px;">
+        <div style="background:rgba(16,27,59,0.04);border-radius:12px;padding:14px 16px;border-left:4px solid ${cabinet.colorGold};">
+          <div style="font-size:8.5pt;font-weight:700;color:${cabinet.colorNavy};margin-bottom:5px;">Document précontractuel réglementaire</div>
+          <div style="font-size:7.5pt;color:#666;line-height:1.6;">Lettre de mission et fiche de conseil établies conformément aux obligations DDA et MIF2, sur la base des informations recueillies lors de notre entretien.</div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+          <div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${cabinet.colorNavy};font-weight:600;">👤 Informations légales</div>
+          <div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${cabinet.colorNavy};font-weight:600;">📋 Besoins & Objectifs</div>
+          <div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${cabinet.colorNavy};font-weight:600;">📊 Bilan patrimonial</div>
+          <div style="background:rgba(227,175,100,0.15);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${cabinet.colorNavy};font-weight:600;">🎯 Profil investisseur</div>
+        </div>
+      </div>
+      <div class="cover-tagline" style="margin-top:20px;">En application des articles L.521-2 et R.521-2 du Code des assurances<br/>et de la directive DDA (Directive sur la Distribution d'Assurances)</div>
     </div>
-    <div class="cover-footer">${cabinet.cabinetName||"Ploutos"}${cabinet.orias?` · ORIAS n° ${cabinet.orias}`:""} · Document confidentiel</div>
+    <div class="cover-footer">${cabinet.cabinetName||"Ploutos"}${cabinet.orias?` · ORIAS n° ${cabinet.orias}`:""} · Document confidentiel · ${dateStr}</div>
   </div>
 </div>`;
 
@@ -271,16 +294,56 @@ export function buildAndPrintMission(params: PdfMissionParams) {
         <p style="margin-top:6px;font-size:7.5pt;color:#666">Garanties minimales légales : 1 564 610 € par sinistre et 2 315 610 € par année (arrêté du 29 octobre 2024).</p>
       </div>
       <div class="legal-block">
-        <div class="legal-title">Comment sommes-nous rémunérés ?</div>
+        <div class="legal-title">Comment sommes-nous rémunérés ? (art. L521-2)</div>
         <ul style="margin-top:4px">
-          <li>${rb(true)} D'une commission (rémunération incluse dans la prime d'assurance)</li>
-          <li>${rb(false)} D'un honoraire payé directement par le souscripteur</li>
-          <li>${rb(false)} D'une combinaison des deux</li>
+          <li>${rb(cabinet.remunerationType==="commission"||!cabinet.remunerationType)} Par <strong>commission</strong> versée par l'assureur (incluse dans la prime)</li>
+          <li>${rb(cabinet.remunerationType==="honoraire")} Par <strong>honoraires</strong> payés directement par le client</li>
+          <li>${rb(cabinet.remunerationType==="mixte")} Par une <strong>combinaison</strong> des deux (commission + honoraires)</li>
         </ul>
-        <p style="margin-top:4px;font-size:7.5pt;color:#666">Notre société n'entretient pas de relation significative de nature capitalistique ou commerciale avec une entreprise d'assurance.</p>
+        <p style="margin-top:4px;font-size:7.5pt;color:#666">Notre cabinet n'entretient aucune participation directe ou indirecte ≥ 10% dans le capital d'un assureur, ni aucun assureur dans notre capital (art. L521-2 I).</p>
       </div>
     </div>
   </div>
+  ${sec("Niveau de conseil délivré (art. L521-4 Code des assurances — DDA)",`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px;">
+      <div class="info-block" style="border:${cabinet.niveauConseil==='2'?'2px solid '+cabinet.colorSky:'1px solid rgba(227,175,100,0.18)'}">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+          ${rb(cabinet.niveauConseil!=='2')}
+          <strong style="font-size:8.5pt;color:${cabinet.colorNavy}">Niveau 1 — Analyse des besoins</strong>
+        </div>
+        <p style="font-size:7.5pt;color:#666;line-height:1.5;">Nous formulons une recommandation cohérente avec vos besoins et exigences, sans effectuer d'analyse approfondie de tous les produits du marché.</p>
+      </div>
+      <div class="info-block" style="border:${cabinet.niveauConseil==='2'?'2px solid '+cabinet.colorSky:'1px solid rgba(227,175,100,0.18)'}">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+          ${rb(cabinet.niveauConseil==='2')}
+          <strong style="font-size:8.5pt;color:${cabinet.colorNavy}">Niveau 2 — Recommandation personnalisée</strong>
+        </div>
+        <p style="font-size:7.5pt;color:#666;line-height:1.5;">Notre conseil repose sur une analyse objective du marché et une évaluation approfondie de votre situation patrimoniale globale.</p>
+      </div>
+    </div>
+  `)}
+  ${sec("Durée et renouvellement de la mission",`
+    <div class="info-block" style="font-size:8.5pt;line-height:1.6;">
+      <p>La présente lettre de mission est conclue pour une durée d'un an à compter de sa signature. Elle se renouvelle par <strong>tacite reconduction</strong> chaque année, sauf dénonciation par l'une ou l'autre des parties par lettre recommandée avec accusé de réception, au minimum 30 jours avant l'échéance.</p>
+      <p style="margin-top:6px;">Chaque partie peut résilier la mission à tout moment, sans préavis, en cas de manquement grave de l'autre partie à ses obligations.</p>
+    </div>
+  `)}
+  ${sec("Lutte contre le blanchiment et le financement du terrorisme — LCB-FT (art. L561-1 et s. CMF)",`
+    <div class="info-block" style="font-size:8.5pt;line-height:1.6;">
+      <p>En application de la réglementation LCB-FT, nous sommes tenus de :</p>
+      <ul style="margin-top:6px;padding-left:14px;">
+        <li>Vérifier votre identité et celle des bénéficiaires effectifs (pièce d'identité en cours de validité)</li>
+        <li>Nous enquérir de l'origine des fonds investis</li>
+        <li>Déclarer tout soupçon à TRACFIN (Traitement du renseignement et action contre les circuits financiers clandestins)</li>
+      </ul>
+      <p style="margin-top:6px;"><strong>Vous vous engagez</strong> à nous communiquer tout document justificatif requis à première demande et à nous informer de toute modification significative de votre situation.</p>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:8pt;">
+        <span>${cb(true)} Pièce d'identité vérifiée</span>
+        <span>${cb(mission.justifDomicile||false)} Justificatif de domicile</span>
+        <span>${cb(mission.justifOrigineFonds||false)} Origine des fonds</span>
+      </div>
+    </div>
+  `)}
   ${pF("Lettre de mission — Informations légales")}
 </div>` : "";
 
@@ -367,6 +430,26 @@ export function buildAndPrintMission(params: PdfMissionParams) {
     <span>${rb(mission.horizon==="9-15")} 9 à 15 ans</span>
     <span>${rb(mission.horizon==="15+")} + de 15 ans</span>
   </div>`)}
+  ${sec("Préférences en matière de durabilité — ESG (MIF2 depuis 2023)",`
+    <div class="two-col" style="margin-bottom:0">
+      <div class="info-block" style="font-size:8pt;line-height:1.6;">
+        <p style="margin-bottom:6px;font-weight:700;color:${cabinet.colorNavy}">Souhaitez-vous intégrer des critères ESG dans vos investissements ?</p>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <span>${rb(mission.esgPref==="oui")} Oui, de façon prioritaire</span>
+          <span>${rb(mission.esgPref==="partiel")} Partiellement</span>
+          <span>${rb(!mission.esgPref||mission.esgPref==="non")} Non / Pas de préférence</span>
+        </div>
+      </div>
+      <div class="info-block" style="font-size:8pt;line-height:1.6;">
+        <p style="margin-bottom:6px;font-weight:700;color:${cabinet.colorNavy}">Vos engagements</p>
+        <ul style="padding-left:12px;color:#555;">
+          <li>Nous informer de tout changement de situation (famille, revenus, patrimoine)</li>
+          <li>Vérifier la conformité des contrats signés avec nos recommandations</li>
+          <li>Ne pas effectuer d'opérations contraires au présent conseil sans nous en informer</li>
+        </ul>
+      </div>
+    </div>
+  `)}
   ${pF("Besoins & Objectifs")}
 </div>` : "";
 
@@ -473,27 +556,33 @@ export function buildAndPrintMission(params: PdfMissionParams) {
 
   const pageSign = sections.signature ? `<div class="page">
   ${pH("Signature & Engagements")}
-  ${sec("En application de l'article R.521-2 du Code des assurances",`
-    <p style="font-size:8.5pt;color:#555;margin-bottom:10px;">Je déclare et reconnais :</p>
-    <div class="sign-check">${cb(true)} Avoir reçu et pris connaissance du contenu du présent document d'information et de conseil.</div>
-    <div class="sign-check">${cb(true)} Que les renseignements fournis ci-dessus sont complets, sincères et exacts.</div>
-    <div class="sign-check">${cb(true)} Avoir reçu une information claire sur les principales caractéristiques du(des) contrat(s) proposé(s).</div>
-    <div class="sign-check">${cb(true)} M'engager à informer ${cabinet.cabinetName||"le cabinet"} de toute modification concernant ma situation.</div>
-    <div class="sign-check">${cb(true)} Avoir été informé(e) qu'une fausse déclaration peut entraîner la nullité du contrat (art. L113-8).</div>
+  ${sec("Attestation du client (art. R.521-2 Code des assurances)",`
+    <div style="background:rgba(251,236,215,0.3);border:1px solid rgba(227,175,100,0.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;">
+      <p style="font-size:8.5pt;color:#555;margin-bottom:8px;font-style:italic;">Le client déclare et reconnaît :</p>
+      <div class="sign-check">${cb(true)} Avoir reçu et pris connaissance du présent document d'information et de conseil (DIC/DER).</div>
+      <div class="sign-check">${cb(true)} Que les renseignements fournis sont complets, sincères et exacts à la date de signature.</div>
+      <div class="sign-check">${cb(true)} Avoir reçu une information claire sur les caractéristiques des produits proposés et les risques associés.</div>
+      <div class="sign-check">${cb(true)} S'engager à informer ${cabinet.cabinetName||"le cabinet"} de toute modification significative de sa situation (familiale, professionnelle, patrimoniale).</div>
+      <div class="sign-check">${cb(true)} Avoir été informé(e) qu'une fausse déclaration intentionnelle peut entraîner la nullité du contrat (art. L113-8 Code des assurances).</div>
+      <div class="sign-check">${cb(true)} Avoir pris connaissance de la politique de gestion des conflits d'intérêts du cabinet.</div>
+    </div>
   `)}
-  ${sec("Réclamations, Médiation & RGPD",`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+  ${sec("Réclamations · Médiation · RGPD · Conflits d'intérêts",`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
     <div class="info-block" style="font-size:8pt;line-height:1.6;">
-      <strong style="color:#26428B">En cas de réclamation (art. R.521-1 I)</strong>
-      ${cabinet.email?`<p style="margin-top:4px">→ Email : ${cabinet.email}</p>`:""}
+      <strong style="color:${cabinet.colorSky}">📋 Réclamations (art. R.521-1)</strong>
+      ${cabinet.email?`<p style="margin-top:4px">→ Email : <strong>${cabinet.email}</strong></p>`:""}
       ${cabinet.adresse?`<p>→ Courrier : ${cabinet.adresse} ${cabinet.codePostal} ${cabinet.ville}</p>`:""}
-      <p style="margin-top:4px;font-size:7.5pt;color:#666">Accusé de réception sous 10 jours ouvrables. Réponse sous 2 mois maximum.</p>
+      <p style="margin-top:4px;font-size:7.5pt;color:#666;">Accusé de réception sous 10 jours ouvrables · Réponse sous 2 mois maximum</p>
+      <p style="margin-top:6px;"><strong style="color:${cabinet.colorSky}">⚖️ Médiation (art. L616-1)</strong></p>
+      ${cabinet.mediateur?`<p style="margin-top:3px">Médiateur : <strong>${cabinet.mediateur}</strong></p>`:"<p style='margin-top:3px;color:#666'>Médiateur de l'Assurance — TSA 50110 — 75441 Paris Cedex 09</p>"}
+      ${cabinet.mediateurUrl?`<p style="font-size:7.5pt;color:#666">${cabinet.mediateurUrl}</p>`:"<p style='font-size:7.5pt;color:#666'>www.mediation-assurance.org</p>"}
     </div>
     <div class="info-block" style="font-size:8pt;line-height:1.6;">
-      <strong style="color:#26428B">Médiation (art. L616-1)</strong>
-      ${cabinet.mediateur?`<p style="margin-top:4px">Médiateur : <strong>${cabinet.mediateur}</strong></p>`:""}
-      ${cabinet.mediateurUrl?`<p>${cabinet.mediateurUrl}</p>`:""}
-      <br/><strong style="color:#26428B">RGPD & Bloctel</strong>
-      <p style="margin-top:4px;font-size:7.5pt;color:#666">Opposition prospection téléphonique : www.bloctel.gouv.fr</p>
+      <strong style="color:${cabinet.colorSky}">🔒 RGPD & Données personnelles</strong>
+      <p style="margin-top:4px;font-size:7.5pt;color:#555;line-height:1.5;">Vos données sont collectées pour exécuter la présente mission. Vous disposez d'un droit d'accès, de rectification et de suppression (art. 15 à 17 RGPD). Responsable de traitement : ${cabinet.cabinetName||"le cabinet"}.</p>
+      <p style="margin-top:4px;font-size:7.5pt;color:#666">Bloctel : www.bloctel.gouv.fr</p>
+      <p style="margin-top:6px;"><strong style="color:${cabinet.colorSky}">⚠️ Conflits d'intérêts</strong></p>
+      <p style="margin-top:3px;font-size:7.5pt;color:#555;line-height:1.5;">Le cabinet tient un registre des conflits d'intérêts conformément aux obligations MIF2. Notre politique est disponible sur demande. En cas de conflit détecté, nous vous en informerons préalablement à toute recommandation.</p>
     </div>
   </div>`)}
   <div class="sign-grid">

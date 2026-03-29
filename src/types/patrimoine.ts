@@ -34,12 +34,35 @@ export type Loan = {
   insuranceCoverage: string;   // "banque"|"delegation"
 };
 
+export type DismemberCounterpart = {
+  id: string;
+  key: string;            // "person1"|"person2"|"child_0"|...|"other"
+  birthDate: string;
+  relation: string;
+  name: string;
+  sharePercent: string;   // % de la contrepartie (utile si plusieurs)
+};
+
 export type Property = {
   name: string;
   type: string;
   ownership: string;
   propertyRight: string;
-  usufructAge: string;
+  usufructAge: string;       // conservé pour rétrocompatibilité — préférer counterpartBirthDate
+  // ── Contrepartie démembrement (bien propre ou global) ────────────────────
+  counterpartKey?: string;        // "person1"|"person2"|"child_0"|"child_1"|...|"other"
+  counterpartBirthDate?: string;  // date naissance usufruitier/nu-propriétaire
+  counterpartRelation?: string;   // lien familial (pour succession)
+  counterpartName?: string;       // nom libre si "other"
+  // ── Démembrement dissocié par personne (bien commun/indivision) ───────────
+  dismemberP1?: {
+    propertyRight: "full" | "bare" | "usufruct";
+    counterparts: DismemberCounterpart[];  // plusieurs contreparties possibles
+  };
+  dismemberP2?: {
+    propertyRight: "full" | "bare" | "usufruct";
+    counterparts: DismemberCounterpart[];
+  };
   value: string;
   propertyTaxAnnual: string;
   rentGrossAnnual: string;
@@ -278,6 +301,30 @@ export type IrOptions = {
   foncierRegime: "micro" | "real";
 };
 
+// ─── DONATION ────────────────────────────────────────────────────────────────
+
+export type DonationHeir = {
+  id: string;
+  name: string;
+  relation: string;
+  sharePercent: string;    // % de la donation attribué à ce donataire
+  priorDonations: string;  // donations antérieures pour rappel abattement
+};
+
+export type DonationItem = {
+  id: string;
+  assetType: "property" | "placement" | "free";
+  assetIndex: number;
+  freeLabel: string;
+  freeValue: string;
+  donationType: "full" | "dismembered"; // pleine propriété ou démembrement NP/US
+  sharePercent: string;   // % du bien donné (100 = totalité)
+  donorAge: string;       // âge donateur pour barème Duvergier
+  donorPersonKey?: string; // "person1"|"person2" — pour quote-part indivision
+  donationDate: string;   // date de la donation (pour calcul délai 15 ans)
+  heirs: DonationHeir[];
+};
+
 export type Hypothesis = {
   id: number;
   name: string;
@@ -287,6 +334,7 @@ export type Hypothesis = {
   data: PatrimonialData | null;
   successionData: SuccessionData | null;
   irOptions: IrOptions | null;
+  donations?: DonationItem[];  // simulations de donation dans cette hypothèse
 };
 
 export type BaseSnapshot = {

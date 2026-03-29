@@ -1,73 +1,95 @@
-// supabase/functions/delete-user/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-
-const CORS = {
+const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 serve(async (req) => {
-  // Répondre au preflight CORS
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: CORS });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    // Vérifier que l'appelant est admin
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const callerToken = authHeader.replace("Bearer ", "");
+    const body = await req.json();
+    // Accepte target_user_id (AdminDashboard) ou userId
+    const userId = body.target_user_id ?? body.userId;
 
-    const callerClient = createClient(SUPABASE_URL, ANON_KEY, {
-      global: { headers: { Authorization: `Bearer ${callerToken}` } },
-    });
-
-    const { data: { user: caller }, error: callerErr } = await callerClient.auth.getUser();
-    if (callerErr || !caller) {
-      return new Response(JSON.stringify({ error: "Non authentifié" }), { status: 401, headers: CORS });
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: "target_user_id requis" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const { data: adminRow } = await callerClient
+    // Client service_role — seul capable de supprimer un utilisateur auth
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    // Vérification : l'appelant doit être admin
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Non autorisé" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: caller }, error: callerError } = await supabaseAdmin.auth.getUser(token);
+
+    if (callerError || !caller) {
+      return new Response(
+        JSON.stringify({ error: "Token invalide" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Vérification que l'appelant est dans la table admins
+    const { data: adminRow } = await supabaseAdmin
       .from("admins")
       .select("email")
       .eq("email", caller.email)
       .single();
 
     if (!adminRow) {
-      return new Response(JSON.stringify({ error: "Accès refusé — non admin" }), { status: 403, headers: CORS });
+      return new Response(
+        JSON.stringify({ error: "Accès réservé aux admins" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const { target_user_id } = await req.json();
-    if (!target_user_id) {
-      return new Response(JSON.stringify({ error: "target_user_id manquant" }), { status: 400, headers: CORS });
+    // Empêcher l'admin de se supprimer lui-même
+    if (caller.id === userId) {
+      return new Response(
+        JSON.stringify({ error: "Impossible de supprimer son propre compte" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    if (target_user_id === caller.id) {
-      return new Response(JSON.stringify({ error: "Impossible de supprimer son propre compte" }), { status: 400, headers: CORS });
+    // Suppression — cascade automatique sur clients, cabinet_settings, licences
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+    if (deleteError) {
+      return new Response(
+        JSON.stringify({ error: deleteError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Supprimer avec le service_role
-    const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-
-    await adminClient.from("licences").delete().eq("user_id", target_user_id);
-    await adminClient.from("clients").delete().eq("user_id", target_user_id);
-    await adminClient.from("cabinet_settings").delete().eq("user_id", target_user_id);
-
-    const { error: deleteErr } = await adminClient.auth.admin.deleteUser(target_user_id);
-    if (deleteErr) {
-      return new Response(JSON.stringify({ error: deleteErr.message }), { status: 500, headers: CORS });
-    }
-
-    console.log(`✅ Compte supprimé (RGPD) : ${target_user_id} par ${caller.email}`);
-    return new Response(JSON.stringify({ success: true }), { status: 200, headers: CORS });
+    return new Response(
+      JSON.stringify({ success: true, deletedUserId: userId }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
 
   } catch (err) {
-    console.error("Erreur delete-user:", err);
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: CORS });
+    return new Response(
+      JSON.stringify({ error: err instanceof Error ? err.message : "Erreur interne" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });
