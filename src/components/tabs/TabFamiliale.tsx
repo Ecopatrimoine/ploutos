@@ -37,6 +37,11 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
       <Field label="Date de naissance">
         <div className="flex items-center gap-2">
           <Input type="date" value={data.person1BirthDate} onChange={(e) => setField("person1BirthDate", e.target.value)} className="rounded-xl flex-1" />
+          {data.person1BirthDate && getAgeFromBirthDate(data.person1BirthDate) !== null && (
+            <span className="text-xs font-bold px-2 py-0.5 rounded-md shrink-0" style={{ background: BRAND.cream, color: BRAND.goldText, border: `1px solid ${BRAND.warningBorder}` }}>
+              {getAgeFromBirthDate(data.person1BirthDate)} ans
+            </span>
+          )}
           <div className="flex items-center gap-1 shrink-0">
             <button role="switch" aria-checked={!!data.person1Handicap}
               title="Handicap (carte invalidité / CMI). Impact IR : abattement + demi-part. Succession : +159 325 €."
@@ -63,6 +68,11 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
       <Field label="Date de naissance">
         <div className="flex items-center gap-2">
           <Input type="date" value={data.person2BirthDate} onChange={(e) => setField("person2BirthDate", e.target.value)} className="rounded-xl flex-1" />
+          {data.person2BirthDate && getAgeFromBirthDate(data.person2BirthDate) !== null && (
+            <span className="text-xs font-bold px-2 py-0.5 rounded-md shrink-0" style={{ background: BRAND.cream, color: BRAND.goldText, border: `1px solid ${BRAND.warningBorder}` }}>
+              {getAgeFromBirthDate(data.person2BirthDate)} ans
+            </span>
+          )}
           <div className="flex items-center gap-1 shrink-0">
             <button role="switch" aria-checked={!!data.person2Handicap}
               title="Handicap (carte invalidité / CMI). Impact IR : abattement + demi-part. Succession : +159 325 €."
@@ -114,7 +124,14 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
         <Field label="Prénom"><Input value={child.firstName} onChange={(e) => updateChild(index, "firstName", e.target.value)} className="rounded-xl" /></Field>
         <Field label="Nom"><Input value={child.lastName} onChange={(e) => updateChild(index, "lastName", e.target.value)} className="rounded-xl" /></Field>
         <Field label="Date de naissance">
-          <Input type="date" value={child.birthDate} onChange={(e) => updateChild(index, "birthDate", e.target.value)} className="rounded-xl" />
+          <div className="flex items-center gap-1.5">
+            <Input type="date" value={child.birthDate} onChange={(e) => updateChild(index, "birthDate", e.target.value)} className="rounded-xl flex-1" />
+            {child.birthDate && getAgeFromBirthDate(child.birthDate) !== null && (
+              <span className="text-xs font-bold px-1.5 py-0.5 rounded shrink-0" style={{ background: BRAND.cream, color: BRAND.goldText, border: `1px solid ${BRAND.warningBorder}` }}>
+                {getAgeFromBirthDate(child.birthDate)}
+              </span>
+            )}
+          </div>
         </Field>
         <Field label="Parenté">
           <Select value={child.parentLink} onValueChange={(v) => updateChild(index, "parentLink", v)}>
