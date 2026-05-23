@@ -2,8 +2,8 @@
 import { cn } from "@/lib/utils"
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("bg-white text-card-foreground overflow-hidden", className)}
-      style={{ borderRadius: 14, border: "1.5px solid #E8E3D9", boxShadow: "0 1px 3px rgba(15,23,42,0.06), 0 6px 20px rgba(15,23,42,0.08), 0 12px 40px rgba(15,23,42,0.04)", ...props.style }}
+    <div ref={ref} className={cn("bg-white text-card-foreground overflow-hidden transition-all duration-200 hover:-translate-y-0.5", className)}
+      style={{ borderRadius: 14, border: "1.5px solid #E8E3D9", boxShadow: "0 2px 4px rgba(15,23,42,0.07), 0 8px 24px rgba(15,23,42,0.10), 0 16px 48px rgba(15,23,42,0.05)", ...props.style }}
       {...props} />
   )
 )

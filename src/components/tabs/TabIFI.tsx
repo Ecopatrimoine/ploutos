@@ -41,19 +41,16 @@ const TabIFI = React.memo(function TabIFI(props: any) {
       {/* Table des biens compacte */}
       {ifi.lines.length > 0 && (
         <div className="border overflow-hidden" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-          <div className="px-4 py-3 text-xs font-semibold uppercase tracking-widest" style={{ background: SURFACE.tableHead, color: BRAND.sky }}>
-            Biens retenus dans l'assiette IFI
-          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ background: SURFACE.tableHead }}>
-                  <th className="px-4 py-2 text-left font-medium text-slate-600">Bien</th>
-                  <th className="px-4 py-2 text-left font-medium text-slate-600">Droit</th>
-                  <th className="px-4 py-2 text-right font-medium text-slate-600">Valeur brute</th>
-                  <th className="px-4 py-2 text-right font-medium text-slate-600">Abatt. RP</th>
-                  <th className="px-4 py-2 text-right font-medium text-slate-600">Passif</th>
-                  <th className="px-4 py-2 text-right font-medium text-slate-600" style={{ color: BRAND.navy }}>Valeur taxable</th>
+                <tr style={{ background: BRAND.navy }}>
+                  <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.white }}>Bien</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.white }}>Droit</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.white }}>Valeur brute</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.white }}>Abatt. RP</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.white }}>Passif</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.gold }}>Valeur taxable</th>
                 </tr>
               </thead>
               <tbody>
@@ -67,8 +64,8 @@ const TabIFI = React.memo(function TabIFI(props: any) {
                     <td className="px-4 py-2.5 text-right font-semibold" style={{ color: BRAND.navy }}>{euro(line.taxableNet)}</td>
                   </tr>
                 ))}
-                <tr className="border-t" style={{ background: SURFACE.tableHead, borderColor: SURFACE.borderStrong }}>
-                  <td colSpan={5} className="px-4 py-2 text-right text-sm font-semibold" style={{ color: BRAND.sky }}>Total assiette IFI</td>
+                <tr className="border-t" style={{ background: BRAND.cream, borderColor: SURFACE.borderStrong }}>
+                  <td colSpan={5} className="px-4 py-2 text-right text-sm font-bold" style={{ color: BRAND.navy }}>Total assiette IFI</td>
                   <td className="px-4 py-2 text-right text-sm font-bold" style={{ color: BRAND.navy }}>{euro(ifi.netTaxable)}</td>
                 </tr>
               </tbody>

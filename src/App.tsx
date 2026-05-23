@@ -1523,23 +1523,23 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
         {/* ── Navigation ── */}
         <Tabs defaultValue="collecte" className="space-y-6">
           <div className="flex gap-2" style={{ alignItems: "stretch" }}>
-            <TabsList className="flex-1 grid grid-cols-6 rounded-2xl p-1 shadow-lg" style={{ background: "rgba(255,255,255,0.82)", backdropFilter: "blur(10px)", height: "52px" }}>
+            <TabsList className="flex-1 grid grid-cols-6 p-1.5" style={{ background: BRAND.navy, borderRadius: 14, height: "52px", boxShadow: "0 4px 16px rgba(15,23,42,0.25)" }}>
               {(["collecte", "ir", "ifi", "succession", "hypotheses", "rapport"] as const).map((tab) => {
                 const labels: Record<string, string> = { collecte: "Collecte patrimoniale", ir: "Impôt sur le revenu", ifi: "IFI", succession: "Succession", hypotheses: "Hypothèses", rapport: "Rapport client" };
                 return (
-                  <TabsTrigger key={tab} value={tab} className="flex items-center justify-center rounded-xl border border-transparent px-4 text-center text-slate-700 transition-all data-[state=active]:border-white/10 data-[state=active]:bg-[#26428B] data-[state=active]:text-white data-[state=active]:shadow-lg" style={{ height: "100%" }}>
+                  <TabsTrigger key={tab} value={tab} className="flex items-center justify-center px-4 text-center font-bold transition-all data-[state=active]:shadow-lg" style={{ height: "100%", borderRadius: 10, color: "rgba(255,255,255,0.5)", fontSize: 12 }} data-active-style="true">
                     {labels[tab]}
                   </TabsTrigger>
                 );
               })}
             </TabsList>
-            <TabsList className="rounded-2xl p-1 shadow-lg" style={{ background: "rgba(255,255,255,0.82)", backdropFilter: "blur(10px)", height: "52px" }}>
-              <TabsTrigger value="mission" className="flex items-center justify-center rounded-xl border border-transparent px-4 text-slate-700 transition-all data-[state=active]:border-white/10 data-[state=active]:bg-[#26428B] data-[state=active]:text-white data-[state=active]:shadow-lg" style={{ height: "100%" }}>
+            <TabsList className="p-1.5" style={{ background: BRAND.navy, borderRadius: 14, height: "52px", boxShadow: "0 4px 16px rgba(15,23,42,0.25)" }}>
+              <TabsTrigger value="mission" className="flex items-center justify-center px-4 font-bold transition-all data-[state=active]:shadow-lg" style={{ height: "100%", borderRadius: 10, color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
                 📋 Mission
               </TabsTrigger>
             </TabsList>
-            <TabsList className="rounded-2xl p-1 shadow-lg" style={{ background: "rgba(255,255,255,0.82)", backdropFilter: "blur(10px)", height: "52px" }}>
-              <TabsTrigger value="parametres" title="Paramètres cabinet" className="flex items-center justify-center rounded-xl border border-transparent px-3 text-slate-700 transition-all data-[state=active]:border-white/10 data-[state=active]:bg-[#26428B] data-[state=active]:text-white data-[state=active]:shadow-lg" style={{ height: "100%" }}>
+            <TabsList className="p-1.5" style={{ background: BRAND.navy, borderRadius: 14, height: "52px", boxShadow: "0 4px 16px rgba(15,23,42,0.25)" }}>
+              <TabsTrigger value="parametres" title="Paramètres cabinet" className="flex items-center justify-center px-3 font-bold transition-all data-[state=active]:shadow-lg" style={{ height: "100%", borderRadius: 10, color: "rgba(255,255,255,0.5)" }}>
                 <Settings className="h-5 w-5" />
               </TabsTrigger>
             </TabsList>
@@ -1547,14 +1547,14 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
 
           {/* ════ COLLECTE ════ */}
           <TabsContent value="collecte" className="space-y-6">
-            <Card className="rounded-3xl border-0 shadow-xl shadow-slate-200/60">
+            <Card className="border-0" style={{ borderRadius: 20 }}>
               <CardHeader><SectionTitle icon={Database} title="Collecte patrimoniale" subtitle="Données familiales, travail, revenus, immobilier et placements." /></CardHeader>
               <CardContent>
                 <Tabs defaultValue="famille" className="space-y-6">
-                  <TabsList className="grid w-full grid-cols-6 rounded-2xl p-1 shadow-sm" style={{ background: `linear-gradient(90deg, ${BRAND.cream} 0%, rgba(255,255,255,0.95) 100%)` }}>
+                  <TabsList className="grid w-full grid-cols-6 p-1" style={{ background: SURFACE.border, borderRadius: 12 }}>
                     {["famille", "travail", "revenus", "immobilier", "placements", "credits"].map((tab) => {
                       const labels: Record<string, string> = { famille: "Données familiales", travail: "Travail", revenus: "Revenus", immobilier: "Immobilier", placements: "Placements", credits: "Crédits" };
-                      return <TabsTrigger key={tab} value={tab} className="rounded-xl border border-transparent px-3 py-2 text-slate-700 transition-all data-[state=active]:bg-[#516AC7] data-[state=active]:text-white data-[state=active]:shadow-md">{labels[tab]}</TabsTrigger>;
+                      return <TabsTrigger key={tab} value={tab} className="px-3 py-2 font-bold transition-all data-[state=active]:shadow-md" style={{ borderRadius: 8, color: BRAND.muted, fontSize: 12 }}>{labels[tab]}</TabsTrigger>;
                     })}
                   </TabsList>
                   <TabFamiliale data={data} setField={setField} addChild={addChild} updateChild={updateChild} removeChild={removeChild} person1={person1} person2={person2} />
@@ -1611,7 +1611,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
 
           {/* ════ RAPPORT ════ */}
           <TabsContent value="rapport">
-            <Card className="rounded-3xl border-0 shadow-xl shadow-slate-200/60">
+            <Card className="border-0" style={{ borderRadius: 20 }}>
               <CardHeader><SectionTitle icon={FileText} title="Rapport client" subtitle="Synthèse exportable en PDF." /></CardHeader>
               <CardContent className="space-y-6">
                 <Field label="Notes de synthèse">
