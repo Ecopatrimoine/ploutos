@@ -287,6 +287,38 @@ describe("computeIR — revenus fonciers", () => {
       { ...STD_OPTIONS, foncierRegime: "micro" })
     expect(ir.foncierSocialLevy).toBeCloseTo(12000 * 0.7 * 0.172, 0)
   })
+
+  it("déficit foncier cas A : loyers 8k, intérêts 3k, charges 10k → imputation 5k sur global", () => {
+    // Intérêts absorbés par loyers (3k < 8k) → loyers restants 5k
+    // Charges hors intérêts (10k) − loyers restants (5k) = déficit 5k hors intérêts
+    // Imputation global = min(5000, 10700) = 5000 — reportable = 0
+    const prop = {
+      ...propLocatif, rentGrossAnnual: "8000", loanEnabled: true,
+      propertyTaxAnnual: "4000", insuranceAnnual: "2000", worksAnnual: "4000", otherChargesAnnual: "0",
+      loanInterestAnnual: "3000",
+    }
+    const ir = computeIR({ ...BASE_DATA, salary1: "30000", properties: [prop] },
+      { ...STD_OPTIONS, foncierRegime: "real" })
+    expect(ir.deficitFoncierImpute).toBeCloseTo(5000, 0)
+    expect(ir.deficitFoncierReportable).toBeCloseTo(0, 0)
+    expect(ir.taxableFonciers).toBeCloseTo(-5000, 0)
+  })
+
+  it("déficit foncier cas B : loyers 5k, intérêts 7k, charges 2k → imputation 2k, reportable 2k", () => {
+    // Intérêts (7k) > loyers (5k) → 2k intérêts non absorbés (reportable)
+    // Loyers après intérêts = 0 → charges hors intérêts (2k) intégralement en déficit
+    // Imputation global = min(2000, 10700) = 2000 — reportable = 2000 (intérêts)
+    const prop = {
+      ...propLocatif, rentGrossAnnual: "5000", loanEnabled: true,
+      propertyTaxAnnual: "1000", insuranceAnnual: "500", worksAnnual: "500", otherChargesAnnual: "0",
+      loanInterestAnnual: "7000",
+    }
+    const ir = computeIR({ ...BASE_DATA, salary1: "30000", properties: [prop] },
+      { ...STD_OPTIONS, foncierRegime: "real" })
+    expect(ir.deficitFoncierImpute).toBeCloseTo(2000, 0)
+    expect(ir.deficitFoncierReportable).toBeCloseTo(2000, 0)
+    expect(ir.taxableFonciers).toBeCloseTo(-2000, 0)
+  })
 })
 
 // ─── HANDICAP ────────────────────────────────────────────────────────────────

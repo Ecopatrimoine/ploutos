@@ -148,10 +148,30 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     }
   }
 
-  const taxableFonciers = irOptions.foncierRegime === "real"
-    ? Math.max(0, foncierBrut - foncierCharges - foncierInterests)
-    : Math.max(0, foncierBrut * 0.7);
-  const foncierSocialLevy = taxableFonciers * 0.172;
+  // Déficit foncier — CGI art. 156-I-3° (régime réel uniquement)
+  // Intérêts imputés d'abord sur les loyers ; seul le déficit hors intérêts s'impute
+  // sur le revenu global (plafond 10 700 €) ; le surplus est reportable (informatif).
+  let taxableFonciers: number;
+  let deficitFoncierImpute = 0;    // part imputée sur revenu global (≤ 10 700)
+  let deficitFoncierReportable = 0; // informatif — à reporter sur revenus fonciers futurs
+  if (irOptions.foncierRegime === "real") {
+    const resultatBrut = foncierBrut - foncierCharges - foncierInterests;
+    if (resultatBrut >= 0) {
+      taxableFonciers = resultatBrut;
+    } else {
+      // Déficit : ventiler intérêts vs charges hors intérêts
+      const interetsAbsorbes = Math.min(foncierInterests, foncierBrut);
+      const interetsNonAbsorbes = foncierInterests - interetsAbsorbes;
+      const loyersApresInterets = foncierBrut - interetsAbsorbes;
+      const deficitHorsInterets = Math.max(0, foncierCharges - loyersApresInterets);
+      deficitFoncierImpute = Math.min(deficitHorsInterets, 10700);
+      deficitFoncierReportable = interetsNonAbsorbes + Math.max(0, deficitHorsInterets - 10700);
+      taxableFonciers = -deficitFoncierImpute; // négatif → réduit le revenu global
+    }
+  } else {
+    taxableFonciers = Math.max(0, foncierBrut * 0.7);
+  }
+  const foncierSocialLevy = Math.max(0, taxableFonciers) * 0.172; // PS uniquement sur revenu foncier positif
 
   let taxablePlacements = 0;
   let pfuBase = 0;
@@ -337,7 +357,7 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       bracketFill, currentBracketLabel: currentBracket.label,
       indicatorPct: visualMax > 0 ? Math.min(100, (rActive.quotient / visualMax) * 100) : 0, visualMax,
       avRachatImpot, perCapitalImposable, perInteretsPFU, perRentesImposable, perRentesPS, isConcubin: true, ir1: bareme1, ir2: bareme2,
-      rev1, rev2, parts1, parts2, plafondPER, plafondPER1, plafondPER2, perDeductionCalc, perP1Deductible, perP2Deductible,
+      rev1, rev2, parts1, parts2, plafondPER, plafondPER1, plafondPER2, perDeductionCalc, perP1Deductible, perP2Deductible, deficitFoncierImpute, deficitFoncierReportable,
     };
   }
 
@@ -387,6 +407,6 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     revenuNetGlobal, finalIR, totalPFU, forfaitScolaireReduction, bareme, quotient, parts,
     quotientFamilialCapAdjustment, qfBenefit, qfCap, marginalRate, averageRate,
     bracketFill, currentBracketLabel: currentBracket.label, indicatorPct, visualMax,
-    avRachatImpot, perCapitalImposable, perInteretsPFU, perRentesImposable, perRentesPS, isConcubin: false, plafondPER, plafondPER1, plafondPER2, perDeductionCalc, perP1Deductible, perP2Deductible,
+    avRachatImpot, perCapitalImposable, perInteretsPFU, perRentesImposable, perRentesPS, isConcubin: false, plafondPER, plafondPER1, plafondPER2, perDeductionCalc, perP1Deductible, perP2Deductible, deficitFoncierImpute, deficitFoncierReportable,
   };
 }
