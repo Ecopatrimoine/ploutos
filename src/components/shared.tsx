@@ -37,8 +37,8 @@ export function HelpTooltip({ text }: { text: string }) {
           left: pos.x,
           top: pos.y - 8,
           transform: "translate(-50%, -100%)",
-          background: "#1a2d6b",
-          color: "#f0f4ff",
+          background: BRAND.navy,
+          color: BRAND.white,
           padding: "8px 12px",
           borderRadius: 12,
           fontSize: 12,
@@ -51,7 +51,7 @@ export function HelpTooltip({ text }: { text: string }) {
           boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
         }}>
           {text}
-          <span style={{ position: "absolute", bottom: -5, left: "50%", transform: "translateX(-50%)", width: 10, height: 10, background: "#1a2d6b", clipPath: "polygon(0 0, 100% 0, 50% 100%)" }} />
+          <span style={{ position: "absolute", bottom: -5, left: "50%", transform: "translateX(-50%)", width: 10, height: 10, background: BRAND.navy, clipPath: "polygon(0 0, 100% 0, 50% 100%)" }} />
         </span>,
         document.body
       )}

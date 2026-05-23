@@ -294,7 +294,7 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
             onClick={mode === "login" ? handleLogin : mode === "register" ? handleRegister : mode === "reset" ? handleReset : handleForgot}
             disabled={loading || (mode !== "reset" && !email)}
             className="w-full rounded-xl h-11 font-semibold text-sm shadow-md mt-2"
-            style={{ background: `linear-gradient(135deg, ${colorNavy} 0%, ${colorSky} 55%, #b8822e 100%)`, color: "#fff", boxShadow:"0 4px 20px rgba(16,27,59,0.35)" }}
+            style={{ background: `linear-gradient(135deg, ${colorNavy} 0%, ${colorSky} 55%, ${colorGold} 100%)`, color: "#fff", boxShadow:"0 4px 20px rgba(16,27,59,0.35)" }}
           >
             {loading ? "..." : mode === "login" ? "Se connecter" : mode === "register" ? "Créer mon compte" : mode === "reset" ? "Enregistrer le mot de passe" : "Envoyer le lien"}
           </Button>

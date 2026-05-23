@@ -171,7 +171,7 @@ export function buildAndPrintMission(params: PdfMissionParams) {
   .page-header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid ${cabinet.colorGold};padding-bottom:8px;margin-bottom:20px;}
   .page-header-title{font-size:13pt;font-weight:700;color:${cabinet.colorNavy};}
   .page-header-client{font-size:8pt;color:${cabinet.colorSky};font-weight:600;}
-  .page-footer{margin-top:20px;border-top:1px solid #e5e0d8;padding-top:7px;font-size:7pt;color:#aaa;display:flex;justify-content:space-between;}
+  .page-footer{margin-top:20px;border-top:1px solid #e5e0d8;padding-top:7px;font-size:7pt;color:#888;display:flex;justify-content:space-between;}
   .section{margin-bottom:18px;}
   .section-title{font-size:8.5pt;font-weight:700;color:${cabinet.colorSky};border-left:3px solid ${cabinet.colorGold};padding-left:8px;margin-bottom:9px;text-transform:uppercase;letter-spacing:0.5px;padding-bottom:2px;}
   .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px;}

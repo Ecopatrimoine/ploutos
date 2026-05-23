@@ -504,10 +504,10 @@ export function ClientManager({
   // Indicateur de sync
   const SyncIndicator = () => {
     const configs: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
-      synced:  { icon: <Cloud className="h-3.5 w-3.5" />,      label: "Synchronisé",       color: "#16a34a" },
-      pending: { icon: <RefreshCw className="h-3.5 w-3.5" />,  label: "En attente",        color: "#d97706" },
-      offline: { icon: <CloudOff className="h-3.5 w-3.5" />,   label: "Hors ligne",        color: "#6b7280" },
-      syncing: { icon: <RefreshCw className="h-3.5 w-3.5 animate-spin" />, label: "Synchronisation…", color: "#3b82f6" },
+      synced:  { icon: <Cloud className="h-3.5 w-3.5" />,      label: "Synchronisé",       color: "#4ade80" },
+      pending: { icon: <RefreshCw className="h-3.5 w-3.5" />,  label: "En attente",        color: "#fbbf24" },
+      offline: { icon: <CloudOff className="h-3.5 w-3.5" />,   label: "Hors ligne",        color: "#d1d5db" },
+      syncing: { icon: <RefreshCw className="h-3.5 w-3.5 animate-spin" />, label: "Synchronisation…", color: "#93c5fd" },
     };
     const cfg = configs[syncStatus] ?? configs["syncing"];
     return (

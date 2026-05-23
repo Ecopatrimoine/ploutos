@@ -221,9 +221,9 @@ export const BENEFICIARY_RELATION_OPTIONS = [
   { value: "autre", label: "Autre / tiers" },
 ] as const;
 
-export const CHART_COLORS = [BRAND.gold, BRAND.sky, BRAND.blue, "#88A0F0", "#C1CDF8", BRAND.cream, "#DDE5FF", "#F3D3A1"];
-export const RECEIVED_COLORS = [BRAND.sky, BRAND.blue, BRAND.gold, "#9CB0F4", "#D8B06C", "#CAD4FA", BRAND.cream, "#7D95E8"];
-export const LEGUE_COLORS = [BRAND.gold, BRAND.cream, BRAND.blue, "#8CA2F0", BRAND.sky, "#E8C995", "#CBD5FF", "#D9E3FF"];
+export const CHART_COLORS = [BRAND.gold, BRAND.sky, BRAND.blue, "#6B8DD6", "#A0B4E8", "#D4A96A", "#8CA2F0", "#C8956E"];
+export const RECEIVED_COLORS = [BRAND.sky, BRAND.blue, BRAND.gold, "#6B8DD6", "#D4A96A", "#A0B4E8", "#C8956E", "#7D95E8"];
+export const LEGUE_COLORS = [BRAND.gold, "#D4A96A", BRAND.blue, "#6B8DD6", BRAND.sky, "#C8956E", "#A0B4E8", "#8CA2F0"];
 
 
 export const EMPTY_CHARGES_DETAIL: ChargesDetail = {
