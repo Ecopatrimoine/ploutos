@@ -1234,7 +1234,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   }
 
   return (
-    <div className="fixed inset-0 overflow-y-scroll" style={{ background: SURFACE.app, scrollbarWidth: "thin", scrollbarColor: "#26428B #e8e0d6", scrollbarGutter: "stable" }}>
+    <div className="fixed inset-0 overflow-y-scroll" style={{ background: SURFACE.app, scrollbarWidth: "thin", scrollbarColor: `${BRAND.sky} ${SURFACE.border}`, scrollbarGutter: "stable" }}>
       <LicenceBanner
         licence={licence}
         userId={userId}
@@ -1294,7 +1294,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
                   <button
                     onClick={() => { void exportDataFile(); }}
                     className="flex h-9 w-9 items-center justify-center rounded-xl border-0 bg-white/90 shadow-sm hover:bg-white transition-colors"
-                    style={{ color: "#101B3B" }}
+                    style={{ color: BRAND.navy }}
                   >
                     {autoSaveStatus === "saving" ? (
                       <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -1312,7 +1312,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
                 </div>
 
                 {/* Bouton Charger — icône seule */}
-                <label className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border-0 bg-white/90 shadow-sm hover:bg-white transition-colors" title="Charger" style={{ color: "#101B3B" }}>
+                <label className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border-0 bg-white/90 shadow-sm hover:bg-white transition-colors" title="Charger" style={{ color: BRAND.navy }}>
                   <Upload className="h-4 w-4" />
                   <input type="file" accept="application/json" className="hidden" onChange={importDataFile} />
                 </label>
