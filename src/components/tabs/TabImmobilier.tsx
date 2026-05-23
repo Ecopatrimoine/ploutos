@@ -111,6 +111,17 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
               </Select>
             </Field>
           </div>
+          {n(property.rentGrossAnnual) > 0 && n(property.value) > 0 && (() => {
+            const rdt = Math.round(n(property.rentGrossAnnual) / n(property.value) * 1000) / 10;
+            return (
+              <span className="text-xs font-bold px-2 py-0.5 rounded-md shrink-0 mb-0.5"
+                style={{ background: rdt >= 8 ? BRAND.successBg : BRAND.cream,
+                         color: rdt >= 8 ? BRAND.success : BRAND.goldText,
+                         border: `1px solid ${rdt >= 8 ? BRAND.successBorder : BRAND.warningBorder}` }}>
+                {rdt} % brut
+              </span>
+            );
+          })()}
           <Button variant="outline" className="h-8 w-8 shrink-0 rounded-xl p-0 mb-0.5" onClick={() => removeProperty(index)}><Trash2 className="h-3.5 w-3.5" /></Button>
         </div>
         {/* Valeurs financières — grille adaptative, sans divs vides */}
