@@ -174,15 +174,16 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
         if (gainNetAbatt > 0) {
           if (over8) {
             if (primesNettes > 150000) {
-              // Partie prop. au-delà de 150k → PFU 30% ; en dessous → PFLi 7.5% + PS 17.2%
+              // Partie prop. au-delà de 150k → 12,8% IR + 17,2% PS ; en dessous → PFLi 7,5% + 17,2% PS
+              // AV exclue de la hausse LFSS 2026 : PS restent à 17,2% (CSG 9,2% + CRDS 0,5% + solidarité 7,5%)
               const ratioAbove = Math.min(1, (primesNettes - 150000) / primesNettes);
-              avRachatImpot += gainNetAbatt * ratioAbove * 0.314; // PFU 31,4%
-              avRachatImpot += gainNetAbatt * (1 - ratioAbove) * (0.075 + 0.186); // PFLi 7,5% + PS 18,6%
+              avRachatImpot += gainNetAbatt * ratioAbove * 0.30; // 12,8% IR + 17,2% PS
+              avRachatImpot += gainNetAbatt * (1 - ratioAbove) * (0.075 + 0.172); // PFLi 7,5% + PS 17,2%
             } else {
-              avRachatImpot += gainNetAbatt * (0.075 + 0.186); // PFLi 7,5% + PS 18,6%
+              avRachatImpot += gainNetAbatt * (0.075 + 0.172); // PFLi 7,5% + PS 17,2%
             }
           } else {
-            avRachatImpot += gainNetAbatt * 0.314; // PFU 31,4%
+            avRachatImpot += gainNetAbatt * 0.30; // 12,8% IR + 17,2% PS (AV exclue hausse LFSS 2026)
           }
         }
       }
