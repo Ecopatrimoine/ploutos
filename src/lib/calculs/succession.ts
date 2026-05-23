@@ -607,8 +607,8 @@ export function computeSuccession(successionData: SuccessionData, data: Patrimon
           if ((l.heirName?.trim() || "") === heir.name) {
             const sv = n(l.sharePercent) / 100;
             const ub = l.propertyRight === "usufruct" ? l.heirBirthDate : (l.contreparties||[])[0]?.heirBirthDate || "";
-            const ua = ub ? new Date().getFullYear() - new Date(ub).getFullYear() : null;
-            const dp = (l.propertyRight === "bare" || l.propertyRight === "usufruct") && ua ? getDemembrementPercentages(ua) : null;
+            const ua = ub ? getAgeFromBirthDate(ub) : null;
+            const dp = (l.propertyRight === "bare" || l.propertyRight === "usufruct") && ua !== null ? getDemembrementPercentages(ua) : null;
             if (dp && l.propertyRight === "usufruct") totalFiscalValue += av * sv * dp.usufruct;
             else if (dp && l.propertyRight === "bare") totalFiscalValue += av * sv * dp.nuePropriete;
             else totalFiscalValue += av * sv;
@@ -620,8 +620,8 @@ export function computeSuccession(successionData: SuccessionData, data: Patrimon
               const cpSv = n(cp.sharePercent) / 100;
               const cpRight = l.propertyRight === "usufruct" ? "bare" : "usufruct";
               const ub = cpRight === "usufruct" ? cp.heirBirthDate : (l.propertyRight === "usufruct" ? l.heirBirthDate : (l.contreparties||[])[0]?.heirBirthDate || "");
-              const ua = ub ? new Date().getFullYear() - new Date(ub).getFullYear() : null;
-              const dp = ua ? getDemembrementPercentages(ua) : null;
+              const ua = ub ? getAgeFromBirthDate(ub) : null;
+              const dp = ua !== null ? getDemembrementPercentages(ua) : null;
               if (dp && cpRight === "usufruct") totalFiscalValue += av * cpSv * dp.usufruct;
               else if (dp && cpRight === "bare") totalFiscalValue += av * cpSv * dp.nuePropriete;
               else totalFiscalValue += av * cpSv;

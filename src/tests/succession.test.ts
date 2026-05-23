@@ -1,6 +1,7 @@
 // Tests calcul Succession — droits 2024/2025 — couverture exhaustive
 import { describe, it, expect } from 'vitest'
 import { computeSuccession, computeAvTax } from '../lib/calculs/succession'
+import { getAgeFromBirthDate, getDemembrementPercentages } from '../lib/calculs/utils'
 import { EMPTY_CHARGES_DETAIL } from '../constants'
 
 // ─── FIXTURES ────────────────────────────────────────────────────────────────
@@ -274,6 +275,21 @@ describe("computeSuccession — assurances vie", () => {
     }
     const s = computeSuccession(BASE_SUCCESSION, dataAvecAV)
     expect(s.activeNet).toBeGreaterThanOrEqual(0)
+  })
+})
+
+// ─── ÂGE EXACT POUR DÉMEMBREMENT ─────────────────────────────────────────────
+describe("getAgeFromBirthDate — précision mois/jour pour barème art. 669", () => {
+
+  it("usufruitier né en décembre, avant anniversaire → tranche correcte", () => {
+    // Quelqu'un né le 15/12/1965 n'a PAS encore 61 ans au 23/05/2026 → il a 60 ans
+    // Tranche 51-60 : usufruit 50%, NP 50%
+    // L'ancien calcul (année - année) aurait donné 61 → tranche 61-70 (usufruit 40%, NP 60%) ERREUR
+    const age = getAgeFromBirthDate("1965-12-15")
+    expect(age).toBe(60) // pas 61
+    const dp = getDemembrementPercentages(age!)
+    expect(dp.usufruct).toBe(0.5)   // tranche 51-60
+    expect(dp.nuePropriete).toBe(0.5)
   })
 })
 
