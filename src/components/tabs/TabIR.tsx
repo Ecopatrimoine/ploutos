@@ -136,6 +136,28 @@ const TabIR = React.memo(function TabIR(props: any) {
         <MetricCard label="Taux moyen" value={`${Math.round(ir.averageRate * 1000) / 10} %`} hint="IR total / revenu net imposable. Taux effectif réellement supporté" accent="blue" />
       </div>
 
+      {/* Gauge TMI — position dans les 5 tranches */}
+      <div className="border p-3" style={{ borderColor: SURFACE.border, borderRadius: 14, background: SURFACE.card, boxShadow: SURFACE.cardShadow }}>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.muted }}>Position dans le barème IR</span>
+          <span className="text-xs font-black" style={{ color: BRAND.navy }}>TMI {Math.round(ir.marginalRate * 100)} %</span>
+        </div>
+        <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden" }}>
+          {([{ rate: 0, color: "#166534" }, { rate: 0.11, color: "#22c55e" }, { rate: 0.30, color: BRAND.gold }, { rate: 0.41, color: "#f97316" }, { rate: 0.45, color: BRAND.danger }] as const).map((t, i) => (
+            <div key={i} style={{ flex: 1, background: t.color, position: "relative", opacity: ir.marginalRate >= t.rate ? 1 : 0.2 }}>
+              {ir.marginalRate === t.rate && <div style={{ position: "absolute", top: -2, right: 0, width: 3, height: 12, background: BRAND.navy, borderRadius: 2 }} />}
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, marginTop: 3 }}>
+          {([0, 0.11, 0.30, 0.41, 0.45] as const).map((rate, i) => (
+            <span key={i} style={{ fontWeight: ir.marginalRate === rate ? 900 : 400, color: ir.marginalRate === rate ? BRAND.navy : BRAND.muted }}>
+              {Math.round(rate * 100)} %
+            </span>
+          ))}
+        </div>
+      </div>
+
       {/* Détail horizontal */}
       <div className="grid gap-3 md:grid-cols-4">
         <MetricCard label="Barème progressif" value={euro(ir.bareme)} hint="IR calculé par tranches sur le quotient familial, avant PFU et réductions" accent="gold" />
