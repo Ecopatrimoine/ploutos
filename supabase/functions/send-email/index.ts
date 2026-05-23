@@ -18,9 +18,15 @@ const FOOTER = `
 
 interface EmailPayload {
   to: string;
-  type: "welcome_trial" | "welcome_trial_mac" | "licence_activated" | "trial_expiring";
+  type: "welcome_trial" | "welcome_trial_mac" | "licence_activated" | "trial_expiring" | "demo_invite" | "trial_feedback";
   cabinet_name?: string;
   trial_end?: string;
+  first_name?: string;
+  cal_link?: string;
+  trial_link?: string;
+  monthly_link?: string;
+  annual_link?: string;
+  feedback_link?: string;
 }
 
 function getEmailContent(payload: EmailPayload): { subject: string; html: string } {
@@ -153,14 +159,15 @@ function getEmailContent(payload: EmailPayload): { subject: string; html: string
                 <table width="100%" cellpadding="0" cellspacing="0" border="0">
                   <tr>
                     <td width="48%" style="border:2px solid #E3AF64;border-radius:12px;padding:20px;text-align:center;vertical-align:top">
-                      <div style="font-weight:bold;color:#26428B;margin-bottom:8px">Plan Solo</div>
-                      <div style="font-size:24px;font-weight:bold;color:#101B3B">30 €<span style="font-size:14px;font-weight:normal;color:#888">/mois</span></div>
+                      <div style="font-weight:bold;color:#101B3B;margin-bottom:8px">Mensuel</div>
+                      <div style="font-size:28px;font-weight:bold;color:#101B3B;font-family:Georgia,serif">50 €<span style="font-size:15px;font-weight:normal;color:#888">/mois</span></div>
+                      <div style="font-size:12px;color:#999;margin-top:4px">Sans engagement</div>
                     </td>
                     <td width="4%"></td>
                     <td width="48%" style="border:2px solid #101B3B;border-radius:12px;padding:20px;text-align:center;vertical-align:top">
-                      <div style="font-weight:bold;color:#26428B;margin-bottom:8px">Plan Annuel</div>
-                      <div style="font-size:24px;font-weight:bold;color:#101B3B">25 €<span style="font-size:14px;font-weight:normal;color:#888">/mois</span></div>
-                      <div style="font-size:12px;color:#888">300 €/an · 2 mois offerts</div>
+                      <div style="font-weight:bold;color:#101B3B;margin-bottom:8px">Annuel</div>
+                      <div style="font-size:28px;font-weight:bold;color:#101B3B;font-family:Georgia,serif">500 €<span style="font-size:15px;font-weight:normal;color:#888">/an</span></div>
+                      <div style="font-size:12px;color:#C9A84C;font-weight:bold;margin-top:4px">2 mois offerts</div>
                     </td>
                   </tr>
                 </table>
@@ -174,6 +181,159 @@ function getEmailContent(payload: EmailPayload): { subject: string; html: string
             ${FOOTER}
           </div>`
       };
+
+    // ── Nouveaux types tunnel commercial ──────────────────────────────────────
+
+    case "demo_invite": {
+      const firstName = payload.first_name || name;
+      const calLink   = payload.cal_link || "https://cal.com/david-perry-ecopatrimoine-conseil-ftutid";
+      return {
+        subject: "Votre essai Ploutos est actif 📂",
+        html: `<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background-color:#ECEAE5;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#ECEAE5;padding:40px 20px;">
+<tr><td align="center">
+<table width="620" cellpadding="0" cellspacing="0" style="max-width:620px;width:100%;">
+  <tr>
+    <td style="background-color:#101B3B;border-radius:10px 10px 0 0;padding:22px 44px;">
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td style="vertical-align:middle;">
+          <img src="${LOGO_SRC}" height="28" alt="PLOUTOS" style="display:block;height:28px;width:auto;" />
+        </td>
+        <td align="right" style="vertical-align:middle;">
+          <span style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:10px;color:#3A5468;letter-spacing:2px;text-transform:uppercase;">Gestion patrimoniale</span>
+        </td>
+      </tr></table>
+    </td>
+  </tr>
+  <tr><td style="background-color:#C9A84C;height:2px;font-size:0;line-height:0;">&nbsp;</td></tr>
+  <tr>
+    <td style="background-color:#FFFFFF;padding:44px 44px 40px;">
+      <p style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:15px;color:#101B3B;margin:0 0 18px 0;">Bonjour ${firstName},</p>
+      <table cellpadding="0" cellspacing="0" style="margin:0 0 26px 0;">
+        <tr><td style="background-color:#EAF4EC;border:1px solid #5AAF6A;border-radius:20px;padding:7px 18px;">
+          <span style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#2E7D32;font-weight:bold;">● Essai actif — 15 jours</span>
+        </td></tr>
+      </table>
+      <p style="font-family:Georgia,serif;font-size:17px;color:#101B3B;line-height:1.5;margin:0 0 18px 0;font-style:italic;">Votre accès est actif — bienvenue sur Ploutos.</p>
+      <p style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:14px;color:#3D3D3D;line-height:1.85;margin:0 0 30px 0;">
+        Pour démarrer sans se perdre, chaque écran dispose de <strong style="color:#101B3B;">tooltips contextuels</strong>
+        et d'un <strong style="color:#101B3B;">bouton Aide</strong> qui vous guide pas à pas.
+        L'idée c'est que vous puissiez vous repérer seul en quelques minutes, sans documentation extérieure.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#101B3B;border-radius:6px;">
+        <tr><td style="padding:22px 28px;">
+          <p style="font-family:Georgia,serif;font-size:14px;color:#C9A84C;margin:0 0 10px 0;">Vous préférez un tour guidé ?</p>
+          <p style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#94AFBE;line-height:1.75;margin:0 0 18px 0;">
+            Je propose des démos en visio de 30 minutes — l'occasion de poser vos questions et de voir comment Ploutos s'intègre à votre fonctionnement.
+          </p>
+          <table cellpadding="0" cellspacing="0">
+            <tr><td style="background-color:#C9A84C;border-radius:4px;">
+              <a href="${calLink}" style="display:block;padding:12px 28px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;font-weight:bold;color:#101B3B;text-decoration:none;">Réserver une démo →</a>
+            </td></tr>
+          </table>
+        </td></tr>
+      </table>
+      <p style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#9A9A9A;margin:28px 0 0 0;">Bonne exploration,</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="background-color:#101B3B;border-radius:0 0 10px 10px;padding:22px 44px;">
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td><p style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#FFFFFF;margin:0 0 2px 0;font-weight:600;">David Perry</p>
+        <p style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:#3A5468;margin:0;">EcoPatrimoine Conseil</p></td>
+        <td align="right"><a href="mailto:contact@ecopatrimoine-conseil.com" style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#C9A84C;text-decoration:none;">contact@ecopatrimoine-conseil.com</a></td>
+      </tr></table>
+    </td>
+  </tr>
+</table>
+</td></tr>
+</table>
+</body></html>`
+      };
+    }
+
+    case "trial_feedback": {
+      const firstName    = payload.first_name || name;
+      const monthlyLink  = payload.monthly_link || "https://app.ploutos-cgp.fr";
+      const annualLink   = payload.annual_link  || "https://app.ploutos-cgp.fr";
+      const feedbackLink = payload.feedback_link || "https://app.ploutos-cgp.fr";
+      return {
+        subject: "Et Ploutos, qu'en avez-vous pensé ?",
+        html: `<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background-color:#ECEAE5;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#ECEAE5;padding:40px 20px;">
+<tr><td align="center">
+<table width="620" cellpadding="0" cellspacing="0" style="max-width:620px;width:100%;">
+  <tr>
+    <td style="background-color:#101B3B;border-radius:10px 10px 0 0;padding:22px 44px;">
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td style="vertical-align:middle;">
+          <img src="${LOGO_SRC}" height="28" alt="PLOUTOS" style="display:block;height:28px;width:auto;" />
+        </td>
+        <td align="right" style="vertical-align:middle;">
+          <span style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:10px;color:#3A5468;letter-spacing:2px;text-transform:uppercase;">Gestion patrimoniale</span>
+        </td>
+      </tr></table>
+    </td>
+  </tr>
+  <tr><td style="background-color:#C9A84C;height:2px;font-size:0;line-height:0;">&nbsp;</td></tr>
+  <tr>
+    <td style="background-color:#FFFFFF;padding:44px 44px 40px;">
+      <p style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:15px;color:#101B3B;margin:0 0 24px 0;">Bonjour ${firstName},</p>
+      <p style="font-family:Georgia,serif;font-size:17px;color:#101B3B;line-height:1.5;margin:0 0 16px 0;font-style:italic;">Votre essai Ploutos s'est terminé il y a quelques jours.</p>
+      <p style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:14px;color:#3D3D3D;line-height:1.85;margin:0 0 30px 0;">
+        J'espère que vous avez eu le temps d'explorer un peu — mais si ce n'est pas le cas, pas de problème,
+        c'est souvent le quotidien du cabinet qui prend le dessus.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#101B3B;border-radius:6px;margin:0 0 26px 0;">
+        <tr><td style="padding:22px 28px;">
+          <p style="font-family:Georgia,serif;font-size:14px;color:#C9A84C;margin:0 0 18px 0;">Continuer avec Ploutos</p>
+          <table width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td style="width:50%;padding-right:6px;">
+              <a href="${monthlyLink}" style="display:block;text-align:center;padding:12px;background-color:#C9A84C;border-radius:4px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;font-weight:bold;color:#101B3B;text-decoration:none;">50 €/mois</a>
+              <p style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:#4A6275;text-align:center;margin:5px 0 0 0;">Sans engagement</p>
+            </td>
+            <td style="width:50%;padding-left:6px;">
+              <a href="${annualLink}" style="display:block;text-align:center;padding:12px;border:1px solid #C9A84C;border-radius:4px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;font-weight:bold;color:#C9A84C;text-decoration:none;">500 €/an</a>
+              <p style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:#4A6275;text-align:center;margin:5px 0 0 0;">2 mois offerts</p>
+            </td>
+          </tr></table>
+        </td></tr>
+      </table>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-left:3px solid #C9A84C;background-color:#F7F4EF;border-radius:0 5px 5px 0;margin:0 0 24px 0;">
+        <tr><td style="padding:20px 22px;">
+          <p style="font-family:Georgia,serif;font-size:14px;color:#101B3B;margin:0 0 8px 0;">Votre avis m'intéresse vraiment</p>
+          <p style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#5A5A5A;line-height:1.8;margin:0 0 12px 0;">
+            Que vous continuiez ou non — ce que vous avez aimé, ce qui manquait, ce qui ne correspondait pas. C'est comme ça qu'on améliore le produit.
+          </p>
+          <a href="${feedbackLink}" style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#C9A84C;text-decoration:none;font-weight:bold;">Remplir le formulaire (2 minutes) →</a>
+        </td></tr>
+      </table>
+      <p style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#5A5A5A;line-height:1.8;margin:0 0 22px 0;">
+        Je me permettrai également de vous appeler directement dans les prochains jours —
+        mais si vous préférez répondre à votre rythme, le formulaire est là pour ça.
+      </p>
+      <p style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#9A9A9A;margin:0;">Merci d'avoir testé.</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="background-color:#101B3B;border-radius:0 0 10px 10px;padding:22px 44px;">
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td><p style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#FFFFFF;margin:0 0 2px 0;font-weight:600;">David Perry</p>
+        <p style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:#3A5468;margin:0;">EcoPatrimoine Conseil</p></td>
+        <td align="right"><a href="mailto:contact@ecopatrimoine-conseil.com" style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#C9A84C;text-decoration:none;">contact@ecopatrimoine-conseil.com</a></td>
+      </tr></table>
+    </td>
+  </tr>
+</table>
+</td></tr>
+</table>
+</body></html>`
+      };
+    }
   }
 }
 
@@ -193,7 +353,7 @@ serve(async (req) => {
         "Authorization": `Bearer ${RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ from: FROM, to: payload.to, subject, html }),
+      body: JSON.stringify({ from: FROM, to: payload.to, subject, html, reply_to: "contact@ecopatrimoine-conseil.com" }),
     });
 
     const data = await res.json();
