@@ -417,6 +417,83 @@ describe("computeIR — concubinage (2 foyers)", () => {
     // Concubins imposés séparément → IR différent
     expect(concubin.finalIR).not.toBeCloseTo(marie.finalIR, -2)
   })
+
+  it("concubinage : foncier ventilé par ownership (person2 100%)", () => {
+    // Person2 possède seul un locatif, person1 n'a rien
+    // Foncier micro : 12 000 × 0.7 = 8 400 → 100% sur person2, 0 sur person1
+    const prop = {
+      name: "Loc", type: "Location nue", ownership: "person2", propertyRight: "full",
+      usufructAge: "", value: "200000", propertyTaxAnnual: "0", rentGrossAnnual: "12000",
+      insuranceAnnual: "0", worksAnnual: "0", otherChargesAnnual: "0",
+      loanEnabled: false, loanType: "amortissable", loanAmount: "0", loanRate: "0",
+      loanDuration: "0", loanStartDate: "", loanCapitalRemaining: "0", loanInterestAnnual: "0",
+      loanPledgedPlacementIndex: "-1", loanInsurance: false, loanInsuranceGuarantees: "dc",
+      loanInsuranceRate: "0", loanInsuranceRate1: "0", loanInsuranceRate2: "0",
+      loanInsurancePremium: "0", loanInsuranceCoverage: "banque",
+      indivisionShare1: "", indivisionShare2: "",
+    }
+    const ir = computeIR({
+      ...BASE_DATA, coupleStatus: "cohab",
+      salary1: "30000", salary2: "20000",
+      person2FirstName: "Conj", person2LastName: "Test",
+      properties: [prop],
+    }, { ...STD_OPTIONS, foncierRegime: "micro" })
+    // rev1 = 30000 - 3000 + 0 = 27000 (pas de foncier)
+    // rev2 = 20000 - 2000 + 8400 = 26400 (100% du foncier)
+    expect(ir.rev1).toBeCloseTo(27000, 0)
+    expect(ir.rev2).toBeCloseTo(26400, 0)
+  })
+
+  it("concubinage : PER nominatif ventilé (person1 uniquement)", () => {
+    const per = {
+      name: "PER P1", type: "PER bancaire", ownership: "person1", value: "30000",
+      annualIncome: "0", taxableIncome: "0", deathValue: "0",
+      openDate: "2020-01-01", pfuEligible: false, pfuOptOut: false,
+      totalPremiumsNet: "0", premiumsBefore70: "0", premiumsAfter70: "0",
+      exemptFromSuccession: "0", ucRatio: "0", annualWithdrawal: "",
+      annualContribution: "5000", perDeductible: true,
+      perWithdrawal: "", perWithdrawalCapital: "", perWithdrawalInterest: "", perAnticiped: false,
+      beneficiaries: [],
+    }
+    const ir = computeIR({
+      ...BASE_DATA, coupleStatus: "cohab",
+      salary1: "40000", salary2: "30000",
+      person2FirstName: "Conj", person2LastName: "Test",
+      placements: [per],
+    }, STD_OPTIONS)
+    // Plafond PER salarié : max(40000×10%, PASS×10%) = max(4000, 4710) = 4710
+    // perDeduction1 = min(5000, 4710) = 4710 (plafonné)
+    // rev1 = 40000 - 4000 (abatt salaire) - 4710 (PER plafonné) = 31290
+    // rev2 = 30000 - 3000 = 27000 (pas de PER)
+    expect(ir.rev1).toBeCloseTo(31290, 0)
+    expect(ir.rev2).toBeCloseTo(27000, 0)
+  })
+
+  it("concubinage : indivision 70/30 ventilée correctement", () => {
+    const prop = {
+      name: "Indiv", type: "Location nue", ownership: "indivision", propertyRight: "full",
+      usufructAge: "", value: "300000", propertyTaxAnnual: "0", rentGrossAnnual: "10000",
+      insuranceAnnual: "0", worksAnnual: "0", otherChargesAnnual: "0",
+      loanEnabled: false, loanType: "amortissable", loanAmount: "0", loanRate: "0",
+      loanDuration: "0", loanStartDate: "", loanCapitalRemaining: "0", loanInterestAnnual: "0",
+      loanPledgedPlacementIndex: "-1", loanInsurance: false, loanInsuranceGuarantees: "dc",
+      loanInsuranceRate: "0", loanInsuranceRate1: "0", loanInsuranceRate2: "0",
+      loanInsurancePremium: "0", loanInsuranceCoverage: "banque",
+      indivisionShare1: "70", indivisionShare2: "30",
+    }
+    const ir = computeIR({
+      ...BASE_DATA, coupleStatus: "cohab",
+      salary1: "30000", salary2: "30000",
+      person2FirstName: "Conj", person2LastName: "Test",
+      properties: [prop],
+    }, { ...STD_OPTIONS, foncierRegime: "micro" })
+    // Foncier micro : 10 000 × 0.7 = 7 000
+    // P1 : 70% → 7000 × 0.7 = 4900, P2 : 30% → 7000 × 0.3 = 2100
+    // rev1 = 30000 - 3000 + 4900 = 31900
+    // rev2 = 30000 - 3000 + 2100 = 29100
+    expect(ir.rev1).toBeCloseTo(31900, 0)
+    expect(ir.rev2).toBeCloseTo(29100, 0)
+  })
 })
 
 // ─── PFU ──────────────────────────────────────────────────────────────────────

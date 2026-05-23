@@ -322,9 +322,136 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     const parts1 = 1 + partsChildP1 + (partsChildP2 === 0 && childrenParts > 0 ? childrenParts - partsChildP1 : 0);
     // Si aucun enfant n'est "person2_only", tous vont à p1 par défaut
     const parts2 = 1 + partsChildP2;
-    // Revenus de chaque personne (foncier et placements partagés à parts égales)
-    const rev1 = Math.max(0, (isIndep1 ? benefice1 : salary1) - retained1 + taxableFonciers / 2 + taxablePlacements / 2 - deductibleCharges / 2);
-    const rev2 = Math.max(0, (isIndep2 ? benefice2 : (salary2 + pensionForP2)) - retained2 + taxableFonciers / 2 + taxablePlacements / 2 - deductibleCharges / 2);
+    // ── Ventilation des revenus par propriétaire réel ──────────────
+    // Helper : quote-part d'un bien pour une personne donnée
+    const ownerShare = (ownership: string, personKey: "person1" | "person2", prop?: { indivisionShare1?: string; indivisionShare2?: string }) => {
+      if (ownership === personKey) return 1;
+      if (ownership === (personKey === "person1" ? "person2" : "person1")) return 0;
+      if (ownership === "common") return 0.5;
+      if (ownership === "indivision" && prop) {
+        const s = personKey === "person1" ? n(prop.indivisionShare1) : n(prop.indivisionShare2);
+        return s > 0 ? Math.min(1, s / 100) : 0.5; // fallback 50/50 si non renseigné
+      }
+      return 0; // child_* ou autre → hors foyer
+    };
+
+    // ── Foncier ventilé par personne ──
+    let foncierBrut1 = 0, foncierCharges1 = 0, foncierInterests1 = 0;
+    let foncierBrut2 = 0, foncierCharges2 = 0, foncierInterests2 = 0;
+    for (const property of data.properties) {
+      if (isOwnedByNonRattached(property.ownership)) continue;
+      if (!["Location nue", "SCI IR", "SCI IS", "LMNP", "LMP", "Local professionnel", "Autre"].includes(property.type)) continue;
+      const s1 = ownerShare(property.ownership, "person1", property);
+      const s2 = ownerShare(property.ownership, "person2", property);
+      const rent = n(property.rentGrossAnnual);
+      const lv = resolveLoanValuesMulti(property);
+      const charges = n(property.propertyTaxAnnual) + n(property.insuranceAnnual) + n(property.worksAnnual) + n(property.otherChargesAnnual) + lv.insurancePremiumAnnual;
+      let interests = 0;
+      const isLocatif = ["Location nue", "SCI IR", "SCI IS", "LMNP", "LMP", "Local professionnel"].includes(property.type);
+      if (isLocatif && irOptions.foncierRegime === "real") {
+        if (property.loans && property.loans.length > 0) {
+          for (const r of lv.loans) { if (r.loan.type !== "ptz") interests += r.interestAnnual; }
+        } else {
+          const lt = property.loanType || "amortissable";
+          if (lt !== "ptz") interests += lv.interestAnnual > 0 ? lv.interestAnnual : n(property.loanInterestAnnual);
+        }
+      }
+      foncierBrut1 += rent * s1; foncierCharges1 += charges * s1; foncierInterests1 += interests * s1;
+      foncierBrut2 += rent * s2; foncierCharges2 += charges * s2; foncierInterests2 += interests * s2;
+    }
+
+    // Déficit foncier par personne (même logique #6, plafond 10 700 € par personne)
+    const calcFoncierPerson = (brut: number, charges: number, interests: number) => {
+      if (irOptions.foncierRegime !== "real") return { taxable: Math.max(0, brut * 0.7), impute: 0, reportable: 0 };
+      const resultat = brut - charges - interests;
+      if (resultat >= 0) return { taxable: resultat, impute: 0, reportable: 0 };
+      const interetsAbsorbes = Math.min(interests, brut);
+      const interetsNonAbsorbes = interests - interetsAbsorbes;
+      const loyersApresInterets = brut - interetsAbsorbes;
+      const deficitHorsInterets = Math.max(0, charges - loyersApresInterets);
+      const impute = Math.min(deficitHorsInterets, 10700);
+      const reportable = interetsNonAbsorbes + Math.max(0, deficitHorsInterets - 10700);
+      return { taxable: -impute, impute, reportable };
+    };
+    const foncier1 = calcFoncierPerson(foncierBrut1, foncierCharges1, foncierInterests1);
+    const foncier2 = calcFoncierPerson(foncierBrut2, foncierCharges2, foncierInterests2);
+
+    // PS foncier par personne (uniquement sur la part positive)
+    const foncierPS1 = Math.max(0, foncier1.taxable) * 0.172;
+    const foncierPS2 = Math.max(0, foncier2.taxable) * 0.172;
+
+    // ── Placements ventilés par personne (hors AV) ──
+    let taxablePlac1 = 0, taxablePlac2 = 0, pfuBase1 = 0, pfuBase2 = 0;
+    for (const placement of data.placements) {
+      if (isOwnedByNonRattached(placement.ownership)) continue;
+      if (isAV(placement.type)) continue; // AV traité séparément (avRachatImpot global)
+      const s1 = ownerShare(placement.ownership, "person1");
+      const s2 = ownerShare(placement.ownership, "person2");
+      const income = n(placement.taxableIncome);
+      if (placement.pfuEligible && !placement.pfuOptOut) {
+        pfuBase1 += income * s1; pfuBase2 += income * s2;
+      } else {
+        taxablePlac1 += income * s1; taxablePlac2 += income * s2;
+      }
+    }
+
+    // ── PER ventilé par personne ──
+    const perDeduction1 = Math.min(perP1Deductible, plafondPER1);
+    const perDeduction2 = Math.min(perP2Deductible, plafondPER2);
+
+    // PER retraits capital ventilés par personne
+    let perCapital1 = 0, perCapital2 = 0, perInteretsPFU1 = 0, perInteretsPFU2 = 0;
+    for (const p of data.placements) {
+      if (!isPER(p.type)) continue;
+      const retrait = n(p.perWithdrawal || "");
+      if (retrait <= 0) continue;
+      const isP1 = p.ownership === "person1";
+      if (p.perAnticiped) {
+        const capital = n(p.perWithdrawalCapital || "");
+        const interets = n(p.perWithdrawalInterest || "");
+        const pfu = interets > 0 ? interets : Math.max(0, retrait - capital);
+        if (isP1) perInteretsPFU1 += pfu; else perInteretsPFU2 += pfu;
+      } else {
+        const capital = n(p.perWithdrawalCapital || "");
+        const interets = n(p.perWithdrawalInterest || "");
+        const encours = n(p.value);
+        const versements = n(p.annualContribution || "");
+        const ratioCapital = encours > 0 && versements > 0
+          ? Math.min(1, versements / encours)
+          : (capital > 0 || interets > 0 ? 0 : 0.5);
+        const cap = capital > 0 ? capital : retrait * ratioCapital;
+        const int = interets > 0 ? interets : retrait * (1 - ratioCapital);
+        if (isP1) { perCapital1 += cap; perInteretsPFU1 += int; } else { perCapital2 += cap; perInteretsPFU2 += int; }
+      }
+    }
+
+    // PER rentes ventilées par personne
+    let perRentes1 = 0, perRentesPS1 = 0, perRentes2 = 0, perRentesPS2 = 0;
+    for (const r of (data.perRentes || [])) {
+      const montant = n(r.annualAmount || "");
+      const fraction = fractionRVTO(Math.max(0, n(r.ageAtFirst || "0")));
+      const imposable = montant * fraction;
+      const ps = imposable * 0.172;
+      if (r.owner === "person2") { perRentes2 += imposable; perRentesPS2 += ps; }
+      else { perRentes1 += imposable; perRentesPS1 += ps; }
+    }
+
+    // ── Charges déductibles non ventilables ──
+    // Simplification : réparti 50/50 faute de champ nominatif — à ventiler quand le champ payeur existera
+    const nonVentilableDeductible = n(data.pensionDeductible) + n(data.otherDeductible) + n(data.csgDeductibleFoncier);
+
+    // ── Abattement handicap par personne ──
+    const hAbatt1 = data.person1Handicap ? getHandicapAbattement(n(data.salary1) + n(data.ca1) + n(data.baRevenue1)) : 0;
+    const hAbatt2 = data.person2Handicap ? getHandicapAbattement(n(data.salary2) + n(data.ca2) + n(data.baRevenue2)) : 0;
+
+    // ── Revenus nets par personne ──
+    const rev1 = Math.max(0, (isIndep1 ? benefice1 : salary1) + pensionP1 - retained1
+      + foncier1.taxable + taxablePlac1 + perCapital1 + perRentes1
+      - perDeduction1 - nonVentilableDeductible / 2 - hAbatt1);
+    const rev2 = Math.max(0, (isIndep2 ? benefice2 : salary2) + pensionP2 - retained2
+      + foncier2.taxable + taxablePlac2 + perCapital2 + perRentes2
+      - perDeduction2 - nonVentilableDeductible / 2 - hAbatt2);
+
     const r1 = computeIRConcubin(rev1, parts1);
     const r2 = computeIRConcubin(rev2, parts2);
     // Décote concubinage — chaque foyer est un célibataire fiscal (897 € / seuil 1 982 €)
@@ -332,8 +459,9 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     const decote2 = r2.bareme > 0 && r2.bareme < 1982 ? Math.max(0, 897 - 0.4525 * r2.bareme) : 0;
     const bareme1 = Math.max(0, r1.bareme - decote1);
     const bareme2 = Math.max(0, r2.bareme - decote2);
-    const totalPFU = pfuBase * 0.314 + perInteretsPFU * 0.314; // PFU 31,4% = 12,8% IR + 18,6% PS — dividendes, intérêts, PV mob. (LFSS 2026)
-    const finalIR = Math.max(0, bareme1 + bareme2 + totalPFU + foncierSocialLevy + avRachatImpot + perRentesPS - forfaitScolaireReduction);
+    // PFU ventilé par personne
+    const totalPFU = (pfuBase1 + pfuBase2) * 0.314 + (perInteretsPFU1 + perInteretsPFU2) * 0.314;
+    const finalIR = Math.max(0, bareme1 + bareme2 + totalPFU + foncierPS1 + foncierPS2 + avRachatImpot + perRentesPS1 + perRentesPS2 - forfaitScolaireReduction);
     const averageRate = revenuNetGlobal > 0 ? finalIR / revenuNetGlobal : 0;
     const brackets: TaxBracket[] = [
       { from: 0, to: 11600, rate: 0 }, { from: 11600, to: 29579, rate: 0.11 },
@@ -349,15 +477,23 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     const visualMax = Number.isFinite(currentBracket.to) ? currentBracket.to : Math.max(rActive.quotient, 1);
     return {
       salaries, retainedExpenses, foncierBrut, foncierCharges, foncierInterests,
-      taxableFonciers, foncierSocialLevy, taxablePlacements, pfuBase, deductibleCharges,
+      taxableFonciers: foncier1.taxable + foncier2.taxable,
+      foncierSocialLevy: foncierPS1 + foncierPS2,
+      taxablePlacements: taxablePlac1 + taxablePlac2, pfuBase: pfuBase1 + pfuBase2, deductibleCharges,
       revenuNetGlobal: revActive, finalIR, totalPFU, forfaitScolaireReduction,
       bareme: activeConcubinPerson === 2 ? bareme2 : bareme1, quotient: rActive.quotient, parts: partsActive,
       quotientFamilialCapAdjustment: 0, qfBenefit: 0, qfCap: 0,
       marginalRate: rActive.marginalRate, averageRate,
       bracketFill, currentBracketLabel: currentBracket.label,
       indicatorPct: visualMax > 0 ? Math.min(100, (rActive.quotient / visualMax) * 100) : 0, visualMax,
-      avRachatImpot, perCapitalImposable, perInteretsPFU, perRentesImposable, perRentesPS, isConcubin: true, ir1: bareme1, ir2: bareme2,
-      rev1, rev2, parts1, parts2, plafondPER, plafondPER1, plafondPER2, perDeductionCalc, perP1Deductible, perP2Deductible, deficitFoncierImpute, deficitFoncierReportable,
+      avRachatImpot, perCapitalImposable: perCapital1 + perCapital2,
+      perInteretsPFU: perInteretsPFU1 + perInteretsPFU2,
+      perRentesImposable: perRentes1 + perRentes2, perRentesPS: perRentesPS1 + perRentesPS2,
+      isConcubin: true, ir1: bareme1, ir2: bareme2,
+      rev1, rev2, parts1, parts2, plafondPER, plafondPER1, plafondPER2,
+      perDeductionCalc: perDeduction1 + perDeduction2, perP1Deductible, perP2Deductible,
+      deficitFoncierImpute: foncier1.impute + foncier2.impute,
+      deficitFoncierReportable: foncier1.reportable + foncier2.reportable,
     };
   }
 
