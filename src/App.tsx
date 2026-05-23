@@ -1701,9 +1701,19 @@ export default function App() {
   const [authExiting, setAuthExiting] = useState(false);
   const [showAuthScreen, setShowAuthScreen] = useState(true);
   const prevAuthState = React.useRef<string>("");
+  const prevRecovery = React.useRef(false);
 
   useEffect(() => {
-    if (prevAuthState.current !== "authenticated" && auth.authState === "authenticated") {
+    // Transition vers l'app déclenchée quand :
+    //  - on est authentifié
+    //  - on n'est PAS en flow recovery (sinon on doit d'abord montrer l'écran "Définir mot de passe")
+    //  - on vient soit de passer à authenticated, soit de terminer une recovery (clearPasswordRecovery)
+    const justBecameReadyForApp =
+      auth.authState === "authenticated" &&
+      !auth.isPasswordRecovery &&
+      (prevAuthState.current !== "authenticated" || prevRecovery.current);
+
+    if (justBecameReadyForApp) {
       setAuthExiting(true);
       setTimeout(() => {
         setAuthExiting(false);
@@ -1717,6 +1727,7 @@ export default function App() {
       setAuthExiting(false);
     }
     prevAuthState.current = auth.authState;
+    prevRecovery.current = auth.isPasswordRecovery;
   }, [auth.authState, auth.isPasswordRecovery]);
 
   // ── Migration Vision EcoPat → Ploutos (s'exécute une seule fois) ──

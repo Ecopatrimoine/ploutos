@@ -82,10 +82,11 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
       const ok = await updatePassword(newPassword);
       setLoading(false);
       if (ok) {
-        setSuccessMsg("Mot de passe mis à jour ! Vous pouvez vous connecter.");
-        clearPasswordRecovery();
+        setSuccessMsg("Mot de passe enregistré — connexion en cours…");
         window.history.replaceState(null, "", window.location.pathname);
-        setTimeout(() => setMode("login"), 2000);
+        clearPasswordRecovery();
+        // App.tsx détecte la fin de la recovery (prevRecovery true → isPasswordRecovery false)
+        // et déclenche automatiquement la transition vers l'app. Pas de setMode("login") nécessaire.
       }
     } catch {
       setLoading(false);
