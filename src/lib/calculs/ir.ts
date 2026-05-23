@@ -299,8 +299,13 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     const rev2 = Math.max(0, (isIndep2 ? benefice2 : (salary2 + pensionForP2)) - retained2 + taxableFonciers / 2 + taxablePlacements / 2 - deductibleCharges / 2);
     const r1 = computeIRConcubin(rev1, parts1);
     const r2 = computeIRConcubin(rev2, parts2);
+    // Décote concubinage — chaque foyer est un célibataire fiscal (897 € / seuil 1 982 €)
+    const decote1 = r1.bareme > 0 && r1.bareme < 1982 ? Math.max(0, 897 - 0.4525 * r1.bareme) : 0;
+    const decote2 = r2.bareme > 0 && r2.bareme < 1982 ? Math.max(0, 897 - 0.4525 * r2.bareme) : 0;
+    const bareme1 = Math.max(0, r1.bareme - decote1);
+    const bareme2 = Math.max(0, r2.bareme - decote2);
     const totalPFU = pfuBase * 0.314 + perInteretsPFU * 0.314; // PFU 31,4% = 12,8% IR + 18,6% PS — dividendes, intérêts, PV mob. (LFSS 2026)
-    const finalIR = Math.max(0, r1.bareme + r2.bareme + totalPFU + foncierSocialLevy + avRachatImpot + perRentesPS - forfaitScolaireReduction);
+    const finalIR = Math.max(0, bareme1 + bareme2 + totalPFU + foncierSocialLevy + avRachatImpot + perRentesPS - forfaitScolaireReduction);
     const averageRate = revenuNetGlobal > 0 ? finalIR / revenuNetGlobal : 0;
     const brackets: TaxBracket[] = [
       { from: 0, to: 11600, rate: 0 }, { from: 11600, to: 29579, rate: 0.11 },
@@ -318,12 +323,12 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       salaries, retainedExpenses, foncierBrut, foncierCharges, foncierInterests,
       taxableFonciers, foncierSocialLevy, taxablePlacements, pfuBase, deductibleCharges,
       revenuNetGlobal: revActive, finalIR, totalPFU, forfaitScolaireReduction,
-      bareme: rActive.bareme, quotient: rActive.quotient, parts: partsActive,
+      bareme: activeConcubinPerson === 2 ? bareme2 : bareme1, quotient: rActive.quotient, parts: partsActive,
       quotientFamilialCapAdjustment: 0, qfBenefit: 0, qfCap: 0,
       marginalRate: rActive.marginalRate, averageRate,
       bracketFill, currentBracketLabel: currentBracket.label,
       indicatorPct: visualMax > 0 ? Math.min(100, (rActive.quotient / visualMax) * 100) : 0, visualMax,
-      avRachatImpot, perCapitalImposable, perInteretsPFU, perRentesImposable, perRentesPS, isConcubin: true, ir1: r1.bareme, ir2: r2.bareme,
+      avRachatImpot, perCapitalImposable, perInteretsPFU, perRentesImposable, perRentesPS, isConcubin: true, ir1: bareme1, ir2: bareme2,
       rev1, rev2, parts1, parts2, plafondPER, plafondPER1, plafondPER2, perDeductionCalc, perP1Deductible, perP2Deductible,
     };
   }
@@ -351,7 +356,13 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   const qfCap = getQuotientCapPerHalfPart() * (addedHalfParts / 0.5);
   const qfBenefit = Math.max(0, taxWithBaseParts - taxWithParts);
   const quotientFamilialCapAdjustment = qfBenefit > qfCap ? qfBenefit - qfCap : 0;
-  const bareme = taxWithParts + quotientFamilialCapAdjustment;
+  const baremeBeforeDecote = taxWithParts + quotientFamilialCapAdjustment;
+  // Décote — CGI art. 197-I-4 (LF 2026, revenus 2025)
+  const decotePlafond = isCouple ? 1483 : 897;
+  const decoteSeuil = isCouple ? 3277 : 1982;
+  const decote = baremeBeforeDecote > 0 && baremeBeforeDecote < decoteSeuil
+    ? Math.max(0, decotePlafond - 0.4525 * baremeBeforeDecote) : 0;
+  const bareme = Math.max(0, baremeBeforeDecote - decote);
   const bracketFill = computeTaxFromBrackets(quotient, brackets).fill;
   const totalPFU = pfuBase * 0.314 + perInteretsPFU * 0.314; // PFU 31,4% = 12,8% IR + 18,6% PS — dividendes, intérêts, PV mob. (LFSS 2026)
   const finalIR = Math.max(0, bareme + totalPFU + foncierSocialLevy + avRachatImpot + perRentesPS - forfaitScolaireReduction);

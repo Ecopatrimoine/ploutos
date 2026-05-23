@@ -44,10 +44,12 @@ describe("computeIR — barème de base", () => {
     expect(ir.marginalRate).toBe(0)
   })
 
-  it("revenu 15 000 € → tranche 11%", () => {
+  it("revenu 15 000 € → tranche 11%, décote efface l'IR", () => {
+    // Salaire 15 000 → RNG 13 500 → IR brut 209 €
+    // Décote : 897 - 45,25% × 209 = 802,43 € → IR après décote = 0 €
     const ir = computeIR({ ...BASE_DATA, salary1: "15000" }, STD_OPTIONS)
     expect(ir.marginalRate).toBe(0.11)
-    expect(ir.finalIR).toBeCloseTo(209, 0)
+    expect(ir.finalIR).toBe(0)
   })
 
   it("revenu 30 000 € → tranche 11%", () => {
