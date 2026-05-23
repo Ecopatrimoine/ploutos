@@ -87,6 +87,14 @@ describe("computeIR — barème de base", () => {
     const ir = computeIR({ ...BASE_DATA, salary1: "80000" }, STD_OPTIONS)
     expect(ir.averageRate).toBeLessThan(ir.marginalRate)
   })
+
+  it("abattement 10% salaires plafonné à 14 555 € par personne", () => {
+    // Salaire 200 000 → 10% = 20 000 > plafond 14 555 → retenu = 14 555
+    // RNG = 200 000 − 14 555 = 185 445
+    const ir = computeIR({ ...BASE_DATA, salary1: "200000" }, STD_OPTIONS)
+    expect(ir.retainedExpenses).toBeCloseTo(14555, 0)
+    expect(ir.revenuNetGlobal).toBeCloseTo(185445, 0)
+  })
 })
 
 // ─── QUOTIENT FAMILIAL ────────────────────────────────────────────────────────

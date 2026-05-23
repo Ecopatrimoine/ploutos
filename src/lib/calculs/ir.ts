@@ -90,12 +90,13 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   const otherExpenses2 = irOptions.expenseMode2 === "actual" ? n(irOptions.other2) : 0;
 
   // Frais déductibles : uniquement pour les salariés (les indépendants déduisent via charges réelles)
+  // Abattement 10% salaires — plafonné 14 555 €, plancher 509 € par personne (revenus 2025)
   const retained1 = isIndep1 ? 0 : (irOptions.expenseMode1 === "actual"
     ? kmAllowance1 + mealExpenses1 + otherExpenses1
-    : salary1 * 0.1);
+    : salary1 > 0 ? Math.max(509, Math.min(salary1 * 0.1, 14555)) : 0);
   const retained2 = isIndep2 ? 0 : (irOptions.expenseMode2 === "actual"
     ? kmAllowance2 + mealExpenses2 + otherExpenses2
-    : salary2 * 0.1);
+    : salary2 > 0 ? Math.max(509, Math.min(salary2 * 0.1, 14555)) : 0);
   const retainedExpenses = retained1 + retained2 + pensions * 0.1;
 
   // Enfants non rattachés → leur ownership exclut leurs biens de l'IR/IFI du foyer
