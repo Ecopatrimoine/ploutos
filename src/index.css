@@ -13,7 +13,7 @@ html {
 }
  
 .overflow-y-scroll::-webkit-scrollbar-track {
-  background: #f0ece6 !important;
+  background: #E8E3D9 !important;
   border-radius: 99px;
 }
  
@@ -29,21 +29,14 @@ html {
 }
 
 /* ── Onglets Ploutos — états actif, hover, focus ── */
-/* Onglets principaux (fond navy) */
 [role="tablist"] button[data-state="active"] {
   background: linear-gradient(135deg, #C4973D, #A07A2E) !important;
   color: #0F172A !important;
-  box-shadow: 0 2px 8px rgba(196,151,61,0.35);
+  box-shadow: 0 2px 8px rgba(196,151,61,0.30);
+  font-weight: 800 !important;
 }
 [role="tablist"] button[data-state="inactive"]:hover {
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.85) !important;
-}
-/* Cards — bordure gauche or subtile au hover pour un peu de fun */
-.bg-white[style*="borderRadius: 14"] {
-  transition: box-shadow 0.2s, transform 0.2s;
-}
-.bg-white[style*="borderRadius: 14"]:hover {
-  transform: translateY(-1px);
+  background: #F0EDE6;
+  color: #0F172A !important;
 }
  

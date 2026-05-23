@@ -18,7 +18,7 @@ export const BRAND = {
 };
 
 export const SURFACE = {
-  app: "#F0EDE6",          // fond lin uni — meilleur contraste qu'un radial-gradient
+  app: "#E8E3D9",          // fond parchemin — cards blanches ressortent franchement
   hero: `linear-gradient(135deg, ${BRAND.navy} 0%, ${BRAND.sky} 38%, ${BRAND.blue} 68%, ${BRAND.gold} 100%)`,
   accent: `linear-gradient(90deg, ${BRAND.gold} 0%, ${BRAND.cream} 55%, #fff7ea 100%)`,
   ribbon: `linear-gradient(90deg, ${BRAND.goldLight} 0%, ${BRAND.cream} 100%)`,       // ruban or en haut des cards
@@ -27,8 +27,8 @@ export const SURFACE = {
   cardSoft: "#FDFCFA",
   cardShadow: "0 1px 3px rgba(15,23,42,0.06), 0 6px 20px rgba(15,23,42,0.08), 0 12px 40px rgba(15,23,42,0.04)",
   cardShadowHover: "0 2px 6px rgba(15,23,42,0.08), 0 12px 32px rgba(15,23,42,0.12), 0 20px 50px rgba(15,23,42,0.06)",
-  border: "#E8E3D9",               // parchemin — bordure standard
-  borderStrong: "#DDD7CB",         // bordure appuyée
+  border: "#D8D2C6",               // bordure card — visible sur fond parchemin
+  borderStrong: "#CCC5B8",         // bordure appuyée
   input: "#FFFFFF",
   inputBorder: "#E8E3D9",
   inputFocus: "0 0 0 3px rgba(196,151,61,0.15)",

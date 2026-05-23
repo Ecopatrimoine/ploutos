@@ -19,7 +19,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         borderRadius: 8,
         ...(variant === "default" ? { background: "linear-gradient(135deg, #0F172A, #1E293B)", boxShadow: "0 2px 8px rgba(15,23,42,0.2)" } : {}),
         ...(variant === "accent" ? { background: "linear-gradient(135deg, #C4973D, #A07A2E)", boxShadow: "0 2px 8px rgba(196,151,61,0.3)" } : {}),
-        ...(variant === "outline" ? { borderColor: "#E8E3D9" } : {}),
+        ...(variant === "outline" ? { borderColor: "#D8D2C6" } : {}),
         ...(variant === "danger" ? { background: "#FEF2F2", border: "1px solid #FECACA" } : {}),
         ...style,
       }}

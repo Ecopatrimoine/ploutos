@@ -1523,23 +1523,23 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
         {/* ── Navigation ── */}
         <Tabs defaultValue="collecte" className="space-y-6">
           <div className="flex gap-2" style={{ alignItems: "stretch" }}>
-            <TabsList className="flex-1 grid grid-cols-6 p-1.5" style={{ background: BRAND.navy, borderRadius: 14, height: "52px", boxShadow: "0 4px 16px rgba(15,23,42,0.25)" }}>
+            <TabsList className="flex-1 grid grid-cols-6 p-1.5" style={{ background: SURFACE.card, border: `2px solid ${SURFACE.border}`, borderRadius: 14, height: "52px", boxShadow: SURFACE.cardShadow }}>
               {(["collecte", "ir", "ifi", "succession", "hypotheses", "rapport"] as const).map((tab) => {
                 const labels: Record<string, string> = { collecte: "Collecte patrimoniale", ir: "Impôt sur le revenu", ifi: "IFI", succession: "Succession", hypotheses: "Hypothèses", rapport: "Rapport client" };
                 return (
-                  <TabsTrigger key={tab} value={tab} className="flex items-center justify-center px-4 text-center font-bold transition-all data-[state=active]:shadow-lg" style={{ height: "100%", borderRadius: 10, color: "rgba(255,255,255,0.5)", fontSize: 12 }} data-active-style="true">
+                  <TabsTrigger key={tab} value={tab} className="flex items-center justify-center px-4 text-center font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.muted, fontSize: 12 }}>
                     {labels[tab]}
                   </TabsTrigger>
                 );
               })}
             </TabsList>
-            <TabsList className="p-1.5" style={{ background: BRAND.navy, borderRadius: 14, height: "52px", boxShadow: "0 4px 16px rgba(15,23,42,0.25)" }}>
-              <TabsTrigger value="mission" className="flex items-center justify-center px-4 font-bold transition-all data-[state=active]:shadow-lg" style={{ height: "100%", borderRadius: 10, color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
+            <TabsList className="p-1.5" style={{ background: SURFACE.card, border: `2px solid ${SURFACE.border}`, borderRadius: 14, height: "52px", boxShadow: SURFACE.cardShadow }}>
+              <TabsTrigger value="mission" className="flex items-center justify-center px-4 font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.muted, fontSize: 12 }}>
                 📋 Mission
               </TabsTrigger>
             </TabsList>
-            <TabsList className="p-1.5" style={{ background: BRAND.navy, borderRadius: 14, height: "52px", boxShadow: "0 4px 16px rgba(15,23,42,0.25)" }}>
-              <TabsTrigger value="parametres" title="Paramètres cabinet" className="flex items-center justify-center px-3 font-bold transition-all data-[state=active]:shadow-lg" style={{ height: "100%", borderRadius: 10, color: "rgba(255,255,255,0.5)" }}>
+            <TabsList className="p-1.5" style={{ background: SURFACE.card, border: `2px solid ${SURFACE.border}`, borderRadius: 14, height: "52px", boxShadow: SURFACE.cardShadow }}>
+              <TabsTrigger value="parametres" title="Paramètres cabinet" className="flex items-center justify-center px-3 font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.muted }}>
                 <Settings className="h-5 w-5" />
               </TabsTrigger>
             </TabsList>
