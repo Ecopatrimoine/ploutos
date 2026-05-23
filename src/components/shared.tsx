@@ -81,10 +81,20 @@ export function MoneyField({ label, value, onChange, compact, tooltip }: { label
   );
 }
 
-export function MetricCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
+// Couleurs d'accent pour les MetricCards KPI
+const METRIC_ACCENTS: Record<string, { border: string; ribbon: string }> = {
+  gold:  { border: "#D4B068", ribbon: `linear-gradient(90deg, ${BRAND.goldLight}, ${BRAND.cream})` },
+  navy:  { border: "#26428B", ribbon: `linear-gradient(90deg, ${BRAND.navy}, ${BRAND.sky})` },
+  green: { border: "#16a34a", ribbon: `linear-gradient(90deg, #22c55e, #86efac)` },
+  red:   { border: "#dc2626", ribbon: `linear-gradient(90deg, #ef4444, #fca5a5)` },
+  blue:  { border: "#3b82f6", ribbon: `linear-gradient(90deg, #3b82f6, #93c5fd)` },
+};
+
+export function MetricCard({ label, value, hint, accent = "gold" }: { label: string; value: string; hint?: string; accent?: "gold" | "navy" | "green" | "red" | "blue" }) {
+  const a = METRIC_ACCENTS[accent] || METRIC_ACCENTS.gold;
   return (
-    <Card className="border overflow-hidden" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-      <div style={{ height: 4, background: SURFACE.ribbon }} />
+    <Card className="border-0 overflow-hidden" style={{ background: SURFACE.card, borderRadius: 14, border: `2.5px solid ${a.border}`, boxShadow: SURFACE.cardShadow }}>
+      <div style={{ height: 4, background: a.ribbon }} />
       <CardContent className="p-4">
         <div className="text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.muted }}>{label}</div>
         <div className="mt-2 text-2xl font-black" style={{ color: BRAND.navy }}>{value}</div>

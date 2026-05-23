@@ -456,10 +456,11 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
             label="Actif successoral net ↗"
             value={euro(succession.activeNet)}
             hint="Cliquer pour voir le détail du calcul"
+            accent="navy"
           />
         </div>
-        <MetricCard label="Droits de succession" value={euro(succession.totalSuccessionRights)} hint="Droits calculés par héritier après abattements légaux et barème progressif" />
-        <MetricCard label="Net transmis aux héritiers" value={euro(totalNet)} hint="Total net après droits de succession et fiscalité AV" />
+        <MetricCard label="Droits de succession" value={euro(succession.totalSuccessionRights)} hint="Droits calculés par héritier après abattements légaux et barème progressif" accent="red" />
+        <MetricCard label="Net transmis aux héritiers" value={euro(totalNet)} hint="Total net après droits de succession et fiscalité AV" accent="green" />
       </div>
 
       {/* ── Cartes héritiers 3 colonnes cliquables ── */}

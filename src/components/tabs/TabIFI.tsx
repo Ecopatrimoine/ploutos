@@ -29,10 +29,10 @@ const TabIFI = React.memo(function TabIFI(props: any) {
       <div className="grid gap-4 md:grid-cols-[1fr_2fr]">
         <div className="space-y-3">
           <div className="grid gap-3 grid-cols-2 md:grid-cols-1">
-            <MetricCard label="Actif net taxable IFI" value={euro(ifi.netTaxable)} hint="Valeur brute des biens − passif déductible − abattement RP 30 %" />
-            <MetricCard label="IFI brut" value={euro(ifi.grossIfi)} hint="IFI calculé par le barème progressif avant décote" />
-            <MetricCard label="Décote" value={euro(ifi.decote)} hint="Réduction appliquée si l'actif net taxable est entre 1,3 M€ et 1,4 M€. Calcul : 17 500 − 1,25 % × actif net" />
-            <MetricCard label="IFI net dû" value={euro(ifi.ifi)} hint="IFI brut − décote. Exigible uniquement si l'actif net taxable dépasse 1 300 000 €" />
+            <MetricCard label="Actif net taxable IFI" value={euro(ifi.netTaxable)} hint="Valeur brute des biens − passif déductible − abattement RP 30 %" accent="navy" />
+            <MetricCard label="IFI brut" value={euro(ifi.grossIfi)} hint="IFI calculé par le barème progressif avant décote" accent="gold" />
+            <MetricCard label="Décote" value={euro(ifi.decote)} hint="Réduction appliquée si l'actif net taxable est entre 1,3 M€ et 1,4 M€. Calcul : 17 500 − 1,25 % × actif net" accent="green" />
+            <MetricCard label="IFI net dû" value={euro(ifi.ifi)} hint="IFI brut − décote. Exigible uniquement si l'actif net taxable dépasse 1 300 000 €" accent="red" />
           </div>
         </div>
         <BracketFillChart title="Barème IFI" data={ifi.bracketFill} referenceValue={ifi.netTaxable} valueLabel="Base taxable" />

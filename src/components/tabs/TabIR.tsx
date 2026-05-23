@@ -130,18 +130,18 @@ const TabIR = React.memo(function TabIR(props: any) {
         </div>
       )}
       <div className="grid gap-3 md:grid-cols-4">
-        <MetricCard label="IR total" value={euro(ir.finalIR)} hint="Barème progressif + PFU + prélèvements sociaux fonciers" />
-        <MetricCard label="Revenu net global" value={euro(ir.revenuNetGlobal)} hint="Salaires + revenus fonciers + pensions, après déductions" />
-        <MetricCard label="TMI" value={`${Math.round(ir.marginalRate * 100)} %`} hint="Taux Marginal d'Imposition : taux de la dernière tranche atteinte" />
-        <MetricCard label="Taux moyen" value={`${Math.round(ir.averageRate * 1000) / 10} %`} hint="IR total / revenu net imposable. Taux effectif réellement supporté" />
+        <MetricCard label="IR total" value={euro(ir.finalIR)} hint="Barème progressif + PFU + prélèvements sociaux fonciers" accent="red" />
+        <MetricCard label="Revenu net global" value={euro(ir.revenuNetGlobal)} hint="Salaires + revenus fonciers + pensions, après déductions" accent="navy" />
+        <MetricCard label="TMI" value={`${Math.round(ir.marginalRate * 100)} %`} hint="Taux Marginal d'Imposition : taux de la dernière tranche atteinte" accent="gold" />
+        <MetricCard label="Taux moyen" value={`${Math.round(ir.averageRate * 1000) / 10} %`} hint="IR total / revenu net imposable. Taux effectif réellement supporté" accent="blue" />
       </div>
 
       {/* Détail horizontal */}
       <div className="grid gap-3 md:grid-cols-4">
-        <MetricCard label="Barème progressif" value={euro(ir.bareme)} hint="IR calculé par tranches sur le quotient familial, avant PFU et réductions" />
-        <MetricCard label="PFU" value={euro(ir.totalPFU)} hint="Prélèvement Forfaitaire Unique de 31,4 % depuis 2026 (12,8 % IR + 18,6 % PS) sur les revenus de capitaux mobiliers et plus-values" />
-        <MetricCard label="Quotient familial" value={euro(ir.quotient)} hint={`${ir.parts} part(s) — Revenu net divisé par le nombre de parts`} />
-        <MetricCard label="Plafonnement QF" value={euro(ir.quotientFamilialCapAdjustment)} hint={`Avantage retenu : ${euro(Math.min(ir.qfBenefit, ir.qfCap))} — L'avantage fiscal par demi-part supplémentaire est plafonné à 1 759 € (2024)`} />
+        <MetricCard label="Barème progressif" value={euro(ir.bareme)} hint="IR calculé par tranches sur le quotient familial, avant PFU et réductions" accent="gold" />
+        <MetricCard label="PFU" value={euro(ir.totalPFU)} hint="Prélèvement Forfaitaire Unique de 31,4 % depuis 2026 (12,8 % IR + 18,6 % PS) sur les revenus de capitaux mobiliers et plus-values" accent="gold" />
+        <MetricCard label="Quotient familial" value={euro(ir.quotient)} hint={`${ir.parts} part(s) — Revenu net divisé par le nombre de parts`} accent="navy" />
+        <MetricCard label="Plafonnement QF" value={euro(ir.quotientFamilialCapAdjustment)} hint={`Avantage retenu : ${euro(Math.min(ir.qfBenefit, ir.qfCap))} — L'avantage fiscal par demi-part supplémentaire est plafonné à 1 759 € (2024)`} accent="blue" />
       </div>
 
       {/* Options frais + régime foncier — 2 personnes + 1 col régime côte à côte */}
