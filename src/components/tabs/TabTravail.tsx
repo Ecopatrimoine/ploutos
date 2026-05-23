@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
-import { Plus, Trash2, Download, Upload, Settings } from "lucide-react";
+import { Plus, Trash2, Download, Upload, Settings, Briefcase } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
@@ -22,6 +22,9 @@ const TabTravail = React.memo(function TabTravail(props: any) {
 
   return (
 <TabsContent value="travail" className="space-y-4">
+  <Card className="border-0" style={{ borderRadius: 20 }}>
+    <CardHeader><SectionTitle icon={Briefcase} title="Situation professionnelle" subtitle="Statut, catégorie socioprofessionnelle et régime fiscal" /></CardHeader>
+    <CardContent className="space-y-4">
   <div className="grid gap-4 md:grid-cols-2">
     {([1, 2] as const).map((which) => {
       const groupe = which === 1 ? data.person1PcsGroupe : data.person2PcsGroupe;
@@ -29,7 +32,7 @@ const TabTravail = React.memo(function TabTravail(props: any) {
       const categories = groupe ? PCS_CATEGORIES[groupe] ?? [] : [];
       return (
         <div key={which} className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-          <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>{which === 1 ? person1 : person2}</div>
+          <div className="text-xs font-black uppercase tracking-widest" style={{ color: BRAND.navy }}>{which === 1 ? person1 : person2}</div>
 
           {/* Intitulé du poste */}
           <Field label="Intitulé du poste">
@@ -103,6 +106,8 @@ const TabTravail = React.memo(function TabTravail(props: any) {
       );
     })}
   </div>
+    </CardContent>
+  </Card>
 </TabsContent>
 
   );

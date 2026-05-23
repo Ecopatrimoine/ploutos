@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
-import { Plus, Trash2, Download, Upload, Settings } from "lucide-react";
+import { Plus, Trash2, Download, Upload, Settings, Users } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
@@ -22,11 +22,14 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
 
   return (
 <TabsContent value="famille" className="space-y-6">
+  <Card className="border-0" style={{ borderRadius: 20 }}>
+    <CardHeader><SectionTitle icon={Users} title="Données familiales" subtitle="Identité, situation du couple et enfants à charge" /></CardHeader>
+    <CardContent className="space-y-6">
   {/* Deux personnes côte à côte */}
   <div className="grid gap-4 md:grid-cols-2">
     {/* Personne 1 */}
     <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-      <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Personne 1</div>
+      <div className="text-xs font-black uppercase tracking-widest" style={{ color: BRAND.navy }}>Personne 1</div>
       <div className="grid gap-3 grid-cols-2">
         <Field label="Prénom"><Input value={data.person1FirstName} onChange={(e) => setField("person1FirstName", e.target.value)} className="rounded-xl" /></Field>
         <Field label="Nom"><Input value={data.person1LastName} onChange={(e) => setField("person1LastName", e.target.value)} className="rounded-xl" /></Field>
@@ -52,7 +55,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
     </div>
     {/* Personne 2 */}
     <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-      <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Personne 2</div>
+      <div className="text-xs font-black uppercase tracking-widest" style={{ color: BRAND.navy }}>Personne 2</div>
       <div className="grid gap-3 grid-cols-2">
         <Field label="Prénom"><Input value={data.person2FirstName} onChange={(e) => setField("person2FirstName", e.target.value)} className="rounded-xl" /></Field>
         <Field label="Nom"><Input value={data.person2LastName} onChange={(e) => setField("person2LastName", e.target.value)} className="rounded-xl" /></Field>
@@ -105,7 +108,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
       <h3 className="font-semibold" style={{ color: BRAND.navy }}>Enfants</h3>
       <Button variant="outline" className="h-8 rounded-xl px-3 text-sm" onClick={addChild}><Plus className="mr-1.5 h-3.5 w-3.5" />Ajouter</Button>
     </div>
-    {data.childrenData.length === 0 && <div className="text-sm text-slate-500">Aucun enfant saisi.</div>}
+    {data.childrenData.length === 0 && <div className="text-sm" style={{ color: BRAND.muted }}>Aucun enfant saisi.</div>}
     {data.childrenData.map((child, index) => (
       <div key={index} className="grid gap-3 border p-4 md:grid-cols-[1fr_1fr_1.2fr_1.3fr_1fr_1fr_1fr_auto_auto]" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
         <Field label="Prénom"><Input value={child.firstName} onChange={(e) => updateChild(index, "firstName", e.target.value)} className="rounded-xl" /></Field>
@@ -168,6 +171,8 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
       </div>
     ))}
   </div>
+    </CardContent>
+  </Card>
 </TabsContent>
 
   );
