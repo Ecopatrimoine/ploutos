@@ -246,7 +246,7 @@ const TabIR = React.memo(function TabIR(props: any) {
         ];
         const maxVal = Math.max(...steps.map(s => Math.abs(s.value)));
         return (
-          <div className="rounded-2xl p-4 border" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+          <div className="p-4 border" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
             <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: BRAND.sky }}>Décomposition du calcul fiscal</div>
             <div className="space-y-2">
               {steps.map((step, i) => {

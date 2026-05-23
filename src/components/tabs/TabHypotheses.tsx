@@ -60,7 +60,7 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
       <div className="space-y-4">
 
         {/* Base de référence */}
-        <Card className="rounded-2xl border-0 shadow-md" style={{ background: SURFACE.cardSoft }}>
+        <Card className="border-0 shadow-md" style={{ borderRadius: 14, background: SURFACE.cardSoft }}>
           <CardContent className="px-5 py-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4 flex-wrap">

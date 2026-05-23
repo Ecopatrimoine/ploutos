@@ -29,7 +29,7 @@ const TabMission = React.memo(function TabMission(props: any) {
       <div>
         <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>BESOINS EXPRIMÉS</h3>
         <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-2xl border-2 p-4 space-y-2" style={{ borderColor: SURFACE.border, borderLeft: `4px solid ${BRAND.gold}` }}>
+          <div className="border-2 p-4 space-y-2" style={{ borderRadius: 14, borderColor: SURFACE.border, borderLeft: `4px solid ${BRAND.gold}` }}>
             <div className="text-sm font-bold text-center mb-3">Besoin Santé</div>
             {([["besoinSante_depenses","Dépenses de santé, optique, dentaire"],["besoinSante_hospit","Hospitalisation seule"],["besoinSante_depasse","Dépassements d'honoraires"],["besoinSante_surcompl","Sur-complémentaire"]] as [keyof typeof mission, string][]).map(([k, label]) => (
               <label key={String(k)} className="flex items-start gap-2 cursor-pointer text-sm">
@@ -38,7 +38,7 @@ const TabMission = React.memo(function TabMission(props: any) {
               </label>
             ))}
           </div>
-          <div className="rounded-2xl border-2 p-4 space-y-2" style={{ borderColor: SURFACE.border, borderLeft: `4px solid ${BRAND.gold}` }}>
+          <div className="border-2 p-4 space-y-2" style={{ borderRadius: 14, borderColor: SURFACE.border, borderLeft: `4px solid ${BRAND.gold}` }}>
             <div className="text-sm font-bold text-center mb-3">Besoin Prévoyance</div>
             {([["besoinPrev_arret","Maintenir rémunération (arrêt travail, invalidité)"],["besoinPrev_deces","Protéger la famille en cas de décès"],["besoinPrev_fraisGen","Couvrir frais généraux professionnels"]] as [keyof typeof mission, string][]).map(([k, label]) => (
               <label key={String(k)} className="flex items-start gap-2 cursor-pointer text-sm">
@@ -47,7 +47,7 @@ const TabMission = React.memo(function TabMission(props: any) {
               </label>
             ))}
           </div>
-          <div className="rounded-2xl border-2 p-4 space-y-2" style={{ borderColor: SURFACE.border, borderLeft: `4px solid ${BRAND.gold}` }}>
+          <div className="border-2 p-4 space-y-2" style={{ borderRadius: 14, borderColor: SURFACE.border, borderLeft: `4px solid ${BRAND.gold}` }}>
             <div className="text-sm font-bold text-center mb-3">Besoin Retraite</div>
             {([["besoinRetraite_capital","Capital pour revenus complémentaires"],["besoinRetraite_rente","Capital retraite à convertir en rente"],["besoinRetraite_moderniser","Moderniser un contrat existant"]] as [keyof typeof mission, string][]).map(([k, label]) => (
               <label key={String(k)} className="flex items-start gap-2 cursor-pointer text-sm">
@@ -56,7 +56,7 @@ const TabMission = React.memo(function TabMission(props: any) {
               </label>
             ))}
           </div>
-          <div className="rounded-2xl border-2 p-4 space-y-2" style={{ borderColor: SURFACE.border, borderLeft: `4px solid ${BRAND.gold}` }}>
+          <div className="border-2 p-4 space-y-2" style={{ borderRadius: 14, borderColor: SURFACE.border, borderLeft: `4px solid ${BRAND.gold}` }}>
             <div className="text-sm font-bold text-center mb-3">Besoin Épargne</div>
             {([["besoinEpargne_valoriser","Valoriser un capital"],["besoinEpargne_transmettre","Transmettre via assurance-vie"],["besoinEpargne_completer","Compléter les revenus"],["besoinEpargne_projet","Épargner pour un projet"]] as [keyof typeof mission, string][]).map(([k, label]) => (
               <label key={String(k)} className="flex items-start gap-2 cursor-pointer text-sm">
@@ -73,7 +73,7 @@ const TabMission = React.memo(function TabMission(props: any) {
         <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>PROFIL INVESTISSEUR</h3>
 
         {/* Q1 - Attitude risque + graphique */}
-        <div className="rounded-2xl p-4 space-y-4" style={{ background: "rgba(251,236,215,0.4)", border: "1px solid rgba(227,175,100,0.3)" }}>
+        <div className="p-4 space-y-4" style={{ borderRadius: 14, background: "rgba(251,236,215,0.4)", border: "1px solid rgba(227,175,100,0.3)" }}>
           <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: BRAND.sky }}>Q1 — Quelles variations pouvez-vous accepter ?</div>
           <div className="grid grid-cols-2 gap-6 items-start">
             {/* Radio options */}
@@ -162,7 +162,7 @@ const TabMission = React.memo(function TabMission(props: any) {
         </div>
 
         {/* Q2 - Réaction baisse */}
-        <div className="rounded-2xl p-4 space-y-2" style={{ background: "rgba(251,236,215,0.4)", border: "1px solid rgba(227,175,100,0.3)" }}>
+        <div className="p-4 space-y-2" style={{ borderRadius: 14, background: "rgba(251,236,215,0.4)", border: "1px solid rgba(227,175,100,0.3)" }}>
           <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: BRAND.sky }}>Q2 — Réaction face à une baisse</div>
           {([["0","Je récupèrerais mon investissement (0 pt)"],["6","J'attendrais — si ça ne s'améliore pas, je vends (6 pts)"],["12","Cela ne me pose pas de problème (12 pts)"],["18","J'augmenterais mon investissement ! (18 pts)"]] as [string, string][]).map(([val, label]) => (
             <label key={val} className="flex items-center gap-2 cursor-pointer text-sm">
@@ -173,7 +173,7 @@ const TabMission = React.memo(function TabMission(props: any) {
         </div>
 
         {/* Q3 - Connaissances tableau */}
-        <div className="rounded-2xl p-4" style={{ background: "rgba(251,236,215,0.4)", border: "1px solid rgba(227,175,100,0.3)" }}>
+        <div className="p-4" style={{ borderRadius: 14, background: "rgba(251,236,215,0.4)", border: "1px solid rgba(227,175,100,0.3)" }}>
           <div className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: BRAND.sky }}>Q3 — Expérience et connaissances financières</div>
           <table className="w-full text-sm border-collapse">
             <thead>
@@ -204,7 +204,7 @@ const TabMission = React.memo(function TabMission(props: any) {
 
         {/* Q4 - Pertes/Gains */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-2xl p-4 space-y-2" style={{ background: "#fef2f2", border: "1px solid #fca5a5" }}>
+          <div className="p-4 space-y-2" style={{ borderRadius: 14, background: "#fef2f2", border: "1px solid #fca5a5" }}>
             <div className="text-xs font-semibold uppercase tracking-wide mb-2 text-red-700">Q4a — Pertes déjà subies</div>
             <label className="flex items-center gap-2 cursor-pointer text-sm">
               <input type="checkbox" checked={mission.aSubiPertes} onChange={e => updateMission("aSubiPertes", e.target.checked)} className="h-4 w-4 accent-[#26428B]" />
@@ -229,7 +229,7 @@ const TabMission = React.memo(function TabMission(props: any) {
               </div>
             )}
           </div>
-          <div className="rounded-2xl p-4 space-y-2" style={{ background: "#f0fdf4", border: "1px solid #86efac" }}>
+          <div className="p-4 space-y-2" style={{ borderRadius: 14, background: "#f0fdf4", border: "1px solid #86efac" }}>
             <div className="text-xs font-semibold uppercase tracking-wide mb-2 text-green-700">Q4b — Gains déjà réalisés</div>
             <label className="flex items-center gap-2 cursor-pointer text-sm">
               <input type="checkbox" checked={mission.aRealiseGains} onChange={e => updateMission("aRealiseGains", e.target.checked)} className="h-4 w-4 accent-[#26428B]" />
@@ -257,7 +257,7 @@ const TabMission = React.memo(function TabMission(props: any) {
         </div>
 
         {/* Q5 - Mode gestion */}
-        <div className="rounded-2xl p-4" style={{ background: "rgba(251,236,215,0.4)", border: "1px solid rgba(227,175,100,0.3)" }}>
+        <div className="p-4" style={{ borderRadius: 14, background: "rgba(251,236,215,0.4)", border: "1px solid rgba(227,175,100,0.3)" }}>
           <div className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: BRAND.sky }}>Q5 — Mode de gestion retenu</div>
           <div className="space-y-2">
             {([["pilote","Gestion pilotée — je délègue à des professionnels (2 pts)"],["libre","Gestion libre — je gère moi-même (4 pts)"]] as [string,string][]).map(([v,l]) => (
@@ -270,7 +270,7 @@ const TabMission = React.memo(function TabMission(props: any) {
         </div>
 
         {/* Q6 - Connaissances théoriques */}
-        <div className="rounded-2xl p-4" style={{ background: "rgba(251,236,215,0.4)", border: "1px solid rgba(227,175,100,0.3)" }}>
+        <div className="p-4" style={{ borderRadius: 14, background: "rgba(251,236,215,0.4)", border: "1px solid rgba(227,175,100,0.3)" }}>
           <div className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: BRAND.sky }}>Q6 — Connaissances financières (2 pts chacune)</div>
           <div className="space-y-2">
             <label className="flex items-center gap-2 cursor-pointer text-sm">
@@ -289,7 +289,7 @@ const TabMission = React.memo(function TabMission(props: any) {
         </div>
 
         {/* Horizon */}
-        <div className="rounded-2xl p-4" style={{ background: "rgba(251,236,215,0.4)", border: "1px solid rgba(227,175,100,0.3)" }}>
+        <div className="p-4" style={{ borderRadius: 14, background: "rgba(251,236,215,0.4)", border: "1px solid rgba(227,175,100,0.3)" }}>
           <div className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: BRAND.sky }}>Horizon de placement</div>
           <div className="flex gap-6 flex-wrap">
             {([["0-4","0 à 4 ans (0 pt)"],["5-8","5 à 8 ans (4 pts)"],["9-15","9 à 15 ans (8 pts)"],["15+","+ de 15 ans (16 pts)"]] as [string, string][]).map(([val, label]) => (
@@ -351,7 +351,7 @@ const TabMission = React.memo(function TabMission(props: any) {
       {/* Rémunération */}
       <div>
         <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>MODE DE RÉMUNÉRATION</h3>
-        <div className="rounded-2xl p-4 space-y-3" style={{ background: "#f8f6f7", border: "1px solid rgba(227,175,100,0.22)" }}>
+        <div className="p-4 space-y-3" style={{ background: "#f8f6f7", border: "1px solid rgba(227,175,100,0.22)" }}>
           <p className="text-xs text-slate-500">Sélectionner le mode applicable à cette mission (art. L521-2 code des assurances)</p>
           <label className="flex items-start gap-2 cursor-pointer text-sm">
             <input type="checkbox" checked={mission.remuCommission} onChange={e => updateMission("remuCommission", e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#26428B]" />
@@ -381,12 +381,12 @@ const TabMission = React.memo(function TabMission(props: any) {
       <div>
         <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>OBLIGATIONS FISCALES & CONFORMITÉ</h3>
         <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-2xl p-4 space-y-2" style={{ background: "#f8f6f7", border: "1px solid rgba(227,175,100,0.22)" }}>
+          <div className="p-4 space-y-2" style={{ background: "#f8f6f7", border: "1px solid rgba(227,175,100,0.22)" }}>
             <div className="text-xs font-semibold mb-2" style={{ color: BRAND.sky }}>Résidence fiscale France</div>
             <label className="flex items-center gap-2 cursor-pointer text-sm"><input type="checkbox" checked={mission.residenceFranceIR} onChange={e => updateMission("residenceFranceIR", e.target.checked)} className="h-4 w-4 accent-[#26428B]" /><span>Imposé à l'IR en France</span></label>
             <label className="flex items-center gap-2 cursor-pointer text-sm"><input type="checkbox" checked={mission.residenceFranceIFI} onChange={e => updateMission("residenceFranceIFI", e.target.checked)} className="h-4 w-4 accent-[#26428B]" /><span>Imposé à l'IFI en France</span></label>
           </div>
-          <div className="rounded-2xl p-4 space-y-2" style={{ background: "#f8f6f7", border: "1px solid rgba(227,175,100,0.22)" }}>
+          <div className="p-4 space-y-2" style={{ background: "#f8f6f7", border: "1px solid rgba(227,175,100,0.22)" }}>
             <div className="text-xs font-semibold mb-2" style={{ color: BRAND.sky }}>FATCA & PPE</div>
             <label className="flex items-center gap-2 cursor-pointer text-sm"><input type="checkbox" checked={mission.nationaliteUS} onChange={e => updateMission("nationaliteUS", e.target.checked)} className="h-4 w-4 accent-[#26428B]" /><span>Nationalité américaine</span></label>
             <label className="flex items-center gap-2 cursor-pointer text-sm"><input type="checkbox" checked={mission.residentFiscalUS} onChange={e => updateMission("residentFiscalUS", e.target.checked)} className="h-4 w-4 accent-[#26428B]" /><span>Résident fiscal USA</span></label>

@@ -32,8 +32,8 @@ export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, up
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.5)" }}
       onClick={() => setLoanModalIndex(null)}>
-      <div className="rounded-2xl border shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
-        style={{ background: "#fff", borderColor: SURFACE.border }}
+      <div className="border shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+        style={{ borderRadius: 14, background: "#fff", borderColor: SURFACE.border }}
         onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
@@ -67,7 +67,7 @@ export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, up
             const isPTZ = loan.type === "ptz" || loan.type === "pel";
             const pledgedIdx = +(loan.pledgedPlacementIndex || "-1");
             return (
-              <div key={loan.id} className="rounded-2xl border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+              <div key={loan.id} className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
                 {/* En-tête crédit */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
