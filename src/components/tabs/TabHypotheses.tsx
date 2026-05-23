@@ -122,6 +122,48 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
           </div>
         </div>
 
+        {/* Tableau comparatif hypothèses */}
+        {hypothesisResults.some((h: any) => h.ir) && (
+          <div className="border overflow-hidden" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: BRAND.navy }}>
+                  <th style={{ padding: "8px 12px", textAlign: "left", color: BRAND.white, fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px" }}></th>
+                  <th style={{ padding: "8px 12px", textAlign: "right", color: BRAND.gold, fontWeight: 700, fontSize: 11 }}>Base</th>
+                  {hypothesisResults.map((h: any) => (
+                    <th key={h.hypothesis.id} style={{ padding: "8px 12px", textAlign: "right", color: BRAND.white, fontWeight: 700, fontSize: 11 }}>{h.hypothesis.name}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {([
+                  { label: "IR", baseVal: baseReference.ir.finalIR, getVal: (h: any) => h.ir?.finalIR, lower: true },
+                  { label: "IFI", baseVal: baseReference.ifi.ifi, getVal: (h: any) => h.ifi?.ifi, lower: true },
+                  { label: "Droits succession", baseVal: baseReference.succession.totalRights, getVal: (h: any) => h.succession?.totalRights, lower: true },
+                  { label: "Actif successoral", baseVal: baseReference.succession.activeNet, getVal: (h: any) => h.succession?.activeNet, lower: false },
+                ] as const).map((row, ri) => (
+                  <tr key={row.label} style={{ borderBottom: `1px solid ${SURFACE.border}`, background: ri % 2 === 1 ? "#FDFCFA" : undefined }}>
+                    <td style={{ padding: "8px 12px", color: BRAND.muted, fontWeight: 600 }}>{row.label}</td>
+                    <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 900, color: BRAND.navy }}>{euro(row.baseVal)}</td>
+                    {hypothesisResults.map((h: any) => {
+                      const val = row.getVal(h);
+                      if (val == null) return <td key={h.hypothesis.id} style={{ padding: "8px 12px", textAlign: "right", color: BRAND.muted }}>—</td>;
+                      const diff = val - row.baseVal;
+                      const better = row.lower ? diff < -0.5 : diff > 0.5;
+                      const worse = row.lower ? diff > 0.5 : diff < -0.5;
+                      return (
+                        <td key={h.hypothesis.id} style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: better ? BRAND.success : worse ? BRAND.danger : BRAND.navy }}>
+                          {euro(val)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {/* 3 cartes hypothèses */}
         <div className="grid gap-4 md:grid-cols-3">
           {hypothesisResults.map((item: any) => (
