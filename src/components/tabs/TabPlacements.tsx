@@ -64,6 +64,18 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
               </Field>
               <MoneyField label="Encours" tooltip="Valeur actuelle du placement (valeur de rachat pour une assurance-vie, solde pour un compte). Utilisée pour le calcul du patrimoine net et de l'IFI le cas échéant." value={placement.value} onChange={(e) => updatePlacementStr(index, "value", e.target.value)} compact />
             </div>
+            {(isAV(placement.type) || isPERType(placement.type)) && placement.openDate && (() => {
+              const years = Math.floor((Date.now() - new Date(placement.openDate).getTime()) / (365.25 * 24 * 3600 * 1000));
+              const over8 = years >= 8;
+              return (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-md shrink-0 mb-0.5"
+                  style={{ background: over8 ? BRAND.successBg : BRAND.warningBg,
+                           color: over8 ? BRAND.success : BRAND.warning,
+                           border: `1px solid ${over8 ? BRAND.successBorder : BRAND.warningBorder}` }}>
+                  {years} an{years > 1 ? "s" : ""} {over8 ? "✓ > 8 ans" : `· encore ${8 - years} an${8 - years > 1 ? "s" : ""}`}
+                </span>
+              );
+            })()}
             <Button variant="outline" className="h-8 w-8 shrink-0 rounded-xl p-0 mb-0.5" onClick={() => removePlacement(index)}><Trash2 className="h-3.5 w-3.5" /></Button>
           </div>
 
