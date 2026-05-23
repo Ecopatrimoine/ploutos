@@ -483,17 +483,17 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                 <div key={heir.name + idx}
                   onClick={() => setSelectedHeir(idx)}
                   style={{
-                    background: "var(--color-background-primary)",
-                    border: "0.5px solid var(--color-border-tertiary)",
+                    background: "SURFACE.card",
+                    border: "1px solid ${SURFACE.border}",
                     borderRadius: "14px", padding: "16px", cursor: "pointer",
                     transition: "border-color 0.15s, background 0.15s",
                     position: "relative",
                   }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = BRAND.sky; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--color-border-tertiary)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "${SURFACE.border}"; }}
                 >
                   {isDonated && (
-                    <div style={{ position: "absolute", top: "10px", right: "10px", fontSize: "10px", fontWeight: 600, background: "#dcfce7", color: "#15803d", borderRadius: "6px", padding: "2px 6px", border: "0.5px solid #bbf7d0" }}>
+                    <div style={{ position: "absolute", top: "10px", right: "10px", fontSize: "11px", fontWeight: 600, background: "#dcfce7", color: "#15803d", borderRadius: "6px", padding: "2px 6px", border: "1px solid #bbf7d0" }}>
                       Donation
                     </div>
                   )}
@@ -502,25 +502,25 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                     {getInitials(heir.name)}
                   </div>
                   <div style={{ fontSize: "14px", fontWeight: 600, color: "#101B3B", marginBottom: "2px" }}>{heir.name}</div>
-                  <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", marginBottom: "12px" }}>{heir.relation}</div>
+                  <div style={{ fontSize: "11px", color: "${BRAND.muted}", marginBottom: "12px" }}>{heir.relation}</div>
                   {/* Barre de progression */}
-                  <div style={{ height: "4px", background: "var(--color-background-secondary)", borderRadius: "2px", marginBottom: "10px", overflow: "hidden" }}>
+                  <div style={{ height: "4px", background: "${SURFACE.app}", borderRadius: "2px", marginBottom: "10px", overflow: "hidden" }}>
                     <div style={{ height: "100%", width: `${pct}%`, background: clr.bar, borderRadius: "2px" }} />
                   </div>
                   {/* Montants */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                     <div>
                       <div style={{ fontSize: "15px", fontWeight: 600, color: "#101B3B" }}>{euro(heirNetActuel)}</div>
-                      <div style={{ fontSize: "10px", color: "var(--color-text-secondary)" }}>net reçu</div>
+                      <div style={{ fontSize: "11px", color: "${BRAND.muted}" }}>net reçu</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontSize: "12px", color: heir.duties > 0 ? BRAND.danger : BRAND.success, fontWeight: 500 }}>
                         {heir.duties > 0 ? `−${euro(heir.duties)}` : "Exonéré"}
                       </div>
-                      <div style={{ fontSize: "10px", color: "var(--color-text-secondary)" }}>droits</div>
+                      <div style={{ fontSize: "11px", color: "${BRAND.muted}" }}>droits</div>
                     </div>
                   </div>
-                  <div style={{ marginTop: "10px", fontSize: "10px", color: "var(--color-text-secondary)", borderTop: "0.5px solid var(--color-border-tertiary)", paddingTop: "8px" }}>
+                  <div style={{ marginTop: "10px", fontSize: "11px", color: "${BRAND.muted}", borderTop: "1px solid ${SURFACE.border}", paddingTop: "8px" }}>
                     Voir le détail →
                   </div>
                 </div>
@@ -554,7 +554,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
               {avCapital > 0 && (
                 <div onClick={() => setShowAvModal(true)} style={{
                   borderRadius: "18px", cursor: "pointer", overflow: "hidden",
-                  border: "0.5px solid rgba(227,175,100,0.4)",
+                  border: "1px solid rgba(227,175,100,0.4)",
                   boxShadow: "0 2px 12px rgba(16,27,59,0.07)",
                   transition: "box-shadow 0.15s",
                 }}
@@ -568,9 +568,9 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                       <div style={{ color: "#fff", fontSize: "20px", fontWeight: 700, marginTop: "2px" }}>{euro(avCapital)}</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "10px" }}>Net transmis</div>
+                      <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "11px" }}>Net transmis</div>
                       <div style={{ color: avNet >= avCapital * 0.85 ? "#86efac" : "#fcd34d", fontSize: "16px", fontWeight: 700 }}>{euro(avNet)}</div>
-                      <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: "6px", padding: "3px 8px", fontSize: "10px", color: "rgba(255,255,255,0.8)", marginTop: "4px", display: "inline-block" }}>Voir le détail ↗</div>
+                      <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: "6px", padding: "3px 8px", fontSize: "11px", color: "rgba(255,255,255,0.8)", marginTop: "4px", display: "inline-block" }}>Voir le détail ↗</div>
                     </div>
                   </div>
                   {/* Body */}
@@ -580,8 +580,8 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                       { label: "Fiscalité 990I", value: avTax990I > 0 ? "−" + euro(avTax990I) : "Exonéré", color: avTax990I > 0 ? BRAND.warning : BRAND.success },
                       { label: "Fiscalité 757B", value: avTax757B > 0 ? "−" + euro(avTax757B) : "Exonéré", color: avTax757B > 0 ? BRAND.warning : BRAND.success },
                     ].map((item, i) => (
-                      <div key={i} style={{ flex: 1, padding: "6px 10px", borderLeft: i > 0 ? "0.5px solid rgba(0,0,0,0.07)" : "none" }}>
-                        <div style={{ fontSize: "10px", color: "#94a3b8", marginBottom: "3px" }}>{item.label}</div>
+                      <div key={i} style={{ flex: 1, padding: "6px 10px", borderLeft: i > 0 ? "1px solid rgba(0,0,0,0.07)" : "none" }}>
+                        <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "3px" }}>{item.label}</div>
                         <div style={{ fontSize: "13px", fontWeight: 600, color: item.color }}>{item.value}</div>
                       </div>
                     ))}
@@ -593,7 +593,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
               {perTotal > 0 && (
                 <div style={{
                   borderRadius: "18px", overflow: "hidden",
-                  border: "0.5px solid rgba(227,175,100,0.4)",
+                  border: "1px solid rgba(227,175,100,0.4)",
                   boxShadow: "0 2px 12px rgba(16,27,59,0.07)",
                 }}>
                   {/* Header accent doré */}
@@ -607,7 +607,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                     <div style={{
                       borderRadius: "8px", padding: "8px 10px",
                       background: defAge !== null && defAge < 70 ? "rgba(16,27,59,0.05)" : "rgba(227,175,100,0.1)",
-                      border: "0.5px solid " + (defAge !== null && defAge < 70 ? "rgba(16,27,59,0.12)" : "rgba(227,175,100,0.3)"),
+                      border: "1px solid " + (defAge !== null && defAge < 70 ? "rgba(16,27,59,0.12)" : "rgba(227,175,100,0.3)"),
                       fontSize: "11px", lineHeight: 1.5,
                       color: defAge !== null && defAge < 70 ? BRAND.navy : "#92400e",
                     }}>
@@ -745,7 +745,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
   {/* ── Modal AV ── */}
   {showAvModal && (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(16,27,59,0.45)", backdropFilter: "blur(4px)" }} onClick={() => setShowAvModal(false)}>
-      <div className="rounded-3xl w-full max-w-lg max-h-[88vh] overflow-hidden flex flex-col" style={{ background: "#ffffff", border: "0.5px solid rgba(0,0,0,0.12)", boxShadow: "0 24px 64px rgba(16,27,59,0.35)" }} onClick={e => e.stopPropagation()}>
+      <div className="rounded-3xl w-full max-w-lg max-h-[88vh] overflow-hidden flex flex-col" style={{ background: "#ffffff", border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 24px 64px rgba(16,27,59,0.35)" }} onClick={e => e.stopPropagation()}>
         <div style={{ padding: "20px 24px 16px", background: `linear-gradient(135deg, ${BRAND.navy} 0%, ${BRAND.sky} 100%)`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
           <div>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: "16px" }}>Assurances-vie au décès</div>
@@ -773,14 +773,14 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                     { label: "Fiscalité totale", value: (tax990 + tax757) > 0 ? "−" + euro(tax990 + tax757) : "Exonéré", color: (tax990 + tax757) > 0 ? BRAND.warning : BRAND.success },
                     { label: "Net transmis", value: euro(netAv), color: BRAND.success },
                   ].map((k, i) => (
-                    <div key={i} style={{ background: "var(--color-background-secondary)", borderRadius: "10px", padding: "10px 12px", textAlign: "center" }}>
-                      <div style={{ fontSize: "10px", color: "var(--color-text-secondary)", marginBottom: "4px" }}>{k.label}</div>
+                    <div key={i} style={{ background: "${SURFACE.app}", borderRadius: "10px", padding: "10px 12px", textAlign: "center" }}>
+                      <div style={{ fontSize: "11px", color: "${BRAND.muted}", marginBottom: "4px" }}>{k.label}</div>
                       <div style={{ fontSize: "15px", fontWeight: 600, color: k.color }}>{k.value}</div>
                     </div>
                   ))}
                 </div>
                 {abatt990Restant > 0 && (
-                  <div style={{ borderRadius: "10px", border: "0.5px solid rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.06)", padding: "9px 12px", fontSize: "11px", color: "#059669", marginBottom: "14px" }}>
+                  <div style={{ borderRadius: "10px", border: "1px solid rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.06)", padding: "9px 12px", fontSize: "11px", color: "#059669", marginBottom: "14px" }}>
                     Abattement 990I disponible non utilisé : <strong>{euro(abatt990Restant)}</strong> — désigner davantage de bénéficiaires ou rééquilibrer les primes optimiserait la transmission.
                   </div>
                 )}
@@ -815,23 +815,23 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                       const initials = l.beneficiary.split(" ").map((w: string) => w[0] || "").join("").toUpperCase().slice(0, 2);
                       const isExo = l.totalTax === 0;
                       return (
-                        <div key={li} style={{ borderRadius: "12px", border: "0.5px solid var(--color-border-tertiary)", padding: "12px", background: "#fff" }}>
+                        <div key={li} style={{ borderRadius: "12px", border: "1px solid ${SURFACE.border}", padding: "12px", background: "#fff" }}>
                           {/* Avatar + nom */}
                           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
                             <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: BRAND.navy + "18", color: BRAND.navy, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700, flexShrink: 0 }}>{initials}</div>
                             <div>
                               <div style={{ fontSize: "12px", fontWeight: 600, color: BRAND.navy }}>{l.beneficiary}</div>
-                              <div style={{ fontSize: "10px", color: "var(--color-text-secondary)" }}>{l.sharePct}% du contrat</div>
+                              <div style={{ fontSize: "11px", color: "${BRAND.muted}" }}>{l.sharePct}% du contrat</div>
                             </div>
                           </div>
                           {/* Capital + net */}
                           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
                             <div>
-                              <div style={{ fontSize: "10px", color: "var(--color-text-secondary)" }}>Capital</div>
+                              <div style={{ fontSize: "11px", color: "${BRAND.muted}" }}>Capital</div>
                               <div style={{ fontSize: "14px", fontWeight: 600, color: BRAND.navy }}>{euro(l.amount)}</div>
                             </div>
                             <div style={{ textAlign: "right" }}>
-                              <div style={{ fontSize: "10px", color: "var(--color-text-secondary)" }}>Net reçu</div>
+                              <div style={{ fontSize: "11px", color: "${BRAND.muted}" }}>Net reçu</div>
                               <div style={{ fontSize: "14px", fontWeight: 700, color: BRAND.success }}>{euro(netLine)}</div>
                             </div>
                           </div>
@@ -844,7 +844,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                           {/* Barre abattement 990I */}
                           {l.amountBefore70Capital > 0 && (
                             <div>
-                              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--color-text-secondary)", marginBottom: "3px" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "${BRAND.muted}", marginBottom: "3px" }}>
                                 <span>Abatt. 990I utilisé</span>
                                 <span style={{ color: abattRestant > 0 ? "#059669" : "#101B3B" }}>{Math.round(abattPct)}%</span>
                               </div>
@@ -852,7 +852,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                                 <div style={{ height: "100%", width: abattPct + "%", background: abattPct < 100 ? BRAND.success : BRAND.navy, borderRadius: "2px" }} />
                               </div>
                               {abattRestant > 0 && (
-                                <div style={{ fontSize: "10px", color: "#059669", marginTop: "3px" }}>{euro(abattRestant)} disponible</div>
+                                <div style={{ fontSize: "11px", color: "#059669", marginTop: "3px" }}>{euro(abattRestant)} disponible</div>
                               )}
                             </div>
                           )}
@@ -872,7 +872,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
   {/* ── Modal Actif successoral ── */}
   {showActifModal && (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(16,27,59,0.45)", backdropFilter: "blur(4px)" }} onClick={() => setShowActifModal(false)}>
-      <div className="rounded-3xl w-full max-w-lg max-h-[88vh] overflow-hidden flex flex-col" style={{ background: "#ffffff", border: "0.5px solid rgba(0,0,0,0.12)", boxShadow: "0 24px 64px rgba(16,27,59,0.35)" }} onClick={e => e.stopPropagation()}>
+      <div className="rounded-3xl w-full max-w-lg max-h-[88vh] overflow-hidden flex flex-col" style={{ background: "#ffffff", border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 24px 64px rgba(16,27,59,0.35)" }} onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div style={{ padding: "20px 24px 16px", background: `linear-gradient(135deg, ${BRAND.navy} 0%, ${BRAND.sky} 100%)`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
@@ -893,15 +893,15 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
               {succession.propertyLines.map((line: any, idx: number) => {
                 const isDonated = donatedAssetNames.has(line.name);
                 return (
-                  <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "8px 0", borderBottom: "0.5px solid var(--color-border-tertiary)", background: isDonated ? "rgba(16,185,129,0.03)" : undefined }}>
+                  <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "8px 0", borderBottom: "1px solid ${SURFACE.border}", background: isDonated ? "rgba(16,185,129,0.03)" : undefined }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                         <span style={{ fontSize: "13px", fontWeight: 500, color: "#101B3B" }}>{line.name}</span>
-                        {isDonated && <span style={{ fontSize: "10px", fontWeight: 600, color: "#059669", background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: "5px", padding: "1px 6px" }}>Donation</span>}
+                        {isDonated && <span style={{ fontSize: "11px", fontWeight: 600, color: "#059669", background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: "5px", padding: "1px 6px" }}>Donation</span>}
                       </div>
-                      {line.note && <div style={{ fontSize: "11px", color: "var(--color-text-secondary)" }}>{line.note}</div>}
+                      {line.note && <div style={{ fontSize: "11px", color: "${BRAND.muted}" }}>{line.note}</div>}
                       {(line.residenceAbatement > 0 || line.debtShare > 0) && (
-                        <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", marginTop: "2px" }}>
+                        <div style={{ fontSize: "11px", color: "${BRAND.muted}", marginTop: "2px" }}>
                           {line.residenceAbatement > 0 && <span>Abatt. RP −{euro(line.residenceAbatement)} </span>}
                           {line.debtShare > 0 && <span>Dettes −{euro(line.debtShare)} </span>}
                           {line.insuranceCover > 0 && <span style={{ color: BRAND.success }}>dont ass. DC −{euro(line.insuranceCover)}</span>}
@@ -910,7 +910,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                     </div>
                     <div style={{ textAlign: "right", minWidth: "90px" }}>
                       <div style={{ fontSize: "13px", fontWeight: 600, color: "#101B3B" }}>{euro(line.netEstateValue)}</div>
-                      {line.grossEstateValue !== line.netEstateValue && <div style={{ fontSize: "10px", color: "var(--color-text-secondary)" }}>brut {euro(line.grossEstateValue)}</div>}
+                      {line.grossEstateValue !== line.netEstateValue && <div style={{ fontSize: "11px", color: "${BRAND.muted}" }}>brut {euro(line.grossEstateValue)}</div>}
                     </div>
                   </div>
                 );
@@ -923,10 +923,10 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
             <div style={{ marginBottom: "16px" }}>
               <div style={{ fontSize: "11px", fontWeight: 600, color: BRAND.sky, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>Placements hors AV</div>
               {succession.placementLines.filter((l: any) => l.netEstateValue > 0).map((line: any, idx: number) => (
-                <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
+                <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid ${SURFACE.border}" }}>
                   <div>
                     <div style={{ fontSize: "13px", fontWeight: 500, color: "#101B3B" }}>{line.name}</div>
-                    {line.note && <div style={{ fontSize: "11px", color: "var(--color-text-secondary)" }}>{line.note}</div>}
+                    {line.note && <div style={{ fontSize: "11px", color: "${BRAND.muted}" }}>{line.note}</div>}
                   </div>
                   <div style={{ fontSize: "13px", fontWeight: 600, color: "#101B3B" }}>{euro(line.netEstateValue)}</div>
                 </div>
@@ -935,17 +935,17 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
           )}
 
           {/* Récapitulatif */}
-          <div style={{ borderRadius: "12px", background: "var(--color-background-secondary)", padding: "14px 16px" }}>
+          <div style={{ borderRadius: "12px", background: "${SURFACE.app}", padding: "14px 16px" }}>
             <div style={{ fontSize: "11px", fontWeight: 600, color: BRAND.sky, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "10px" }}>Récapitulatif</div>
             {[
               { label: "Immobilier net retenu", value: euro(succession.collectedPropertyEstate - succession.furnitureForfait), sub: null },
               { label: "Forfait mobilier 5%", value: euro(succession.furnitureForfait), sub: "évaluation forfaitaire en l'absence d'inventaire" },
               { label: "Placements hors AV", value: euro(succession.placementsSuccession), sub: null },
             ].map((row, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "6px 0", borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "6px 0", borderBottom: "1px solid ${SURFACE.border}" }}>
                 <div>
-                  <div style={{ fontSize: "12px", color: "var(--color-text-secondary)" }}>{row.label}</div>
-                  {row.sub && <div style={{ fontSize: "10px", color: "var(--color-text-secondary)", opacity: 0.7 }}>{row.sub}</div>}
+                  <div style={{ fontSize: "12px", color: "${BRAND.muted}" }}>{row.label}</div>
+                  {row.sub && <div style={{ fontSize: "11px", color: "${BRAND.muted}", opacity: 0.7 }}>{row.sub}</div>}
                 </div>
                 <div style={{ fontSize: "12px", fontWeight: 500, color: "#101B3B" }}>{row.value}</div>
               </div>
@@ -968,7 +968,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
     const abattementAffiche = Math.min(heir.allowance, Math.max(0, baseRecue));
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(16,27,59,0.45)", backdropFilter: "blur(4px)" }} onClick={() => setSelectedHeir(null)}>
-        <div className="rounded-3xl w-full max-w-lg max-h-[88vh] overflow-hidden flex flex-col" style={{ background: "#ffffff", border: "0.5px solid rgba(0,0,0,0.12)", boxShadow: "0 24px 64px rgba(16,27,59,0.35)" }} onClick={e => e.stopPropagation()}>
+        <div className="rounded-3xl w-full max-w-lg max-h-[88vh] overflow-hidden flex flex-col" style={{ background: "#ffffff", border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 24px 64px rgba(16,27,59,0.35)" }} onClick={e => e.stopPropagation()}>
 
           {/* Header modal */}
           <div style={{ padding: "20px 24px 16px", background: `linear-gradient(135deg, ${BRAND.navy} 0%, ${BRAND.sky} 100%)`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
@@ -994,22 +994,22 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
               const netSuccession = actifSuccession - heir.successionDuties;
               return (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "16px" }}>
-                  <div style={{ background: "var(--color-background-secondary)", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
-                    <div style={{ fontSize: "10px", color: "var(--color-text-secondary)", marginBottom: "4px" }}>
+                  <div style={{ background: "${SURFACE.app}", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
+                    <div style={{ fontSize: "11px", color: "${BRAND.muted}", marginBottom: "4px" }}>
                       {heir.usufructRawValue > 0 ? "PP + Usufruit reçu" : heir.nueRawValue > 0 ? "PP + NP reçue" : "Actif reçu"}
                     </div>
                     <div style={{ fontSize: "17px", fontWeight: 600, color: "#101B3B" }}>{euro(actifSuccession)}</div>
                   </div>
-                  <div style={{ background: "var(--color-background-secondary)", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
-                    <div style={{ fontSize: "10px", color: "var(--color-text-secondary)", marginBottom: "4px" }}>Droits succession</div>
+                  <div style={{ background: "${SURFACE.app}", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
+                    <div style={{ fontSize: "11px", color: "${BRAND.muted}", marginBottom: "4px" }}>Droits succession</div>
                     <div style={{ fontSize: heir.duties > 0 ? "17px" : "14px", fontWeight: 600, color: heir.duties > 0 ? BRAND.danger : BRAND.success, lineHeight: 1.3 }}>
                       {heir.duties > 0 ? "−" + euro(heir.successionDuties) : (
-                        <span>Exonéré<span style={{ display: "block", fontSize: "10px", fontWeight: 400, color: "#059669", marginTop: "2px" }}>art. 796-0 bis CGI — conjoint / partenaire PACS</span></span>
+                        <span>Exonéré<span style={{ display: "block", fontSize: "11px", fontWeight: 400, color: "#059669", marginTop: "2px" }}>art. 796-0 bis CGI — conjoint / partenaire PACS</span></span>
                       )}
                     </div>
                   </div>
-                  <div style={{ background: "var(--color-background-secondary)", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
-                    <div style={{ fontSize: "10px", color: "var(--color-text-secondary)", marginBottom: "4px" }}>Net succession</div>
+                  <div style={{ background: "${SURFACE.app}", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
+                    <div style={{ fontSize: "11px", color: "${BRAND.muted}", marginBottom: "4px" }}>Net succession</div>
                     <div style={{ fontSize: "17px", fontWeight: 600, color: BRAND.success }}>{euro(netSuccession)}</div>
                   </div>
                 </div>
@@ -1018,7 +1018,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
 
             {/* Démembrement — détail NP/US */}
             {(heir.nueRawValue > 0 || heir.usufructRawValue > 0) && (
-              <div style={{ borderRadius: "12px", border: "0.5px solid rgba(81,106,199,0.25)", background: "rgba(81,106,199,0.04)", padding: "12px 14px", marginBottom: "14px" }}>
+              <div style={{ borderRadius: "12px", border: "1px solid rgba(81,106,199,0.25)", background: "rgba(81,106,199,0.04)", padding: "12px 14px", marginBottom: "14px" }}>
                 <div style={{ fontSize: "11px", fontWeight: 600, color: BRAND.sky, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "10px" }}>Démembrement de propriété</div>
 
                 {heir.nueRawValue > 0 && (() => {
@@ -1031,15 +1031,15 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                         { label: "Valeur taxable NP", value: euro(heir.nueValue), color: "#101B3B", bold: true, hint: "Valeur économique × coefficient Duvergier → base taxable" },
                         { label: "Valeur PP au décès de l'usufruitier", value: euro(heir.nueRawValue), color: BRAND.success, bold: true, hint: "Récupère la pleine propriété sans droits supplémentaires" },
                       ] as any[]).map((row, i) => (
-                        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "5px 0", borderBottom: "0.5px solid rgba(81,106,199,0.1)" }}>
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "5px 0", borderBottom: "1px solid rgba(81,106,199,0.1)" }}>
                           <div>
-                            <div style={{ fontSize: "12px", color: "var(--color-text-secondary)" }}>{row.label}</div>
-                            {row.hint && <div style={{ fontSize: "10px", color: "var(--color-text-secondary)", opacity: 0.7, maxWidth: "220px" }}>{row.hint}</div>}
+                            <div style={{ fontSize: "12px", color: "${BRAND.muted}" }}>{row.label}</div>
+                            {row.hint && <div style={{ fontSize: "11px", color: "${BRAND.muted}", opacity: 0.7, maxWidth: "220px" }}>{row.hint}</div>}
                           </div>
-                          <span style={{ fontSize: "12px", fontWeight: row.bold ? 600 : 400, color: row.color || "var(--color-text-secondary)", marginLeft: "12px", flexShrink: 0 }}>{row.value}</span>
+                          <span style={{ fontSize: "12px", fontWeight: row.bold ? 600 : 400, color: row.color || "${BRAND.muted}", marginLeft: "12px", flexShrink: 0 }}>{row.value}</span>
                         </div>
                       ))}
-                      <div style={{ marginTop: "8px", padding: "8px 10px", borderRadius: "8px", background: "rgba(16,185,129,0.08)", border: "0.5px solid rgba(16,185,129,0.2)", fontSize: "11px", color: "#059669", lineHeight: 1.5 }}>
+                      <div style={{ marginTop: "8px", padding: "8px 10px", borderRadius: "8px", background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", fontSize: "11px", color: "#059669", lineHeight: 1.5 }}>
                         Avantage fiscal NP : {euro(heir.nueValue)} taxés aujourd'hui vs {euro(heir.nueRawValue)} en PP — économie sur {euro(heir.nueRawValue - heir.nueValue)}.
                       </div>
                     </div>
@@ -1056,12 +1056,12 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                         { label: "Coefficient Duvergier", value: Math.round(usPct * 100) + "%", hint: "Valorisation fiscale de l'usufruit selon l'âge de l'usufruitier" },
                         { label: "Valeur de l'usufruit reçu", value: euro(usValue), color: "#101B3B", bold: true, hint: "Valeur PP × quotité × coefficient Duvergier" },
                       ] as any[]).map((row, i) => (
-                        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "5px 0", borderBottom: "0.5px solid rgba(81,106,199,0.1)" }}>
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "5px 0", borderBottom: "1px solid rgba(81,106,199,0.1)" }}>
                           <div>
-                            <div style={{ fontSize: "12px", color: "var(--color-text-secondary)" }}>{row.label}</div>
-                            {row.hint && <div style={{ fontSize: "10px", color: "var(--color-text-secondary)", opacity: 0.7 }}>{row.hint}</div>}
+                            <div style={{ fontSize: "12px", color: "${BRAND.muted}" }}>{row.label}</div>
+                            {row.hint && <div style={{ fontSize: "11px", color: "${BRAND.muted}", opacity: 0.7 }}>{row.hint}</div>}
                           </div>
-                          <span style={{ fontSize: "12px", fontWeight: row.bold ? 600 : 400, color: row.color || "var(--color-text-secondary)", marginLeft: "12px", flexShrink: 0 }}>{row.value}</span>
+                          <span style={{ fontSize: "12px", fontWeight: row.bold ? 600 : 400, color: row.color || "${BRAND.muted}", marginLeft: "12px", flexShrink: 0 }}>{row.value}</span>
                         </div>
                       ))}
                     </div>
@@ -1085,10 +1085,10 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                   { label: "Base taxable", value: euro(heir.successionTaxable), bold: true, hint: null },
                   { label: "Droits de succession", value: "−" + euro(heir.successionDuties), color: BRAND.danger, bold: true, hint: null },
                 ] as any[]).map((row, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "6px 0", borderBottom: "0.5px solid var(--color-border-tertiary)", borderTop: row.separator ? "0.5px solid var(--color-border-tertiary)" : undefined }}>
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "6px 0", borderBottom: "1px solid ${SURFACE.border}", borderTop: row.separator ? "1px solid ${SURFACE.border}" : undefined }}>
                     <div>
-                      <div style={{ fontSize: "12px", color: row.bold ? "#101B3B" : "var(--color-text-secondary)", fontWeight: row.separator ? 500 : 400 }}>{row.label}</div>
-                      {row.hint && <div style={{ fontSize: "10px", color: "var(--color-text-secondary)", opacity: 0.7 }}>{row.hint}</div>}
+                      <div style={{ fontSize: "12px", color: row.bold ? "#101B3B" : "${BRAND.muted}", fontWeight: row.separator ? 500 : 400 }}>{row.label}</div>
+                      {row.hint && <div style={{ fontSize: "11px", color: "${BRAND.muted}", opacity: 0.7 }}>{row.hint}</div>}
                     </div>
                     <span style={{ fontSize: "12px", fontWeight: row.bold || row.separator ? 600 : 400, color: row.color || "#101B3B", marginLeft: "12px", flexShrink: 0 }}>{row.value}</span>
                   </div>
@@ -1110,7 +1110,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
 
             {/* AV si applicable */}
             {heir.avReceived > 0 && (
-              <div style={{ background: "var(--color-background-secondary)", borderRadius: "10px", padding: "12px", marginBottom: "12px" }}>
+              <div style={{ background: "${SURFACE.app}", borderRadius: "10px", padding: "12px", marginBottom: "12px" }}>
                 <div style={{ fontSize: "11px", fontWeight: 600, color: BRAND.sky, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>Assurance-vie</div>
                 {([
                   { label: "Capital AV reçu", value: euro(heir.avReceived) },
@@ -1119,8 +1119,8 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                   { label: "Fiscalité AV", value: "−" + euro(heir.avDuties), color: heir.avDuties > 0 ? "#dc2626" : "#16a34a" },
                   { label: "Net AV", value: euro(heir.avNetReceived), bold: true },
                 ] as any[]).map((row, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
-                    <span style={{ fontSize: "12px", color: "var(--color-text-secondary)" }}>{row.label}</span>
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid ${SURFACE.border}" }}>
+                    <span style={{ fontSize: "12px", color: "${BRAND.muted}" }}>{row.label}</span>
                     <span style={{ fontSize: "12px", fontWeight: row.bold ? 600 : 400, color: row.color || "#101B3B" }}>{row.value}</span>
                   </div>
                 ))}

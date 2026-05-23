@@ -285,7 +285,7 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                               </div>
                               {notary && (
                                 <div className="rounded-lg px-2 py-2" style={{ background: "rgba(81,106,199,0.04)", border: "0.5px solid rgba(81,106,199,0.2)" }}>
-                                  <div style={{ fontSize: "10px", fontWeight: 600, color: "#516AC7", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>Frais de notaire</div>
+                                  <div style={{ fontSize: "11px", fontWeight: 600, color: "#516AC7", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>Frais de notaire</div>
                                   <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "2px 8px" }}>
                                     {[
                                       ["Émoluments TTC", euro(notary.emolumentsTTC)],
@@ -553,25 +553,25 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
                 gap: "8px", marginBottom: "8px", alignItems: "end",
               }}>
                 <div>
-                  <div style={{ fontSize: "10px", color: "#888", marginBottom: "3px" }}>Nom</div>
+                  <div style={{ fontSize: "11px", color: "#888", marginBottom: "3px" }}>Nom</div>
                   <input value={heir.name} onChange={e => updateHeir(heir.id, { name: e.target.value })}
                     placeholder="Prénom Nom" style={{ ...inp, padding: "7px 10px", fontSize: "12px" }} />
                 </div>
                 <div>
-                  <div style={{ fontSize: "10px", color: "#888", marginBottom: "3px" }}>Lien</div>
+                  <div style={{ fontSize: "11px", color: "#888", marginBottom: "3px" }}>Lien</div>
                   <select value={heir.relation} onChange={e => updateHeir(heir.id, { relation: e.target.value })}
                     style={{ ...sel, padding: "7px 10px", fontSize: "12px" }}>
                     {DONATION_RELATIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <div style={{ fontSize: "10px", color: "#888", marginBottom: "3px" }}>Part (%)</div>
+                  <div style={{ fontSize: "11px", color: "#888", marginBottom: "3px" }}>Part (%)</div>
                   <input type="number" min="0" max="100" value={heir.sharePercent}
                     onChange={e => updateHeir(heir.id, { sharePercent: e.target.value })}
                     style={{ ...inp, padding: "7px 10px", fontSize: "12px" }} />
                 </div>
                 <div>
-                  <div style={{ fontSize: "10px", color: "#888", marginBottom: "3px" }}>Dons antérieurs (€)</div>
+                  <div style={{ fontSize: "11px", color: "#888", marginBottom: "3px" }}>Dons antérieurs (€)</div>
                   <input type="number" min="0" value={heir.priorDonations}
                     onChange={e => updateHeir(heir.id, { priorDonations: e.target.value })}
                     style={{ ...inp, padding: "7px 10px", fontSize: "12px" }} />
@@ -595,16 +595,16 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
                 <div style={{ borderRadius: "10px", border: "1px solid rgba(0,0,0,0.08)", padding: "10px", background: "#fff" }}>
-                  <div style={{ fontSize: "10px", color: "#888" }}>Valeur transmise</div>
+                  <div style={{ fontSize: "11px", color: "#888" }}>Valeur transmise</div>
                   <div style={{ fontWeight: 700, fontSize: "15px", color: colorNavy }}>{euro(preview.donatedValue)}</div>
                   {preview.donationType === "dismembered" && (
-                    <div style={{ fontSize: "10px", color: colorSky }}>
+                    <div style={{ fontSize: "11px", color: colorSky }}>
                       NP {Math.round(preview.npPercent * 100)}%
                     </div>
                   )}
                 </div>
                 <div style={{ borderRadius: "10px", border: "1px solid rgba(0,0,0,0.08)", padding: "10px", background: "#fff" }}>
-                  <div style={{ fontSize: "10px", color: "#888" }}>Droits de donation</div>
+                  <div style={{ fontSize: "11px", color: "#888" }}>Droits de donation</div>
                   <div style={{ fontWeight: 700, fontSize: "15px", color: "#d97706" }}>{euro(preview.totalDonationTax)}</div>
                 </div>
               </div>
@@ -616,12 +616,12 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
                   <div style={{ fontWeight: 700, fontSize: "11px", color: BRAND.danger, marginBottom: "4px" }}>
                     Décès &lt; 15 ans
                   </div>
-                  <div style={{ fontSize: "10px", color: "#888" }}>Coût total (donation + rappel)</div>
+                  <div style={{ fontSize: "11px", color: "#888" }}>Coût total (donation + rappel)</div>
                   <div style={{ fontWeight: 700, fontSize: "14px", color: colorNavy, marginTop: "3px" }}>
                     {euro(preview.before15.totalCost)}
                   </div>
                   {preview.before15.additionalSuccessionTax > 0 && (
-                    <div style={{ fontSize: "10px", color: BRAND.danger }}>
+                    <div style={{ fontSize: "11px", color: BRAND.danger }}>
                       dont {euro(preview.before15.additionalSuccessionTax)} rappel succ.
                     </div>
                   )}
@@ -633,11 +633,11 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
                   <div style={{ fontWeight: 700, fontSize: "11px", color: "#059669", marginBottom: "4px" }}>
                     Décès &gt; 15 ans
                   </div>
-                  <div style={{ fontSize: "10px", color: "#888" }}>Coût total (donation seule)</div>
+                  <div style={{ fontSize: "11px", color: "#888" }}>Coût total (donation seule)</div>
                   <div style={{ fontWeight: 700, fontSize: "14px", color: colorNavy, marginTop: "3px" }}>
                     {euro(preview.after15.totalCost)}
                   </div>
-                  <div style={{ fontSize: "10px", color: "#059669" }}>Abattements rechargés</div>
+                  <div style={{ fontSize: "11px", color: "#059669" }}>Abattements rechargés</div>
                 </div>
               </div>
               {/* Frais de notaire — immobilier uniquement */}
@@ -645,7 +645,7 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
                 const notary = computeNotaryFees(preview.donatedValue);
                 return (
                   <div style={{ marginTop: "10px", borderRadius: "10px", border: "0.5px solid rgba(81,106,199,0.25)", background: "rgba(81,106,199,0.04)", padding: "10px 12px" }}>
-                    <div style={{ fontSize: "10px", fontWeight: 700, color: "#516AC7", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>Frais de notaire estimés</div>
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: "#516AC7", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>Frais de notaire estimés</div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "3px 12px" }}>
                       {[
                         ["Émoluments TTC", euro(notary.emolumentsTTC), false],
