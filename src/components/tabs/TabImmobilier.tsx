@@ -57,35 +57,37 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span style={{ fontSize: "14px" }}>🎁</span>
             <div>
-              <span style={{ fontSize: "12px", fontWeight: 600, color: "#92400e" }}>Donation active sur ce bien</span>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: BRAND.warning }}>Donation active sur ce bien</span>
               <span style={{ fontSize: "11px", color: BRAND.warning, marginLeft: "8px" }}>— Champs verrouillés</span>
             </div>
           </div>
           <button
             onClick={restoreBaseSnapshot}
             style={{
-              fontSize: "11px", fontWeight: 600, color: "#92400e",
-              background: "rgba(227,175,100,0.2)", border: "0.5px solid rgba(227,175,100,0.5)",
+              fontSize: "11px", fontWeight: 600, color: BRAND.warning,
+              background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`,
               borderRadius: "8px", padding: "4px 10px", cursor: "pointer",
             }}>
             Recharger la situation de base →
           </button>
         </div>
       )}
-      {/* Overlay transparent pour bloquer les clics si donation active */}
+      {/* Overlay semi-transparent hachuré pour bloquer les clics si donation active — textes restent lisibles */}
       {isDonated && (
         <div style={{
           position: "absolute", inset: 0,
-          top: "37px", // en dessous du badge
+          top: "37px",
           zIndex: 10,
-          background: "transparent",
+          background: "rgba(255,255,255,0.45)",
+          backgroundImage: "repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(200,195,185,0.18) 8px, rgba(200,195,185,0.18) 9px)",
           cursor: "not-allowed",
+          borderRadius: "0 0 14px 14px",
         }}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.preventDefault()}
         />
       )}
-      <CardContent className="p-4 space-y-3" style={{ opacity: isDonated ? 0.55 : 1 }}>
+      <CardContent className="p-4 space-y-3">
         {/* Identité + suppression */}
         <div className="flex items-end gap-2">
           <div className="flex-1 grid gap-2 grid-cols-[1.4fr_1.6fr_1fr_1fr]">
