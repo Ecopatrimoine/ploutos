@@ -114,9 +114,26 @@ const TabCredits = React.memo(function TabCredits(props: any) {
     const totalPassif = (data.otherLoans || []).reduce((s, l) => s + n(l.capitalRemaining), 0);
     const totalMensualites = (data.otherLoans || []).reduce((s, l) => s + n(l.monthlyPayment), 0);
     return (
-      <div className="border p-4 grid grid-cols-2 gap-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-        <div><div className="text-xs text-slate-500">Total passif autres crédits</div><div className="text-lg font-bold" style={{ color: BRAND.navy }}>{euro(totalPassif)}</div></div>
-        <div><div className="text-xs text-slate-500">Total mensualités</div><div className="text-lg font-bold" style={{ color: BRAND.sky }}>{euro(totalMensualites)}/mois</div></div>
+      <div className="border p-4 grid grid-cols-3 gap-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+        <div><div className="text-xs" style={{ color: BRAND.muted }}>Total passif autres crédits</div><div className="text-lg font-bold" style={{ color: BRAND.navy }}>{euro(totalPassif)}</div></div>
+        <div><div className="text-xs" style={{ color: BRAND.muted }}>Total mensualités</div><div className="text-lg font-bold" style={{ color: BRAND.navy }}>{euro(totalMensualites)}/mois</div></div>
+        {(() => {
+          // Mensualités immo
+          const mensImmo = data.properties.reduce((s, p) => s + resolveLoanValuesMulti(p).monthlyPayment, 0);
+          const mensTotal = totalMensualites + mensImmo;
+          const revenus = (n(data.salary1) + n(data.salary2) + n(data.pensions1 || "") + n(data.pensions2 || "") + n(data.pensions) + n(data.ca1) + n(data.ca2)) / 12;
+          const taux = revenus > 0 ? Math.round(mensTotal / revenus * 1000) / 10 : 0;
+          const over = taux > 35;
+          return mensTotal > 0 && revenus > 0 ? (
+            <div style={{ borderLeft: `3px solid ${over ? BRAND.danger : BRAND.gold}`, paddingLeft: 12 }}>
+              <div className="text-xs" style={{ color: BRAND.muted }}>Taux d'endettement</div>
+              <div className="text-xl font-black" style={{ color: BRAND.navy }}>{taux} %</div>
+              <div className="text-xs font-bold" style={{ color: over ? BRAND.danger : BRAND.success }}>
+                {over ? "⚠ Seuil HCSF : 35 %" : "✓ Sous le seuil HCSF (35 %)"}
+              </div>
+            </div>
+          ) : null;
+        })()}
       </div>
     );
   })()}
