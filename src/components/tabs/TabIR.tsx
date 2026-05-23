@@ -76,7 +76,7 @@ const TabIR = React.memo(function TabIR(props: any) {
       {/* Note concubinage */}
       {/* Note concubinage + switch personne */}
       {ir.isConcubin && (
-        <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+        <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
           <div className="flex items-center justify-between">
             <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>
               Concubinage — 2 déclarations séparées
@@ -145,7 +145,7 @@ const TabIR = React.memo(function TabIR(props: any) {
       </div>
 
       {/* Options frais + régime foncier — 2 personnes + 1 col régime côte à côte */}
-      <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+      <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
         <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Options de calcul</div>
         <div className="grid gap-4 md:grid-cols-3">
           {/* P1 */}
@@ -246,7 +246,7 @@ const TabIR = React.memo(function TabIR(props: any) {
         ];
         const maxVal = Math.max(...steps.map(s => Math.abs(s.value)));
         return (
-          <div className="rounded-2xl p-4 border" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+          <div className="rounded-2xl p-4 border" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
             <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: BRAND.sky }}>Décomposition du calcul fiscal</div>
             <div className="space-y-2">
               {steps.map((step, i) => {

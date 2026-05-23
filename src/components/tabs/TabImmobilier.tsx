@@ -41,11 +41,11 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
       </Select>
     </div>
   </div>
-  {data.properties.length === 0 && <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border }}>Aucun bien immobilier saisi. Choisissez une nature dans le menu ci-dessus.</div>}
+  {data.properties.length === 0 && <div className="border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>Aucun bien immobilier saisi. Choisissez une nature dans le menu ci-dessus.</div>}
   {data.properties.map((property, index) => {
     const isDonated = donatedPropertyIndices.has(index);
     return (
-    <Card key={index} className="rounded-2xl border shadow-none" style={{ borderColor: isDonated ? "rgba(227,175,100,0.6)" : SURFACE.border, position: "relative", overflow: "hidden" }}>
+    <Card key={index} className="border " style={{ borderColor: isDonated ? "rgba(227,175,100,0.6)" : SURFACE.border, position: "relative", overflow: "hidden" }}>
       {/* Badge donation active */}
       {isDonated && (
         <div style={{

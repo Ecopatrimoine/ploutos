@@ -82,7 +82,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
             <SelectContent>{spouseOptions.map((o: any) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
-        <div className="rounded-2xl border px-4 py-3 text-xs text-slate-600 space-y-0.5 self-end" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+        <div className="border px-4 py-3 text-xs text-slate-600 space-y-0.5 self-end" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
           <div>Conjoint survivant : <strong>{successionData.deceasedPerson === "person1" ? person2 : person1}</strong></div>
           <div>Quotité disponible : <strong>{Math.round(succession.quotiteDisponible * 100)} %</strong> · Enfants réservataires : <strong>{succession.reserveChildrenCount}</strong></div>
           {succession.usufruitierAge !== null
@@ -123,7 +123,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
 
       {/* ── LEGS GLOBAL ── */}
       {successionData.useTestament && successionData.legsMode === "global" && (
-        <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+        <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Legs global</div>
@@ -141,7 +141,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
             const contreparties = ((heir as any).contreparties || []) as DemembrementContrepartie[];
             const familyMembers = getFamilyMembers();
             return (
-              <div key={index} className="space-y-1.5 rounded-xl border p-3" style={{ borderColor: SURFACE.border }}>
+              <div key={index} className="space-y-1.5 rounded-xl border p-3" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
                 <div className="grid gap-2 grid-cols-[1fr_1fr_1.2fr_1.3fr_auto] items-end">
                   <Field label="Prénom"><Input value={heir.firstName} onChange={(e) => updateTestamentHeir(index, "firstName", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
                   <Field label="Nom"><Input value={heir.lastName} onChange={(e) => updateTestamentHeir(index, "lastName", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
@@ -185,12 +185,12 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                       <span className="text-xs font-semibold" style={{ color: BRAND.navy }}>{isUS ? "Nu-propriétaires liés" : "Usufruitiers liés"}</span>
                       <div className="flex gap-1.5 flex-wrap">
                         {familyMembers.map((m: any, mi: number) => (
-                          <button key={mi} className="text-xs rounded-lg px-2 py-1 border hover:bg-slate-50 transition-colors" style={{ borderColor: SURFACE.border }}
+                          <button key={mi} className="text-xs rounded-lg px-2 py-1 border hover:bg-slate-50 transition-colors" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}
                             onClick={() => addContrepartieGlobal(index, { heirName: `${m.firstName} ${m.lastName}`.trim(), heirRelation: m.relation, heirBirthDate: m.birthDate })}>
                             + {m.firstName}
                           </button>
                         ))}
-                        <button className="text-xs rounded-lg px-2 py-1 border border-dashed hover:bg-slate-50 transition-colors" style={{ borderColor: SURFACE.border }} onClick={() => addContrepartieGlobal(index)}>+ Autre</button>
+                        <button className="text-xs rounded-lg px-2 py-1 border border-dashed hover:bg-slate-50 transition-colors" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }} onClick={() => addContrepartieGlobal(index)}>+ Autre</button>
                       </div>
                     </div>
                     {contreparties.length === 0 && <div className="text-xs text-slate-400 italic">Aucune contrepartie — cliquez sur un membre de la famille.</div>}
@@ -244,7 +244,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
         const activeNet = (succession as any)?.activeNet || 0;
         const residualValue = Math.max(0, activeNet - totalBiensExplicites);
         return (
-          <div className="rounded-2xl border p-4 space-y-4" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+          <div className="border p-4 space-y-4" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Legs précis</div>
@@ -275,14 +275,14 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                       <div className="flex-1 rounded-xl px-3 h-8 flex items-center text-sm font-medium" style={{ background: `${BRAND.gold}22`, color: BRAND.navy }}>🏦 Reste du patrimoine — <span className="ml-1 font-bold">{euro(residualValue)}</span></div>
                     ) : item.assetType === "free" ? (
                       <>
-                        <input className="flex-1 rounded-xl border px-3 h-8 text-sm focus:outline-none" placeholder="Nom du bien libre" value={item.freeLabel || ""} onChange={(e) => updateLegsPrecisItem(itemIdx, "freeLabel" as any, e.target.value)} style={{ borderColor: SURFACE.border }} />
-                        <input className="w-32 rounded-xl border px-3 h-8 text-sm focus:outline-none text-right" placeholder="Valeur (€)" value={item.freeValue || ""} onChange={(e) => updateLegsPrecisItem(itemIdx, "freeValue" as any, e.target.value)} style={{ borderColor: SURFACE.border }} />
+                        <input className="flex-1 rounded-xl border px-3 h-8 text-sm focus:outline-none" placeholder="Nom du bien libre" value={item.freeLabel || ""} onChange={(e) => updateLegsPrecisItem(itemIdx, "freeLabel" as any, e.target.value)} style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }} />
+                        <input className="w-32 rounded-xl border px-3 h-8 text-sm focus:outline-none text-right" placeholder="Valeur (€)" value={item.freeValue || ""} onChange={(e) => updateLegsPrecisItem(itemIdx, "freeValue" as any, e.target.value)} style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }} />
                       </>
                     ) : (
                       <div className="flex-1">
                         <select className="w-full rounded-xl border px-3 h-8 text-sm focus:outline-none bg-white" value={`${item.assetType}-${item.propertyIndex}`}
                           onChange={(e) => { const parts = e.target.value.split("-"); const at = parts[0]; const idxStr = parts.slice(1).join("-"); updateLegsPrecisItem(itemIdx, "assetType" as any, at); updateLegsPrecisItem(itemIdx, "propertyIndex" as any, parseInt(idxStr)); }}
-                          style={{ borderColor: SURFACE.border }}>
+                          style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
                           {allAssets.map((a: any) => <option key={`${a.assetType}-${a.idx}`} value={`${a.assetType}-${a.idx}`}>{a.label}</option>)}
                         </select>
                       </div>
@@ -308,7 +308,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                       const shareVal = n(leg.sharePercent) / 100;
                       const valorisation = dePercent ? (isUS ? assetValue * shareVal * dePercent.usufruct : assetValue * shareVal * dePercent.nuePropriete) : assetValue * shareVal;
                       return (
-                        <div key={legIdx} className="rounded-xl border p-3 space-y-2" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+                        <div key={legIdx} className="rounded-xl border p-3 space-y-2" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
                           <div className="grid gap-2 grid-cols-[1fr_0.8fr_0.7fr_0.6fr_auto] items-end">
                             <Field label="Légataire" tooltip="Nom du légataire."><Input placeholder="Nom" value={leg.heirName} onChange={(e) => updateLegataire(itemIdx, legIdx, "heirName", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
                             <Field label="Lien" tooltip="Lien de parenté avec le défunt.">
@@ -388,7 +388,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
         const members = getFamilyMembers();
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }} onClick={() => setLegsPickerOpen(null)}>
-            <div className="rounded-2xl border p-6 space-y-4 w-96 shadow-2xl" style={{ background: "#fff", borderColor: SURFACE.border }} onClick={(e) => e.stopPropagation()}>
+            <div className="border p-6 space-y-4 w-96 shadow-2xl" style={{ background: "#fff", borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }} onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between">
                 <div className="font-semibold text-sm" style={{ color: BRAND.navy }}>Choisir un légataire</div>
                 <button onClick={() => setLegsPickerOpen(null)} className="text-slate-400 hover:text-slate-600 text-lg leading-none">✕</button>
@@ -396,20 +396,20 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
               <div className="text-xs text-slate-500">Cliquez sur un membre de la famille ou ajoutez une personne extérieure.</div>
               <div className="space-y-2">
                 {members.map((m: any, mi: number) => (
-                  <button key={mi} className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-50 border transition-colors" style={{ borderColor: SURFACE.border }}
+                  <button key={mi} className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-50 border transition-colors" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}
                     onClick={() => { if (legsPickerOpen === "global") addFamilyMemberToLegsGlobal(m); else addFamilyMemberToLegsPrecis(m); setLegsPickerOpen(null); }}>
                     <span className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: m.relation === "conjoint" ? BRAND.sky : BRAND.navy }}>{(m.firstName?.[0] || "?").toUpperCase()}</span>
                     <div><div className="font-medium" style={{ color: BRAND.navy }}>{m.firstName} {m.lastName}</div><div className="text-xs text-slate-500 capitalize">{m.relation}</div></div>
                   </button>
                 ))}
                 {members.length === 0 && <div className="text-xs text-slate-400 italic">Aucun membre de la famille renseigné dans la collecte.</div>}
-                <button className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left text-sm border border-dashed hover:bg-slate-50 transition-colors" style={{ borderColor: SURFACE.border }}
+                <button className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left text-sm border border-dashed hover:bg-slate-50 transition-colors" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}
                   onClick={() => {
                     if (legsPickerOpen === "global") { setSuccessionData((prev: any) => ({ ...prev, testamentHeirs: [...prev.testamentHeirs, { firstName: "", lastName: "", birthDate: "", relation: "autre", priorDonations: "0", shareGlobal: "", propertyRight: "full" }] })); }
                     else { setSuccessionData((prev: any) => ({ ...prev, legsPrecisItems: [...(prev.legsPrecisItems || []), { propertyIndex: 0, assetType: "property" as const, heirName: "", heirRelation: "autre", heirBirthDate: "", sharePercent: "100", propertyRight: "full", contreparties: [] }] })); }
                     setLegsPickerOpen(null);
                   }}>
-                  <span className="h-8 w-8 rounded-full flex items-center justify-center text-slate-400 border" style={{ borderColor: SURFACE.border }}>+</span>
+                  <span className="h-8 w-8 rounded-full flex items-center justify-center text-slate-400 border" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>+</span>
                   <div className="text-slate-500 text-xs">Personne extérieure <span className="text-amber-600 font-medium">(droits pouvant atteindre 60%)</span></div>
                 </button>
               </div>
@@ -646,7 +646,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
           <div className="grid gap-4 md:grid-cols-2">
 
             {/* Graphique 1 : Brut / Droits / Net par héritier */}
-            <Card className="rounded-2xl border shadow-none" style={{ borderColor: SURFACE.border }}>
+            <Card className="border " style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm" style={{ color: BRAND.navy }}>Transmission par héritier</CardTitle>
                 <div className="text-xs text-slate-400">Actif reçu, droits, net</div>
@@ -686,7 +686,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
             </Card>
 
             {/* Graphique 2 : Flux actif → net transmis */}
-            <Card className="rounded-2xl border shadow-none" style={{ borderColor: SURFACE.border }}>
+            <Card className="border " style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm" style={{ color: BRAND.navy }}>De l'actif au net transmis</CardTitle>
                 <div className="text-xs text-slate-400">Vision consolidée succession + AV</div>

@@ -33,10 +33,10 @@ const TabCredits = React.memo(function TabCredits(props: any) {
     </Button>
   </div>
   {(!data.otherLoans || data.otherLoans.length === 0) && (
-    <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border }}>Aucun autre crédit renseigné.</div>
+    <div className="border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>Aucun autre crédit renseigné.</div>
   )}
   {(data.otherLoans || []).map((loan, li) => (
-    <Card key={li} className="rounded-2xl border shadow-none" style={{ borderColor: SURFACE.border }}>
+    <Card key={li} className="border " style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
       <CardContent className="p-4 space-y-3">
         <div className="flex items-end gap-2">
           <div className="flex-1 grid gap-2 grid-cols-[1fr_1.2fr_0.9fr_1.1fr]">
@@ -74,7 +74,7 @@ const TabCredits = React.memo(function TabCredits(props: any) {
           <Field label="Durée restante (mois)"><Input type="number" placeholder="36" value={loan.durationRemaining} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, durationRemaining: e.target.value } : l) }))} className="rounded-xl h-8 text-sm" /></Field>
           <Field label="Objet"><Input placeholder="ex: Véhicule" value={loan.purpose} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, purpose: e.target.value } : l) }))} className="rounded-xl h-8 text-sm" /></Field>
         </div>
-        <div className="rounded-xl border p-2.5 space-y-2" style={{ borderColor: SURFACE.border }}>
+        <div className="rounded-xl border p-2.5 space-y-2" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
           <div className="flex items-center gap-2">
             <button role="switch" aria-checked={loan.hasInsurance}
               onClick={() => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, hasInsurance: !l.hasInsurance } : l) }))}
@@ -114,7 +114,7 @@ const TabCredits = React.memo(function TabCredits(props: any) {
     const totalPassif = (data.otherLoans || []).reduce((s, l) => s + n(l.capitalRemaining), 0);
     const totalMensualites = (data.otherLoans || []).reduce((s, l) => s + n(l.monthlyPayment), 0);
     return (
-      <div className="rounded-2xl border p-4 grid grid-cols-2 gap-3" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+      <div className="border p-4 grid grid-cols-2 gap-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
         <div><div className="text-xs text-slate-500">Total passif autres crédits</div><div className="text-lg font-bold" style={{ color: BRAND.navy }}>{euro(totalPassif)}</div></div>
         <div><div className="text-xs text-slate-500">Total mensualités</div><div className="text-lg font-bold" style={{ color: BRAND.sky }}>{euro(totalMensualites)}/mois</div></div>
       </div>

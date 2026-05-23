@@ -40,7 +40,7 @@ const TabIFI = React.memo(function TabIFI(props: any) {
 
       {/* Table des biens compacte */}
       {ifi.lines.length > 0 && (
-        <div className="rounded-2xl border overflow-hidden" style={{ borderColor: SURFACE.border }}>
+        <div className="border overflow-hidden" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
           <div className="px-4 py-3 text-xs font-semibold uppercase tracking-widest" style={{ background: SURFACE.tableHead, color: BRAND.sky }}>
             Biens retenus dans l'assiette IFI
           </div>
@@ -58,7 +58,7 @@ const TabIFI = React.memo(function TabIFI(props: any) {
               </thead>
               <tbody>
                 {ifi.lines.map((line, idx) => (
-                  <tr key={line.name + idx} className="border-t" style={{ borderColor: SURFACE.border }}>
+                  <tr key={line.name + idx} className="border-t" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
                     <td className="px-4 py-2.5 font-medium" style={{ color: BRAND.navy }}>{line.name}</td>
                     <td className="px-4 py-2.5 text-xs text-slate-500">{line.rightMode}</td>
                     <td className="px-4 py-2.5 text-right">{euro(line.grossValue)}</td>
@@ -76,7 +76,7 @@ const TabIFI = React.memo(function TabIFI(props: any) {
           </div>
         </div>
       )}
-      {ifi.lines.length === 0 && <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border }}>Aucun bien immobilier saisi dans la collecte.</div>}
+      {ifi.lines.length === 0 && <div className="border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>Aucun bien immobilier saisi dans la collecte.</div>}
     </CardContent>
   </Card>
 </TabsContent>

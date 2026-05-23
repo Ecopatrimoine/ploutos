@@ -25,7 +25,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
   {/* Deux personnes côte à côte */}
   <div className="grid gap-4 md:grid-cols-2">
     {/* Personne 1 */}
-    <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+    <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
       <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Personne 1</div>
       <div className="grid gap-3 grid-cols-2">
         <Field label="Prénom"><Input value={data.person1FirstName} onChange={(e) => setField("person1FirstName", e.target.value)} className="rounded-xl" /></Field>
@@ -51,7 +51,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
       </Field>
     </div>
     {/* Personne 2 */}
-    <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+    <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
       <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Personne 2</div>
       <div className="grid gap-3 grid-cols-2">
         <Field label="Prénom"><Input value={data.person2FirstName} onChange={(e) => setField("person2FirstName", e.target.value)} className="rounded-xl" /></Field>
@@ -107,7 +107,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
     </div>
     {data.childrenData.length === 0 && <div className="text-sm text-slate-500">Aucun enfant saisi.</div>}
     {data.childrenData.map((child, index) => (
-      <div key={index} className="grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_1fr_1.2fr_1.3fr_1fr_1fr_1fr_auto_auto]" style={{ borderColor: SURFACE.border }}>
+      <div key={index} className="grid gap-3 border p-4 md:grid-cols-[1fr_1fr_1.2fr_1.3fr_1fr_1fr_1fr_auto_auto]" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
         <Field label="Prénom"><Input value={child.firstName} onChange={(e) => updateChild(index, "firstName", e.target.value)} className="rounded-xl" /></Field>
         <Field label="Nom"><Input value={child.lastName} onChange={(e) => updateChild(index, "lastName", e.target.value)} className="rounded-xl" /></Field>
         <Field label="Date de naissance">

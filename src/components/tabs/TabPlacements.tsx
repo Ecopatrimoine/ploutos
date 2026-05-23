@@ -35,7 +35,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
       </Select>
     </div>
   </div>
-  {data.placements.length === 0 && <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border }}>Aucun placement saisi. Sélectionnez une famille puis un produit.</div>}
+  {data.placements.length === 0 && <div className="border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>Aucun placement saisi. Sélectionnez une famille puis un produit.</div>}
   {data.placements.map((placement, index) => {
     const fiscal = placementFiscalSummary(placement.type);
     const totalShare = placement.beneficiaries.reduce((s, b) => s + n(b.share), 0);
@@ -44,7 +44,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
     const isCash = isCashPlacement(placement.type);
     const isUCorCapi = placement.type === "Assurance-vie unités de compte" || placement.type === "Contrat de capitalisation";
     return (
-      <Card key={index} className="rounded-2xl border shadow-none" style={{ borderColor: SURFACE.border }}>
+      <Card key={index} className="border " style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
         <CardContent className="p-4 space-y-2">
           {/* Ligne identité + suppression compacte */}
           <div className="flex items-end gap-2">
@@ -285,7 +285,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
               <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(145px,1fr))]">
                 <MoneyField label="Retrait annuel (€)" tooltip="Montant du retrait annuel programmé. Permet d'estimer la fiscalité des rachats partiels et l'impact sur l'encours projeté." value={placement.annualWithdrawal || ""} onChange={(e) => updatePlacementStr(index, "annualWithdrawal", e.target.value)} compact />
                 {retrait > 0 && (
-                  <div className="col-span-full rounded-xl border px-3 py-2.5 text-xs space-y-1.5" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+                  <div className="col-span-full rounded-xl border px-3 py-2.5 text-xs space-y-1.5" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
                     <div className="font-semibold" style={{ color: BRAND.sky }}>Simulation fiscale rachat</div>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 text-slate-600">
                       <span>Gain brut dans le retrait :</span>
@@ -307,7 +307,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
 
           {/* Bénéficiaires AV + PER (même régime 990I/757B) */}
           {(isAVType || isPERType(placement.type)) && (
-            <div className="space-y-2 rounded-xl border p-3" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+            <div className="space-y-2 rounded-xl border p-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
               <div className="flex items-center justify-between gap-3">
                 <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>
                   Bénéficiaires {isPERType(placement.type) ? "— Clause bénéficiaire PER (990I/757B)" : ""}
@@ -362,7 +362,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
     const secPct = Math.round(sec / tot * 100);
     const dynPct = 100 - secPct;
     return (
-      <div className="rounded-2xl p-4 border" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+      <div className="rounded-2xl p-4 border" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
         <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: BRAND.sky }}>Exposition aux marchés financiers</div>
         {/* Barre segmentée */}
         <div className="space-y-1 mb-4">

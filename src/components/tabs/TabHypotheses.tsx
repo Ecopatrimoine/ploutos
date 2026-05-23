@@ -97,7 +97,7 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
         </Card>
 
         {/* Situation courante */}
-        <div className="rounded-2xl border px-5 py-3" style={{ borderColor: SURFACE.border, background: "white" }}>
+        <div className="border px-5 py-3" style={{ borderColor: SURFACE.border, background: "white" }}>
           <div className="flex flex-wrap items-center gap-4">
             <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Situation courante</div>
             {[
@@ -108,7 +108,7 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
             ].map(({ label, value, base }) => {
               const diff = value - base;
               return (
-                <div key={label} className="flex items-baseline gap-2 rounded-xl border px-3 py-1.5 text-xs" style={{ borderColor: SURFACE.border }}>
+                <div key={label} className="flex items-baseline gap-2 rounded-xl border px-3 py-1.5 text-xs" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
                   <span className="text-slate-500">{label} : </span>
                   <strong style={{ color: BRAND.navy }}>{euro(value)}</strong>
                   {baseSnapshot.data && (
@@ -125,7 +125,7 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
         {/* 3 cartes hypothèses */}
         <div className="grid gap-4 md:grid-cols-3">
           {hypothesisResults.map((item: any) => (
-            <Card key={item.hypothesis.id} className="rounded-2xl border shadow-none" style={{ borderColor: SURFACE.border }}>
+            <Card key={item.hypothesis.id} className="border " style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
               <CardContent className="p-4 space-y-3">
 
                 {/* Nom + boutons */}
@@ -178,7 +178,7 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                       ].map(({ label, value, base }) => {
                         const diff = value - base;
                         return (
-                          <div key={label} className="rounded-xl border px-3 py-2 text-xs" style={{ borderColor: SURFACE.border }}>
+                          <div key={label} className="rounded-xl border px-3 py-2 text-xs" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
                             <div className="text-slate-500">{label}</div>
                             <div className="font-semibold" style={{ color: BRAND.navy }}>{euro(value)}</div>
                             <div className={`text-xs ${Math.abs(diff) < 1 ? "text-slate-400" : diff < 0 ? "text-emerald-600" : "text-amber-600"}`}>
@@ -190,7 +190,7 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                     </div>
 
                     {item.differences.length > 0 && (
-                      <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+                      <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
                         <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Modifications vs base</div>
                         {item.differences.map((diff: DifferenceLine, i: number) => (
                           <div key={diff.label + i} className="flex items-start justify-between gap-2 text-xs">
@@ -208,13 +208,13 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                     )}
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-dashed px-3 py-4 text-xs text-center text-slate-400" style={{ borderColor: SURFACE.border }}>
+                  <div className="rounded-xl border border-dashed px-3 py-4 text-xs text-center text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
                     Enregistre la situation courante pour comparer.
                   </div>
                 )}
 
                 {/* ── Simulations donation ── */}
-                <div className="border-t pt-3 space-y-2" style={{ borderColor: SURFACE.border }}>
+                <div className="border-t pt-3 space-y-2" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>
                       Simulations donation
@@ -250,7 +250,7 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                     if (!result) return null;
                     return (
                       <div key={don.id} className="rounded-xl border p-3 space-y-2 text-xs"
-                        style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+                        style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
                         <div className="flex items-center justify-between">
                           <div className="font-semibold" style={{ color: BRAND.navy }}>
                             {don.donationType === "dismembered" ? "NP " : "PP "}
@@ -274,11 +274,11 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                           return (
                             <>
                               <div className="grid grid-cols-2 gap-1">
-                                <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: SURFACE.border }}>
+                                <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
                                   <div className="text-slate-400">Valeur transmise</div>
                                   <div className="font-semibold" style={{ color: BRAND.navy }}>{euro(result.donatedValue)}</div>
                                 </div>
-                                <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: SURFACE.border }}>
+                                <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
                                   <div className="text-slate-400">Droits donation</div>
                                   <div className="font-semibold text-amber-600">{euro(result.totalDonationTax)}</div>
                                 </div>

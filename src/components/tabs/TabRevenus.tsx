@@ -65,7 +65,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
     if (isSansAct) return null; // pas de revenus pro
 
     return (
-      <div key={which} className="rounded-2xl border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+      <div key={which} className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
         <div className="flex items-center justify-between">
           <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>{personName}</div>
           <div className="text-xs px-2 py-0.5 rounded-full font-medium" style={{
@@ -272,7 +272,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
 
   {/* ── Pensions nominatives ── */}
   {(!isRetraite(data.person1PcsGroupe) || !isRetraite(data.person2PcsGroupe)) && (
-    <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+    <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
       <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Autres revenus</div>
       <div className="grid gap-3 md:grid-cols-2">
         {!isRetraite(data.person1PcsGroupe) && (
@@ -296,7 +296,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
   )}
 
   {/* ── Rentes PER ── */}
-  <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+  <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
     <div className="flex items-center justify-between">
       <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Rentes PER — Phase de rente</div>
       <Button variant="outline" className="h-7 rounded-xl px-3 text-xs"
@@ -314,7 +314,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
       const imposable = montant * fraction;
       const ps = imposable * 0.172;
       return (
-        <div key={ri} className="rounded-xl border p-3 space-y-2" style={{ borderColor: SURFACE.border }}>
+        <div key={ri} className="rounded-xl border p-3 space-y-2" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
           {/* Ligne 1 : titulaire + montant + âge */}
           <div className="grid gap-2 grid-cols-[1fr_1.2fr_1fr_auto]">
             <Field label="Titulaire">
@@ -357,7 +357,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
   </div>
 
   {/* ── Charges déductibles ── */}
-  <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.cardSoft }}>
+  <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
     <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Charges déductibles du revenu global</div>
     {/* Versements PER déplacés dans l'onglet Placements */}
     <MoneyField label="Pensions alimentaires déductibles" tooltip="Pensions alimentaires versées à un enfant majeur ou à un ex-conjoint, déductibles sous conditions." value={data.pensionDeductible} onChange={(e) => setField("pensionDeductible", e.target.value)} />
