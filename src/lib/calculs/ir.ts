@@ -97,7 +97,14 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   const retained2 = isIndep2 ? 0 : (irOptions.expenseMode2 === "actual"
     ? kmAllowance2 + mealExpenses2 + otherExpenses2
     : salary2 > 0 ? Math.max(509, Math.min(salary2 * 0.1, 14555)) : 0);
-  const retainedExpenses = retained1 + retained2 + pensions * 0.1;
+  // Abattement 10% pensions — plancher 454 € par pensionné, plafond 4 439 € par foyer (revenus 2025)
+  const pensionAbatt1 = pensionP1 > 0 ? Math.max(454, pensionP1 * 0.1) : 0;
+  const pensionAbatt2 = pensionP2 > 0 ? Math.max(454, pensionP2 * 0.1) : 0;
+  const pensionAbattFoyer = (pensionP1 + pensionP2 > 0)
+    ? Math.min(pensionAbatt1 + pensionAbatt2, 4439)
+    // Cas legacy (champ global, pas de ventilation) : 1 seul pensionné
+    : (n(data.pensions) > 0 ? Math.min(Math.max(454, n(data.pensions) * 0.1), 4439) : 0);
+  const retainedExpenses = retained1 + retained2 + pensionAbattFoyer;
 
   // Enfants non rattachés → leur ownership exclut leurs biens de l'IR/IFI du foyer
   const nonRattachedChildIndexes = new Set(

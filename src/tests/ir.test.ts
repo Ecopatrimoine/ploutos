@@ -95,6 +95,16 @@ describe("computeIR — barème de base", () => {
     expect(ir.retainedExpenses).toBeCloseTo(14555, 0)
     expect(ir.revenuNetGlobal).toBeCloseTo(185445, 0)
   })
+
+  it("abattement 10% pensions plafonné à 4 439 € par foyer", () => {
+    // Couple retraités : 50 000 € chacun → abattement 5 000 + 5 000 = 10 000 → plafonné 4 439
+    const ir = computeIR({
+      ...BASE_DATA, coupleStatus: "married",
+      person2FirstName: "Conj", person2LastName: "Test",
+      salary1: "0", salary2: "0", pensions1: "50000", pensions2: "50000",
+    }, STD_OPTIONS)
+    expect(ir.retainedExpenses).toBeCloseTo(4439, 0)
+  })
 })
 
 // ─── QUOTIENT FAMILIAL ────────────────────────────────────────────────────────
