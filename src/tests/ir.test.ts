@@ -222,22 +222,19 @@ describe("computeIR — quotient familial", () => {
     expect(ir.quotientFamilialCapAdjustment).toBeGreaterThan(0)
   })
 
-  it("parent isolé (case T) : 1ère demi-part enfant plafonnée à 4 262 €", () => {
-    // Célibataire parent isolé avec 1 enfant, revenu élevé → plafonnement QF
-    // Plafond = 4 262 € (1ère demi-part) + 1 807 € (demi-part T) = 6 069 €
-    const isolé = computeIR({
-      ...BASE_DATA, coupleStatus: "single", singleParent: true, salary1: "100000",
+  it("parent isolé (case T) : plafond QF = 4 262 + 1 807 = 6 069 €", () => {
+    // Célibataire parent isolé, 1 enfant, salaire 80 000 €
+    // RNG = 72 000, parts = 2 (1 + 0.5 enfant + 0.5 case T)
+    // qfBenefit = 6 896 > qfCap = 6 069 → ajustement = 827
+    // bareme = 7 808 + 827 = 8 635, pas de décote → finalIR ≈ 8 635
+    const ir = computeIR({
+      ...BASE_DATA, coupleStatus: "single", singleParent: true, salary1: "80000",
       childrenData: [{ firstName: "E", lastName: "T", birthDate: "2010-01-01",
         parentLink: "common_child", custody: "full", rattached: true, handicap: false }],
     }, STD_OPTIONS)
-    // Sans parent isolé : plafond = 1 807 × 2 = 3 614 € (1 enfant = 0.5 part, pas de T)
-    const normal = computeIR({
-      ...BASE_DATA, coupleStatus: "single", singleParent: false, salary1: "100000",
-      childrenData: [{ firstName: "E", lastName: "T", birthDate: "2010-01-01",
-        parentLink: "common_child", custody: "full", rattached: true, handicap: false }],
-    }, STD_OPTIONS)
-    // Le parent isolé a un plafond plus élevé → moins de réajustement → IR plus faible
-    expect(isolé.finalIR).toBeLessThan(normal.finalIR)
+    expect(ir.parts).toBe(2)
+    expect(ir.quotientFamilialCapAdjustment).toBeCloseTo(827, 0)
+    expect(ir.finalIR).toBeCloseTo(8635, 0)
   })
 })
 

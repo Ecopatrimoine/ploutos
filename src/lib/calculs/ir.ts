@@ -386,7 +386,7 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   const qfCapParentIsole = data.singleParent && childrenParts > 0 ? 4262 : 0;
   const qfCapStandard = addedHalfParts > 0
     ? (data.singleParent && childrenParts > 0
-      ? qfCapParentIsole + getQuotientCapPerHalfPart() * ((addedHalfParts - 1) / 0.5)
+      ? qfCapParentIsole + getQuotientCapPerHalfPart() * ((addedHalfParts - 0.5) / 0.5)
       : getQuotientCapPerHalfPart() * (addedHalfParts / 0.5))
     : 0;
   const qfCap = qfCapStandard;
