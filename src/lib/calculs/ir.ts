@@ -153,11 +153,11 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   for (const placement of data.placements) {
     if (isOwnedByNonRattached(placement.ownership)) continue; // exclu : appartient à un enfant non rattaché
     if (!isAV(placement.type)) {
-      taxablePlacements += n(placement.taxableIncome);
-      // PFU : seulement si éligible ET pas d'option barème
-      if (placement.pfuEligible && !placement.pfuOptOut) pfuBase += n(placement.taxableIncome);
-      // Option barème : les revenus vont dans le revenu net global
-      if (placement.pfuEligible && placement.pfuOptOut) taxablePlacements += n(placement.taxableIncome);
+      if (placement.pfuEligible && !placement.pfuOptOut) {
+        pfuBase += n(placement.taxableIncome);          // PFU : taxé à part (31,4%)
+      } else {
+        taxablePlacements += n(placement.taxableIncome); // Barème : une seule fois
+      }
     } else {
       const retrait = n(placement.annualWithdrawal || "");
       if (retrait > 0) {
