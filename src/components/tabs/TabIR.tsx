@@ -213,11 +213,44 @@ const TabIR = React.memo(function TabIR(props: any) {
                 <SelectContent><SelectItem value="micro">Micro-foncier (30 %)</SelectItem><SelectItem value="real">Régime réel</SelectItem></SelectContent>
               </Select>
             </Field>
-            <div className="rounded-lg bg-white/70 px-3 py-2 text-xs text-slate-600 space-y-0.5">
-              <div>Foncier brut : <strong>{euro(ir.foncierBrut)}</strong></div>
-              <div>Foncier taxable : <strong>{euro(ir.taxableFonciers)}</strong></div>
-              <div>Prélèvements sociaux : <strong>{euro(ir.foncierSocialLevy)}</strong></div>
-            </div>
+            {/* Comparaison micro vs réel — calcul local d'affichage uniquement */}
+            {ir.foncierBrut > 0 && (() => {
+              const microVal = Math.max(0, ir.foncierBrut * 0.7);
+              const reelVal = Math.max(0, ir.foncierBrut - ir.foncierCharges - ir.foncierInterests);
+              const isMicro = irOptions.foncierRegime === "micro";
+              const diff = microVal - reelVal;
+              return (
+                <div className="space-y-2">
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <div style={{
+                      background: isMicro ? BRAND.cream : SURFACE.app,
+                      border: `1.5px solid ${isMicro ? BRAND.gold : SURFACE.border}`,
+                      borderRadius: 10, padding: "10px", textAlign: "center",
+                    }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: isMicro ? BRAND.goldText : BRAND.muted, textTransform: "uppercase", letterSpacing: "0.5px" }}>Micro-foncier</div>
+                      <div style={{ fontSize: 20, fontWeight: 900, color: BRAND.navy, marginTop: 4 }}>{euro(microVal)}</div>
+                      <div style={{ fontSize: 10, color: BRAND.muted }}>imposable</div>
+                    </div>
+                    <div style={{
+                      background: !isMicro ? BRAND.cream : SURFACE.app,
+                      border: `1.5px solid ${!isMicro ? BRAND.gold : SURFACE.border}`,
+                      borderRadius: 10, padding: "10px", textAlign: "center",
+                    }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: !isMicro ? BRAND.goldText : BRAND.muted, textTransform: "uppercase", letterSpacing: "0.5px" }}>Régime réel</div>
+                      <div style={{ fontSize: 20, fontWeight: 900, color: BRAND.navy, marginTop: 4 }}>{euro(reelVal)}</div>
+                      <div style={{ fontSize: 10, color: BRAND.muted }}>imposable</div>
+                    </div>
+                  </div>
+                  {Math.abs(diff) > 10 && (
+                    <div style={{ fontSize: 11, fontWeight: 700, textAlign: "center", color: diff > 0 ? BRAND.success : BRAND.danger }}>
+                      {diff > 0
+                        ? `💡 Le réel ferait économiser ${euro(diff)} de base imposable`
+                        : `💡 Le micro est plus avantageux de ${euro(-diff)}`}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
