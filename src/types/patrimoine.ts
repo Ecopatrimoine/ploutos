@@ -138,16 +138,6 @@ export type ChargesDetail = {
   autres: string;         // Autres charges
 };
 
-export const EMPTY_CHARGES_DETAIL: ChargesDetail = {
-  loyer: "", materiel: "", deplacements: "", repas: "",
-  tns: "", bancaires: "", comptable: "", autres: "",
-};
-
-export function sumChargesDetail(d: ChargesDetail): number {
-  return ["loyer","materiel","deplacements","repas","tns","bancaires","comptable","autres"]
-    .reduce((acc, k) => acc + (parseFloat((d as any)[k]) || 0), 0);
-}
-
 // ── Autre crédit (consommation, personnel, LOA…) ──────────────────────
 export type OtherLoan = {
   name: string;
