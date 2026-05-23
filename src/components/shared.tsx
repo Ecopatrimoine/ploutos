@@ -97,7 +97,7 @@ export function MetricCard({ label, value, hint, accent = "gold" }: { label: str
       <div style={{ height: 4, background: a.ribbon }} />
       <CardContent className="p-4">
         <div className="text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.muted }}>{label}</div>
-        <div className="mt-2 text-2xl font-black" style={{ color: BRAND.navy }}>{value}</div>
+        <div className="mt-2 font-black" style={{ color: BRAND.navy, fontSize: value.length > 10 ? 20 : 26, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
         {hint ? <div className="mt-1 text-xs" style={{ color: BRAND.muted }}>{hint}</div> : null}
       </CardContent>
     </Card>
