@@ -116,7 +116,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
                     role="switch" aria-checked={micro}
                     onClick={() => setField(microKey, !micro)}
                     className="relative inline-flex items-center rounded-full transition-colors focus:outline-none"
-                    style={{ width: 34, height: 19, background: micro ? BRAND.sky : "#d1d5db", flexShrink: 0 }}
+                    style={{ width: 34, height: 19, background: micro ? BRAND.gold : SURFACE.border, flexShrink: 0 }}
                   >
                     <span className="absolute rounded-full bg-white shadow transition-all"
                       style={{ width: 15, height: 15, top: 2, left: micro ? 17 : 2 }} />
@@ -170,7 +170,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
                   role="switch" aria-checked={micro}
                   onClick={() => setField(microKey, !micro)}
                   className="relative inline-flex items-center rounded-full transition-colors focus:outline-none"
-                  style={{ width: 34, height: 19, background: micro ? BRAND.sky : "#d1d5db", flexShrink: 0 }}
+                  style={{ width: 34, height: 19, background: micro ? BRAND.gold : SURFACE.border, flexShrink: 0 }}
                 >
                   <span
                     className="absolute rounded-full bg-white shadow transition-all"

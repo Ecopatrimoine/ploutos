@@ -39,7 +39,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
               title="Handicap (carte invalidité / CMI). Impact IR : abattement + demi-part. Succession : +159 325 €."
               onClick={() => setField("person1Handicap", !data.person1Handicap)}
               className="relative inline-flex h-4 w-7 items-center rounded-full transition-colors"
-              style={{ background: data.person1Handicap ? "#b45309" : "#d1d5db" }}>
+              style={{ background: data.person1Handicap ? BRAND.gold : SURFACE.border }}>
               <span className="inline-block h-3 w-3 rounded-full bg-white shadow transition-transform"
                 style={{ transform: data.person1Handicap ? "translateX(13px)" : "translateX(2px)" }} />
             </button>
@@ -65,7 +65,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
               title="Handicap (carte invalidité / CMI). Impact IR : abattement + demi-part. Succession : +159 325 €."
               onClick={() => setField("person2Handicap", !data.person2Handicap)}
               className="relative inline-flex h-4 w-7 items-center rounded-full transition-colors"
-              style={{ background: data.person2Handicap ? "#b45309" : "#d1d5db" }}>
+              style={{ background: data.person2Handicap ? BRAND.gold : SURFACE.border }}>
               <span className="inline-block h-3 w-3 rounded-full bg-white shadow transition-transform"
                 style={{ transform: data.person2Handicap ? "translateX(13px)" : "translateX(2px)" }} />
             </button>
@@ -144,7 +144,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
             <button role="switch" aria-checked={!!child.handicap}
               onClick={() => updateChild(index, "handicap", !child.handicap)}
               className="relative inline-flex h-4 w-7 items-center rounded-full transition-colors"
-              style={{ background: child.handicap ? "#b45309" : "#d1d5db" }}>
+              style={{ background: child.handicap ? BRAND.gold : SURFACE.border }}>
               <span className="inline-block h-3 w-3 rounded-full bg-white shadow transition-transform"
                 style={{ transform: child.handicap ? "translateX(13px)" : "translateX(2px)" }} />
             </button>

@@ -146,7 +146,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
                       aria-checked={placement.perDeductible !== false}
                       onClick={() => setData(prev => ({ ...prev, placements: prev.placements.map((p, i) => i === index ? { ...p, perDeductible: !(p.perDeductible !== false) } : p) }))}
                       className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0"
-                      style={{ background: placement.perDeductible !== false ? BRAND.sky : "#d1d5db" }}
+                      style={{ background: placement.perDeductible !== false ? BRAND.gold : SURFACE.border }}
                     >
                       <span className="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform"
                         style={{ transform: placement.perDeductible !== false ? "translateX(18px)" : "translateX(2px)" }} />
@@ -218,7 +218,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
                       <button role="switch" aria-checked={anticipe}
                         onClick={() => setData(prev => ({ ...prev, placements: prev.placements.map((p, i) => i === index ? { ...p, perAnticiped: !anticipe } : p) }))}
                         className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0"
-                        style={{ background: anticipe ? "#f59e0b" : "#d1d5db" }}>
+                        style={{ background: anticipe ? BRAND.gold : SURFACE.border }}>
                         <span className="inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform"
                           style={{ transform: anticipe ? "translateX(18px)" : "translateX(2px)" }} />
                       </button>

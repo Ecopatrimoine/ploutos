@@ -152,7 +152,7 @@ export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, up
                     <button role="switch" aria-checked={loan.insurance}
                       onClick={() => updateLoan(loanModalIndex, li, "insurance", !loan.insurance)}
                       className="relative inline-flex h-4 w-7 items-center rounded-full transition-colors"
-                      style={{ background: loan.insurance ? BRAND.sky : "#d1d5db" }}>
+                      style={{ background: loan.insurance ? BRAND.gold : SURFACE.border }}>
                       <span className="inline-block h-3 w-3 rounded-full bg-white shadow transition-transform"
                         style={{ transform: loan.insurance ? "translateX(13px)" : "translateX(2px)" }} />
                     </button>
