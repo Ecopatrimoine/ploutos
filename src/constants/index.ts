@@ -1,27 +1,38 @@
 import type { ChargesDetail } from '../types/patrimoine';
 
 // ─── BRAND & SURFACE ─────────────────────────────────────────────────────────
+// Palette Encre & Or × Classique Vivant — validée contraste-wcag
 
 export const BRAND = {
-  white: "#F8F6F7",
-  cream: "#FBECD7",
-  gold: "#E3AF64",
-  navy: "#101B3B",
+  white: "#F8F7F4",
+  cream: "#FDF6E8",
+  gold: "#C4973D",
+  goldLight: "#E3AF64",    // accent décoratif (rubans, gradients) — pas pour texte sur fond clair
+  goldText: "#8B6914",     // or accessible pour texte sur fond clair (5.09:1 sur blanc)
+  navy: "#0F172A",
+  navyLight: "#1E293B",
   sky: "#26428B",
   blue: "#516AC7",
+  muted: "#637896",        // texte secondaire — AA 4.51:1 sur blanc
+  mutedLight: "#7E8F9F",   // tirets, placeholders — AA UI 3.32:1 sur blanc
 };
 
 export const SURFACE = {
-  app: `radial-gradient(circle at top left, rgba(227,175,100,0.18) 0%, rgba(248,246,247,1) 34%, rgba(251,236,215,0.62) 62%, rgba(238,242,255,1) 100%)`,
+  app: "#F0EDE6",          // fond lin uni — meilleur contraste qu'un radial-gradient
   hero: `linear-gradient(135deg, ${BRAND.navy} 0%, ${BRAND.sky} 38%, ${BRAND.blue} 68%, ${BRAND.gold} 100%)`,
   accent: `linear-gradient(90deg, ${BRAND.gold} 0%, ${BRAND.cream} 55%, #fff7ea 100%)`,
-  card: "rgba(255,255,255,0.94)",
-  cardSoft: "rgba(251,236,215,0.72)",
-  border: "rgba(185,145,60,0.42)",          // +teinte + alpha pour lisibilité
-  borderStrong: "rgba(185,145,60,0.62)",    // cartes principales
-  input: "rgba(255,255,255,0.98)",
-  inputBorder: "rgba(185,145,60,0.35)",
-  tableHead: "rgba(227,175,100,0.12)",
+  ribbon: `linear-gradient(90deg, ${BRAND.goldLight} 0%, ${BRAND.cream} 100%)`,       // ruban or en haut des cards
+  ribbonNavy: `linear-gradient(90deg, ${BRAND.navy} 0%, ${BRAND.navyLight} 100%)`,    // ruban navy variante
+  card: "#FFFFFF",
+  cardSoft: "#FDFCFA",
+  cardShadow: "0 1px 3px rgba(15,23,42,0.06), 0 6px 20px rgba(15,23,42,0.08), 0 12px 40px rgba(15,23,42,0.04)",
+  cardShadowHover: "0 2px 6px rgba(15,23,42,0.08), 0 12px 32px rgba(15,23,42,0.12), 0 20px 50px rgba(15,23,42,0.06)",
+  border: "#E8E3D9",               // parchemin — bordure standard
+  borderStrong: "#DDD7CB",         // bordure appuyée
+  input: "#FFFFFF",
+  inputBorder: "#E8E3D9",
+  inputFocus: "0 0 0 3px rgba(196,151,61,0.15)",
+  tableHead: BRAND.navy,           // en-tête tableau navy plein
 };
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
