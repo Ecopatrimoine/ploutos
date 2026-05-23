@@ -38,6 +38,31 @@ const TabIFI = React.memo(function TabIFI(props: any) {
         <BracketFillChart title="Barème IFI" data={ifi.bracketFill} referenceValue={ifi.netTaxable} valueLabel="Base taxable" />
       </div>
 
+      {/* Indicateur de proximité seuil IFI */}
+      <div className="border p-4" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow, background: SURFACE.card }}>
+        <div className="flex justify-between text-xs mb-2" style={{ color: BRAND.muted }}>
+          <span>0 €</span>
+          <span style={{ color: ifi.netTaxable >= 1300000 ? BRAND.danger : BRAND.muted, fontWeight: 700 }}>Seuil IFI : 1 300 000 €</span>
+        </div>
+        <div style={{ height: 8, background: SURFACE.border, borderRadius: 4, overflow: "hidden", position: "relative" }}>
+          <div style={{
+            width: `${Math.min(100, ifi.netTaxable / 1300000 * 100)}%`,
+            height: "100%",
+            background: ifi.netTaxable >= 1300000
+              ? `linear-gradient(90deg, ${BRAND.gold}, ${BRAND.danger})`
+              : `linear-gradient(90deg, ${BRAND.success}, ${BRAND.gold})`,
+            borderRadius: 4,
+            transition: "width 0.3s",
+          }} />
+          {ifi.netTaxable < 1300000 && <div style={{ position: "absolute", right: 0, top: -2, bottom: -2, width: 2, background: BRAND.danger }} />}
+        </div>
+        <div className="mt-2 text-xs font-bold" style={{ color: ifi.netTaxable >= 1300000 ? BRAND.danger : BRAND.success }}>
+          {ifi.netTaxable >= 1300000
+            ? `⚠ Seuil IFI dépassé de ${euro(ifi.netTaxable - 1300000)}`
+            : `↓ ${euro(1300000 - ifi.netTaxable)} sous le seuil — pas d'IFI`}
+        </div>
+      </div>
+
       {/* Table des biens compacte */}
       {ifi.lines.length > 0 && (
         <div className="border overflow-hidden" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
