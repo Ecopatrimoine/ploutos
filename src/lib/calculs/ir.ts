@@ -381,7 +381,15 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   const taxWithParts = computeTaxFromBrackets(quotient, brackets).tax * parts;
   const taxWithBaseParts = computeTaxFromBrackets(revenuNetGlobal / baseParts, brackets).tax * baseParts;
   const addedHalfParts = Math.max(0, parts - baseParts);
-  const qfCap = getQuotientCapPerHalfPart() * (addedHalfParts / 0.5);
+  // Plafonnement QF — parent isolé (case T) : 1ère demi-part enfant plafonnée à 4 262 €,
+  // les suivantes à 1 807 € (CGI art. 197-I-2, revenus 2025)
+  const qfCapParentIsole = data.singleParent && childrenParts > 0 ? 4262 : 0;
+  const qfCapStandard = addedHalfParts > 0
+    ? (data.singleParent && childrenParts > 0
+      ? qfCapParentIsole + getQuotientCapPerHalfPart() * ((addedHalfParts - 1) / 0.5)
+      : getQuotientCapPerHalfPart() * (addedHalfParts / 0.5))
+    : 0;
+  const qfCap = qfCapStandard;
   const qfBenefit = Math.max(0, taxWithBaseParts - taxWithParts);
   const quotientFamilialCapAdjustment = qfBenefit > qfCap ? qfBenefit - qfCap : 0;
   const baremeBeforeDecote = taxWithParts + quotientFamilialCapAdjustment;

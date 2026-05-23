@@ -221,6 +221,24 @@ describe("computeIR — quotient familial", () => {
     }, STD_OPTIONS)
     expect(ir.quotientFamilialCapAdjustment).toBeGreaterThan(0)
   })
+
+  it("parent isolé (case T) : 1ère demi-part enfant plafonnée à 4 262 €", () => {
+    // Célibataire parent isolé avec 1 enfant, revenu élevé → plafonnement QF
+    // Plafond = 4 262 € (1ère demi-part) + 1 807 € (demi-part T) = 6 069 €
+    const isolé = computeIR({
+      ...BASE_DATA, coupleStatus: "single", singleParent: true, salary1: "100000",
+      childrenData: [{ firstName: "E", lastName: "T", birthDate: "2010-01-01",
+        parentLink: "common_child", custody: "full", rattached: true, handicap: false }],
+    }, STD_OPTIONS)
+    // Sans parent isolé : plafond = 1 807 × 2 = 3 614 € (1 enfant = 0.5 part, pas de T)
+    const normal = computeIR({
+      ...BASE_DATA, coupleStatus: "single", singleParent: false, salary1: "100000",
+      childrenData: [{ firstName: "E", lastName: "T", birthDate: "2010-01-01",
+        parentLink: "common_child", custody: "full", rattached: true, handicap: false }],
+    }, STD_OPTIONS)
+    // Le parent isolé a un plafond plus élevé → moins de réajustement → IR plus faible
+    expect(isolé.finalIR).toBeLessThan(normal.finalIR)
+  })
 })
 
 // ─── FRAIS RÉELS ──────────────────────────────────────────────────────────────
