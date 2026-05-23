@@ -29,7 +29,7 @@ export function HelpTooltip({ text }: { text: string }) {
         onMouseEnter={show} onMouseLeave={hide}
         onFocus={show} onBlur={hide}
         className="inline-flex items-center justify-center rounded-full text-[10px] font-bold leading-none transition-colors ml-1"
-        style={{ width: 15, height: 15, background: "rgba(38,66,139,0.13)", color: "#26428B", border: "1px solid rgba(38,66,139,0.25)", cursor: "help", flexShrink: 0 }}
+        style={{ width: 15, height: 15, background: BRAND.cream, color: BRAND.goldText, border: `1px solid ${SURFACE.border}`, cursor: "help", flexShrink: 0 }}
         tabIndex={-1} aria-label="Aide">?</button>
       {pos && typeof document !== "undefined" && createPortal(
         <span style={{
@@ -62,7 +62,7 @@ export function HelpTooltip({ text }: { text: string }) {
 export function Field({ label, children, tooltip }: { label: string; children: React.ReactNode; tooltip?: string }) {
   return (
     <div className="space-y-2">
-      <Label className="text-[13px] font-semibold tracking-wide flex items-center gap-0.5" style={{ color: BRAND.sky }}>
+      <Label className="text-xs font-bold flex items-center gap-0.5" style={{ color: BRAND.muted }}>
         {label}{tooltip && <HelpTooltip text={tooltip} />}
       </Label>
       {children}
@@ -74,8 +74,8 @@ export function MoneyField({ label, value, onChange, compact, tooltip }: { label
   return (
     <Field label={label} tooltip={tooltip}>
       <Input value={value || ""} onChange={onChange}
-        className={compact ? "rounded-xl h-8 text-sm border shadow-sm transition-all focus-visible:ring-2" : "rounded-2xl border shadow-sm transition-all focus-visible:ring-2"}
-        style={{ background: SURFACE.input, borderColor: SURFACE.inputBorder }}
+        className={compact ? "h-8 text-sm border transition-all focus-visible:ring-2" : "border transition-all focus-visible:ring-2"}
+        style={{ background: SURFACE.input, borderColor: SURFACE.inputBorder, borderRadius: 12, fontWeight: 700 }}
         inputMode="decimal" />
     </Field>
   );
@@ -83,11 +83,12 @@ export function MoneyField({ label, value, onChange, compact, tooltip }: { label
 
 export function MetricCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <Card className="rounded-2xl border shadow-none backdrop-blur-sm" style={{ borderColor: SURFACE.borderStrong, background: `linear-gradient(180deg, ${SURFACE.card} 0%, ${SURFACE.cardSoft} 100%)` }}>
+    <Card className="border overflow-hidden" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+      <div style={{ height: 4, background: SURFACE.ribbon }} />
       <CardContent className="p-4">
-        <div className="text-sm font-medium" style={{ color: BRAND.sky }}>{label}</div>
-        <div className="mt-1 text-xl font-semibold" style={{ color: BRAND.navy }}>{value}</div>
-        {hint ? <div className="mt-1 text-xs text-slate-500">{hint}</div> : null}
+        <div className="text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.muted }}>{label}</div>
+        <div className="mt-2 text-2xl font-black" style={{ color: BRAND.navy }}>{value}</div>
+        {hint ? <div className="mt-1 text-xs" style={{ color: BRAND.muted }}>{hint}</div> : null}
       </CardContent>
     </Card>
   );
@@ -106,13 +107,14 @@ export function BracketFillChart({ title, data, referenceValue, valueLabel }: {
   const localMax = currentSlice ? (Number.isFinite(currentSlice.to) ? currentSlice.to : Math.max(referenceValue, 1)) : Math.max(referenceValue, 1);
   const indicatorPct = localMax > 0 ? Math.min(100, Math.max(0, (referenceValue / localMax) * 100)) : 0;
   return (
-    <Card className="rounded-2xl border shadow-none backdrop-blur-sm" style={{ borderColor: SURFACE.borderStrong, background: SURFACE.card }}>
+    <Card className="border overflow-hidden" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+      <div style={{ height: 4, background: SURFACE.ribbonNavy }} />
       <CardHeader><CardTitle style={{ color: BRAND.navy }}>{title}</CardTitle></CardHeader>
       <CardContent className="space-y-4">
-        <div className="text-sm text-slate-600">{valueLabel} : <strong>{euro(referenceValue)}</strong></div>
+        <div className="text-sm" style={{ color: BRAND.muted }}>{valueLabel} : <strong style={{ color: BRAND.navy }}>{euro(referenceValue)}</strong></div>
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-500">
-            <span>Tranche active : <strong>{currentSlice?.label || "—"}</strong></span>
+          <div className="flex items-center justify-between text-xs" style={{ color: BRAND.muted }}>
+            <span>Tranche active : <strong style={{ color: BRAND.navy }}>{currentSlice?.label || "—"}</strong></span>
             <span>{euro(referenceValue)} / {euro(localMax)}</span>
           </div>
           <div className="h-3 w-full rounded-full overflow-hidden" style={{ background: "rgba(81,106,199,0.16)" }}>
@@ -140,12 +142,12 @@ export function BracketFillChart({ title, data, referenceValue, valueLabel }: {
 export function SectionTitle({ icon: Icon, title, subtitle }: { icon: React.ComponentType<{ className?: string }>; title: string; subtitle: string }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="rounded-2xl p-3 shadow-sm" style={{ background: `linear-gradient(135deg, ${BRAND.cream} 0%, ${BRAND.gold} 100%)` }}>
-        <Icon className="h-5 w-5" />
+      <div className="p-2.5" style={{ background: `linear-gradient(135deg, ${BRAND.cream} 0%, ${BRAND.gold} 100%)`, borderRadius: 10, boxShadow: "0 2px 8px rgba(196,151,61,0.2)" }}>
+        <span style={{ color: BRAND.navy }}><Icon className="h-5 w-5" /></span>
       </div>
       <div>
-        <div className="text-xl font-semibold" style={{ color: BRAND.navy }}>{title}</div>
-        <div className="text-sm text-slate-500">{subtitle}</div>
+        <div className="text-lg font-black" style={{ color: BRAND.navy }}>{title}</div>
+        <div className="text-xs" style={{ color: BRAND.muted }}>{subtitle}</div>
       </div>
     </div>
   );
