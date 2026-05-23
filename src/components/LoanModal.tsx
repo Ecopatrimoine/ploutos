@@ -129,7 +129,7 @@ export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, up
                     📐 <strong>IFI — Déduction dégressive (art. 974 II)</strong> : {euro(lv.ifiDeduction)} (capital réel : {euro(lv.capital)})
                   </div>
                 )}
-                {isPTZ && <div className="text-xs rounded-xl px-3 py-1.5" style={{ background: "rgba(156,163,175,0.1)", color: "#6b7280" }}>ℹ️ PTZ/PEL : taux 0% → pas de déduction IR foncier</div>}
+                {isPTZ && <div className="text-xs rounded-xl px-3 py-1.5" style={{ background: SURFACE.app, color: BRAND.muted }}>ℹ️ PTZ/PEL : taux 0% → pas de déduction IR foncier</div>}
                 {/* AV nantie */}
                 {isInFine && (
                   <Field label="AV nantie en garantie" tooltip="AV nantie à la banque pour un crédit in fine.">

@@ -46,7 +46,7 @@ const TabIR = React.memo(function TabIR(props: any) {
         if (!alertes.length) return null;
         return (
           <div className="flex items-start gap-2 rounded-xl px-3 py-2 text-xs"
-            style={{ background: "rgba(220,38,38,0.06)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.18)" }}>
+            style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
             <span className="shrink-0 text-sm mt-0.5">⚠️</span>
             <div>
               <span className="font-semibold">Dépassement seuil micro — </span>
@@ -62,7 +62,7 @@ const TabIR = React.memo(function TabIR(props: any) {
       {/* Warning micro-foncier > 15 000 € */}
       {irOptions.foncierRegime === "micro" && ir.foncierBrut > 15000 && (
         <div className="flex items-start gap-2 rounded-xl px-3 py-2 text-xs"
-          style={{ background: "rgba(220,38,38,0.06)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.18)" }}>
+          style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
           <span className="shrink-0 text-sm mt-0.5">⚠️</span>
           <div>
             <span className="font-semibold">Revenus fonciers bruts ({euro(ir.foncierBrut)}) supérieurs à 15 000 € — </span>
@@ -121,7 +121,7 @@ const TabIR = React.memo(function TabIR(props: any) {
       {/* Note option barème */}
       {data.placements.some((p) => p.pfuOptOut) && (
         <div className="flex items-start gap-2 rounded-xl px-3 py-2 text-xs"
-          style={{ background: "rgba(34,197,94,0.07)", color: "#16a34a", border: "1px solid rgba(34,197,94,0.2)" }}>
+          style={{ background: BRAND.successBg, color: BRAND.success, border: `1px solid ${BRAND.successBorder}` }}>
           <span className="shrink-0">📊</span>
           <span>
             {data.placements.filter((p) => p.pfuOptOut).map((p) => p.name || "Placement").join(", ")} : option barème IR activée.
@@ -238,7 +238,7 @@ const TabIR = React.memo(function TabIR(props: any) {
           ...(fraisPro > 0 ? [{ label: "Frais pro / abatt. 10%", value: fraisPro, color: "#E3AF64", type: "ded" as const }] : []),
           ...(autresDeductions > 0 ? [{ label: "Versements PER & déd.", value: autresDeductions, color: "#C4A882", type: "ded" as const }] : []),
           { label: "Rev. net imposable", value: ir.revenuNetGlobal, color: BRAND.sky, type: "total" as const },
-          { label: "Barème progressif", value: ir.bareme || 0, color: "#dc2626", type: "tax" as const },
+          { label: "Barème progressif", value: ir.bareme || 0, color: BRAND.danger, type: "tax" as const },
           ...(ir.foncierSocialLevy > 0 ? [{ label: "Prél. sociaux foncier", value: ir.foncierSocialLevy, color: "#f97316", type: "tax" as const }] : []),
           ...(ir.totalPFU > 0 ? [{ label: "PFU placements", value: ir.totalPFU, color: "#f97316", type: "tax" as const }] : []),
           ...(ir.avRachatImpot > 0 ? [{ label: "Fiscalité AV rachat", value: ir.avRachatImpot, color: "#f97316", type: "tax" as const }] : []),

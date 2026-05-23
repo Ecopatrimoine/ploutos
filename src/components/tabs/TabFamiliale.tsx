@@ -43,7 +43,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
               <span className="inline-block h-3 w-3 rounded-full bg-white shadow transition-transform"
                 style={{ transform: data.person1Handicap ? "translateX(13px)" : "translateX(2px)" }} />
             </button>
-            <span className="text-xs whitespace-nowrap" style={{ color: data.person1Handicap ? "#b45309" : "#9ca3af" }}>
+            <span className="text-xs whitespace-nowrap" style={{ color: data.person1Handicap ? BRAND.warning : BRAND.muted }}>
               {data.person1Handicap ? "♿ Handi." : "Handi."}
             </span>
           </div>
@@ -69,7 +69,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
               <span className="inline-block h-3 w-3 rounded-full bg-white shadow transition-transform"
                 style={{ transform: data.person2Handicap ? "translateX(13px)" : "translateX(2px)" }} />
             </button>
-            <span className="text-xs whitespace-nowrap" style={{ color: data.person2Handicap ? "#b45309" : "#9ca3af" }}>
+            <span className="text-xs whitespace-nowrap" style={{ color: data.person2Handicap ? BRAND.warning : BRAND.muted }}>
               {data.person2Handicap ? "♿ Handi." : "Handi."}
             </span>
           </div>
@@ -130,9 +130,9 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
             onClick={() => updateChild(index, "rattached", !(child.rattached !== false))}
             className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-xs font-medium w-full"
             style={{
-              background: child.rattached !== false ? "rgba(81,106,199,0.1)" : "rgba(220,38,38,0.08)",
-              color: child.rattached !== false ? BRAND.sky : "#dc2626",
-              border: `1px solid ${child.rattached !== false ? "rgba(81,106,199,0.2)" : "rgba(220,38,38,0.2)"}`,
+              background: child.rattached !== false ? "rgba(81,106,199,0.1)" : BRAND.dangerBg,
+              color: child.rattached !== false ? BRAND.sky : BRAND.danger,
+              border: `1px solid ${child.rattached !== false ? "rgba(81,106,199,0.2)" : BRAND.dangerBorder}`,
             }}
           >
             {child.rattached !== false ? "✓ Rattaché" : "✗ Non rattaché"}
@@ -148,7 +148,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
               <span className="inline-block h-3 w-3 rounded-full bg-white shadow transition-transform"
                 style={{ transform: child.handicap ? "translateX(13px)" : "translateX(2px)" }} />
             </button>
-            <span className="text-xs" style={{ color: child.handicap ? "#b45309" : "#9ca3af" }}>
+            <span className="text-xs" style={{ color: child.handicap ? BRAND.warning : BRAND.muted }}>
               {child.handicap ? "♿" : "—"}
             </span>
           </div>

@@ -79,7 +79,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
               if (!pledgingProp) return null;
               const lv = resolveLoanValuesMulti(pledgingProp);
               return (
-                <span className="rounded-full px-2 py-0.5 text-xs font-medium flex items-center gap-1" style={{ background: "rgba(245,158,11,0.12)", color: "#b45309", border: "1px solid rgba(245,158,11,0.25)" }}>
+                <span className="rounded-full px-2 py-0.5 text-xs font-medium flex items-center gap-1" style={{ background: BRAND.warningBg, color: BRAND.warning, border: `1px solid ${BRAND.warningBorder}` }}>
                   🔒 Nanti — {pledgingProp.name || pledgingProp.type} ({euro(lv.capital)})
                 </span>
               );
@@ -151,7 +151,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
                       <span className="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform"
                         style={{ transform: placement.perDeductible !== false ? "translateX(18px)" : "translateX(2px)" }} />
                     </button>
-                    <span className="text-xs font-medium" style={{ color: placement.perDeductible !== false ? BRAND.sky : "#9ca3af" }}>
+                    <span className="text-xs font-medium" style={{ color: placement.perDeductible !== false ? BRAND.sky : BRAND.muted }}>
                       {placement.perDeductible !== false ? "Oui" : "Non"}
                     </span>
                   </div>
@@ -173,7 +173,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
             const totalDeduit = isP1 ? (ir as any).perP1Deductible : isP2 ? (ir as any).perP2Deductible : 0;
             const titulaire = isP1 ? person1 : isP2 ? person2 : "";
             if (!deductible && versement > 0) return (
-              <div className="text-xs rounded-xl px-3 py-1.5" style={{ background: "rgba(156,163,175,0.1)", color: "#9ca3af" }}>
+              <div className="text-xs rounded-xl px-3 py-1.5" style={{ background: SURFACE.app, color: BRAND.muted }}>
                 Versement non déductible — aucun impact sur l'IR
               </div>
             );
@@ -181,9 +181,9 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
             const depasse = totalDeduit > plafond;
             return (
               <div className="rounded-xl px-3 py-2 text-xs" style={{
-                background: depasse ? "rgba(220,38,38,0.06)" : "rgba(34,197,94,0.06)",
-                color: depasse ? "#dc2626" : "#16a34a",
-                border: `1px solid ${depasse ? "rgba(220,38,38,0.2)" : "rgba(34,197,94,0.2)"}`,
+                background: depasse ? BRAND.dangerBg : BRAND.successBg,
+                color: depasse ? BRAND.danger : BRAND.success,
+                border: `1px solid ${depasse ? BRAND.dangerBorder : BRAND.successBorder}`,
               }}>
                 {depasse
                   ? <>⚠️ <strong>Plafond dépassé {titulaire && `(${titulaire})`}</strong> — Total déductible : {euro(totalDeduit)} / Plafond : {euro(plafond)}. Excédent non déductible.</>
@@ -222,7 +222,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
                         <span className="inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform"
                           style={{ transform: anticipe ? "translateX(18px)" : "translateX(2px)" }} />
                       </button>
-                      <span className="text-xs" style={{ color: anticipe ? "#b45309" : "#9ca3af" }}>{anticipe ? "Oui" : "Non"}</span>
+                      <span className="text-xs" style={{ color: anticipe ? BRAND.warning : BRAND.muted }}>{anticipe ? "Oui" : "Non"}</span>
                     </div>
                   </Field>
                 </div>
@@ -293,7 +293,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
                       <span>Abattement {over8 ? (isCoupleForme ? "(9 200 € couple)" : "(4 600 € célibataire)") : "(0 — contrat < 8 ans)"} :</span>
                       <span className="font-medium text-right">{over8 ? `− ${euro(abattement)}` : "—"}</span>
                       <span>Gain imposable net :</span>
-                      <span className="font-medium text-right" style={{ color: gainNetAbatt > 0 ? "#b45309" : "#16a34a" }}>{euro(gainNetAbatt)}</span>
+                      <span className="font-medium text-right" style={{ color: gainNetAbatt > 0 ? BRAND.warning : BRAND.success }}>{euro(gainNetAbatt)}</span>
                       <span>Versements &gt; 150 000 € :</span>
                       <span className={"font-medium text-right " + (above150k ? "text-amber-600" : "text-slate-500")}>{above150k ? "Oui → taux majoré 31,4%" : "Non → taux réduit 7,5%"}</span>
                       <span>Fiscalité applicable :</span>

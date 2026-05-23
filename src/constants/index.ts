@@ -15,6 +15,16 @@ export const BRAND = {
   blue: "#516AC7",
   muted: "#637896",        // texte secondaire — AA 4.51:1 sur blanc
   mutedLight: "#7E8F9F",   // tirets, placeholders — AA UI 3.32:1 sur blanc
+  inactive: "#94A3B8",     // éléments UI désactivés (icônes, pas du texte courant)
+  danger: "#B91C1C",       // texte alerte / erreur — AAA 7.1:1 sur blanc
+  dangerBg: "#FEF2F2",    // fond bandeau danger
+  dangerBorder: "#FECACA", // bordure bandeau danger
+  warning: "#92400E",      // texte avertissement — AAA 7.5:1 sur blanc
+  warningBg: "#FEF9EE",   // fond bandeau warning
+  warningBorder: "#F5D78E", // bordure bandeau warning
+  success: "#166534",      // texte positif — AAA 7.1:1 sur blanc
+  successBg: "#F0FDF4",   // fond bandeau succès
+  successBorder: "#BBF7D0", // bordure bandeau succès
 };
 
 export const SURFACE = {

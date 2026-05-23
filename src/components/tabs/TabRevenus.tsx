@@ -133,7 +133,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
                     onChange={(e) => setField(caKey, e.target.value)}
                   />
                   {depasseBA && (
-                    <div className="flex items-start gap-1.5 rounded-xl px-2.5 py-2 text-xs" style={{ background: "rgba(220,38,38,0.07)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.2)" }}>
+                    <div className="flex items-start gap-1.5 rounded-xl px-2.5 py-2 text-xs" style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
                       <span className="shrink-0">⚠️</span>
                       <span>Recettes {caNum.toLocaleString("fr-FR")} € &gt; seuil micro-BA {SEUIL_MICRO_BA.toLocaleString("fr-FR")} €. Passage au réel obligatoire si dépassement 2 ans consécutifs.</span>
                     </div>
@@ -211,7 +211,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
                     onChange={(e) => setField(caKey, e.target.value)}
                   />
                   {depasseSeuil && (
-                    <div className="flex items-start gap-1.5 rounded-xl px-2.5 py-2 text-xs" style={{ background: "rgba(220,38,38,0.07)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.2)" }}>
+                    <div className="flex items-start gap-1.5 rounded-xl px-2.5 py-2 text-xs" style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
                       <span className="shrink-0">⚠️</span>
                       <span>CA {caNum.toLocaleString("fr-FR")} € &gt; seuil micro {seuilMicro.toLocaleString("fr-FR")} €. Régime réel obligatoire si dépassement 2 ans consécutifs.</span>
                     </div>

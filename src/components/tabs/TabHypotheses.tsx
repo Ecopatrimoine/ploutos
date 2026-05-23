@@ -613,7 +613,7 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
                   borderRadius: "10px", border: "1px solid rgba(239,68,68,0.25)",
                   padding: "10px", background: "rgba(239,68,68,0.04)", textAlign: "center",
                 }}>
-                  <div style={{ fontWeight: 700, fontSize: "11px", color: "#dc2626", marginBottom: "4px" }}>
+                  <div style={{ fontWeight: 700, fontSize: "11px", color: BRAND.danger, marginBottom: "4px" }}>
                     Décès &lt; 15 ans
                   </div>
                   <div style={{ fontSize: "10px", color: "#888" }}>Coût total (donation + rappel)</div>
@@ -621,7 +621,7 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
                     {euro(preview.before15.totalCost)}
                   </div>
                   {preview.before15.additionalSuccessionTax > 0 && (
-                    <div style={{ fontSize: "10px", color: "#dc2626" }}>
+                    <div style={{ fontSize: "10px", color: BRAND.danger }}>
                       dont {euro(preview.before15.additionalSuccessionTax)} rappel succ.
                     </div>
                   )}

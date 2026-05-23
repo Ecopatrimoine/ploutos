@@ -103,7 +103,7 @@ const TabCredits = React.memo(function TabCredits(props: any) {
           )}
         </div>
         {loan.loanType === "familial" && (
-          <div className="text-xs rounded-xl px-3 py-1.5" style={{ background: "rgba(245,158,11,0.08)", color: "#b45309", border: "1px solid rgba(245,158,11,0.2)" }}>
+          <div className="text-xs rounded-xl px-3 py-1.5" style={{ background: BRAND.warningBg, color: BRAND.warning, border: `1px solid ${BRAND.warningBorder}` }}>
             ⚠️ Prêt familial : non déductible de l'IFI (art. 974 III CGI)
           </div>
         )}

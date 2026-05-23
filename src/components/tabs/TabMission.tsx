@@ -29,7 +29,7 @@ const TabMission = React.memo(function TabMission(props: any) {
       <div>
         <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>BESOINS EXPRIMÉS</h3>
         <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-2xl border-2 p-4 space-y-2" style={{ borderColor: "#dc2626" }}>
+          <div className="rounded-2xl border-2 p-4 space-y-2" style={{ borderColor: SURFACE.border, borderLeft: `4px solid ${BRAND.gold}` }}>
             <div className="text-sm font-bold text-center mb-3">Besoin Santé</div>
             {([["besoinSante_depenses","Dépenses de santé, optique, dentaire"],["besoinSante_hospit","Hospitalisation seule"],["besoinSante_depasse","Dépassements d'honoraires"],["besoinSante_surcompl","Sur-complémentaire"]] as [keyof typeof mission, string][]).map(([k, label]) => (
               <label key={String(k)} className="flex items-start gap-2 cursor-pointer text-sm">
@@ -38,7 +38,7 @@ const TabMission = React.memo(function TabMission(props: any) {
               </label>
             ))}
           </div>
-          <div className="rounded-2xl border-2 p-4 space-y-2" style={{ borderColor: "#dc2626" }}>
+          <div className="rounded-2xl border-2 p-4 space-y-2" style={{ borderColor: SURFACE.border, borderLeft: `4px solid ${BRAND.gold}` }}>
             <div className="text-sm font-bold text-center mb-3">Besoin Prévoyance</div>
             {([["besoinPrev_arret","Maintenir rémunération (arrêt travail, invalidité)"],["besoinPrev_deces","Protéger la famille en cas de décès"],["besoinPrev_fraisGen","Couvrir frais généraux professionnels"]] as [keyof typeof mission, string][]).map(([k, label]) => (
               <label key={String(k)} className="flex items-start gap-2 cursor-pointer text-sm">
@@ -47,7 +47,7 @@ const TabMission = React.memo(function TabMission(props: any) {
               </label>
             ))}
           </div>
-          <div className="rounded-2xl border-2 p-4 space-y-2" style={{ borderColor: "#dc2626" }}>
+          <div className="rounded-2xl border-2 p-4 space-y-2" style={{ borderColor: SURFACE.border, borderLeft: `4px solid ${BRAND.gold}` }}>
             <div className="text-sm font-bold text-center mb-3">Besoin Retraite</div>
             {([["besoinRetraite_capital","Capital pour revenus complémentaires"],["besoinRetraite_rente","Capital retraite à convertir en rente"],["besoinRetraite_moderniser","Moderniser un contrat existant"]] as [keyof typeof mission, string][]).map(([k, label]) => (
               <label key={String(k)} className="flex items-start gap-2 cursor-pointer text-sm">
@@ -56,7 +56,7 @@ const TabMission = React.memo(function TabMission(props: any) {
               </label>
             ))}
           </div>
-          <div className="rounded-2xl border-2 p-4 space-y-2" style={{ borderColor: "#dc2626" }}>
+          <div className="rounded-2xl border-2 p-4 space-y-2" style={{ borderColor: SURFACE.border, borderLeft: `4px solid ${BRAND.gold}` }}>
             <div className="text-sm font-bold text-center mb-3">Besoin Épargne</div>
             {([["besoinEpargne_valoriser","Valoriser un capital"],["besoinEpargne_transmettre","Transmettre via assurance-vie"],["besoinEpargne_completer","Compléter les revenus"],["besoinEpargne_projet","Épargner pour un projet"]] as [keyof typeof mission, string][]).map(([k, label]) => (
               <label key={String(k)} className="flex items-start gap-2 cursor-pointer text-sm">
@@ -333,7 +333,7 @@ const TabMission = React.memo(function TabMission(props: any) {
           const horizonNote = horizonStr ? ` Avec un horizon de placement ${horizonStr}, ${profil === "Sécuritaire" || profil === "Prudent" ? "ce profil est cohérent avec votre durée d'investissement." : profil === "Équilibré" ? "un profil équilibré est bien adapté à votre durée d'investissement." : "veillez à vous assurer que vous n'aurez pas besoin de ces fonds avant la fin de l'horizon prévu."}` : "";
           return (
             <div className="rounded-xl overflow-hidden" style={{ border: `2px solid ${BRAND.sky}` }}>
-              <div className="flex items-center gap-4 px-5 py-3 text-sm font-semibold" style={{ background: BRAND.navy, color: "#E3AF64" }}>
+              <div className="flex items-center gap-4 px-5 py-3 text-sm font-semibold" style={{ background: BRAND.navy, color: BRAND.gold }}>
                 <span>Score : {pts} pts</span>
                 <span style={{ color: "rgba(255,255,255,0.3)" }}>|</span>
                 <span>Profil déterminé : <strong>{profil}</strong></span>

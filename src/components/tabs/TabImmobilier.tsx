@@ -58,7 +58,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
             <span style={{ fontSize: "14px" }}>🎁</span>
             <div>
               <span style={{ fontSize: "12px", fontWeight: 600, color: "#92400e" }}>Donation active sur ce bien</span>
-              <span style={{ fontSize: "11px", color: "#b45309", marginLeft: "8px" }}>— Champs verrouillés</span>
+              <span style={{ fontSize: "11px", color: BRAND.warning, marginLeft: "8px" }}>— Champs verrouillés</span>
             </div>
           </div>
           <button
@@ -373,7 +373,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                   style={{
                     background: loanCount > 0 ? "rgba(38,66,139,0.08)" : "rgba(229,231,235,0.5)",
                     borderColor: loanCount > 0 ? "rgba(38,66,139,0.25)" : SURFACE.border,
-                    color: loanCount > 0 ? BRAND.sky : "#9ca3af",
+                    color: loanCount > 0 ? BRAND.sky : BRAND.muted,
                   }}>
                   <span>{loanCount > 0 ? `💳 ${loanCount} crédit${loanCount > 1 ? "s" : ""}` : "💳 Ajouter un crédit"}</span>
                   {totalCapital > 0 && <span className="text-xs opacity-70">— {euro(totalCapital)} restant</span>}
