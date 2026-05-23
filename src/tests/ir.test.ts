@@ -494,6 +494,76 @@ describe("computeIR — concubinage (2 foyers)", () => {
     expect(ir.rev1).toBeCloseTo(31900, 0)
     expect(ir.rev2).toBeCloseTo(29100, 0)
   })
+
+  const concubLocatif = (ownership: string, rent: string, charges: { tax: string; ins: string; works: string }, interest: string, shares?: { s1: string; s2: string }) => ({
+    name: "Loc", type: "Location nue" as const, ownership, propertyRight: "full",
+    usufructAge: "", value: "200000", propertyTaxAnnual: charges.tax, rentGrossAnnual: rent,
+    insuranceAnnual: charges.ins, worksAnnual: charges.works, otherChargesAnnual: "0",
+    loanEnabled: !!interest, loanType: "amortissable", loanAmount: "0", loanRate: "0",
+    loanDuration: "0", loanStartDate: "", loanCapitalRemaining: "0", loanInterestAnnual: interest,
+    loanPledgedPlacementIndex: "-1", loanInsurance: false, loanInsuranceGuarantees: "dc",
+    loanInsuranceRate: "0", loanInsuranceRate1: "0", loanInsuranceRate2: "0",
+    loanInsurancePremium: "0", loanInsuranceCoverage: "banque",
+    indivisionShare1: shares?.s1 || "", indivisionShare2: shares?.s2 || "",
+  });
+
+  it("concubinage + déficit réel person2 : imputation sur rev2 uniquement", () => {
+    // Loyers 8k, charges 10k, intérêts 3k → déficit 5k imputé sur person2
+    const prop = concubLocatif("person2", "8000", { tax: "4000", ins: "3000", works: "3000" }, "3000");
+    const ir = computeIR({
+      ...BASE_DATA, coupleStatus: "cohab",
+      salary1: "30000", salary2: "20000",
+      person2FirstName: "Conj", person2LastName: "Test",
+      properties: [prop],
+    }, { ...STD_OPTIONS, foncierRegime: "real" })
+    expect(ir.rev1).toBeCloseTo(27000, 0)
+    expect(ir.rev2).toBeCloseTo(13000, 0)
+    expect(ir.deficitFoncierImpute).toBeCloseTo(5000, 0)
+    expect(ir.deficitFoncierReportable).toBeCloseTo(0, 0)
+  })
+
+  it("concubinage + intérêts > loyers person2 : reportable, pas sur le global", () => {
+    // Loyers 5k, charges 2k, intérêts 7k → impute 2k, reportable 2k (intérêts)
+    const prop = concubLocatif("person2", "5000", { tax: "1000", ins: "500", works: "500" }, "7000");
+    const ir = computeIR({
+      ...BASE_DATA, coupleStatus: "cohab",
+      salary1: "30000", salary2: "20000",
+      person2FirstName: "Conj", person2LastName: "Test",
+      properties: [prop],
+    }, { ...STD_OPTIONS, foncierRegime: "real" })
+    expect(ir.rev1).toBeCloseTo(27000, 0)
+    expect(ir.rev2).toBeCloseTo(16000, 0)
+    expect(ir.deficitFoncierImpute).toBeCloseTo(2000, 0)
+    expect(ir.deficitFoncierReportable).toBeCloseTo(2000, 0)
+  })
+
+  it("concubinage + common 50/50 : conservation (identique à l'ancien comportement)", () => {
+    // Bien common, loyers 12k, micro → 8 400 répartis 50/50
+    const prop = concubLocatif("common", "12000", { tax: "0", ins: "0", works: "0" }, "0");
+    const ir = computeIR({
+      ...BASE_DATA, coupleStatus: "cohab",
+      salary1: "30000", salary2: "30000",
+      person2FirstName: "Conj", person2LastName: "Test",
+      properties: [prop],
+    }, { ...STD_OPTIONS, foncierRegime: "micro" })
+    expect(ir.rev1).toBeCloseTo(31200, 0)
+    expect(ir.rev2).toBeCloseTo(31200, 0)
+  })
+
+  it("concubinage + 2 biens distincts : chacun récupère son foncier", () => {
+    // P1 : loyers 6k, P2 : loyers 10k, micro
+    const prop1 = concubLocatif("person1", "6000", { tax: "0", ins: "0", works: "0" }, "0");
+    const prop2 = concubLocatif("person2", "10000", { tax: "0", ins: "0", works: "0" }, "0");
+    const ir = computeIR({
+      ...BASE_DATA, coupleStatus: "cohab",
+      salary1: "30000", salary2: "30000",
+      person2FirstName: "Conj", person2LastName: "Test",
+      properties: [prop1, prop2],
+    }, { ...STD_OPTIONS, foncierRegime: "micro" })
+    // P1 : 6000 × 0.7 = 4200, P2 : 10000 × 0.7 = 7000
+    expect(ir.rev1).toBeCloseTo(31200, 0)
+    expect(ir.rev2).toBeCloseTo(34000, 0)
+  })
 })
 
 // ─── PFU ──────────────────────────────────────────────────────────────────────
