@@ -93,32 +93,53 @@ const TabParametres = React.memo(function TabParametres(props: any) {
       {/* ── Coordonnées légales ── */}
       <div>
         <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>COORDONNÉES & MENTIONS LÉGALES</h3>
-        <div className="grid grid-cols-2 gap-4">
-          {([
-            ["nom","Nom du cabinet"],["forme","Forme juridique"],
-            ["rcs","Numéro RCS"],["villeRcs","Ville RCS"],
-            ["adresse","Adresse"],["codePostal","Code postal"],
-            ["ville","Ville"],["tel","Téléphone"],
-            ["email","Email"],["conseiller","Nom du conseiller"],
-            ["orias","Numéro ORIAS"],["rcpAssureur","Assureur RCP"],
-            ["rcpContrat","N° contrat RCP"],
-          ] as [string, string][]).map(([key, label]) => (
-            <div key={String(key)}>
-              <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.sky }}>{label}</Label>
-              <Input value={cabinet[key]} onChange={e => updateCabinet(key, e.target.value)} className="rounded-xl text-sm"
-                style={{ background: "rgba(255,255,255,0.98)", borderColor: "rgba(227,175,100,0.28)" }} />
-            </div>
-          ))}
+        {/* Sous-groupe Identité */}
+        <div className="mb-4">
+          <div className="text-xs font-black mb-2 pb-1" style={{ color: BRAND.navy, borderBottom: `2px solid ${BRAND.gold}`, display: "inline-block" }}>Identité</div>
+          <div className="grid grid-cols-2 gap-3">
+            {([["nom","Nom du cabinet"],["forme","Forme juridique"],["conseiller","Nom du conseiller"]] as [string, string][]).map(([key, label]) => (
+              <div key={String(key)}>
+                <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>{label}</Label>
+                <Input value={cabinet[key]} onChange={e => updateCabinet(key, e.target.value)} className="rounded-xl text-sm" style={{ background: SURFACE.input, borderColor: SURFACE.inputBorder }} />
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="mt-4 space-y-3">
-          <div><Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.sky }}>Partenaires assurance</Label>
-            <Input value={cabinet.partenaires} onChange={e => updateCabinet("partenaires", e.target.value)} className="rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.98)", borderColor: "rgba(227,175,100,0.28)" }} /></div>
-          <div><Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.sky }}>Médiateur</Label>
-            <Input value={cabinet.mediateur} onChange={e => updateCabinet("mediateur", e.target.value)} className="rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.98)", borderColor: "rgba(227,175,100,0.28)" }} /></div>
-          <div><Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.sky }}>URL médiateur</Label>
-            <Input value={cabinet.mediateurUrl} onChange={e => updateCabinet("mediateurUrl", e.target.value)} className="rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.98)", borderColor: "rgba(227,175,100,0.28)" }} /></div>
-          <div><Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.sky }}>Adresse postale médiateur</Label>
-            <Input value={cabinet.mediateurAdresse} onChange={e => updateCabinet("mediateurAdresse", e.target.value)} className="rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.98)", borderColor: "rgba(227,175,100,0.28)" }} /></div>
+        {/* Sous-groupe Coordonnées */}
+        <div className="mb-4">
+          <div className="text-xs font-black mb-2 pb-1" style={{ color: BRAND.navy, borderBottom: `2px solid ${BRAND.gold}`, display: "inline-block" }}>Coordonnées</div>
+          <div className="grid grid-cols-2 gap-3">
+            {([["adresse","Adresse"],["codePostal","Code postal"],["ville","Ville"],["tel","Téléphone"],["email","Email"]] as [string, string][]).map(([key, label]) => (
+              <div key={String(key)}>
+                <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>{label}</Label>
+                <Input value={cabinet[key]} onChange={e => updateCabinet(key, e.target.value)} className="rounded-xl text-sm" style={{ background: SURFACE.input, borderColor: SURFACE.inputBorder }} />
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Sous-groupe Réglementation */}
+        <div className="mb-4">
+          <div className="text-xs font-black mb-2 pb-1" style={{ color: BRAND.navy, borderBottom: `2px solid ${BRAND.gold}`, display: "inline-block" }}>Réglementation</div>
+          <div className="grid grid-cols-2 gap-3">
+            {([["rcs","Numéro RCS"],["villeRcs","Ville RCS"],["orias","Numéro ORIAS"],["rcpAssureur","Assureur RCP"],["rcpContrat","N° contrat RCP"],["partenaires","Partenaires assurance"]] as [string, string][]).map(([key, label]) => (
+              <div key={String(key)}>
+                <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>{label}</Label>
+                <Input value={cabinet[key]} onChange={e => updateCabinet(key, e.target.value)} className="rounded-xl text-sm" style={{ background: SURFACE.input, borderColor: SURFACE.inputBorder }} />
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Sous-groupe Médiation */}
+        <div>
+          <div className="text-xs font-black mb-2 pb-1" style={{ color: BRAND.navy, borderBottom: `2px solid ${BRAND.gold}`, display: "inline-block" }}>Médiation</div>
+          <div className="grid grid-cols-2 gap-3">
+            {([["mediateur","Médiateur"],["mediateurUrl","URL médiateur"],["mediateurAdresse","Adresse postale médiateur"]] as [string, string][]).map(([key, label]) => (
+              <div key={String(key)}>
+                <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>{label}</Label>
+                <Input value={cabinet[key]} onChange={e => updateCabinet(key, e.target.value)} className="rounded-xl text-sm" style={{ background: SURFACE.input, borderColor: SURFACE.inputBorder }} />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
