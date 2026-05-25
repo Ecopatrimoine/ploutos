@@ -81,23 +81,23 @@ export function MoneyField({ label, value, onChange, compact, tooltip }: { label
   );
 }
 
-// Couleurs d'accent pour les MetricCards KPI
-const METRIC_ACCENTS: Record<string, { border: string; ribbon: string }> = {
-  gold:  { border: "#D4B068", ribbon: `linear-gradient(90deg, ${BRAND.goldLight}, ${BRAND.cream})` },
-  navy:  { border: "#26428B", ribbon: `linear-gradient(90deg, ${BRAND.navy}, ${BRAND.sky})` },
-  green: { border: "#16a34a", ribbon: `linear-gradient(90deg, #22c55e, #86efac)` },
-  red:   { border: "#dc2626", ribbon: `linear-gradient(90deg, #ef4444, #fca5a5)` },
-  blue:  { border: "#3b82f6", ribbon: `linear-gradient(90deg, #3b82f6, #93c5fd)` },
+// Couleurs d'accent pour les MetricCards KPI — token sémantique mat, pas de dégradé
+const METRIC_ACCENTS: Record<string, string> = {
+  gold:  BRAND.gold,
+  navy:  BRAND.navy,
+  green: BRAND.success,
+  red:   BRAND.danger,
+  blue:  BRAND.sky,
 };
 
 export function MetricCard({ label, value, hint, accent = "gold" }: { label: string; value: string; hint?: string; accent?: "gold" | "navy" | "green" | "red" | "blue" }) {
   const a = METRIC_ACCENTS[accent] || METRIC_ACCENTS.gold;
   return (
-    <Card className="border-0 overflow-hidden" style={{ background: SURFACE.card, borderRadius: 14, border: `2.5px solid ${a.border}`, boxShadow: SURFACE.cardShadow }}>
-      <div style={{ height: 4, background: a.ribbon }} />
+    <Card className="overflow-hidden" style={{ background: SURFACE.card, borderRadius: 14, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
+      <div style={{ height: 3, background: a }} />
       <CardContent className="p-4">
         <div className="text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.muted }}>{label}</div>
-        <div className="mt-2 font-black" style={{ color: BRAND.navy, fontSize: value.length > 10 ? 20 : 26, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
+        <div className="mt-2 font-black" style={{ color: BRAND.navy, fontSize: 22, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
         {hint ? <div className="mt-1 text-xs" style={{ color: BRAND.muted }}>{hint}</div> : null}
       </CardContent>
     </Card>
@@ -117,8 +117,8 @@ export function BracketFillChart({ title, data, referenceValue, valueLabel }: {
   const localMax = currentSlice ? (Number.isFinite(currentSlice.to) ? currentSlice.to : Math.max(referenceValue, 1)) : Math.max(referenceValue, 1);
   const indicatorPct = localMax > 0 ? Math.min(100, Math.max(0, (referenceValue / localMax) * 100)) : 0;
   return (
-    <Card className="border overflow-hidden" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-      <div style={{ height: 4, background: SURFACE.ribbonNavy }} />
+    <Card className="overflow-hidden" style={{ background: SURFACE.card, borderRadius: 14, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
+      <div style={{ height: 3, background: BRAND.navy }} />
       <CardHeader><CardTitle style={{ color: BRAND.navy }}>{title}</CardTitle></CardHeader>
       <CardContent className="space-y-4">
         <div className="text-sm" style={{ color: BRAND.muted }}>{valueLabel} : <strong style={{ color: BRAND.navy }}>{euro(referenceValue)}</strong></div>
@@ -128,7 +128,7 @@ export function BracketFillChart({ title, data, referenceValue, valueLabel }: {
             <span>{euro(referenceValue)} / {euro(localMax)}</span>
           </div>
           <div className="h-3 w-full rounded-full overflow-hidden" style={{ background: "rgba(81,106,199,0.16)" }}>
-            <div className="h-full rounded-full transition-all" style={{ width: `${indicatorPct}%`, background: `linear-gradient(90deg, ${BRAND.gold} 0%, ${BRAND.blue} 100%)` }} />
+            <div className="h-full rounded-full transition-all" style={{ width: `${indicatorPct}%`, background: BRAND.navy }} />
           </div>
         </div>
         <div className="h-72">
@@ -152,7 +152,7 @@ export function BracketFillChart({ title, data, referenceValue, valueLabel }: {
 export function SectionTitle({ icon: Icon, title, subtitle }: { icon: React.ComponentType<{ className?: string }>; title: string; subtitle: string }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="p-2.5" style={{ background: `linear-gradient(135deg, ${BRAND.cream} 0%, ${BRAND.gold} 100%)`, borderRadius: 10, boxShadow: "0 2px 8px rgba(196,151,61,0.2)" }}>
+      <div className="p-2.5" style={{ background: BRAND.gold, borderRadius: 10 }}>
         <span style={{ color: BRAND.navy }}><Icon className="h-5 w-5" /></span>
       </div>
       <div>
@@ -164,7 +164,7 @@ export function SectionTitle({ icon: Icon, title, subtitle }: { icon: React.Comp
 }
 
 export function DifferenceBadge({ impact }: { impact: DifferenceLine["impact"] }) {
-  if (impact === "up") return <span className="rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-800">Hausse</span>;
-  if (impact === "down") return <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-800">Baisse</span>;
-  return <span className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700">Modification</span>;
+  if (impact === "up") return <span className="rounded-full px-2 py-1 text-xs" style={{ background: BRAND.warningBg, color: BRAND.warning, border: `1px solid ${BRAND.warningBorder}` }}>Hausse</span>;
+  if (impact === "down") return <span className="rounded-full px-2 py-1 text-xs" style={{ background: BRAND.successBg, color: BRAND.success, border: `1px solid ${BRAND.successBorder}` }}>Baisse</span>;
+  return <span className="rounded-full px-2 py-1 text-xs" style={{ background: SURFACE.app, color: BRAND.navy, border: `1px solid ${SURFACE.border}` }}>Modification</span>;
 }

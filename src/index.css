@@ -4,13 +4,13 @@
 
 /* ─── Tokens FIELD — miroir CSS du bloc FIELD dans src/constants/index.ts ─── */
 :root {
-  --field-fill: #EDE8DD;
-  --field-fill-disabled: #F5F2EC;
-  --field-border: #A99A7B;
-  --field-border-focus: #A67F32;
-  --field-border-disabled: #D8D2C6;
+  --field-fill: #F6F4EF;           /* murmure de parchemin, à peine teinté */
+  --field-fill-disabled: #E6E6E6;  /* gris FROID — distingue un champ verrouillé d'un champ éditable */
+  --field-border: #A29377;          /* taupe, 1px */
+  --field-border-focus: #A67F32;    /* or */
+  --field-border-disabled: #CFCFCF; /* gris froid (cohérent avec fill-disabled) */
   --field-text: #0F172A;
-  --field-text-disabled: #7E8F9F;
+  --field-text-disabled: #6B7280;   /* gris froid lisible */
   --field-placeholder: #8C8678;
 }
 
@@ -39,8 +39,9 @@ textarea:where(:not(.ploutos-field))::placeholder {
   opacity: 1;
 }
 
-/* Focus clavier — bordure 1px constante (box-sizing:border-box du preflight Tailwind
-   garantit zéro jump) + anneau SOLIDE 2px par-dessus. */
+/* Focus clavier — bordure 1px constante (repos ET focus = 1px : aucun changement
+   d'épaisseur, zéro jump, aucune compensation de padding) + anneau SOLIDE 2px
+   par-dessus. Seules border-color et box-shadow changent au focus. */
 .ploutos-field:focus-visible,
 input:where(:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]):not([type="range"]):not([type="submit"]):not([type="button"]):not([type="image"]):not([type="reset"]):not(.ploutos-field)):focus-visible,
 select:where(:not(.ploutos-field)):focus-visible,
