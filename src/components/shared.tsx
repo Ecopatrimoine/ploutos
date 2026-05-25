@@ -74,8 +74,8 @@ export function MoneyField({ label, value, onChange, compact, tooltip }: { label
   return (
     <Field label={label} tooltip={tooltip}>
       <Input value={value || ""} onChange={onChange}
-        className={compact ? "h-8 text-sm border transition-all focus-visible:ring-2" : "border transition-all focus-visible:ring-2"}
-        style={{ background: SURFACE.input, borderColor: SURFACE.inputBorder, borderRadius: 12, fontWeight: 700 }}
+        className={compact ? "h-8 text-sm" : ""}
+        style={{ borderRadius: 12, fontWeight: 700 }}
         inputMode="decimal" />
     </Field>
   );

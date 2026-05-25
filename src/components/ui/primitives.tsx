@@ -64,8 +64,7 @@ function MoneyField({ label, value, onChange, compact, tooltip }: { label: strin
       <Input
         value={value || ""}
         onChange={onChange}
-        className={compact ? "rounded-xl h-8 text-sm border shadow-sm transition-all focus-visible:ring-2" : "rounded-2xl border shadow-sm transition-all focus-visible:ring-2"}
-        style={{ background: SURFACE.input, borderColor: SURFACE.inputBorder }}
+        className={compact ? "rounded-xl h-8 text-sm shadow-sm" : "rounded-2xl shadow-sm"}
         inputMode="decimal"
       />
     </Field>

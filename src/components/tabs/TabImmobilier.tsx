@@ -288,7 +288,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                                   const updated = dp.counterparts.map((c, i) => i === ci ? { ...c, sharePercent: e.target.value } : c);
                                   mkDismember(pKey, dp, pRight, updated);
                                 }}
-                                style={{ width: "50px", borderRadius: "8px", border: "0.5px solid rgba(227,175,100,0.4)", padding: "0 6px", height: "28px", fontSize: "12px" }}
+                                style={{ width: "50px", borderRadius: "8px", padding: "0 6px", height: "28px", fontSize: "12px" }}
                               />
                             )}
                             <button onClick={() => {

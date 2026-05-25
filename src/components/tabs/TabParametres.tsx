@@ -82,8 +82,7 @@ const TabParametres = React.memo(function TabParametres(props: any) {
                 <input type="color" value={cabinet[key]} onChange={e => updateCabinet(key, e.target.value)} className="sr-only" />
               </label>
               <input type="text" value={cabinet[key]} onChange={e => updateCabinet(key, e.target.value)}
-                className="w-20 text-center rounded-lg border px-1 py-0.5 text-xs font-mono"
-                style={{ borderColor: "rgba(227,175,100,0.3)", background: "rgba(255,255,255,0.98)" }} />
+                className="w-20 text-center rounded-lg px-1 py-0.5 text-xs font-mono" />
             </div>
           ))}
         </div>
@@ -100,7 +99,7 @@ const TabParametres = React.memo(function TabParametres(props: any) {
             {([["nom","Nom du cabinet"],["forme","Forme juridique"],["conseiller","Nom du conseiller"]] as [string, string][]).map(([key, label]) => (
               <div key={String(key)}>
                 <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>{label}</Label>
-                <Input value={cabinet[key]} onChange={e => updateCabinet(key, e.target.value)} className="rounded-xl text-sm" style={{ background: SURFACE.input, borderColor: SURFACE.inputBorder }} />
+                <Input value={cabinet[key]} onChange={e => updateCabinet(key, e.target.value)} className="rounded-xl text-sm" />
               </div>
             ))}
           </div>
@@ -112,7 +111,7 @@ const TabParametres = React.memo(function TabParametres(props: any) {
             {([["adresse","Adresse"],["codePostal","Code postal"],["ville","Ville"],["tel","Téléphone"],["email","Email"]] as [string, string][]).map(([key, label]) => (
               <div key={String(key)}>
                 <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>{label}</Label>
-                <Input value={cabinet[key]} onChange={e => updateCabinet(key, e.target.value)} className="rounded-xl text-sm" style={{ background: SURFACE.input, borderColor: SURFACE.inputBorder }} />
+                <Input value={cabinet[key]} onChange={e => updateCabinet(key, e.target.value)} className="rounded-xl text-sm" />
               </div>
             ))}
           </div>
@@ -124,7 +123,7 @@ const TabParametres = React.memo(function TabParametres(props: any) {
             {([["rcs","Numéro RCS"],["villeRcs","Ville RCS"],["orias","Numéro ORIAS"],["rcpAssureur","Assureur RCP"],["rcpContrat","N° contrat RCP"],["partenaires","Partenaires assurance"]] as [string, string][]).map(([key, label]) => (
               <div key={String(key)}>
                 <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>{label}</Label>
-                <Input value={cabinet[key]} onChange={e => updateCabinet(key, e.target.value)} className="rounded-xl text-sm" style={{ background: SURFACE.input, borderColor: SURFACE.inputBorder }} />
+                <Input value={cabinet[key]} onChange={e => updateCabinet(key, e.target.value)} className="rounded-xl text-sm" />
               </div>
             ))}
           </div>
@@ -136,7 +135,7 @@ const TabParametres = React.memo(function TabParametres(props: any) {
             {([["mediateur","Médiateur"],["mediateurUrl","URL médiateur"],["mediateurAdresse","Adresse postale médiateur"]] as [string, string][]).map(([key, label]) => (
               <div key={String(key)}>
                 <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>{label}</Label>
-                <Input value={cabinet[key]} onChange={e => updateCabinet(key, e.target.value)} className="rounded-xl text-sm" style={{ background: SURFACE.input, borderColor: SURFACE.inputBorder }} />
+                <Input value={cabinet[key]} onChange={e => updateCabinet(key, e.target.value)} className="rounded-xl text-sm" />
               </div>
             ))}
           </div>

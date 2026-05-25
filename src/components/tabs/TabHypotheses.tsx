@@ -471,8 +471,7 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
 
   const inp: React.CSSProperties = {
     width: "100%", padding: "9px 12px", borderRadius: "10px",
-    border: "1px solid rgba(227,175,100,0.4)", fontSize: "13px",
-    background: "#fff", boxSizing: "border-box",
+    fontSize: "13px", boxSizing: "border-box",
   };
   const sel: React.CSSProperties = { ...inp };
   const lbl: React.CSSProperties = {

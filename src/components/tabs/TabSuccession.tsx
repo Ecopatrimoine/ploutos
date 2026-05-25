@@ -275,14 +275,14 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                       <div className="flex-1 rounded-xl px-3 h-8 flex items-center text-sm font-medium" style={{ background: `${BRAND.gold}22`, color: BRAND.navy }}>🏦 Reste du patrimoine — <span className="ml-1 font-bold">{euro(residualValue)}</span></div>
                     ) : item.assetType === "free" ? (
                       <>
-                        <input className="flex-1 rounded-xl border px-3 h-8 text-sm focus:outline-none" placeholder="Nom du bien libre" value={item.freeLabel || ""} onChange={(e) => updateLegsPrecisItem(itemIdx, "freeLabel" as any, e.target.value)} style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }} />
-                        <input className="w-32 rounded-xl border px-3 h-8 text-sm focus:outline-none text-right" placeholder="Valeur (€)" value={item.freeValue || ""} onChange={(e) => updateLegsPrecisItem(itemIdx, "freeValue" as any, e.target.value)} style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }} />
+                        <input className="flex-1 rounded-xl px-3 h-8 text-sm" placeholder="Nom du bien libre" value={item.freeLabel || ""} onChange={(e) => updateLegsPrecisItem(itemIdx, "freeLabel" as any, e.target.value)} style={{ borderRadius: 14 }} />
+                        <input className="w-32 rounded-xl px-3 h-8 text-sm text-right" placeholder="Valeur (€)" value={item.freeValue || ""} onChange={(e) => updateLegsPrecisItem(itemIdx, "freeValue" as any, e.target.value)} style={{ borderRadius: 14 }} />
                       </>
                     ) : (
                       <div className="flex-1">
-                        <select className="w-full rounded-xl border px-3 h-8 text-sm focus:outline-none bg-white" value={`${item.assetType}-${item.propertyIndex}`}
+                        <select className="w-full rounded-xl px-3 h-8 text-sm" value={`${item.assetType}-${item.propertyIndex}`}
                           onChange={(e) => { const parts = e.target.value.split("-"); const at = parts[0]; const idxStr = parts.slice(1).join("-"); updateLegsPrecisItem(itemIdx, "assetType" as any, at); updateLegsPrecisItem(itemIdx, "propertyIndex" as any, parseInt(idxStr)); }}
-                          style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+                          style={{ borderRadius: 14 }}>
                           {allAssets.map((a: any) => <option key={`${a.assetType}-${a.idx}`} value={`${a.assetType}-${a.idx}`}>{a.label}</option>)}
                         </select>
                       </div>
