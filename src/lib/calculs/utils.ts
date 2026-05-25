@@ -278,10 +278,21 @@ export function getAvailableSpouseOptions(data: PatrimonialData, deceasedPerson:
 
 export function buildCollectedHeirs(data: PatrimonialData, deceasedPerson: "person1" | "person2"): Heir[] {
   const heirs: Heir[] = [];
-  if (deceasedPerson === "person1" && (data.person2FirstName || data.person2LastName)) {
+  // Règle légale (art. 731 et s. CC + jurisprudence) :
+  //  - Marié → conjoint = héritier légal (vocation successorale d'office).
+  //    Exonération art. 796-0 bis CGI (depuis loi TEPA 22/08/2007).
+  //  - PACS (art. 515-1 et s. CC) → PAS d'héritier légal. Le partenaire n'entre
+  //    QUE par testament/disposition spéciale, avec relation "pacs_partner"
+  //    (exo art. 796-0 bis CGI par assimilation explicite TEPA 2007).
+  //  - Concubinage → AUCUN droit successoral légal. Le concubin n'entre QUE par
+  //    testament, traité comme un TIERS (art. 788 IV CGI : abattement résiduel
+  //    1 594 € + taux plat 60 %). JAMAIS d'exonération conjoint.
+  // → buildCollectedHeirs n'ajoute d'office QUE le conjoint marié.
+  const isMarried = data.coupleStatus === "married";
+  if (isMarried && deceasedPerson === "person1" && (data.person2FirstName || data.person2LastName)) {
     heirs.push({ name: personLabel(data, 2), relation: "conjoint", share: "0", priorDonations: "0", childLink: null });
   }
-  if (deceasedPerson === "person2" && (data.person1FirstName || data.person1LastName)) {
+  if (isMarried && deceasedPerson === "person2" && (data.person1FirstName || data.person1LastName)) {
     heirs.push({ name: personLabel(data, 1), relation: "conjoint", share: "0", priorDonations: "0", childLink: null });
   }
   data.childrenData.forEach((child, i) => {

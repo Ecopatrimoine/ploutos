@@ -1,0 +1,56 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`BASELINE — computeSuccession × statut du couple (avant correction) > baseline PACS — dévolution sans option conjoint (concubin = tiers en théorie) 1`] = `
+[
+  {
+    "duties": 45394,
+    "name": "Enfant Martin",
+    "netReceived": 290606,
+    "relation": "enfant",
+    "successionDuties": 45394,
+  },
+]
+`;
+
+exports[`BASELINE — computeSuccession × statut du couple (avant correction) > baseline concubin (cohab) — dévolution sans option conjoint 1`] = `
+[
+  {
+    "duties": 45394,
+    "name": "Enfant Martin",
+    "netReceived": 290606,
+    "relation": "enfant",
+    "successionDuties": 45394,
+  },
+]
+`;
+
+exports[`BASELINE — computeSuccession × statut du couple (avant correction) > baseline marié — dévolution légale 1/4 PP conjoint + enfant 1`] = `
+[
+  {
+    "duties": 0,
+    "name": "Marie Martin",
+    "netReceived": 84000,
+    "relation": "conjoint",
+    "successionDuties": 0,
+  },
+  {
+    "duties": 28594,
+    "name": "Enfant Martin",
+    "netReceived": 223406,
+    "relation": "enfant",
+    "successionDuties": 28594,
+  },
+]
+`;
+
+exports[`BASELINE — computeSuccession × statut du couple (avant correction) > baseline single — sans partenaire, enfant unique héritier 1`] = `
+[
+  {
+    "duties": 114562,
+    "name": "Enfant Martin",
+    "netReceived": 557438,
+    "relation": "enfant",
+    "successionDuties": 114562,
+  },
+]
+`;

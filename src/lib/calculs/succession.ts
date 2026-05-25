@@ -84,10 +84,23 @@ export function getSuccessionTaxProfile(relation: string, handicap = false) {
   // NOTE : abattement handicap (159 325 €) est cumulable avec tout abattement légal
   // Il s'applique en supplément : abattement total = abattement relation + 159 325 €
   // À gérer via un flag "handicap" par héritier (prévu phase suivante)
+  //
+  // Distinction marié / PACS / concubin (vérifiée au 25/05/2026) :
+  //  - "conjoint"      → marié : exonéré (art. 796-0 bis CGI, loi TEPA 22/08/2007).
+  //  - "pacs_partner"  → PACS : exonéré aussi (art. 796-0 bis CGI, assimilation
+  //                      explicite TEPA 2007). Hypothèse : le PACSé n'étant PAS
+  //                      héritier légal (art. 731 CC), sa présence comme heir
+  //                      implique une désignation testamentaire valide.
+  //  - "autre" / défaut → tiers fiscal : abattement 1 594 € (art. 788 IV CGI) +
+  //                      taux plat 60 %. C'est notamment le régime du concubin.
+  const exemptRelation = relation === "conjoint" || relation === "pacs_partner";
   return {
-    allowance: relation === "conjoint" ? 0 : 1594 + (handicap ? HANDICAP_BONUS : 0),
-    brackets: relation === "conjoint" ? [] as TaxBracket[] : [{ from: 0, to: Number.POSITIVE_INFINITY, rate: 0.6 }] as TaxBracket[],
-    graphTitle: relation === "conjoint" ? "Exonération conjoint" : "Barème tiers (60%)",
+    allowance: exemptRelation ? 0 : 1594 + (handicap ? HANDICAP_BONUS : 0),
+    brackets: exemptRelation ? [] as TaxBracket[] : [{ from: 0, to: Number.POSITIVE_INFINITY, rate: 0.6 }] as TaxBracket[],
+    graphTitle:
+      relation === "conjoint"     ? "Exonération conjoint" :
+      relation === "pacs_partner" ? "Exonération partenaire PACS" :
+      "Barème tiers (60%)",
   };
 }
 
