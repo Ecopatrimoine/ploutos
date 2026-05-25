@@ -197,6 +197,7 @@ const DEFAULT_CABINET = {
   logoSrc: "",
   signatureSrc: "",
   cabinetName: "",
+  pdfPalette: "cabinet",  // "cabinet" | "encre_or" — défaut rétrocompat
 };
 
 function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string; userEmail: string; authState: string; onSignOut: () => void }) {

@@ -142,6 +142,61 @@ const TabParametres = React.memo(function TabParametres(props: any) {
         </div>
       </div>
 
+      {/* ── Documents ── */}
+      <div>
+        <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>DOCUMENTS</h3>
+
+        {/* Sélecteur palette PDF — ACTIF */}
+        <div className="mb-4">
+          <div className="text-xs font-black mb-2 pb-1" style={{ color: BRAND.navy, borderBottom: `2px solid ${BRAND.gold}`, display: "inline-block" }}>Palette des PDF</div>
+          <p className="text-xs text-slate-500 mb-3">Choix de la palette de couleurs utilisée à la génération des PDF (rapport patrimonial, lettre de mission). Si les couleurs du cabinet ne sont pas renseignées, le rendu Encre & Or est utilisé dans tous les cas.</p>
+          <div className="space-y-2">
+            <label className="flex items-start gap-2 cursor-pointer text-sm">
+              <input
+                type="radio"
+                name="pdfPalette"
+                value="cabinet"
+                checked={(cabinet.pdfPalette || "cabinet") === "cabinet"}
+                onChange={() => updateCabinet("pdfPalette", "cabinet")}
+                className="mt-0.5 h-4 w-4 accent-[#0F172A]"
+              />
+              <span><strong>Couleurs du cabinet</strong> — utilise les 5 couleurs renseignées ci-dessus.</span>
+            </label>
+            <label className="flex items-start gap-2 cursor-pointer text-sm">
+              <input
+                type="radio"
+                name="pdfPalette"
+                value="encre_or"
+                checked={cabinet.pdfPalette === "encre_or"}
+                onChange={() => updateCabinet("pdfPalette", "encre_or")}
+                className="mt-0.5 h-4 w-4 accent-[#0F172A]"
+              />
+              <span><strong>Couleurs d'origine (Encre & Or)</strong> — palette historique Ploutos, indépendante des couleurs du cabinet.</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Items « à venir » — grisés/désactivés */}
+        <div style={{ opacity: 0.55, pointerEvents: "none" }} aria-disabled="true">
+          <div className="text-xs font-black mb-2 pb-1" style={{ color: BRAND.navy, borderBottom: `2px solid ${BRAND.gold}`, display: "inline-block" }}>À venir</div>
+          <div className="space-y-2 text-sm">
+            <label className="flex items-start gap-2 text-slate-500">
+              <input type="checkbox" disabled className="mt-0.5 h-4 w-4" />
+              <span>Déclaration d'adéquation périodique <em className="text-xs">— à venir</em></span>
+            </label>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs font-semibold tracking-wide" style={{ color: BRAND.muted }}>Périodicité de revue</Label>
+              <Input disabled value="" placeholder="ex : annuelle" className="rounded-xl text-sm w-40" />
+              <span className="text-xs text-slate-400 italic">à venir</span>
+            </div>
+            <label className="flex items-start gap-2 text-slate-500">
+              <input type="checkbox" disabled className="mt-0.5 h-4 w-4" />
+              <span>Archivage automatique des documents générés <em className="text-xs">— à venir</em></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div className="rounded-2xl p-4 text-sm" style={{ background: "rgba(251,236,215,0.4)", border: "1px solid rgba(227,175,100,0.3)" }}>
         <p className="font-semibold mb-2" style={{ color: BRAND.navy }}>💡 Ces paramètres alimentent automatiquement :</p>
         <ul className="list-disc ml-4 space-y-1 text-sm" style={{ color: "#555" }}>

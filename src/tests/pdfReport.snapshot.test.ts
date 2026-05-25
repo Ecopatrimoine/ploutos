@@ -83,3 +83,14 @@ describe("pdfReport — repli Encre & Or (cabinet sans couleurs)", () => {
     expect(html).toMatchSnapshot();
   });
 });
+
+describe("pdfReport — sélecteur palette (pdfPalette = 'encre_or')", () => {
+  it("cabinet avec couleurs + pdfPalette='encre_or' → choix utilisateur Encre & Or appliqué (les couleurs cabinet sont ignorées)", () => {
+    const params = {
+      ...baseParams(),
+      cabinet: { ...fixtureCabinet, pdfPalette: "encre_or" },
+    };
+    const html = capturePdfHtml(() => buildAndPrintPdf(params));
+    expect(html).toMatchSnapshot();
+  });
+});

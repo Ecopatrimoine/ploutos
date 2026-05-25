@@ -42,7 +42,24 @@ export type ResolvedColors = {
 };
 
 // ─── Résolution couleurs cabinet → tokens ──────────────────────────────────
+// Règle :
+// 1. Si cabinet.pdfPalette === "encre_or" → defaults Encre & Or intégraux
+//    (choix explicite de l'utilisateur via le sélecteur Paramètres → Documents).
+// 2. Sinon (défaut ou "cabinet") :
+//    - si AU MOINS UNE couleur cabinet est définie → couleurs cabinet (fallback
+//      par couleur sur Encre & Or si une clé manque).
+//    - sinon (cabinet entièrement vide) → defaults Encre & Or (sécurité « pas de PDF vide »).
 export function resolveCabinetColors(cabinet: Record<string, string | undefined>): ResolvedColors {
+  const wantsEncreOr = cabinet.pdfPalette === "encre_or";
+  if (wantsEncreOr) {
+    return {
+      navy:  ENCRE_OR.navy,
+      gold:  ENCRE_OR.gold,
+      sky:   ENCRE_OR.sky,
+      cream: ENCRE_OR.cream,
+      blue:  ENCRE_OR.blue,
+    };
+  }
   const has =
     !!cabinet.colorNavy ||
     !!cabinet.colorGold ||
