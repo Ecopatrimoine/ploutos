@@ -5,6 +5,7 @@
 
 import { n, euro, isAV, isPERType } from "../calculs/utils";
 import { resolveCabinetColors, kpi, sec, tbl, hbar, segB, openPrintPopup } from "./pdfCore";
+import { REPORT_PRESET } from "./registry";
 import type { PatrimonialData, IrOptions, Hypothesis } from "../../types/patrimoine";
 
 type IrResult = any;
@@ -536,18 +537,26 @@ export function buildAndPrintPdf(params: PdfReportParams) {
   ${pF("Rapport confidentiel")}
 </div>`;
 
-  const pages = [
-    makeCover("Rapport patrimonial"),
-    sections.cabinet ? pageCabinet() : "",
-    sections.famille ? pageFamille() : "",
-    sections.travail ? pageTravail() : "",
-    sections.bilan ? pageBilan() : "",
-    sections.ir ? pageIR() : "",
-    sections.ifi && showIFI ? pageIFI() : "",
-    sections.succession ? pageSuccession() : "",
-    sections.hypos && activeHypos.length>0 ? pageHypos() : "",
-    sections.mentions ? pageMentions() : "",
-  ].filter(Boolean).join("");
+  // Mapping id → fonction de rendu. Les gating spéciaux (showIFI, activeHypos)
+  // sont absorbés ici pour préserver le comportement existant.
+  const renderById: Record<string, () => string> = {
+    cabinet:    pageCabinet,
+    famille:    pageFamille,
+    travail:    pageTravail,
+    bilan:      pageBilan,
+    ir:         pageIR,
+    ifi:        () => showIFI ? pageIFI() : "",
+    succession: pageSuccession,
+    hypos:      () => activeHypos.length > 0 ? pageHypos() : "",
+    mentions:   pageMentions,
+  };
+
+  // Assemblage via le preset (= ordre des sections du Rapport patrimonial).
+  const sectionPages = REPORT_PRESET
+    .map(id => (sections[id] && renderById[id]) ? renderById[id]() : "")
+    .filter(Boolean)
+    .join("");
+  const pages = makeCover("Rapport patrimonial") + sectionPages;
 
   const html=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/>
 <title>Rapport — ${clientName2}</title>

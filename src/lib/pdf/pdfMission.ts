@@ -4,6 +4,7 @@
 
 import { n, euro, isAV, isPERType } from "../calculs/utils";
 import { resolveCabinetColors, kpi, sec, tbl, hbar, segB, openPrintPopup } from "./pdfCore";
+import { MISSION_PRESET } from "./registry";
 import type { PatrimonialData, IrOptions } from "../../types/patrimoine";
 
 type IrResult = any;
@@ -577,9 +578,27 @@ export function buildAndPrintMission(params: PdfMissionParams) {
   ${pF("Lettre de mission")}
 </div>` : "";
 
+  // Mapping id → const string déjà résolue. Chaque pageXxxX vaut "" si la
+  // section n'est pas cochée (gating ternaire dans chaque const), donc le
+  // mapping renvoie directement la string et filter(Boolean) la retire si vide.
+  const renderById: Record<string, string> = {
+    legal:      pageLegal,
+    famille:    pageFamilleMission,
+    travail:    pageTravailMission,
+    besoins:    pageBesoins,
+    bilan:      pageBilanM,
+    ir:         pageIRM,
+    ifi:        pageIFIM,
+    succession: pageSuccM,
+    profil:     pageProfil,
+    signature:  pageSign,
+  };
+
+  // Assemblage via le preset (= ordre des sections de la Lettre de mission).
+  // Le séparateur "\n" est préservé à l'identique du comportement existant.
   const pages = [
-    cover, pageLegal, pageFamilleMission, pageTravailMission, pageBesoins,
-    pageBilanM, pageIRM, pageIFIM, pageSuccM, pageProfil, pageSign,
+    cover,
+    ...MISSION_PRESET.map(id => renderById[id] || ""),
   ].filter(Boolean).join("\n");
 
   const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/>
