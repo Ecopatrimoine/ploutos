@@ -45,6 +45,20 @@ export const SURFACE = {
   tableHead: BRAND.navy,           // en-tête tableau navy plein
 };
 
+// ─── FIELD — Champs de saisie (parchemin clair, bordure franche, focus or solide) ──
+// Source unique de vérité partagée avec les variables CSS --field-* dans index.css.
+// Toute modification doit être répercutée des deux côtés.
+export const FIELD = {
+  fill: "#EDE8DD",                // parchemin clair — ressort sur card blanche
+  fillDisabled: "#F5F2EC",        // aplat désactivé, plus proche du blanc
+  border: "#A99A7B",              // contour franc — ~3:1 sur blanc
+  borderFocus: "#A67F32",         // or appuyé au focus (anneau solide)
+  borderDisabled: "#D8D2C6",      // = SURFACE.border (atténué)
+  text: BRAND.navy,               // texte saisi
+  textDisabled: BRAND.mutedLight, // texte atténué
+  placeholder: "#8C8678",         // gris chaud lisible
+} as const;
+
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
 export const PROPERTY_TYPES = [
