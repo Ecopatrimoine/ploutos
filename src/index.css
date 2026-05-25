@@ -1,7 +1,68 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
+
+/* ─── Tokens FIELD — miroir CSS du bloc FIELD dans src/constants/index.ts ─── */
+:root {
+  --field-fill: #EDE8DD;
+  --field-fill-disabled: #F5F2EC;
+  --field-border: #A99A7B;
+  --field-border-focus: #A67F32;
+  --field-border-disabled: #D8D2C6;
+  --field-text: #0F172A;
+  --field-text-disabled: #7E8F9F;
+  --field-placeholder: #8C8678;
+}
+
+/*
+ * Apparence des champs — source unique.
+ * .ploutos-field s'applique aux composants partagés (Input, Textarea, SelectTrigger Radix).
+ * La règle :where(...) couvre les input/select/textarea natifs (filet de sécurité),
+ * tout en gardant la spécificité à (0,0,1) pour rester écrasable par un style inline.
+ * Exclusions : checkbox/radio/file/color/range/submit/button/image/reset
+ *              (sémantique non-champ-texte) + .ploutos-field (déjà ciblé).
+ */
+.ploutos-field,
+input:where(:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]):not([type="range"]):not([type="submit"]):not([type="button"]):not([type="image"]):not([type="reset"]):not(.ploutos-field)),
+select:where(:not(.ploutos-field)),
+textarea:where(:not(.ploutos-field)) {
+  background-color: var(--field-fill);
+  border: 1px solid var(--field-border);
+  color: var(--field-text);
+  transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+}
+
+.ploutos-field::placeholder,
+input:where(:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]):not([type="range"]):not([type="submit"]):not([type="button"]):not([type="image"]):not([type="reset"]):not(.ploutos-field))::placeholder,
+textarea:where(:not(.ploutos-field))::placeholder {
+  color: var(--field-placeholder);
+  opacity: 1;
+}
+
+/* Focus clavier — bordure 1px constante (box-sizing:border-box du preflight Tailwind
+   garantit zéro jump) + anneau SOLIDE 2px par-dessus. */
+.ploutos-field:focus-visible,
+input:where(:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]):not([type="range"]):not([type="submit"]):not([type="button"]):not([type="image"]):not([type="reset"]):not(.ploutos-field)):focus-visible,
+select:where(:not(.ploutos-field)):focus-visible,
+textarea:where(:not(.ploutos-field)):focus-visible {
+  outline: none;
+  border-color: var(--field-border-focus);
+  box-shadow: 0 0 0 2px var(--field-border-focus);
+}
+
+/* Désactivé — fond aplati (pas de parchemin), bordure atténuée, texte muté.
+   [data-disabled] couvre le SelectTrigger Radix. */
+.ploutos-field:disabled,
+.ploutos-field[data-disabled],
+input:where(:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]):not([type="range"]):not([type="submit"]):not([type="button"]):not([type="image"]):not([type="reset"]):not(.ploutos-field)):disabled,
+select:where(:not(.ploutos-field)):disabled,
+textarea:where(:not(.ploutos-field)):disabled {
+  background-color: var(--field-fill-disabled);
+  border-color: var(--field-border-disabled);
+  color: var(--field-text-disabled);
+  cursor: not-allowed;
+}
+
 /* Force Chrome à afficher les scrollbars classiques (non-overlay) */
 html {
   overflow: hidden;
