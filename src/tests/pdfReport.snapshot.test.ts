@@ -7,6 +7,7 @@ import {
   fixtureData,
   fixtureIrOptions,
   fixtureCabinet,
+  fixtureCabinetNoColors,
   fixtureHypothesisResults,
   allSectionsReport,
   onlySection,
@@ -66,6 +67,17 @@ describe("pdfReport — variantes structurelles", () => {
       sections: Object.fromEntries(
         Object.keys(allSectionsReport).map(k => [k, false])
       ) as Record<string, boolean>,
+    };
+    const html = capturePdfHtml(() => buildAndPrintPdf(params));
+    expect(html).toMatchSnapshot();
+  });
+});
+
+describe("pdfReport — repli Encre & Or (cabinet sans couleurs)", () => {
+  it("cabinet sans aucune couleur définie → defaults Encre & Or appliqués", () => {
+    const params = {
+      ...baseParams(),
+      cabinet: fixtureCabinetNoColors,
     };
     const html = capturePdfHtml(() => buildAndPrintPdf(params));
     expect(html).toMatchSnapshot();

@@ -7,6 +7,7 @@ import {
   fixtureData,
   fixtureIrOptions,
   fixtureCabinet,
+  fixtureCabinetNoColors,
   fixtureMission,
   allSectionsMission,
   onlySection,
@@ -67,6 +68,17 @@ describe("pdfMission — variantes structurelles", () => {
       sections: Object.fromEntries(
         Object.keys(allSectionsMission).map(k => [k, false])
       ) as Record<string, boolean>,
+    };
+    const html = capturePdfHtml(() => buildAndPrintMission(params));
+    expect(html).toMatchSnapshot();
+  });
+});
+
+describe("pdfMission — repli Encre & Or (cabinet sans couleurs)", () => {
+  it("cabinet sans aucune couleur définie → defaults Encre & Or appliqués", () => {
+    const params = {
+      ...baseParams(),
+      cabinet: fixtureCabinetNoColors,
     };
     const html = capturePdfHtml(() => buildAndPrintMission(params));
     expect(html).toMatchSnapshot();

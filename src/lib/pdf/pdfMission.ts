@@ -1,7 +1,9 @@
 // ─── PDF LETTRE DE MISSION ────────────────────────────────────────────────────
 // Fonction pure — aucun setState, aucun hook React
+// (refactorée pour consommer pdfCore : tokens, helpers, coquille print)
 
 import { n, euro, isAV, isPERType } from "../calculs/utils";
+import { resolveCabinetColors, kpi, sec, tbl, hbar, segB, openPrintPopup } from "./pdfCore";
 import type { PatrimonialData, IrOptions } from "../../types/patrimoine";
 
 type IrResult = any;
@@ -24,6 +26,7 @@ export interface PdfMissionParams {
 
 export function buildAndPrintMission(params: PdfMissionParams) {
   const { sections, data, ir, ifi, succession, irOptions, cabinet, clientName, logoSrc, signatureSrc, mission } = params;
+  const colors = resolveCabinetColors(cabinet);
 
   const dateStr = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
   const dateTimeStr = new Date().toLocaleString("fr-FR");
@@ -62,37 +65,11 @@ export function buildAndPrintMission(params: PdfMissionParams) {
     ? `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid #26428B;background:#26428B;margin-right:5px;vertical-align:middle"></span>`
     : `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid #bbb;margin-right:5px;vertical-align:middle"></span>`;
 
-  const kpi = (label: string, value: string, sub?: string, accent = false) =>
-    `<div class="kpi${accent?" kpi-accent":""}"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div>${sub?`<div class="kpi-sub">${sub}</div>`:""}</div>`;
-  const sec = (title: string, body: string) =>
-    `<div class="section"><div class="section-title">${title}</div>${body}</div>`;
-  const tbl = (headers: string[], rows: string[][], hl?: number) =>
-    `<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map((row,i)=>`<tr class="${i%2===0?"row-even":"row-odd"}">${row.map((cell,j)=>`<td${j===hl?' class="highlight"':""}>${cell}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  // Helpers locaux qui dépendent du scope (clientName3, dateStr, cabinet) — gardés ici.
   const pH = (title: string) =>
     `<div class="page-header"><div class="page-header-title">${title}</div><div class="page-header-client">${clientName3} · ${dateStr}</div></div>`;
   const pF = (label: string) =>
     `<div class="page-footer"><span>${cabinet.cabinetName||"Ploutos"} · ${label}</span><span>${dateStr}</span></div>`;
-
-  const hbar = (items: {label:string;value:number;color:string}[], width=420) => {
-    const maxVal=Math.max(...items.map(i=>i.value),1);
-    const rowH=28; const lW=140; const bW=width-lW-85; const svgH=items.length*rowH+8;
-    return `<svg width="${width}" height="${svgH}" xmlns="http://www.w3.org/2000/svg">${items.map((item,i)=>{
-      const bw=Math.max(2,item.value/maxVal*bW); const y=i*rowH+4;
-      return `<text x="${lW-8}" y="${y+14}" text-anchor="end" font-size="8" fill="#555" font-family="Lato,sans-serif">${item.label}</text>
-      <rect x="${lW}" y="${y+2}" width="${bw}" height="16" rx="4" fill="${item.color}" opacity="0.88"/>
-      <text x="${lW+bw+6}" y="${y+14}" font-size="8" fill="${item.color}" font-family="Lato,sans-serif" font-weight="700">${euro(item.value)}</text>`;
-    }).join("")}</svg>`;
-  };
-
-  const segB = (segs:{label:string;value:number;color:string}[], width=420) => {
-    const total=segs.reduce((s,i)=>s+i.value,0); if(total<=0) return "";
-    let x=0;
-    const rects=segs.map(seg=>{ const w=(seg.value/total)*width;
-      const r=`<rect x="${x}" y="0" width="${w}" height="18" fill="${seg.color}"/><text x="${x+w/2}" y="13" text-anchor="middle" font-size="7.5" fill="white" font-family="Lato,sans-serif" font-weight="700">${Math.round(seg.value/total*100)}%</text>`;
-      x+=w; return r; }).join("");
-    const legend=segs.map((seg,i)=>`<g transform="translate(${i*200},0)"><circle cx="7" cy="7" r="5" fill="${seg.color}"/><text x="16" y="12" font-size="8" fill="#444" font-family="Lato,sans-serif">${seg.label} — ${euro(seg.value)}</text></g>`).join("");
-    return `<svg width="${width}" height="44" xmlns="http://www.w3.org/2000/svg"><rect width="${width}" height="18" rx="4" fill="#e5e7eb"/>${rects}<g transform="translate(0,26)">${legend}</g></svg>`;
-  };
 
   const wfall = () => {
     const fraisPro=ir.retainedExpenses||0; const perDed=ir.perDeductionCalc||0;
@@ -155,58 +132,58 @@ export function buildAndPrintMission(params: PdfMissionParams) {
   .cover-inner{padding:56px 60px;flex:1;display:flex;flex-direction:column;justify-content:space-between;position:relative;z-index:2;}
   .cover-logo{max-height:52px;max-width:180px;}
   .cover-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding:40px 0;}
-  .cover-doc-type{font-size:11pt;font-weight:700;color:${cabinet.colorSky};text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;}
-  .cover-client{font-size:28pt;font-weight:900;color:${cabinet.colorNavy};line-height:1.1;margin-bottom:8px;}
+  .cover-doc-type{font-size:11pt;font-weight:700;color:${colors.sky};text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;}
+  .cover-client{font-size:28pt;font-weight:900;color:${colors.navy};line-height:1.1;margin-bottom:8px;}
   .cover-date{font-size:10pt;color:#777;margin-bottom:20px;}
-  .cover-bar{width:60px;height:4px;background:linear-gradient(90deg,${cabinet.colorGold},${cabinet.colorBlue||"#516AC7"});border-radius:2px;margin-bottom:16px;}
+  .cover-bar{width:60px;height:4px;background:linear-gradient(90deg,${colors.gold},${colors.blue});border-radius:2px;margin-bottom:16px;}
   .cover-tagline{font-size:9pt;color:#999;font-style:italic;}
   .cover-footer{font-size:7.5pt;color:#bbb;}
-  .cover-shape1{position:absolute;top:-60px;right:-60px;width:300px;height:300px;border-radius:50%;background:${cabinet.colorNavy};opacity:0.04;z-index:1;}
-  .cover-shape2{position:absolute;top:40px;right:40px;width:120px;height:120px;border-radius:50%;background:${cabinet.colorGold};opacity:0.10;z-index:1;}
-  .cover-shape3{position:absolute;bottom:80px;right:-30px;width:200px;height:200px;background:${cabinet.colorSky};opacity:0.07;transform:rotate(45deg);z-index:1;}
-  .cover-shape4{position:absolute;bottom:-40px;left:220px;width:160px;height:160px;border-radius:50%;background:${cabinet.colorGold};opacity:0.08;z-index:1;}
-  .cover-shape5{position:absolute;top:0;left:0;width:6px;height:100%;background:linear-gradient(180deg,${cabinet.colorNavy} 0%,${cabinet.colorGold} 100%);z-index:3;}
+  .cover-shape1{position:absolute;top:-60px;right:-60px;width:300px;height:300px;border-radius:50%;background:${colors.navy};opacity:0.04;z-index:1;}
+  .cover-shape2{position:absolute;top:40px;right:40px;width:120px;height:120px;border-radius:50%;background:${colors.gold};opacity:0.10;z-index:1;}
+  .cover-shape3{position:absolute;bottom:80px;right:-30px;width:200px;height:200px;background:${colors.sky};opacity:0.07;transform:rotate(45deg);z-index:1;}
+  .cover-shape4{position:absolute;bottom:-40px;left:220px;width:160px;height:160px;border-radius:50%;background:${colors.gold};opacity:0.08;z-index:1;}
+  .cover-shape5{position:absolute;top:0;left:0;width:6px;height:100%;background:linear-gradient(180deg,${colors.navy} 0%,${colors.gold} 100%);z-index:3;}
   .page{padding:34px 42px;page-break-after:always;}
   .page:last-child{page-break-after:auto;}
-  .page-header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid ${cabinet.colorGold};padding-bottom:8px;margin-bottom:20px;}
-  .page-header-title{font-size:13pt;font-weight:700;color:${cabinet.colorNavy};}
-  .page-header-client{font-size:8pt;color:${cabinet.colorSky};font-weight:600;}
+  .page-header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid ${colors.gold};padding-bottom:8px;margin-bottom:20px;}
+  .page-header-title{font-size:13pt;font-weight:700;color:${colors.navy};}
+  .page-header-client{font-size:8pt;color:${colors.sky};font-weight:600;}
   .page-footer{margin-top:20px;border-top:1px solid #e5e0d8;padding-top:7px;font-size:7pt;color:#888;display:flex;justify-content:space-between;}
   .section{margin-bottom:18px;}
-  .section-title{font-size:8.5pt;font-weight:700;color:${cabinet.colorSky};border-left:3px solid ${cabinet.colorGold};padding-left:8px;margin-bottom:9px;text-transform:uppercase;letter-spacing:0.5px;padding-bottom:2px;}
+  .section-title{font-size:8.5pt;font-weight:700;color:${colors.sky};border-left:3px solid ${colors.gold};padding-left:8px;margin-bottom:9px;text-transform:uppercase;letter-spacing:0.5px;padding-bottom:2px;}
   .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px;}
   .kpi-grid-3{grid-template-columns:repeat(3,1fr);}
-  .kpi{background:linear-gradient(160deg,${cabinet.colorCream} 0%,#fff8f0 100%);border:1px solid rgba(227,175,100,0.3);border-radius:8px;padding:9px 11px;}
-  .kpi-label{font-size:6.5pt;color:${cabinet.colorSky};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;}
+  .kpi{background:linear-gradient(160deg,${colors.cream} 0%,#fff8f0 100%);border:1px solid rgba(227,175,100,0.3);border-radius:8px;padding:9px 11px;}
+  .kpi-label{font-size:6.5pt;color:${colors.sky};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;}
   .kpi-value{font-size:13pt;font-weight:700;color:#101B3B;line-height:1;}
   .kpi-sub{font-size:7pt;color:#777;margin-top:2px;}
-  .kpi-accent{background:linear-gradient(160deg,${cabinet.colorNavy} 0%,${cabinet.colorSky} 100%);border-color:${cabinet.colorSky};}
+  .kpi-accent{background:linear-gradient(160deg,${colors.navy} 0%,${colors.sky} 100%);border-color:${colors.sky};}
   .kpi-accent .kpi-label{color:rgba(255,255,255,0.7);}
-  .kpi-accent .kpi-value{color:${cabinet.colorGold};}
+  .kpi-accent .kpi-value{color:${colors.gold};}
   table{width:100%;border-collapse:collapse;font-size:7.5pt;margin-bottom:4px;}
-  th{background:linear-gradient(90deg,rgba(227,175,100,0.18) 0%,rgba(227,175,100,0.06) 100%);text-align:left;padding:5px 7px;font-weight:700;color:${cabinet.colorSky};border-bottom:2px solid rgba(227,175,100,0.35);font-size:7pt;text-transform:uppercase;letter-spacing:0.3px;}
+  th{background:linear-gradient(90deg,rgba(227,175,100,0.18) 0%,rgba(227,175,100,0.06) 100%);text-align:left;padding:5px 7px;font-weight:700;color:${colors.sky};border-bottom:2px solid rgba(227,175,100,0.35);font-size:7pt;text-transform:uppercase;letter-spacing:0.3px;}
   td{padding:4px 7px;border-bottom:1px solid rgba(0,0,0,0.05);vertical-align:top;}
   .row-even{background:#fff;} .row-odd{background:rgba(251,236,215,0.14);}
   td.highlight{font-weight:700;color:#101B3B;}
   .graph-box{background:#f8f7f6;border:1px solid rgba(227,175,100,0.18);border-radius:8px;padding:11px 13px;margin-bottom:7px;}
-  .graph-title{font-size:7.5pt;font-weight:700;color:${cabinet.colorSky};text-transform:uppercase;letter-spacing:0.3px;margin-bottom:8px;}
+  .graph-title{font-size:7.5pt;font-weight:700;color:${colors.sky};text-transform:uppercase;letter-spacing:0.3px;margin-bottom:8px;}
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:9px;}
   .info-block{background:#f8f7f6;border:1px solid rgba(227,175,100,0.18);border-radius:8px;padding:10px 13px;margin-bottom:7px;}
   .info-row{display:flex;justify-content:space-between;padding:2.5px 0;border-bottom:1px solid rgba(0,0,0,0.04);}
   .info-row:last-child{border-bottom:none;}
   .info-label{color:#666;font-size:8pt;} .info-value{font-weight:600;color:#101B3B;font-size:8pt;}
   .legal-block{background:#f8f7f6;border:1px solid rgba(227,175,100,0.18);border-radius:8px;padding:10px 13px;margin-bottom:10px;font-size:8.5pt;line-height:1.6;}
-  .legal-title{font-weight:700;color:${cabinet.colorSky};margin-bottom:4px;font-size:9pt;}
+  .legal-title{font-weight:700;color:${colors.sky};margin-bottom:4px;font-size:9pt;}
   .legal-block ul{padding-left:15px;} .legal-block li{margin-bottom:2px;}
   .besoins-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
-  .besoin-card{border:1.5px solid ${cabinet.colorNavy};border-radius:8px;padding:10px 12px;}
-  .besoin-card-title{font-weight:700;font-size:8.5pt;text-align:center;margin-bottom:6px;color:${cabinet.colorNavy};}
+  .besoin-card{border:1.5px solid ${colors.navy};border-radius:8px;padding:10px 12px;}
+  .besoin-card-title{font-weight:700;font-size:8.5pt;text-align:center;margin-bottom:6px;color:${colors.navy};}
   .besoin-item{margin-bottom:3px;font-size:8pt;line-height:1.4;display:flex;align-items:flex-start;gap:2px;}
-  .profil-card{background:linear-gradient(135deg,${cabinet.colorNavy}08 0%,${cabinet.colorGold}12 100%);border:1px solid rgba(227,175,100,0.25);border-radius:10px;padding:13px;text-align:center;margin-bottom:10px;}
+  .profil-card{background:linear-gradient(135deg,${colors.navy}08 0%,${colors.gold}12 100%);border:1px solid rgba(227,175,100,0.25);border-radius:10px;padding:13px;text-align:center;margin-bottom:10px;}
   .profil-badge{display:inline-block;padding:5px 16px;border-radius:20px;font-weight:900;font-size:12pt;color:#fff;margin:6px 0;}
   .sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:16px;}
   .sign-box{border:1px dashed #bbb;border-radius:8px;min-height:68px;padding:9px;background:#fafafa;}
-  .sign-label{font-weight:700;font-size:8.5pt;margin-bottom:3px;color:${cabinet.colorSky};}
+  .sign-label{font-weight:700;font-size:8.5pt;margin-bottom:3px;color:${colors.sky};}
   .sign-check{display:flex;align-items:flex-start;gap:7px;font-size:8.5pt;line-height:1.5;margin-bottom:4px;}
   @media print{
     @page{margin:0.9cm 1.1cm;size:A4;}
@@ -216,34 +193,34 @@ export function buildAndPrintMission(params: PdfMissionParams) {
   const cover = `<div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div><div class="cover-shape5"></div>
   <!-- Bande navy gauche + gradient top -->
-  <div style="position:absolute;top:0;left:0;width:100%;height:5px;background:linear-gradient(90deg,${cabinet.colorNavy} 0%,${cabinet.colorGold} 60%,${cabinet.colorSky} 100%);z-index:4;"></div>
+  <div style="position:absolute;top:0;left:0;width:100%;height:5px;background:linear-gradient(90deg,${colors.navy} 0%,${colors.gold} 60%,${colors.sky} 100%);z-index:4;"></div>
   <div class="cover-inner">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
       <div>${logoSrc3?`<img src="${logoSrc3}" class="cover-logo" alt="Logo"/>`:
-        `<div style="font-size:17pt;font-weight:900;color:${cabinet.colorNavy}">${cabinet.cabinetName||"Ploutos"}</div>`}</div>
+        `<div style="font-size:17pt;font-weight:900;color:${colors.navy}">${cabinet.cabinetName||"Ploutos"}</div>`}</div>
       <div style="text-align:right;font-size:7.5pt;color:#999;margin-top:4px;">
         ${cabinet.orias?`ORIAS n° <strong>${cabinet.orias}</strong><br/>`:""}
         ${dateStr}
       </div>
     </div>
     <div class="cover-body">
-      <div style="display:inline-block;background:${cabinet.colorNavy};color:${cabinet.colorGold};font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:2px;padding:5px 14px;border-radius:20px;margin-bottom:20px;">
+      <div style="display:inline-block;background:${colors.navy};color:${colors.gold};font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:2px;padding:5px 14px;border-radius:20px;margin-bottom:20px;">
         Lettre de mission &amp; Fiche Conseil
       </div>
       <div class="cover-client">${clientName3}</div>
-      ${data.coupleStatus!=="single"&&p2n!=="—"?`<div style="font-size:12pt;color:${cabinet.colorSky};font-weight:600;margin-top:-4px;margin-bottom:10px;">&amp; ${p2n}</div>`:"<div style='margin-bottom:16px'></div>"}
+      ${data.coupleStatus!=="single"&&p2n!=="—"?`<div style="font-size:12pt;color:${colors.sky};font-weight:600;margin-top:-4px;margin-bottom:10px;">&amp; ${p2n}</div>`:"<div style='margin-bottom:16px'></div>"}
       <div class="cover-date">${dateStr}</div>
       <div class="cover-bar"></div>
       <div style="margin-top:24px;max-width:480px;">
-        <div style="background:rgba(16,27,59,0.04);border-radius:12px;padding:14px 16px;border-left:4px solid ${cabinet.colorGold};">
-          <div style="font-size:8.5pt;font-weight:700;color:${cabinet.colorNavy};margin-bottom:5px;">Document précontractuel réglementaire</div>
+        <div style="background:rgba(16,27,59,0.04);border-radius:12px;padding:14px 16px;border-left:4px solid ${colors.gold};">
+          <div style="font-size:8.5pt;font-weight:700;color:${colors.navy};margin-bottom:5px;">Document précontractuel réglementaire</div>
           <div style="font-size:7.5pt;color:#666;line-height:1.6;">Lettre de mission et fiche de conseil établies conformément aux obligations DDA et MIF2, sur la base des informations recueillies lors de notre entretien.</div>
         </div>
         <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
-          <div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${cabinet.colorNavy};font-weight:600;">👤 Informations légales</div>
-          <div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${cabinet.colorNavy};font-weight:600;">📋 Besoins & Objectifs</div>
-          <div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${cabinet.colorNavy};font-weight:600;">📊 Bilan patrimonial</div>
-          <div style="background:rgba(227,175,100,0.15);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${cabinet.colorNavy};font-weight:600;">🎯 Profil investisseur</div>
+          <div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${colors.navy};font-weight:600;">👤 Informations légales</div>
+          <div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${colors.navy};font-weight:600;">📋 Besoins & Objectifs</div>
+          <div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${colors.navy};font-weight:600;">📊 Bilan patrimonial</div>
+          <div style="background:rgba(227,175,100,0.15);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${colors.navy};font-weight:600;">🎯 Profil investisseur</div>
         </div>
       </div>
       <div class="cover-tagline" style="margin-top:20px;">En application des articles L.521-2 et R.521-2 du Code des assurances<br/>et de la directive DDA (Directive sur la Distribution d'Assurances)</div>
@@ -306,17 +283,17 @@ export function buildAndPrintMission(params: PdfMissionParams) {
   </div>
   ${sec("Niveau de conseil délivré (art. L521-4 Code des assurances — DDA)",`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px;">
-      <div class="info-block" style="border:${cabinet.niveauConseil==='2'?'2px solid '+cabinet.colorSky:'1px solid rgba(227,175,100,0.18)'}">
+      <div class="info-block" style="border:${cabinet.niveauConseil==='2'?'2px solid '+colors.sky:'1px solid rgba(227,175,100,0.18)'}">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
           ${rb(cabinet.niveauConseil!=='2')}
-          <strong style="font-size:8.5pt;color:${cabinet.colorNavy}">Niveau 1 — Analyse des besoins</strong>
+          <strong style="font-size:8.5pt;color:${colors.navy}">Niveau 1 — Analyse des besoins</strong>
         </div>
         <p style="font-size:7.5pt;color:#666;line-height:1.5;">Nous formulons une recommandation cohérente avec vos besoins et exigences, sans effectuer d'analyse approfondie de tous les produits du marché.</p>
       </div>
-      <div class="info-block" style="border:${cabinet.niveauConseil==='2'?'2px solid '+cabinet.colorSky:'1px solid rgba(227,175,100,0.18)'}">
+      <div class="info-block" style="border:${cabinet.niveauConseil==='2'?'2px solid '+colors.sky:'1px solid rgba(227,175,100,0.18)'}">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
           ${rb(cabinet.niveauConseil==='2')}
-          <strong style="font-size:8.5pt;color:${cabinet.colorNavy}">Niveau 2 — Recommandation personnalisée</strong>
+          <strong style="font-size:8.5pt;color:${colors.navy}">Niveau 2 — Recommandation personnalisée</strong>
         </div>
         <p style="font-size:7.5pt;color:#666;line-height:1.5;">Notre conseil repose sur une analyse objective du marché et une évaluation approfondie de votre situation patrimoniale globale.</p>
       </div>
@@ -433,7 +410,7 @@ export function buildAndPrintMission(params: PdfMissionParams) {
   ${sec("Préférences en matière de durabilité — ESG (MIF2 depuis 2023)",`
     <div class="two-col" style="margin-bottom:0">
       <div class="info-block" style="font-size:8pt;line-height:1.6;">
-        <p style="margin-bottom:6px;font-weight:700;color:${cabinet.colorNavy}">Souhaitez-vous intégrer des critères ESG dans vos investissements ?</p>
+        <p style="margin-bottom:6px;font-weight:700;color:${colors.navy}">Souhaitez-vous intégrer des critères ESG dans vos investissements ?</p>
         <div style="display:flex;gap:14px;flex-wrap:wrap;">
           <span>${rb(mission.esgPref==="oui")} Oui, de façon prioritaire</span>
           <span>${rb(mission.esgPref==="partiel")} Partiellement</span>
@@ -441,7 +418,7 @@ export function buildAndPrintMission(params: PdfMissionParams) {
         </div>
       </div>
       <div class="info-block" style="font-size:8pt;line-height:1.6;">
-        <p style="margin-bottom:6px;font-weight:700;color:${cabinet.colorNavy}">Vos engagements</p>
+        <p style="margin-bottom:6px;font-weight:700;color:${colors.navy}">Vos engagements</p>
         <ul style="padding-left:12px;color:#555;">
           <li>Nous informer de tout changement de situation (famille, revenus, patrimoine)</li>
           <li>Vérifier la conformité des contrats signés avec nos recommandations</li>
@@ -569,19 +546,19 @@ export function buildAndPrintMission(params: PdfMissionParams) {
   `)}
   ${sec("Réclamations · Médiation · RGPD · Conflits d'intérêts",`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
     <div class="info-block" style="font-size:8pt;line-height:1.6;">
-      <strong style="color:${cabinet.colorSky}">📋 Réclamations (art. R.521-1)</strong>
+      <strong style="color:${colors.sky}">📋 Réclamations (art. R.521-1)</strong>
       ${cabinet.email?`<p style="margin-top:4px">→ Email : <strong>${cabinet.email}</strong></p>`:""}
       ${cabinet.adresse?`<p>→ Courrier : ${cabinet.adresse} ${cabinet.codePostal} ${cabinet.ville}</p>`:""}
       <p style="margin-top:4px;font-size:7.5pt;color:#666;">Accusé de réception sous 10 jours ouvrables · Réponse sous 2 mois maximum</p>
-      <p style="margin-top:6px;"><strong style="color:${cabinet.colorSky}">⚖️ Médiation (art. L616-1)</strong></p>
+      <p style="margin-top:6px;"><strong style="color:${colors.sky}">⚖️ Médiation (art. L616-1)</strong></p>
       ${cabinet.mediateur?`<p style="margin-top:3px">Médiateur : <strong>${cabinet.mediateur}</strong></p>`:"<p style='margin-top:3px;color:#666'>Médiateur de l'Assurance — TSA 50110 — 75441 Paris Cedex 09</p>"}
       ${cabinet.mediateurUrl?`<p style="font-size:7.5pt;color:#666">${cabinet.mediateurUrl}</p>`:"<p style='font-size:7.5pt;color:#666'>www.mediation-assurance.org</p>"}
     </div>
     <div class="info-block" style="font-size:8pt;line-height:1.6;">
-      <strong style="color:${cabinet.colorSky}">🔒 RGPD & Données personnelles</strong>
+      <strong style="color:${colors.sky}">🔒 RGPD & Données personnelles</strong>
       <p style="margin-top:4px;font-size:7.5pt;color:#555;line-height:1.5;">Vos données sont collectées pour exécuter la présente mission. Vous disposez d'un droit d'accès, de rectification et de suppression (art. 15 à 17 RGPD). Responsable de traitement : ${cabinet.cabinetName||"le cabinet"}.</p>
       <p style="margin-top:4px;font-size:7.5pt;color:#666">Bloctel : www.bloctel.gouv.fr</p>
-      <p style="margin-top:6px;"><strong style="color:${cabinet.colorSky}">⚠️ Conflits d'intérêts</strong></p>
+      <p style="margin-top:6px;"><strong style="color:${colors.sky}">⚠️ Conflits d'intérêts</strong></p>
       <p style="margin-top:3px;font-size:7.5pt;color:#555;line-height:1.5;">Le cabinet tient un registre des conflits d'intérêts conformément aux obligations MIF2. Notre politique est disponible sur demande. En cas de conflit détecté, nous vous en informerons préalablement à toute recommandation.</p>
     </div>
   </div>`)}
@@ -610,10 +587,5 @@ export function buildAndPrintMission(params: PdfMissionParams) {
 <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet"/>
 <style>${css}</style></head><body>${pages}</body></html>`;
 
-  const popup = window.open("","_blank","width=900,height=700,scrollbars=yes");
-  if(!popup){alert("Autorise les popups.");return;}
-  popup.document.write(html);
-  popup.document.close();
-  popup.focus();
-  setTimeout(()=>{popup.print();},500);
+  openPrintPopup(html);
 }

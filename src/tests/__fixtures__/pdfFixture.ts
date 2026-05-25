@@ -264,6 +264,33 @@ export const fixtureCabinet: Record<string, string> = {
   signatureSrc: "",
 };
 
+// ─── Cabinet SANS couleurs personnalisées — déclenche le repli Encre & Or ──
+// Toutes les clés colorNavy/colorGold/colorSky/colorCream/colorBlue absentes.
+// Sert au test de la branche « repli intégral sur les tokens Encre & Or ».
+export const fixtureCabinetNoColors: Record<string, string> = {
+  cabinetName: "EcoPatrimoine Conseil",
+  conseiller: "David Perry",
+  forme: "EI",
+  rcs: "—",
+  villeRcs: "Perpignan",
+  orias: "25006907",
+  siren: "—",
+  adresse: "6 rue Victor Mirabeau",
+  codePostal: "66000",
+  ville: "Perpignan",
+  tel: "—",
+  email: "contact@ecopatrimoine-conseil.com",
+  partenaires: "—",
+  rcpAssureur: "—",
+  rcpContrat: "—",
+  niveauConseil: "1",
+  remunerationType: "commission",
+  mediateur: "Médiateur de l'Assurance",
+  mediateurUrl: "www.mediation-assurance.org",
+  logoSrc: "",
+  signatureSrc: "",
+};
+
 // ─── Mission (lettre de mission — formulaire profil) ────────────────────────
 export const fixtureMission: Record<string, any> = {
   // Besoins
