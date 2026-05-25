@@ -6,6 +6,7 @@ import { buildAndPrintPdf } from "../lib/pdf/pdfReport";
 import {
   fixtureData,
   fixtureDataCohab,
+  fixtureDataLarge,
   fixtureIrOptions,
   fixtureCabinet,
   fixtureCabinetNoColors,
@@ -14,6 +15,7 @@ import {
   onlySection,
   buildFixtureComputed,
   buildFixtureComputedCohab,
+  buildFixtureComputedLarge,
 } from "./__fixtures__/pdfFixture";
 import { capturePdfHtml } from "./__fixtures__/capturePdfHtml";
 
@@ -171,6 +173,34 @@ describe("pdfReport — IR/IFI invariants par rapport à recipient", () => {
 });
 
 // ─── Lot 3 — garde-fou visuel concubin + heir conjoint ───────────────────────
+// ─── Lot 4 — pagination + annexes (gros patrimoine) ─────────────────────────
+describe("pdfReport — gros patrimoine (synthèse + annexes)", () => {
+  it("≥ 16 properties + ≥ 16 placements → tableaux agrégés + annexes paginées en fin (avant mentions)", () => {
+    const computed = buildFixtureComputedLarge();
+    const params = {
+      sections: { ...allSectionsReport },
+      data: fixtureDataLarge,
+      ir: computed.ir,
+      ifi: computed.ifi,
+      succession: computed.succession,
+      irOptions: fixtureIrOptions,
+      cabinet: fixtureCabinet,
+      clientName: "Pierre Dupont",
+      notes: "Note de référence du conseiller — fixture test (gros patrimoine).",
+      logoSrc: "",
+      hypothesisResults: fixtureHypothesisResults,
+    };
+    const html = capturePdfHtml(() => buildAndPrintPdf(params));
+    // Vérifie que la synthèse est bien rendue (présence de "synthèse par type")
+    expect(html).toContain("Immobilier — synthèse par type");
+    expect(html).toContain("Placements — synthèse par type");
+    // Vérifie que les annexes paginées sont présentes
+    expect(html).toContain("Annexe — Immobilier");
+    expect(html).toContain("Annexe — Placements");
+    expect(html).toMatchSnapshot();
+  });
+});
+
 describe("pdfReport — garde-fou visuel cohab + heir conjoint", () => {
   it("concubin + heir 'conjoint' dans succession.results → bandeau d'avertissement visible", () => {
     const cohabComputed = buildFixtureComputedCohab();

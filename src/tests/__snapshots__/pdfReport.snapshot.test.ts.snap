@@ -118,6 +118,10 @@ exports[`pdfReport — garde-fou visuel cohab + heir conjoint > concubin + heir 
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }</style></head><body>
 <div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
@@ -333,6 +337,327 @@ exports[`pdfReport — garde-fou visuel cohab + heir conjoint > concubin + heir 
 </div></body></html>"
 `;
 
+exports[`pdfReport — gros patrimoine (synthèse + annexes) > ≥ 16 properties + ≥ 16 placements → tableaux agrégés + annexes paginées en fin (avant mentions) 1`] = `
+"<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/>
+<title>Rapport — Pierre Dupont</title>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Lato','Helvetica Neue',Arial,sans-serif;font-size:9pt;color:#333;background:#fff;}
+  .cover{height:100vh;background:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:0;page-break-after:always;position:relative;overflow:hidden;}
+  .cover-inner{padding:56px 60px;flex:1;display:flex;flex-direction:column;justify-content:space-between;position:relative;z-index:2;}
+  .cover-logo{max-height:52px;max-width:180px;}
+  .cover-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding:40px 0;}
+  .cover-doc-type{font-size:11pt;font-weight:700;color:#26428B;text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;}
+  .cover-client{font-size:28pt;font-weight:900;color:#0F172A;line-height:1.1;margin-bottom:8px;}
+  .cover-date{font-size:10pt;color:#777;margin-bottom:20px;}
+  .cover-bar{width:60px;height:4px;background:linear-gradient(90deg,#C4973D,#516AC7);border-radius:2px;margin-bottom:16px;}
+  .cover-tagline{font-size:9pt;color:#999;font-style:italic;}
+  .cover-footer{font-size:7.5pt;color:#bbb;}
+  .cover-shape1{position:absolute;top:-60px;right:-60px;width:300px;height:300px;border-radius:50%;background:#0F172A;opacity:0.04;z-index:1;}
+  .cover-shape2{position:absolute;top:40px;right:40px;width:120px;height:120px;border-radius:50%;background:#C4973D;opacity:0.10;z-index:1;}
+  .cover-shape3{position:absolute;bottom:80px;right:-30px;width:200px;height:200px;background:#26428B;opacity:0.07;transform:rotate(45deg);z-index:1;}
+  .cover-shape4{position:absolute;bottom:-40px;left:220px;width:160px;height:160px;border-radius:50%;background:#C4973D;opacity:0.08;z-index:1;}
+  .cover-shape5{position:absolute;top:0;left:0;width:6px;height:100%;background:linear-gradient(180deg,#0F172A 0%,#C4973D 100%);z-index:3;}
+  .page{padding:34px 42px;page-break-after:always;}
+  .page:last-child{page-break-after:auto;}
+  .page-header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #C4973D;padding-bottom:8px;margin-bottom:20px;}
+  .page-header-title{font-size:13pt;font-weight:700;color:#0F172A;}
+  .page-header-client{font-size:8pt;color:#26428B;font-weight:600;}
+  .page-footer{margin-top:20px;border-top:1px solid #e5e0d8;padding-top:7px;font-size:7pt;color:#888;display:flex;justify-content:space-between;}
+  .section{margin-bottom:18px;}
+  .section-title{font-size:8.5pt;font-weight:700;color:#26428B;border-left:3px solid #C4973D;padding-left:8px;margin-bottom:9px;text-transform:uppercase;letter-spacing:0.5px;padding-bottom:2px;}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px;}
+  .kpi-grid-3{grid-template-columns:repeat(3,1fr);}
+  .kpi-grid-2{grid-template-columns:repeat(2,1fr);}
+  .kpi{background:linear-gradient(160deg,#FDF6E8 0%,#fff8f0 100%);border:0.5px solid rgba(227,175,100,0.3);border-radius:10px;padding:9px 11px;box-shadow:0 1px 2px rgba(0,0,0,0.03);}
+  .kpi-label{font-size:6.5pt;color:#26428B;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;}
+  .kpi-value{font-size:13pt;font-weight:700;color:#101B3B;line-height:1;}
+  .kpi-sub{font-size:7pt;color:#777;margin-top:2px;}
+  .kpi-accent{background:linear-gradient(160deg,#0F172A 0%,#26428B 100%);border-color:#26428B;}
+  .kpi-accent .kpi-label{color:rgba(255,255,255,0.7);}
+  .kpi-accent .kpi-value{color:#C4973D;}
+  .kpi-accent .kpi-sub{color:rgba(255,255,255,0.5);}
+  table{width:100%;border-collapse:collapse;font-size:7.5pt;margin-bottom:4px;}
+  th{background:linear-gradient(90deg,rgba(227,175,100,0.18) 0%,rgba(227,175,100,0.06) 100%);text-align:left;padding:5px 7px;font-weight:700;color:#26428B;border-bottom:2px solid rgba(227,175,100,0.35);font-size:7pt;text-transform:uppercase;letter-spacing:0.3px;}
+  td{padding:4px 7px;border-bottom:1px solid rgba(0,0,0,0.05);vertical-align:top;}
+  .row-even{background:#fff;} .row-odd{background:rgba(251,236,215,0.14);}
+  td.highlight{font-weight:700;color:#101B3B;}
+  .graph-box{background:linear-gradient(160deg,#f9f8f7 0%,#fff 100%);border:0.5px solid rgba(227,175,100,0.25);border-radius:10px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+  .graph-title{font-size:7.5pt;font-weight:700;color:#26428B;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:9px;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:10px;}
+  .info-block{background:#f8f7f6;border:1px solid rgba(227,175,100,0.18);border-radius:8px;padding:11px 14px;margin-bottom:8px;}
+  .info-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(0,0,0,0.04);}
+  .info-row:last-child{border-bottom:none;}
+  .info-label{color:#666;font-size:8pt;} .info-value{font-weight:600;color:#101B3B;font-size:8pt;}
+  .legal-block{background:#f8f7f6;border:1px solid rgba(227,175,100,0.18);border-radius:8px;padding:11px 14px;margin-bottom:11px;font-size:8.5pt;line-height:1.6;}
+  .legal-title{font-weight:700;color:#26428B;margin-bottom:5px;font-size:9pt;}
+  .legal-block ul{padding-left:16px;} .legal-block li{margin-bottom:3px;}
+  .demarche-block{border:1px solid rgba(227,175,100,0.22);border-radius:10px;padding:16px;background:linear-gradient(135deg,#0F172A06 0%,#C4973D0a 100%);}
+  .demarche-step{display:flex;align-items:flex-start;gap:11px;margin-bottom:12px;}
+  .demarche-step:last-child{margin-bottom:0;}
+  .demarche-num{width:26px;height:26px;border-radius:50%;background:#0F172A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:9.5pt;font-weight:700;flex-shrink:0;}
+  .demarche-text{font-size:8.5pt;line-height:1.5;} .demarche-text strong{color:#0F172A;}
+  .hypo-block{background:linear-gradient(160deg,#f9f8f7 0%,#fff 100%);border:0.5px solid rgba(227,175,100,0.3);border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
+  .hypo-title{font-size:11pt;font-weight:700;color:#0F172A;margin-bottom:3px;}
+  .hypo-notes{font-size:8pt;color:#555;font-style:italic;background:rgba(227,175,100,0.1);padding:5px 9px;border-radius:4px;margin-bottom:9px;border-left:3px solid #C4973D;}
+  .hypo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:9px 0;}
+  .hypo-kpi{background:#fff;border:1px solid rgba(227,175,100,0.2);border-radius:6px;padding:7px 9px;}
+  .hypo-kpi-label{font-size:6.5pt;color:#26428B;font-weight:700;text-transform:uppercase;margin-bottom:2px;}
+  .hypo-kpi-value{font-size:11pt;font-weight:700;color:#101B3B;}
+  .hypo-kpi-delta{font-size:7pt;font-weight:600;margin-top:2px;}
+  .pos{color:#16a34a;} .neg{color:#dc2626;} .neutral{color:#888;}
+  .notes-box{background:#f8f7f6;border:1px solid rgba(227,175,100,0.2);border-radius:8px;padding:12px 14px;font-size:8.5pt;white-space:pre-wrap;min-height:50px;color:#333;line-height:1.6;}
+  .mentions{font-size:7pt;color:#888;line-height:1.5;}
+  .besoins-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px;}
+  .besoin-card{border:1.5px solid #0F172A;border-radius:8px;padding:11px 13px;}
+  .besoin-card-title{font-weight:700;font-size:9pt;text-align:center;margin-bottom:7px;color:#0F172A;}
+  .besoin-item{margin-bottom:4px;font-size:8pt;line-height:1.4;display:flex;align-items:flex-start;gap:2px;}
+  .profil-card{background:linear-gradient(135deg,#0F172A08 0%,#C4973D12 100%);border:1px solid rgba(227,175,100,0.25);border-radius:10px;padding:14px;text-align:center;margin-bottom:12px;}
+  .profil-badge{display:inline-block;padding:5px 18px;border-radius:20px;font-weight:900;font-size:13pt;color:#fff;margin:7px 0;}
+  .sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:36px;margin-top:18px;}
+  .sign-box{border:1px dashed #bbb;border-radius:8px;min-height:72px;padding:10px;background:#fafafa;}
+  .sign-label{font-weight:700;font-size:8.5pt;margin-bottom:3px;color:#26428B;}
+  .sign-check{display:flex;align-items:flex-start;gap:7px;font-size:8.5pt;line-height:1.5;margin-bottom:5px;}
+  @media print{
+    @page{margin:0.9cm 1.1cm;size:A4;}
+    .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
+  }</style></head><body>
+<div class="cover">
+  <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
+  <!-- Bandeau top dégradé -->
+  <div style="position:absolute;top:0;left:0;width:100%;height:6px;background:linear-gradient(90deg,#0F172A 0%,#C4973D 60%,#26428B 100%);z-index:4;"></div>
+  <!-- Barre verticale gauche -->
+  <div class="cover-shape5"></div>
+  <div class="cover-inner">
+    <!-- Header logo + date -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div><div style="font-size:17pt;font-weight:900;color:#0F172A">EcoPatrimoine Conseil</div></div>
+      <div style="text-align:right;font-size:7.5pt;color:#888;margin-top:4px;">ORIAS n° <strong style="color:#666">25006907</strong><br/>25 mai 2026</div>
+    </div>
+    <!-- Corps cover -->
+    <div class="cover-body">
+      <div style="display:inline-block;background:#0F172A;color:#C4973D;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:2px;padding:5px 16px;border-radius:20px;margin-bottom:22px;">Rapport patrimonial</div>
+      <div class="cover-client">Pierre Dupont</div>
+      <div style="font-size:13pt;color:#26428B;font-weight:600;margin-top:-4px;margin-bottom:10px;">&amp; Sophie Dupont</div>
+      <div class="cover-date">25 mai 2026</div>
+      <div class="cover-bar"></div>
+      <!-- Accroche sans données sensibles -->
+      <div style="margin-top:28px;max-width:480px;">
+        <div style="background:rgba(16,27,59,0.04);border-radius:12px;padding:16px 18px;border-left:4px solid #C4973D;">
+          <div style="font-size:9pt;font-weight:700;color:#0F172A;margin-bottom:6px;">Analyse patrimoniale complète</div>
+          <div style="font-size:8pt;color:#666;line-height:1.6;">Ce rapport présente une synthèse de votre situation patrimoniale, fiscale et successorale, établie sur la base des informations recueillies lors de notre entretien.</div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+          <div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:#0F172A;font-weight:600;">📊 Bilan patrimonial</div>
+          <div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:#0F172A;font-weight:600;">📈 Fiscalité IR</div>
+          <div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:#0F172A;font-weight:600;">🏛️ IFI</div>
+          <div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:#0F172A;font-weight:600;">⚖️ Succession</div>
+          
+        </div>
+      </div>
+    </div>
+    <div class="cover-footer">EcoPatrimoine Conseil · ORIAS n° 25006907 · Rapport confidentiel · 25 mai 2026</div>
+  </div>
+</div><div class="page">
+  <div class="page-header"><div class="page-header-title">Notre cabinet & notre démarche</div><div class="page-header-client">Pierre Dupont · 25 mai 2026</div></div>
+  <div class="two-col">
+    <div><div class="section"><div class="section-title">À propos</div><div class="info-block">
+      <div class="info-row"><span class="info-label">Cabinet</span><span class="info-value">EcoPatrimoine Conseil</span></div>
+      <div class="info-row"><span class="info-label">ORIAS</span><span class="info-value">25006907</span></div>
+      <div class="info-row"><span class="info-label">Ville</span><span class="info-value">Perpignan</span></div>
+      <div class="info-row"><span class="info-label">Tél.</span><span class="info-value">—</span></div>
+      <div class="info-row"><span class="info-label">Email</span><span class="info-value">contact@ecopatrimoine-conseil.com</span></div>
+      <div class="info-row"><span class="info-label">Conseiller</span><span class="info-value">David Perry</span></div>
+    </div></div></div>
+    <div><div class="section"><div class="section-title">Objet du document</div><div class="info-block" style="font-size:8.5pt;line-height:1.6;color:#444;">
+      <p>Ce rapport patrimonial est établi sur la base des informations que vous nous avez communiquées lors de notre entretien. Il a pour objectif de dresser un état des lieux complet de votre situation patrimoniale et fiscale, d'identifier les opportunités d'optimisation et de vous proposer des pistes adaptées à vos objectifs, votre horizon et votre profil.</p>
+      <p style="margin-top:6px;font-size:7.5pt;color:#888;font-style:italic">Document remis à titre indicatif — simulation non contractuelle. Ne constitue pas un conseil en investissement au sens de MIF2, ni un conseil fiscal ou juridique.</p>
+    </div></div></div>
+  </div>
+  <div class="section"><div class="section-title">Notre démarche en 5 étapes</div><div class="demarche-block">
+    <div class="demarche-step"><div class="demarche-num">1</div><div class="demarche-text"><strong>Collecte</strong> — Recueil de votre situation personnelle, professionnelle, patrimoniale et fiscale.</div></div>
+    <div class="demarche-step"><div class="demarche-num">2</div><div class="demarche-text"><strong>Analyse</strong> — Étude de votre patrimoine, revenus et fiscalité actuelle (IR, IFI, succession).</div></div>
+    <div class="demarche-step"><div class="demarche-num">3</div><div class="demarche-text"><strong>Optimisation</strong> — Simulation de scénarios pour mesurer l'impact fiscal de différentes stratégies.</div></div>
+    <div class="demarche-step"><div class="demarche-num">4</div><div class="demarche-text"><strong>Recommandations</strong> — Propositions adaptées à votre profil, objectifs et horizon de placement.</div></div>
+    <div class="demarche-step"><div class="demarche-num">5</div><div class="demarche-text"><strong>Suivi</strong> — Mise à jour régulière en fonction de votre situation et de la législation.</div></div>
+  </div></div>
+  <div class="page-footer"><span>EcoPatrimoine Conseil · Rapport confidentiel</span><span>25 mai 2026</span></div>
+</div><div class="page">
+  <div class="page-header"><div class="page-header-title">Composition familiale</div><div class="page-header-client">Pierre Dupont · 25 mai 2026</div></div>
+  <div class="two-col">
+    <div><div class="section"><div class="section-title">Personne 1</div><div class="info-block">
+      <div class="info-row"><span class="info-label">Identité</span><span class="info-value">Pierre Dupont</span></div>
+      <div class="info-row"><span class="info-label">Naissance</span><span class="info-value">12/04/1975</span></div>
+      <div class="info-row"><span class="info-label">Profession</span><span class="info-value">Cadre informatique</span></div>
+      
+    </div></div></div>
+    <div><div class="section"><div class="section-title">Personne 2</div><div class="info-block">
+      <div class="info-row"><span class="info-label">Identité</span><span class="info-value">Sophie Dupont</span></div>
+      <div class="info-row"><span class="info-label">Naissance</span><span class="info-value">25/09/1978</span></div>
+      <div class="info-row"><span class="info-label">Profession</span><span class="info-value">Médecin libéral</span></div>
+    </div></div></div>
+  </div>
+  <div class="section"><div class="section-title">Situation familiale</div><div class="info-block">
+    <div class="info-row"><span class="info-label">Statut</span><span class="info-value">Marié(s)</span></div>
+    <div class="info-row"><span class="info-label">Régime</span><span class="info-value">Communauté légale</span></div>
+    <div class="info-row"><span class="info-label">Quotient familial</span><span class="info-value">3 part(s)</span></div>
+    <div class="info-row"><span class="info-label">Enfants</span><span class="info-value">2</span></div>
+  </div></div>
+  <div class="section"><div class="section-title">Enfants</div><table><thead><tr><th>Prénom</th><th>Naissance</th><th>Lien</th><th>Garde</th><th>Rattaché</th><th>Handicap</th></tr></thead><tbody><tr class="row-even"><td>Léa</td><td>15/06/2008</td><td>Commun</td><td>Pleine</td><td>Oui</td><td>Non</td></tr><tr class="row-odd"><td>Hugo</td><td>22/03/2012</td><td>Commun</td><td>Pleine</td><td>Oui</td><td>Non</td></tr></tbody></table></div>
+  <div class="page-footer"><span>EcoPatrimoine Conseil · Composition familiale</span><span>25 mai 2026</span></div>
+</div><div class="page">
+  <div class="page-header"><div class="page-header-title">Situation professionnelle & Revenus</div><div class="page-header-client">Pierre Dupont · 25 mai 2026</div></div>
+  <div class="kpi-grid kpi-grid-3">
+    <div class="kpi"><div class="kpi-label">Revenus bruts</div><div class="kpi-value">254 000 €</div></div>
+    <div class="kpi"><div class="kpi-label">Rev. net imposable</div><div class="kpi-value">213 300 €</div></div>
+    <div class="kpi kpi-accent"><div class="kpi-label">IR estimé</div><div class="kpi-value">62 758 €</div></div>
+  </div>
+  <div class="two-col">
+    <div><div class="section"><div class="section-title">Personne 1</div><div class="info-block">
+      <div class="info-row"><span class="info-label">Profession</span><span class="info-value">Cadre informatique</span></div>
+      <div class="info-row"><span class="info-label">Salaire net</span><span class="info-value">75 000 €</span></div>
+      
+      
+    </div></div></div>
+    <div><div class="section"><div class="section-title">Personne 2</div><div class="info-block">
+      <div class="info-row"><span class="info-label">Profession</span><span class="info-value">Médecin libéral</span></div>
+      
+      <div class="info-row"><span class="info-label">CA / Bénéfices</span><span class="info-value">120 000 €</span></div>
+    </div></div></div>
+  </div>
+  <div class="section"><div class="section-title">Déductions</div><div class="info-block">
+    <div class="info-row"><span class="info-label">Abattement 10%</span><span class="info-value">7 500 €</span></div>
+    <div class="info-row"><span class="info-label">PER déductible</span><span class="info-value">5 000 €</span></div>
+    
+  </div></div>
+  <div class="page-footer"><span>EcoPatrimoine Conseil · Situation professionnelle</span><span>25 mai 2026</span></div>
+</div><div class="page">
+  <div class="page-header"><div class="page-header-title">Bilan patrimonial</div><div class="page-header-client">Pierre Dupont · 25 mai 2026</div></div>
+  <div class="kpi-grid">
+    <div class="kpi kpi-accent"><div class="kpi-label">Patrimoine total</div><div class="kpi-value">9 500 000 €</div></div>
+    <div class="kpi"><div class="kpi-label">Immobilier net</div><div class="kpi-value">7 750 000 €</div></div>
+    <div class="kpi"><div class="kpi-label">Placements</div><div class="kpi-value">1 750 000 €</div></div>
+    <div class="kpi"><div class="kpi-label">Passif</div><div class="kpi-value">0 €</div></div>
+  </div>
+  <div class="two-col">
+    <div><div class="section"><div class="section-title">Répartition patrimoniale</div><div class="graph-box"><div class="graph-title">Par classe d'actifs</div><svg width="240" height="180" xmlns="http://www.w3.org/2000/svg"><g transform="translate(10,10)"><path d="M80,15 A65,65 0 1,1 20.47473376742127,53.889797397556976 L45.20061358710782,64.73557386318716 A38,38 0 1,0 80,42 Z" fill="#101B3B" opacity="0.9"/><path d="M20.47473376742127,53.889797397556976 A65,65 0 0,1 45.35293763268041,25.003808592639196 L59.74479430833624,47.84838040800445 A38,38 0 0,0 45.20061358710782,64.73557386318716 Z" fill="#26428B" opacity="0.9"/><path d="M45.35293763268041,25.003808592639196 A65,65 0 0,1 79.99999999999999,15 L80,42 A38,38 0 0,0 59.74479430833624,47.84838040800445 Z" fill="#E3AF64" opacity="0.9"/></g><g transform="translate(180,30)"><g transform="translate(0,0)"><circle cx="5" cy="5" r="4" fill="#101B3B"/><text x="13" y="9" font-size="7" fill="#444" font-family="Lato,sans-serif">Immobilier net (82%)</text></g><g transform="translate(0,14)"><circle cx="5" cy="5" r="4" fill="#26428B"/><text x="13" y="9" font-size="7" fill="#444" font-family="Lato,sans-serif">AV / PER (9%)</text></g><g transform="translate(0,28)"><circle cx="5" cy="5" r="4" fill="#E3AF64"/><text x="13" y="9" font-size="7" fill="#444" font-family="Lato,sans-serif">Autres placements (9%)</text></g></g></svg></div></div></div>
+    <div>
+      <div class="section"><div class="section-title">Exposition au risque</div><div class="graph-box"><div class="graph-title">Sécurisé vs Dynamique</div><svg width="240" height="44" xmlns="http://www.w3.org/2000/svg"><rect width="240" height="18" rx="4" fill="#e5e7eb"/><rect x="0" y="0" width="52.114285714285714" height="18" fill="#101B3B"/><text x="26.057142857142857" y="13" text-anchor="middle" font-size="7.5" fill="white" font-family="Lato,sans-serif" font-weight="700">22%</text><rect x="52.114285714285714" y="0" width="187.88571428571427" height="18" fill="#E3AF64"/><text x="146.05714285714285" y="13" text-anchor="middle" font-size="7.5" fill="white" font-family="Lato,sans-serif" font-weight="700">78%</text><g transform="translate(0,26)"><g transform="translate(0,0)"><circle cx="7" cy="7" r="5" fill="#101B3B"/><text x="16" y="12" font-size="8" fill="#444" font-family="Lato,sans-serif">Sécurisé — 380 000 €</text></g><g transform="translate(200,0)"><circle cx="7" cy="7" r="5" fill="#E3AF64"/><text x="16" y="12" font-size="8" fill="#444" font-family="Lato,sans-serif">Dynamique — 1 370 000 €</text></g></g></svg></div></div>
+      <div class="section"><div class="section-title">Fiscalité patrimoniale</div><div class="graph-box">
+        <div class="graph-title">Charge fiscale annuelle estimée</div>
+        <svg width="240" height="92" xmlns="http://www.w3.org/2000/svg"><text x="132" y="18" text-anchor="end" font-size="8" fill="#555" font-family="Lato,sans-serif">Impôt sur le revenu</text>
+      <rect x="140" y="6" width="2" height="16" rx="4" fill="#101B3B" opacity="0.88"/>
+      <text x="148" y="18" font-size="8" fill="#101B3B" font-family="Lato,sans-serif" font-weight="700">62 758 €</text><text x="132" y="46" text-anchor="end" font-size="8" fill="#555" font-family="Lato,sans-serif">IFI</text>
+      <rect x="140" y="34" width="2" height="16" rx="4" fill="#dc2626" opacity="0.88"/>
+      <text x="148" y="46" font-size="8" fill="#dc2626" font-family="Lato,sans-serif" font-weight="700">69 503 €</text><text x="132" y="74" text-anchor="end" font-size="8" fill="#555" font-family="Lato,sans-serif">Droits succession</text>
+      <rect x="140" y="62" width="15" height="16" rx="4" fill="#E3AF64" opacity="0.88"/>
+      <text x="161" y="74" font-size="8" fill="#E3AF64" font-family="Lato,sans-serif" font-weight="700">808 969 €</text></svg>
+      </div></div>
+    </div>
+  </div>
+  <div class="section"><div class="section-title">Immobilier — synthèse par type</div><table><thead><tr><th>Type</th><th>Nombre de biens</th><th>Valeur totale</th></tr></thead><tbody><tr class="row-even"><td>Résidence principale</td><td>1</td><td>150 000 €</td></tr><tr class="row-odd"><td>Résidence secondaire</td><td>1</td><td>175 000 €</td></tr><tr class="row-even"><td>Location nue</td><td>3</td><td>975 000 €</td></tr><tr class="row-odd"><td>LMNP</td><td>4</td><td>1 400 000 €</td></tr><tr class="row-even"><td>LMP</td><td>1</td><td>325 000 €</td></tr><tr class="row-odd"><td>SCI IR</td><td>3</td><td>1 325 000 €</td></tr><tr class="row-even"><td>SCPI</td><td>4</td><td>1 900 000 €</td></tr><tr class="row-odd"><td>Terrain</td><td>2</td><td>975 000 €</td></tr><tr class="row-even"><td>Local professionnel</td><td>1</td><td>525 000 €</td></tr></tbody></table></div><p style="font-size:8pt;color:#666;font-style:italic;margin-top:-4px;margin-bottom:10px;">Détail ligne à ligne en annexe (20 biens listés).</p>
+  <div class="section"><div class="section-title">Placements — synthèse par type</div><table><thead><tr><th>Type</th><th>Nombre de placements</th><th>Valeur totale</th></tr></thead><tbody><tr class="row-even"><td>Livret A</td><td>1</td><td>10 000 €</td></tr><tr class="row-odd"><td>LDDS</td><td>1</td><td>15 000 €</td></tr><tr class="row-even"><td>LEP</td><td>1</td><td>20 000 €</td></tr><tr class="row-odd"><td>PEL</td><td>1</td><td>25 000 €</td></tr><tr class="row-even"><td>CEL</td><td>1</td><td>30 000 €</td></tr><tr class="row-odd"><td>Compte courant</td><td>1</td><td>35 000 €</td></tr><tr class="row-even"><td>Compte à terme</td><td>1</td><td>40 000 €</td></tr><tr class="row-odd"><td>PEA</td><td>2</td><td>170 000 €</td></tr><tr class="row-even"><td>Compte-titres</td><td>2</td><td>180 000 €</td></tr><tr class="row-odd"><td>Actions non cotées</td><td>1</td><td>55 000 €</td></tr><tr class="row-even"><td>OPCVM / ETF</td><td>2</td><td>180 000 €</td></tr><tr class="row-odd"><td>Assurance-vie fonds euros</td><td>2</td><td>135 000 €</td></tr><tr class="row-even"><td>Assurance-vie unités de compte</td><td>3</td><td>240 000 €</td></tr><tr class="row-odd"><td>Contrat de capitalisation</td><td>1</td><td>90 000 €</td></tr><tr class="row-even"><td>PER bancaire</td><td>2</td><td>195 000 €</td></tr><tr class="row-odd"><td>PER assurantiel</td><td>2</td><td>215 000 €</td></tr><tr class="row-even"><td>Madelin</td><td>1</td><td>115 000 €</td></tr></tbody></table></div><p style="font-size:8pt;color:#666;font-style:italic;margin-top:-4px;margin-bottom:10px;">Détail ligne à ligne en annexe (25 placements listés).</p>
+  <div class="page-footer"><span>EcoPatrimoine Conseil · Bilan patrimonial</span><span>25 mai 2026</span></div>
+</div><div class="page">
+  <div class="page-header"><div class="page-header-title">Impôt sur le Revenu</div><div class="page-header-client">Pierre Dupont · 25 mai 2026</div></div>
+  <div class="kpi-grid">
+    <div class="kpi kpi-accent"><div class="kpi-label">IR total</div><div class="kpi-value">62 758 €</div></div>
+    <div class="kpi"><div class="kpi-label">Taux marginal</div><div class="kpi-value">30%</div></div>
+    <div class="kpi"><div class="kpi-label">Taux moyen</div><div class="kpi-value">29.4%</div></div>
+    <div class="kpi"><div class="kpi-label">Quotient familial</div><div class="kpi-value">3 part(s)</div><div class="kpi-sub">RNG : 213 300 €</div></div>
+  </div>
+  <div class="section"><div class="section-title">Décomposition du calcul fiscal</div><div class="graph-box"><div class="graph-title">De vos revenus à l'impôt</div><svg width="490" height="190" xmlns="http://www.w3.org/2000/svg"><text x="134" y="17" text-anchor="end" font-size="8" fill="#555" font-family="Lato,sans-serif">Revenus bruts</text>
+      <rect x="140" y="5" width="260" height="15" rx="3" fill="#101B3B" opacity="0.9"/>
+      <text x="406" y="17" font-size="8" fill="#101B3B" font-family="Lato,sans-serif" font-weight="700">254 000 €</text><text x="134" y="43" text-anchor="end" font-size="8" fill="#92400e" font-family="Lato,sans-serif">− Abatt. 10%</text>
+      <rect x="140" y="31" width="7.677165354330708" height="15" rx="3" fill="#60a5fa" opacity="0.55"/>
+      <text x="153.6771653543307" y="43" font-size="8" fill="#60a5fa" font-family="Lato,sans-serif" font-weight="700">7 500 €</text><text x="134" y="69" text-anchor="end" font-size="8" fill="#92400e" font-family="Lato,sans-serif">− Versements PER</text>
+      <rect x="140" y="57" width="5.118110236220472" height="15" rx="3" fill="#a78bfa" opacity="0.55"/>
+      <text x="151.11811023622047" y="69" font-size="8" fill="#a78bfa" font-family="Lato,sans-serif" font-weight="700">5 000 €</text><text x="134" y="95" text-anchor="end" font-size="8" fill="#555" font-family="Lato,sans-serif">Rev. net imposable</text>
+      <rect x="140" y="83" width="218.33858267716536" height="15" rx="3" fill="#26428B" opacity="0.9"/>
+      <text x="364.3385826771654" y="95" font-size="8" fill="#26428B" font-family="Lato,sans-serif" font-weight="700">213 300 €</text><text x="134" y="121" text-anchor="end" font-size="8" fill="#c2410c" font-family="Lato,sans-serif">+ IR barème</text>
+      <rect x="140" y="109" width="52.655159055118105" height="15" rx="3" fill="#dc2626" opacity="0.9"/>
+      <text x="198.6551590551181" y="121" font-size="8" fill="#dc2626" font-family="Lato,sans-serif" font-weight="700">51 440 €</text><text x="134" y="147" text-anchor="end" font-size="8" fill="#c2410c" font-family="Lato,sans-serif">+ Prél. sociaux</text>
+      <rect x="140" y="135" width="11.584944881889761" height="15" rx="3" fill="#f97316" opacity="0.9"/>
+      <text x="157.58494488188975" y="147" font-size="8" fill="#f97316" font-family="Lato,sans-serif" font-weight="700">11 318 €</text><text x="134" y="173" text-anchor="end" font-size="8" fill="#555" font-family="Lato,sans-serif">IR total dû</text>
+      <rect x="140" y="161" width="64.24010393700787" height="15" rx="3" fill="#b91c1c" opacity="0.9"/>
+      <text x="210.24010393700786" y="173" font-size="8" fill="#b91c1c" font-family="Lato,sans-serif" font-weight="700">62 758 €</text></svg></div></div>
+  <div class="section"><div class="section-title">Revenus fonciers</div><div class="kpi-grid kpi-grid-3">
+    <div class="kpi"><div class="kpi-label">Loyers bruts</div><div class="kpi-value">94 000 €</div></div><div class="kpi"><div class="kpi-label">Foncier taxable</div><div class="kpi-value">65 800 €</div></div><div class="kpi"><div class="kpi-label">Prél. sociaux</div><div class="kpi-value">11 318 €</div></div>
+  </div></div>
+  <div class="page-footer"><span>EcoPatrimoine Conseil · IR — Rapport confidentiel</span><span>25 mai 2026</span></div>
+</div><div class="page">
+  <div class="page-header"><div class="page-header-title">Impôt sur la Fortune Immobilière</div><div class="page-header-client">Pierre Dupont · 25 mai 2026</div></div>
+  <div class="kpi-grid">
+    <div class="kpi kpi-accent"><div class="kpi-label">Actif net taxable</div><div class="kpi-value">7 705 000 €</div></div>
+    <div class="kpi"><div class="kpi-label">IFI brut</div><div class="kpi-value">69 503 €</div></div>
+    <div class="kpi"><div class="kpi-label">Décote</div><div class="kpi-value">0 €</div></div>
+    <div class="kpi kpi-accent"><div class="kpi-label">IFI net dû</div><div class="kpi-value">69 503 €</div></div>
+  </div>
+  <div class="section"><div class="section-title">Biens taxables — synthèse par type</div><table><thead><tr><th>Type</th><th>Nombre</th><th>Net taxable cumulé</th></tr></thead><tbody><tr class="row-even"><td>Résidence principale</td><td>1</td><td>105 000 €</td></tr><tr class="row-odd"><td>Résidence secondaire</td><td>1</td><td>175 000 €</td></tr><tr class="row-even"><td>Location nue</td><td>3</td><td>975 000 €</td></tr><tr class="row-odd"><td>LMNP</td><td>4</td><td>1 400 000 €</td></tr><tr class="row-even"><td>LMP</td><td>1</td><td>325 000 €</td></tr><tr class="row-odd"><td>SCI IR</td><td>3</td><td>1 325 000 €</td></tr><tr class="row-even"><td>SCPI</td><td>4</td><td>1 900 000 €</td></tr><tr class="row-odd"><td>Terrain</td><td>2</td><td>975 000 €</td></tr><tr class="row-even"><td>Local professionnel</td><td>1</td><td>525 000 €</td></tr></tbody></table></div><p style="font-size:8pt;color:#666;font-style:italic;margin-top:-4px;margin-bottom:10px;">Détail ligne à ligne en annexe (20 biens listés).</p>
+  <div class="page-footer"><span>EcoPatrimoine Conseil · IFI — Rapport confidentiel</span><span>25 mai 2026</span></div>
+</div><div class="page">
+  <div class="page-header"><div class="page-header-title">Succession</div><div class="page-header-client">Pierre Dupont · 25 mai 2026</div></div>
+  <div class="kpi-grid">
+    <div class="kpi kpi-accent"><div class="kpi-label">Actif successoral net</div><div class="kpi-value">3 945 375 €</div></div>
+    <div class="kpi kpi-accent"><div class="kpi-label">Droits totaux</div><div class="kpi-value">808 969 €</div></div>
+    <div class="kpi"><div class="kpi-label">Défunt</div><div class="kpi-value">Pierre Dupont</div></div>
+    <div class="kpi"><div class="kpi-label">Réserve légale</div><div class="kpi-value">2 630 250 €</div></div>
+  </div>
+  <div class="two-col" style="margin-bottom:10px">
+    <div><div class="section"><div class="section-title">De l'actif au net transmis</div><div class="graph-box"><div class="graph-title">Flux successoral consolidé</div><svg width="420" height="104" xmlns="http://www.w3.org/2000/svg">
+        <text x="124" y="17" text-anchor="end" font-size="7.5" fill="#555" font-family="Lato,sans-serif" font-weight="400">Actif successoral</text>
+        <rect x="130" y="6" width="200" height="14" rx="3" fill="#101B3B" opacity="0.8"/>
+        <text x="336" y="17" font-size="7.5" fill="#101B3B" font-family="Lato,sans-serif" font-weight="400">3 945 375 €</text>
+        <text x="124" y="41" text-anchor="end" font-size="7.5" fill="#c2410c" font-family="Lato,sans-serif" font-weight="400">Droits succession</text>
+        <rect x="130" y="30" width="41.00846180654564" height="14" rx="3" fill="rgba(220,38,38,0.15)" opacity="0.8"/>
+        <text x="177.00846180654565" y="41" font-size="7.5" fill="#dc2626" font-family="Lato,sans-serif" font-weight="400">−808 969 €</text><line x1="130" y1="52" x2="335" y2="52" stroke="#e5e0d8" stroke-width="0.5"/>
+        <text x="124" y="65" text-anchor="end" font-size="7.5" fill="#555" font-family="Lato,sans-serif" font-weight="400">Net succession</text>
+        <rect x="130" y="54" width="158.99153819345437" height="14" rx="3" fill="#16a34a" opacity="0.8"/>
+        <text x="294.9915381934544" y="65" font-size="7.5" fill="#16a34a" font-family="Lato,sans-serif" font-weight="400">3 136 406 €</text>
+        <text x="124" y="89" text-anchor="end" font-size="7.5" fill="#101B3B" font-family="Lato,sans-serif" font-weight="700">Total net transmis</text>
+        <rect x="130" y="78" width="158.99153819345437" height="14" rx="3" fill="#101B3B" opacity="1"/>
+        <text x="294.9915381934544" y="89" font-size="7.5" fill="#101B3B" font-family="Lato,sans-serif" font-weight="700">3 136 406 €</text></svg></div></div></div>
+    <div><div class="section"><div class="section-title">Répartition par héritier</div><div class="graph-box"><div class="graph-title">Net reçu par héritier</div><svg width="240" height="92" xmlns="http://www.w3.org/2000/svg"><text x="132" y="18" text-anchor="end" font-size="8" fill="#555" font-family="Lato,sans-serif">Sophie Dupont</text>
+      <rect x="140" y="6" width="10" height="16" rx="4" fill="#101B3B" opacity="0.88"/>
+      <text x="156" y="18" font-size="8" fill="#101B3B" font-family="Lato,sans-serif" font-weight="700">986 344 €</text><text x="132" y="46" text-anchor="end" font-size="8" fill="#555" font-family="Lato,sans-serif">Léa Dupont</text>
+      <rect x="140" y="34" width="15" height="16" rx="4" fill="#26428B" opacity="0.88"/>
+      <text x="161" y="46" font-size="8" fill="#26428B" font-family="Lato,sans-serif" font-weight="700">1 479 516 €</text><text x="132" y="74" text-anchor="end" font-size="8" fill="#555" font-family="Lato,sans-serif">Hugo Dupont</text>
+      <rect x="140" y="62" width="15" height="16" rx="4" fill="#E3AF64" opacity="0.88"/>
+      <text x="161" y="74" font-size="8" fill="#E3AF64" font-family="Lato,sans-serif" font-weight="700">1 479 516 €</text></svg></div></div></div>
+  </div>
+  <div class="section"><div class="section-title">Détail par héritier</div><table><thead><tr><th>Héritier</th><th>Lien</th><th>Actif reçu</th><th>Base taxable</th><th>Droits AV</th><th>Droits succ.</th><th>Net estimé</th></tr></thead><tbody><tr class="row-even"><td>Sophie Dupont</td><td>conjoint</td><td>986 344 €</td><td>986 344 €</td><td>0 €</td><td>0 €</td><td class="highlight"><strong>986 344 €</strong></td></tr><tr class="row-odd"><td>Léa Dupont</td><td>enfant</td><td>1 479 516 €</td><td>1 379 516 €</td><td>0 €</td><td>404 484 €</td><td class="highlight"><strong>1 075 031 €</strong></td></tr><tr class="row-even"><td>Hugo Dupont</td><td>enfant</td><td>1 479 516 €</td><td>1 379 516 €</td><td>0 €</td><td>404 484 €</td><td class="highlight"><strong>1 075 031 €</strong></td></tr></tbody></table></div>
+  <div class="page-footer"><span>EcoPatrimoine Conseil · Succession — Rapport confidentiel</span><span>25 mai 2026</span></div>
+</div><div class="page">
+  <div class="page-header"><div class="page-header-title">Annexe — Immobilier (détail)</div><div class="page-header-client">Pierre Dupont · 25 mai 2026</div></div>
+  <div class="section"><div class="section-title">Détail des 20 biens immobiliers</div><table><thead><tr><th>Bien</th><th>Type</th><th>Valeur brute</th><th>Cap. restant</th><th>Loyer/an</th></tr></thead><tbody><tr class="row-even"><td>Bien 1</td><td>Résidence principale</td><td>150 000 €</td><td>—</td><td>—</td></tr><tr class="row-odd"><td>Bien 2</td><td>Résidence secondaire</td><td>175 000 €</td><td>—</td><td>6 200 €</td></tr><tr class="row-even"><td>Bien 3</td><td>Location nue</td><td>200 000 €</td><td>—</td><td>6 400 €</td></tr><tr class="row-odd"><td>Bien 4</td><td>Location nue</td><td>225 000 €</td><td>—</td><td>6 600 €</td></tr><tr class="row-even"><td>Bien 5</td><td>LMNP</td><td>250 000 €</td><td>—</td><td>6 800 €</td></tr><tr class="row-odd"><td>Bien 6</td><td>LMNP</td><td>275 000 €</td><td>—</td><td>7 000 €</td></tr><tr class="row-even"><td>Bien 7</td><td>LMNP</td><td>300 000 €</td><td>—</td><td>7 200 €</td></tr><tr class="row-odd"><td>Bien 8</td><td>LMP</td><td>325 000 €</td><td>—</td><td>7 400 €</td></tr><tr class="row-even"><td>Bien 9</td><td>SCI IR</td><td>350 000 €</td><td>—</td><td>7 600 €</td></tr><tr class="row-odd"><td>Bien 10</td><td>SCI IR</td><td>375 000 €</td><td>—</td><td>7 800 €</td></tr><tr class="row-even"><td>Bien 11</td><td>SCPI</td><td>400 000 €</td><td>—</td><td>8 000 €</td></tr><tr class="row-odd"><td>Bien 12</td><td>SCPI</td><td>425 000 €</td><td>—</td><td>8 200 €</td></tr><tr class="row-even"><td>Bien 13</td><td>SCPI</td><td>450 000 €</td><td>—</td><td>8 400 €</td></tr><tr class="row-odd"><td>Bien 14</td><td>Terrain</td><td>475 000 €</td><td>—</td><td>8 600 €</td></tr><tr class="row-even"><td>Bien 15</td><td>Terrain</td><td>500 000 €</td><td>—</td><td>8 800 €</td></tr><tr class="row-odd"><td>Bien 16</td><td>Local professionnel</td><td>525 000 €</td><td>—</td><td>9 000 €</td></tr><tr class="row-even"><td>Bien 17</td><td>Location nue</td><td>550 000 €</td><td>—</td><td>9 200 €</td></tr><tr class="row-odd"><td>Bien 18</td><td>LMNP</td><td>575 000 €</td><td>—</td><td>9 400 €</td></tr><tr class="row-even"><td>Bien 19</td><td>SCI IR</td><td>600 000 €</td><td>—</td><td>9 600 €</td></tr><tr class="row-odd"><td>Bien 20</td><td>SCPI</td><td>625 000 €</td><td>—</td><td>9 800 €</td></tr></tbody></table></div>
+  <div class="page-footer"><span>EcoPatrimoine Conseil · Annexe — Immobilier</span><span>25 mai 2026</span></div>
+</div><div class="page">
+  <div class="page-header"><div class="page-header-title">Annexe — Placements (détail)</div><div class="page-header-client">Pierre Dupont · 25 mai 2026</div></div>
+  <div class="section"><div class="section-title">Détail des 25 placements</div><table><thead><tr><th>Placement</th><th>Type</th><th>Propriétaire</th><th>Valeur</th></tr></thead><tbody><tr class="row-even"><td>Placement 1</td><td>Livret A</td><td>Pierre Dupont</td><td>10 000 €</td></tr><tr class="row-odd"><td>Placement 2</td><td>LDDS</td><td>Sophie Dupont</td><td>15 000 €</td></tr><tr class="row-even"><td>Placement 3</td><td>LEP</td><td>Commun</td><td>20 000 €</td></tr><tr class="row-odd"><td>Placement 4</td><td>PEL</td><td>Pierre Dupont</td><td>25 000 €</td></tr><tr class="row-even"><td>Placement 5</td><td>CEL</td><td>Sophie Dupont</td><td>30 000 €</td></tr><tr class="row-odd"><td>Placement 6</td><td>Compte courant</td><td>Commun</td><td>35 000 €</td></tr><tr class="row-even"><td>Placement 7</td><td>Compte à terme</td><td>Pierre Dupont</td><td>40 000 €</td></tr><tr class="row-odd"><td>Placement 8</td><td>PEA</td><td>Sophie Dupont</td><td>45 000 €</td></tr><tr class="row-even"><td>Placement 9</td><td>Compte-titres</td><td>Commun</td><td>50 000 €</td></tr><tr class="row-odd"><td>Placement 10</td><td>Actions non cotées</td><td>Pierre Dupont</td><td>55 000 €</td></tr><tr class="row-even"><td>Placement 11</td><td>OPCVM / ETF</td><td>Sophie Dupont</td><td>60 000 €</td></tr><tr class="row-odd"><td>Placement 12</td><td>Assurance-vie fonds euros</td><td>Commun</td><td>65 000 €</td></tr><tr class="row-even"><td>Placement 13</td><td>Assurance-vie fonds euros</td><td>Pierre Dupont</td><td>70 000 €</td></tr><tr class="row-odd"><td>Placement 14</td><td>Assurance-vie unités de compte</td><td>Sophie Dupont</td><td>75 000 €</td></tr><tr class="row-even"><td>Placement 15</td><td>Assurance-vie unités de compte</td><td>Commun</td><td>80 000 €</td></tr><tr class="row-odd"><td>Placement 16</td><td>Assurance-vie unités de compte</td><td>Pierre Dupont</td><td>85 000 €</td></tr><tr class="row-even"><td>Placement 17</td><td>Contrat de capitalisation</td><td>Sophie Dupont</td><td>90 000 €</td></tr><tr class="row-odd"><td>Placement 18</td><td>PER bancaire</td><td>Commun</td><td>95 000 €</td></tr><tr class="row-even"><td>Placement 19</td><td>PER bancaire</td><td>Pierre Dupont</td><td>100 000 €</td></tr><tr class="row-odd"><td>Placement 20</td><td>PER assurantiel</td><td>Sophie Dupont</td><td>105 000 €</td></tr><tr class="row-even"><td>Placement 21</td><td>PER assurantiel</td><td>Commun</td><td>110 000 €</td></tr><tr class="row-odd"><td>Placement 22</td><td>Madelin</td><td>Pierre Dupont</td><td>115 000 €</td></tr><tr class="row-even"><td>Placement 23</td><td>OPCVM / ETF</td><td>Sophie Dupont</td><td>120 000 €</td></tr><tr class="row-odd"><td>Placement 24</td><td>PEA</td><td>Commun</td><td>125 000 €</td></tr><tr class="row-even"><td>Placement 25</td><td>Compte-titres</td><td>Pierre Dupont</td><td>130 000 €</td></tr></tbody></table></div>
+  <div class="page-footer"><span>EcoPatrimoine Conseil · Annexe — Placements</span><span>25 mai 2026</span></div>
+</div><div class="page">
+  <div class="page-header"><div class="page-header-title">Annexe — Biens taxables IFI (détail)</div><div class="page-header-client">Pierre Dupont · 25 mai 2026</div></div>
+  <div class="section"><div class="section-title">Détail des 20 biens IFI</div><table><thead><tr><th>Bien</th><th>Type</th><th>Valeur brute</th><th>Abatt. RP</th><th>Dette déd.</th><th>Net taxable</th></tr></thead><tbody><tr class="row-even"><td>Bien 1</td><td>Résidence principale</td><td>150 000 €</td><td>45 000 €</td><td>0 €</td><td class="highlight">105 000 €</td></tr><tr class="row-odd"><td>Bien 2</td><td>Résidence secondaire</td><td>175 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">175 000 €</td></tr><tr class="row-even"><td>Bien 3</td><td>Location nue</td><td>200 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">200 000 €</td></tr><tr class="row-odd"><td>Bien 4</td><td>Location nue</td><td>225 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">225 000 €</td></tr><tr class="row-even"><td>Bien 5</td><td>LMNP</td><td>250 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">250 000 €</td></tr><tr class="row-odd"><td>Bien 6</td><td>LMNP</td><td>275 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">275 000 €</td></tr><tr class="row-even"><td>Bien 7</td><td>LMNP</td><td>300 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">300 000 €</td></tr><tr class="row-odd"><td>Bien 8</td><td>LMP</td><td>325 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">325 000 €</td></tr><tr class="row-even"><td>Bien 9</td><td>SCI IR</td><td>350 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">350 000 €</td></tr><tr class="row-odd"><td>Bien 10</td><td>SCI IR</td><td>375 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">375 000 €</td></tr><tr class="row-even"><td>Bien 11</td><td>SCPI</td><td>400 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">400 000 €</td></tr><tr class="row-odd"><td>Bien 12</td><td>SCPI</td><td>425 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">425 000 €</td></tr><tr class="row-even"><td>Bien 13</td><td>SCPI</td><td>450 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">450 000 €</td></tr><tr class="row-odd"><td>Bien 14</td><td>Terrain</td><td>475 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">475 000 €</td></tr><tr class="row-even"><td>Bien 15</td><td>Terrain</td><td>500 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">500 000 €</td></tr><tr class="row-odd"><td>Bien 16</td><td>Local professionnel</td><td>525 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">525 000 €</td></tr><tr class="row-even"><td>Bien 17</td><td>Location nue</td><td>550 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">550 000 €</td></tr><tr class="row-odd"><td>Bien 18</td><td>LMNP</td><td>575 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">575 000 €</td></tr><tr class="row-even"><td>Bien 19</td><td>SCI IR</td><td>600 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">600 000 €</td></tr><tr class="row-odd"><td>Bien 20</td><td>SCPI</td><td>625 000 €</td><td>0 €</td><td>0 €</td><td class="highlight">625 000 €</td></tr></tbody></table></div>
+  <div class="page-footer"><span>EcoPatrimoine Conseil · Annexe — IFI</span><span>25 mai 2026</span></div>
+</div><div class="page">
+  <div class="page-header"><div class="page-header-title">Notes & Mentions légales</div><div class="page-header-client">Pierre Dupont · 25 mai 2026</div></div>
+  <div class="section"><div class="section-title">Notes du conseiller</div><div class="notes-box">Note de référence du conseiller — fixture test (gros patrimoine).</div></div>
+  <div class="section"><div class="section-title">Mentions légales</div><div class="mentions">
+    <p><strong>Nature :</strong> Simulation établie sur la base des informations communiquées. Ne constitue pas un conseil en investissement, juridique ou fiscal.</p><br/>
+    <p><strong>Limites :</strong> Calculs basés sur la législation en vigueur à la date d'édition. Situations particulières exclues (Dutreil, SCI, holding, démembrement complexe…).</p><br/>
+    <p><strong>Confidentialité :</strong> Document strictement confidentiel. Toute reproduction interdite sans accord préalable.</p><br/>
+    <p>Généré le <strong>25/05/2026 12:00:00</strong> par EcoPatrimoine Conseil · ORIAS 25006907</p>
+  </div></div>
+  <div class="page-footer"><span>EcoPatrimoine Conseil · Rapport confidentiel</span><span>25 mai 2026</span></div>
+</div></body></html>"
+`;
+
 exports[`pdfReport — recipient (mode destinataire) > recipient='person1' sur couple → cover sans sous-titre conjoint, en-tête person1 1`] = `
 "<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/>
 <title>Rapport — Pierre Dupont</title>
@@ -419,6 +744,10 @@ exports[`pdfReport — recipient (mode destinataire) > recipient='person1' sur c
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }</style></head><body>
 <div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
@@ -721,6 +1050,10 @@ exports[`pdfReport — recipient (mode destinataire) > recipient='person2' sur c
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }</style></head><body>
 <div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
@@ -1023,6 +1356,10 @@ exports[`pdfReport — repli Encre & Or (cabinet sans couleurs) > cabinet sans a
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }</style></head><body>
 <div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
@@ -1325,6 +1662,10 @@ exports[`pdfReport — snapshot complet (toutes sections actives) > génère le 
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }</style></head><body>
 <div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
@@ -1627,6 +1968,10 @@ exports[`pdfReport — snapshots section par section > section seule : bilan 1`]
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }</style></head><body>
 <div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
@@ -1778,6 +2123,10 @@ exports[`pdfReport — snapshots section par section > section seule : cabinet 1
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }</style></head><body>
 <div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
@@ -1928,6 +2277,10 @@ exports[`pdfReport — snapshots section par section > section seule : famille 1
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }</style></head><body>
 <div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
@@ -2077,6 +2430,10 @@ exports[`pdfReport — snapshots section par section > section seule : hypos 1`]
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }</style></head><body>
 <div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
@@ -2203,6 +2560,10 @@ exports[`pdfReport — snapshots section par section > section seule : ifi 1`] =
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }</style></head><body>
 <div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
@@ -2329,6 +2690,10 @@ exports[`pdfReport — snapshots section par section > section seule : ir 1`] = 
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }</style></head><body>
 <div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
@@ -2482,6 +2847,10 @@ exports[`pdfReport — snapshots section par section > section seule : mentions 
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }</style></head><body>
 <div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
@@ -2618,6 +2987,10 @@ exports[`pdfReport — snapshots section par section > section seule : successio
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }</style></head><body>
 <div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
@@ -2785,6 +3158,10 @@ exports[`pdfReport — snapshots section par section > section seule : travail 1
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }</style></head><body>
 <div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
@@ -2937,6 +3314,10 @@ exports[`pdfReport — sélecteur palette (pdfPalette = 'encre_or') > cabinet av
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }</style></head><body>
 <div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
@@ -3239,6 +3620,10 @@ exports[`pdfReport — variantes structurelles > aucune section sélectionnée �
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }</style></head><body>
 <div class="cover">
   <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>

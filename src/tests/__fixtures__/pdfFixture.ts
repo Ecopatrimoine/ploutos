@@ -385,6 +385,79 @@ export function buildFixtureComputedCohab() {
   return { ir, ifi, succession };
 }
 
+// ─── Fixture GROS PATRIMOINE — bascule pagination (Lot 4) ──────────────────
+// 20 properties + 25 placements pour déclencher la synthèse + annexe.
+// Les IFI lines découlent des properties IFI-éligibles (locatifs essentiellement).
+// Conserve la même structure familiale que fixtureData (couple marié + 2 enfants).
+const PROPERTY_TYPES_LARGE = [
+  "Résidence principale", "Résidence secondaire", "Location nue", "Location nue",
+  "LMNP", "LMNP", "LMNP", "LMP", "SCI IR", "SCI IR",
+  "SCPI", "SCPI", "SCPI", "Terrain", "Terrain",
+  "Local professionnel", "Location nue", "LMNP", "SCI IR", "SCPI",
+];
+const PLACEMENT_TYPES_LARGE = [
+  "Livret A", "LDDS", "LEP", "PEL", "CEL",
+  "Compte courant", "Compte à terme",
+  "PEA", "Compte-titres", "Actions non cotées", "OPCVM / ETF",
+  "Assurance-vie fonds euros", "Assurance-vie fonds euros",
+  "Assurance-vie unités de compte", "Assurance-vie unités de compte",
+  "Assurance-vie unités de compte", "Contrat de capitalisation",
+  "PER bancaire", "PER bancaire", "PER assurantiel", "PER assurantiel",
+  "Madelin", "OPCVM / ETF", "PEA", "Compte-titres",
+];
+
+export const fixtureDataLarge: PatrimonialData = {
+  ...fixtureData,
+  properties: PROPERTY_TYPES_LARGE.map((type, i) => ({
+    name: `Bien ${i + 1}`,
+    type,
+    ownership: i % 3 === 0 ? "person1" : i % 3 === 1 ? "person2" : "common",
+    propertyRight: "full",
+    usufructAge: "",
+    value: String(150000 + i * 25000),
+    propertyTaxAnnual: "0",
+    rentGrossAnnual: type === "Résidence principale" ? "0" : String(6000 + i * 200),
+    insuranceAnnual: "0",
+    worksAnnual: "0",
+    otherChargesAnnual: "0",
+    loanEnabled: false,
+    loanType: "amortissable",
+    loanAmount: "0", loanRate: "0", loanDuration: "0", loanStartDate: "",
+    loanCapitalRemaining: "0", loanInterestAnnual: "0",
+    loanPledgedPlacementIndex: "-1",
+    loanInsurance: false,
+    loanInsuranceGuarantees: "",
+    loanInsuranceRate: "0", loanInsuranceRate1: "0", loanInsuranceRate2: "0",
+    loanInsurancePremium: "0",
+    loanInsuranceCoverage: "",
+    indivisionShare1: "50", indivisionShare2: "50",
+  })),
+  placements: PLACEMENT_TYPES_LARGE.map((type, i) => ({
+    name: `Placement ${i + 1}`,
+    type,
+    ownership: i % 3 === 0 ? "person1" : i % 3 === 1 ? "person2" : "common",
+    value: String(10000 + i * 5000),
+    annualIncome: "0", taxableIncome: "0", deathValue: "0",
+    openDate: "2015-01-01",
+    pfuEligible: true, pfuOptOut: false,
+    totalPremiumsNet: "0", premiumsBefore70: "0", premiumsAfter70: "0",
+    exemptFromSuccession: "0",
+    ucRatio: "50",
+    annualWithdrawal: "0", annualContribution: "0",
+    perDeductible: true,
+    perWithdrawal: "0", perWithdrawalCapital: "0", perWithdrawalInterest: "0",
+    perAnticiped: false,
+    beneficiaries: [],
+  })),
+};
+
+export function buildFixtureComputedLarge() {
+  const ir = computeIR(fixtureDataLarge, fixtureIrOptions);
+  const ifi = computeIFI(fixtureDataLarge);
+  const succession = computeSuccession(fixtureSuccessionData, fixtureDataLarge);
+  return { ir, ifi, succession };
+}
+
 // ─── Hypothèses (vides — pas de scénario actif dans la fixture par défaut) ──
 export const fixtureHypothesisResults: Array<{
   hypothesis: Hypothesis;
@@ -397,13 +470,17 @@ export const fixtureHypothesisResults: Array<{
 // ─── Sections — toutes activées (par défaut) ────────────────────────────────
 export const allSectionsReport: Record<string, boolean> = {
   cabinet: true, famille: true, travail: true, bilan: true,
-  ir: true, ifi: true, succession: true, hypos: true, mentions: true,
+  ir: true, ifi: true, succession: true, hypos: true,
+  annexes: true,  // Lot 4 — rendue uniquement si un tableau a basculé en synthèse
+  mentions: true,
 };
 
 export const allSectionsMission: Record<string, boolean> = {
   legal: true, famille: true, travail: true, besoins: true,
   bilan: true, ir: true, ifi: true, succession: true,
-  profil: true, signature: true,
+  profil: true,
+  annexes: true,  // Lot 4 — idem
+  signature: true,
 };
 
 // Helper : produit un objet sections avec une seule section à true, le reste à false.

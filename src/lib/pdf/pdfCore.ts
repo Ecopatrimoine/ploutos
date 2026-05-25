@@ -140,6 +140,31 @@ export const segB = (segs:{label:string;value:number;color:string}[], width=420)
   return `<svg width="${width}" height="44" xmlns="http://www.w3.org/2000/svg"><rect width="${width}" height="18" rx="4" fill="#e5e7eb"/>${rects}<g transform="translate(0,26)">${legend}</g></svg>`;
 };
 
+// ─── Pagination — garde et synthèse/annexe ─────────────────────────────────
+// Seuil au-delà duquel un tableau bascule en mode synthèse (page-thème) +
+// annexe paginée (détail ligne à ligne en fin de document). En deçà : rendu
+// inchangé. Lot 4.
+export const PAGINATION_THRESHOLD = 15;
+
+// Agrège un array par clé (typage léger pour rester réutilisable).
+// Retourne [{ key, count, total }, …] dans l'ordre d'apparition.
+export function summarizeBy<T>(
+  items: readonly T[],
+  keyFn: (item: T) => string,
+  valueFn: (item: T) => number
+): Array<{ key: string; count: number; total: number }> {
+  const order: string[] = [];
+  const map = new Map<string, { count: number; total: number }>();
+  for (const item of items) {
+    const k = keyFn(item) || "(autre)";
+    const v = valueFn(item) || 0;
+    const cur = map.get(k);
+    if (cur) { cur.count++; cur.total += v; }
+    else { map.set(k, { count: 1, total: v }); order.push(k); }
+  }
+  return order.map(key => ({ key, ...map.get(key)! }));
+}
+
 // ─── Coquille print — popup + window.print() ───────────────────────────────
 export function openPrintPopup(html: string): void {
   const popup = (globalThis as any).window?.open?.("", "_blank", "width=900,height=700,scrollbars=yes");

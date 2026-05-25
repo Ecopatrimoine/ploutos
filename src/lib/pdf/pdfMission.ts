@@ -3,7 +3,7 @@
 // (refactorée pour consommer pdfCore : tokens, helpers, coquille print)
 
 import { n, euro, isAV, isPERType } from "../calculs/utils";
-import { resolveCabinetColors, resolveRecipient, kpi, sec, tbl, hbar, segB, openPrintPopup } from "./pdfCore";
+import { resolveCabinetColors, resolveRecipient, kpi, sec, tbl, hbar, segB, openPrintPopup, summarizeBy, PAGINATION_THRESHOLD } from "./pdfCore";
 import type { Recipient } from "./pdfCore";
 import { MISSION_PRESET } from "./registry";
 import type { PatrimonialData, IrOptions } from "../../types/patrimoine";
@@ -32,6 +32,8 @@ export function buildAndPrintMission(params: PdfMissionParams) {
   const colors = resolveCabinetColors(cabinet);
   // Destinataire résolu (défaut : "couple" si married/pacs, sinon "person1").
   const recipient = resolveRecipient(params.recipient, data.coupleStatus);
+  // Lot 4 — accumulateur d'annexes paginées (cf. pdfReport pour la mécanique).
+  const annexes: string[] = [];
 
   const dateStr = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
   const dateTimeStr = new Date().toLocaleString("fr-FR");
@@ -208,6 +210,10 @@ export function buildAndPrintMission(params: PdfMissionParams) {
   @media print{
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover,.besoin-card,.profil-card,.kpi,.graph-box{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.besoin-card,.profil-card{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }`;
 
   const cover = `<div class="cover">
@@ -473,10 +479,26 @@ export function buildAndPrintMission(params: PdfMissionParams) {
     ${patItems.length>0?`<div>${sec("Répartition",`<div class="graph-box"><div class="graph-title">Par classe</div>${hbar(patItems,240)}</div>`)}</div>`:"<div></div>"}
     ${t2>0?`<div>${sec("Exposition",`<div class="graph-box"><div class="graph-title">Sécurisé vs Dynamique</div>${segB([{label:"Sécurisé",value:s2,color:"#101B3B"},{label:"Dynamique",value:d2,color:"#E3AF64"}],240)}</div>`)}</div>`:"<div></div>"}
   </div>
-  ${data.properties.length>0?sec("Immobilier",tbl(["Bien","Type","Valeur","Cap. restant","Loyer/an"],data.properties.map(p=>[p.name||p.type,p.type,euro(n(p.value)),n(p.loanCapitalRemaining)>0?euro(n(p.loanCapitalRemaining)):"—",n(p.rentGrossAnnual)>0?euro(n(p.rentGrossAnnual)):"—"]))):""}
+  ${renderImmoBilanM()}
   ${pF("Bilan patrimonial")}
 </div>`;
   })() : "";
+
+  // Lot 4 — Immobilier (mission) : synthèse par type si > seuil, sinon tableau complet.
+  function renderImmoBilanM(): string {
+    if (data.properties.length === 0) return "";
+    if (data.properties.length > PAGINATION_THRESHOLD) {
+      const summary = summarizeBy(data.properties, p => p.type || "(autre)", p => n(p.value));
+      annexes.push(`<div class="page">
+  ${pH("Annexe — Immobilier (détail)")}
+  ${sec(`Détail des ${data.properties.length} biens immobiliers`, tbl(["Bien","Type","Valeur","Cap. restant","Loyer/an"], data.properties.map(p => [p.name||p.type, p.type, euro(n(p.value)), n(p.loanCapitalRemaining)>0?euro(n(p.loanCapitalRemaining)):"—", n(p.rentGrossAnnual)>0?euro(n(p.rentGrossAnnual)):"—"])))}
+  ${pF("Annexe — Immobilier")}
+</div>`);
+      return sec("Immobilier — synthèse par type", tbl(["Type","Nombre de biens","Valeur totale"], summary.map(s => [s.key, String(s.count), euro(s.total)])))
+        + `<p style="font-size:8pt;color:#666;font-style:italic;margin-top:-4px;margin-bottom:10px;">Détail ligne à ligne en annexe (${data.properties.length} biens listés).</p>`;
+    }
+    return sec("Immobilier", tbl(["Bien","Type","Valeur","Cap. restant","Loyer/an"], data.properties.map(p => [p.name||p.type, p.type, euro(n(p.value)), n(p.loanCapitalRemaining)>0?euro(n(p.loanCapitalRemaining)):"—", n(p.rentGrossAnnual)>0?euro(n(p.rentGrossAnnual)):"—"])));
+  }
 
   const pageIRM = sections.ir ? `<div class="page">
   ${pH("Impôt sur le Revenu")}
@@ -498,9 +520,25 @@ export function buildAndPrintMission(params: PdfMissionParams) {
     ${kpi("Décote",euro(ifi.decote))}
     ${kpi("IFI net",euro(ifi.ifi),"",true)}
   </div>
-  ${ifi.lines&&ifi.lines.length>0?sec("Biens",tbl(["Bien","Type","Valeur","Abatt.","Dette","Net taxable"],ifi.lines.map((l:any)=>[l.name,l.type,euro(l.grossValue),euro(l.residenceAbatement),euro(l.deductibleDebt),euro(l.taxableNet)]),5)):""}
+  ${renderIfiBiensM()}
   ${pF("IFI")}
 </div>` : "";
+
+  // Lot 4 — IFI (mission) : synthèse par type si > seuil, sinon tableau complet.
+  function renderIfiBiensM(): string {
+    if (!ifi.lines || ifi.lines.length === 0) return "";
+    if (ifi.lines.length > PAGINATION_THRESHOLD) {
+      const summary = summarizeBy(ifi.lines as any[], (l: any) => l.type || "(autre)", (l: any) => l.taxableNet);
+      annexes.push(`<div class="page">
+  ${pH("Annexe — Biens taxables IFI (détail)")}
+  ${sec(`Détail des ${ifi.lines.length} biens IFI`, tbl(["Bien","Type","Valeur","Abatt.","Dette","Net taxable"], ifi.lines.map((l: any) => [l.name, l.type, euro(l.grossValue), euro(l.residenceAbatement), euro(l.deductibleDebt), euro(l.taxableNet)]), 5))}
+  ${pF("Annexe — IFI")}
+</div>`);
+      return sec("Biens — synthèse par type", tbl(["Type","Nombre","Net taxable cumulé"], summary.map(s => [s.key, String(s.count), euro(s.total)])))
+        + `<p style="font-size:8pt;color:#666;font-style:italic;margin-top:-4px;margin-bottom:10px;">Détail ligne à ligne en annexe (${ifi.lines.length} biens listés).</p>`;
+    }
+    return sec("Biens", tbl(["Bien","Type","Valeur","Abatt.","Dette","Net taxable"], ifi.lines.map((l: any) => [l.name, l.type, euro(l.grossValue), euro(l.residenceAbatement), euro(l.deductibleDebt), euro(l.taxableNet)]), 5));
+  }
 
   const pageSuccM = sections.succession ? `<div class="page">
   ${pH("Succession")}${cohabConjointWarning?`\n  ${cohabConjointWarning}`:""}
@@ -610,6 +648,9 @@ export function buildAndPrintMission(params: PdfMissionParams) {
     ifi:        pageIFIM,
     succession: pageSuccM,
     profil:     pageProfil,
+    // Lot 4 — annexes : rendues uniquement si accumulées en amont. Placées AVANT
+    // la signature (qui doit rester dernière section du document).
+    annexes:    annexes.length > 0 ? annexes.join("") : "",
     signature:  pageSign,
   };
 

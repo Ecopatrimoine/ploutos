@@ -35,6 +35,7 @@ export const REPORT_SECTIONS: SectionMeta[] = [
   { id: "ifi",        label: "Impôt sur la fortune immobilière", groupe: "Fiscalité" },
   { id: "succession", label: "Succession",                       groupe: "Patrimoine" },
   { id: "hypos",      label: "Scénarios d'optimisation",         groupe: "Patrimoine" },
+  { id: "annexes",    label: "Annexes — détail tableaux",        groupe: "Patrimoine" },
   { id: "mentions",   label: "Notes & mentions légales",         groupe: "Conformité" },
 ];
 
@@ -50,6 +51,7 @@ export const MISSION_SECTIONS: SectionMeta[] = [
   { id: "ifi",        label: "Impôt sur la fortune immobilière", groupe: "Fiscalité" },
   { id: "succession", label: "Succession",                       groupe: "Patrimoine" },
   { id: "profil",     label: "Profil investisseur",              groupe: "Prévoyance" },
+  { id: "annexes",    label: "Annexes — détail tableaux",        groupe: "Patrimoine" },
   { id: "signature",  label: "Signature & engagements",          groupe: "Conformité" },
 ];
 

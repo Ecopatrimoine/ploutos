@@ -6,6 +6,7 @@ import { buildAndPrintMission } from "../lib/pdf/pdfMission";
 import {
   fixtureData,
   fixtureDataCohab,
+  fixtureDataLarge,
   fixtureIrOptions,
   fixtureCabinet,
   fixtureCabinetNoColors,
@@ -14,6 +15,7 @@ import {
   onlySection,
   buildFixtureComputed,
   buildFixtureComputedCohab,
+  buildFixtureComputedLarge,
 } from "./__fixtures__/pdfFixture";
 import { capturePdfHtml } from "./__fixtures__/capturePdfHtml";
 
@@ -160,6 +162,30 @@ describe("pdfMission — IR/IFI invariants par rapport à recipient", () => {
 });
 
 // ─── Lot 3 — garde-fou visuel concubin + heir conjoint ───────────────────────
+// ─── Lot 4 — pagination + annexes (gros patrimoine) ─────────────────────────
+describe("pdfMission — gros patrimoine (synthèse + annexes)", () => {
+  it("≥ 16 properties → tableau Immobilier agrégé + annexe paginée (avant signature)", () => {
+    const computed = buildFixtureComputedLarge();
+    const params = {
+      sections: { ...allSectionsMission },
+      data: fixtureDataLarge,
+      ir: computed.ir,
+      ifi: computed.ifi,
+      succession: computed.succession,
+      irOptions: fixtureIrOptions,
+      cabinet: fixtureCabinet,
+      clientName: "Pierre Dupont",
+      logoSrc: "",
+      signatureSrc: "",
+      mission: fixtureMission,
+    };
+    const html = capturePdfHtml(() => buildAndPrintMission(params));
+    expect(html).toContain("Immobilier — synthèse par type");
+    expect(html).toContain("Annexe — Immobilier");
+    expect(html).toMatchSnapshot();
+  });
+});
+
 describe("pdfMission — garde-fou visuel cohab + heir conjoint", () => {
   it("concubin + heir 'conjoint' dans succession.results → bandeau d'avertissement visible", () => {
     const cohabComputed = buildFixtureComputedCohab();

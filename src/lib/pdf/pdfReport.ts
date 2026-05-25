@@ -4,7 +4,7 @@
 // (refactorée pour consommer pdfCore : tokens, helpers, coquille print)
 
 import { n, euro, isAV, isPERType } from "../calculs/utils";
-import { resolveCabinetColors, resolveRecipient, kpi, sec, tbl, hbar, segB, openPrintPopup } from "./pdfCore";
+import { resolveCabinetColors, resolveRecipient, kpi, sec, tbl, hbar, segB, openPrintPopup, summarizeBy, PAGINATION_THRESHOLD } from "./pdfCore";
 import type { Recipient } from "./pdfCore";
 import { REPORT_PRESET } from "./registry";
 import type { PatrimonialData, IrOptions, Hypothesis } from "../../types/patrimoine";
@@ -41,6 +41,10 @@ export function buildAndPrintPdf(params: PdfReportParams) {
   // Destinataire résolu (défaut : "couple" si married/pacs, sinon "person1").
   // Aucune UI ne le fournit aujourd'hui — la valeur par défaut préserve le rendu actuel.
   const recipient = resolveRecipient(params.recipient, data.coupleStatus);
+  // Lot 4 — accumulateur d'annexes paginées. Chaque tableau qui bascule en synthèse
+  // pousse sa page d'annexe complète. La section "annexes" du preset les rendra
+  // en bloc, en fin de document, AVANT la section "mentions" (qui reste dernière).
+  const annexes: string[] = [];
 
   const dateStr = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
   const dateTimeStr = new Date().toLocaleString("fr-FR");
@@ -295,6 +299,10 @@ export function buildAndPrintPdf(params: PdfReportParams) {
     @page{margin:0.9cm 1.1cm;size:A4;}
     .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
   }`;
 
   const makeCover = (docType: string) => {
@@ -471,11 +479,47 @@ export function buildAndPrintPdf(params: PdfReportParams) {
       </div>`):""}
     </div>
   </div>
-  ${data.properties.length>0?sec("Immobilier",tbl(["Bien","Type","Valeur brute","Cap. restant","Loyer/an"],data.properties.map(p=>[p.name||p.type,p.type,euro(n(p.value)),n(p.loanCapitalRemaining)>0?euro(n(p.loanCapitalRemaining)):"—",n(p.rentGrossAnnual)>0?euro(n(p.rentGrossAnnual)):"—"]))):""}
-  ${data.placements.length>0?sec("Placements",tbl(["Placement","Type","Propriétaire","Valeur"],data.placements.map(p=>[p.name||p.type,p.type,p.ownership==="common"?"Commun":p.ownership==="person1"?[data.person1FirstName,data.person1LastName].filter(Boolean).join(" ")||"P1":[data.person2FirstName,data.person2LastName].filter(Boolean).join(" ")||"P2",euro(n(p.value))]))):""}
+  ${renderImmoBilan()}
+  ${renderPlacementsBilan()}
   ${pF("Bilan patrimonial")}
 </div>`;
   };
+
+  // Lot 4 — Immobilier : synthèse par type si > seuil, sinon tableau complet (rendu actuel).
+  function renderImmoBilan(): string {
+    if (data.properties.length === 0) return "";
+    if (data.properties.length > PAGINATION_THRESHOLD) {
+      const summary = summarizeBy(data.properties, p => p.type || "(autre)", p => n(p.value));
+      annexes.push(`<div class="page">
+  ${pH("Annexe — Immobilier (détail)")}
+  ${sec(`Détail des ${data.properties.length} biens immobiliers`, tbl(["Bien","Type","Valeur brute","Cap. restant","Loyer/an"], data.properties.map(p => [p.name||p.type, p.type, euro(n(p.value)), n(p.loanCapitalRemaining)>0?euro(n(p.loanCapitalRemaining)):"—", n(p.rentGrossAnnual)>0?euro(n(p.rentGrossAnnual)):"—"])))}
+  ${pF("Annexe — Immobilier")}
+</div>`);
+      return sec("Immobilier — synthèse par type", tbl(["Type","Nombre de biens","Valeur totale"], summary.map(s => [s.key, String(s.count), euro(s.total)])))
+        + `<p style="font-size:8pt;color:#666;font-style:italic;margin-top:-4px;margin-bottom:10px;">Détail ligne à ligne en annexe (${data.properties.length} biens listés).</p>`;
+    }
+    return sec("Immobilier", tbl(["Bien","Type","Valeur brute","Cap. restant","Loyer/an"], data.properties.map(p => [p.name||p.type, p.type, euro(n(p.value)), n(p.loanCapitalRemaining)>0?euro(n(p.loanCapitalRemaining)):"—", n(p.rentGrossAnnual)>0?euro(n(p.rentGrossAnnual)):"—"])));
+  }
+
+  // Lot 4 — Placements : synthèse par type si > seuil, sinon tableau complet.
+  function renderPlacementsBilan(): string {
+    if (data.placements.length === 0) return "";
+    const ownerLabel = (o: string) =>
+      o === "common" ? "Commun"
+      : o === "person1" ? ([data.person1FirstName, data.person1LastName].filter(Boolean).join(" ") || "P1")
+      : ([data.person2FirstName, data.person2LastName].filter(Boolean).join(" ") || "P2");
+    if (data.placements.length > PAGINATION_THRESHOLD) {
+      const summary = summarizeBy(data.placements, p => p.type || "(autre)", p => n(p.value));
+      annexes.push(`<div class="page">
+  ${pH("Annexe — Placements (détail)")}
+  ${sec(`Détail des ${data.placements.length} placements`, tbl(["Placement","Type","Propriétaire","Valeur"], data.placements.map(p => [p.name||p.type, p.type, ownerLabel(p.ownership), euro(n(p.value))])))}
+  ${pF("Annexe — Placements")}
+</div>`);
+      return sec("Placements — synthèse par type", tbl(["Type","Nombre de placements","Valeur totale"], summary.map(s => [s.key, String(s.count), euro(s.total)])))
+        + `<p style="font-size:8pt;color:#666;font-style:italic;margin-top:-4px;margin-bottom:10px;">Détail ligne à ligne en annexe (${data.placements.length} placements listés).</p>`;
+    }
+    return sec("Placements", tbl(["Placement","Type","Propriétaire","Valeur"], data.placements.map(p => [p.name||p.type, p.type, ownerLabel(p.ownership), euro(n(p.value))])));
+  }
 
   const pageIR = () => `<div class="page">
   ${pH("Impôt sur le Revenu")}
@@ -500,12 +544,25 @@ export function buildAndPrintPdf(params: PdfReportParams) {
     ${kpi("Décote",euro(ifi.decote))}
     ${kpi("IFI net dû",euro(ifi.ifi),"",true)}
   </div>
-  ${ifi.lines&&ifi.lines.length>0?sec("Biens taxables",tbl(
-    ["Bien","Type","Valeur brute","Abatt. RP","Dette déd.","Net taxable"],
-    ifi.lines.map((l:any)=>[l.name,l.type,euro(l.grossValue),euro(l.residenceAbatement),euro(l.deductibleDebt),euro(l.taxableNet)]),5
-  )):""}
+  ${renderIfiBiens()}
   ${pF("IFI — Rapport confidentiel")}
 </div>` : "";
+
+  // Lot 4 — IFI : synthèse par type si > seuil, sinon tableau complet.
+  function renderIfiBiens(): string {
+    if (!ifi.lines || ifi.lines.length === 0) return "";
+    if (ifi.lines.length > PAGINATION_THRESHOLD) {
+      const summary = summarizeBy(ifi.lines as any[], (l: any) => l.type || "(autre)", (l: any) => l.taxableNet);
+      annexes.push(`<div class="page">
+  ${pH("Annexe — Biens taxables IFI (détail)")}
+  ${sec(`Détail des ${ifi.lines.length} biens IFI`, tbl(["Bien","Type","Valeur brute","Abatt. RP","Dette déd.","Net taxable"], ifi.lines.map((l: any) => [l.name, l.type, euro(l.grossValue), euro(l.residenceAbatement), euro(l.deductibleDebt), euro(l.taxableNet)]), 5))}
+  ${pF("Annexe — IFI")}
+</div>`);
+      return sec("Biens taxables — synthèse par type", tbl(["Type","Nombre","Net taxable cumulé"], summary.map(s => [s.key, String(s.count), euro(s.total)])))
+        + `<p style="font-size:8pt;color:#666;font-style:italic;margin-top:-4px;margin-bottom:10px;">Détail ligne à ligne en annexe (${ifi.lines.length} biens listés).</p>`;
+    }
+    return sec("Biens taxables", tbl(["Bien","Type","Valeur brute","Abatt. RP","Dette déd.","Net taxable"], ifi.lines.map((l: any) => [l.name, l.type, euro(l.grossValue), euro(l.residenceAbatement), euro(l.deductibleDebt), euro(l.taxableNet)]), 5));
+  }
 
   const pageSuccession = () => `<div class="page">
   ${pH("Succession")}${cohabConjointWarning?`\n  ${cohabConjointWarning}`:""}
@@ -570,6 +627,9 @@ export function buildAndPrintPdf(params: PdfReportParams) {
     ifi:        () => showIFI ? pageIFI() : "",
     succession: pageSuccession,
     hypos:      () => activeHypos.length > 0 ? pageHypos() : "",
+    // Lot 4 — Les annexes ne sont rendues que si elles ont été accumulées en amont
+    // (tableaux qui ont basculé en synthèse). Sinon : section vide → filter(Boolean).
+    annexes:    () => annexes.length > 0 ? annexes.join("") : "",
     mentions:   pageMentions,
   };
 
