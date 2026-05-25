@@ -41,6 +41,30 @@ export type ResolvedColors = {
   blue: string;
 };
 
+// ─── Destinataire du document ──────────────────────────────────────────────
+// Mode de routage par section :
+// - IR  : toujours alimenté par person1 (les concubins n'ont pas de foyer fiscal
+//         IR commun ; règle conservée pour tous les régimes)
+// - IFI : toujours combiné (foyer IFI commun pour les concubins notoires) ;
+//         ignore la sélection
+// - Succession : suit la personne sélectionnée (le caller recalcule au besoin)
+// - En-tête « Préparé pour » : reflète la sélection
+export type Recipient = "person1" | "person2" | "couple";
+
+// Résolution du destinataire par défaut, fondée sur coupleStatus.
+// - married / pacs → "couple" (préserve le rendu actuel pour les couples)
+// - cohab (concubin) → "person1" (les concubins ne forment PAS un couple
+//   successoral : pas d'exonération conjoint, taxation 60 %)
+// - single / divorced / widowed → "person1"
+export function resolveRecipient(
+  explicit: Recipient | undefined,
+  coupleStatus: string | undefined
+): Recipient {
+  if (explicit) return explicit;
+  if (coupleStatus === "married" || coupleStatus === "pacs") return "couple";
+  return "person1";
+}
+
 // ─── Résolution couleurs cabinet → tokens ──────────────────────────────────
 // Règle :
 // 1. Si cabinet.pdfPalette === "encre_or" → defaults Encre & Or intégraux

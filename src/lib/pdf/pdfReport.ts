@@ -4,7 +4,8 @@
 // (refactorée pour consommer pdfCore : tokens, helpers, coquille print)
 
 import { n, euro, isAV, isPERType } from "../calculs/utils";
-import { resolveCabinetColors, kpi, sec, tbl, hbar, segB, openPrintPopup } from "./pdfCore";
+import { resolveCabinetColors, resolveRecipient, kpi, sec, tbl, hbar, segB, openPrintPopup } from "./pdfCore";
+import type { Recipient } from "./pdfCore";
 import { REPORT_PRESET } from "./registry";
 import type { PatrimonialData, IrOptions, Hypothesis } from "../../types/patrimoine";
 
@@ -31,11 +32,15 @@ export interface PdfReportParams {
   notes: string;
   logoSrc: string;
   hypothesisResults: HypothesisResult[];
+  recipient?: Recipient;
 }
 
 export function buildAndPrintPdf(params: PdfReportParams) {
   const { sections, data, ir, ifi, succession, irOptions, cabinet, clientName, notes, logoSrc, hypothesisResults } = params;
   const colors = resolveCabinetColors(cabinet);
+  // Destinataire résolu (défaut : "couple" si married/pacs, sinon "person1").
+  // Aucune UI ne le fournit aujourd'hui — la valeur par défaut préserve le rendu actuel.
+  const recipient = resolveRecipient(params.recipient, data.coupleStatus);
 
   const dateStr = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
   const dateTimeStr = new Date().toLocaleString("fr-FR");
@@ -50,8 +55,25 @@ export function buildAndPrintPdf(params: PdfReportParams) {
   const patrimoineTotal = immobilierNet + placementsTotal;
   const coupleLabel: Record<string,string> = { married:"Marié(s)", pacs:"Pacsé(s)", cohab:"Concubinage", single:"Célibataire", divorced:"Divorcé(e)", widowed:"Veuf/Veuve" };
   const showIFI = ifi.ifi > 0;
-  const clientName2 = [data.person1FirstName, data.person1LastName].filter(Boolean).join(" ") || clientName || "Client";
+  // Nom du destinataire pour l'en-tête (cover + page-header) :
+  // - recipient = "person2" → person2
+  // - recipient = "person1" ou "couple" → person1 (le sous-titre couple sera affiché à part)
+  const recipientName = recipient === "person2"
+    ? ([data.person2FirstName, data.person2LastName].filter(Boolean).join(" ") || clientName || "Client")
+    : ([data.person1FirstName, data.person1LastName].filter(Boolean).join(" ") || clientName || "Client");
+  // Alias historique conservé pour minimiser les diffs.
+  const clientName2 = recipientName;
   const logoSrc2 = cabinet.logoSrc || logoSrc || "";
+
+  // Garde-fou visuel — concubin + heir conjoint dans succession.results :
+  // signaler une exonération abusive (cf. bug moteur à corriger dans un Lot dédié).
+  const cohabConjointInResults =
+    data.coupleStatus === "cohab" &&
+    Array.isArray(succession?.results) &&
+    succession.results.some((r: any) => r && r.relation === "conjoint");
+  const cohabConjointWarning = cohabConjointInResults
+    ? `<div style="background:#FEF9EE;border:1px solid #F5D78E;border-left:3px solid #92400E;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:8.5pt;color:#92400E;line-height:1.5;"><strong>Vérification requise :</strong> un concubin ne bénéficie pas de l'exonération du conjoint ; la taxation à 60&nbsp;% doit être appliquée.</div>`
+    : "";
 
   // Helpers locaux qui dépendent du scope (clientName2, dateStr, cabinet) — gardés ici.
   const pH = (title: string) =>
@@ -298,7 +320,7 @@ export function buildAndPrintPdf(params: PdfReportParams) {
     <div class="cover-body">
       <div style="display:inline-block;background:${colors.navy};color:${colors.gold};font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:2px;padding:5px 16px;border-radius:20px;margin-bottom:22px;">${docType}</div>
       <div class="cover-client">${clientName2}</div>
-      ${data.coupleStatus!=="single"&&[data.person2FirstName,data.person2LastName].filter(Boolean).join(" ")?`<div style="font-size:13pt;color:${colors.sky};font-weight:600;margin-top:-4px;margin-bottom:10px;">&amp; ${[data.person2FirstName,data.person2LastName].filter(Boolean).join(" ")}</div>`:"<div style='margin-bottom:16px'></div>"}
+      ${recipient==="couple"&&[data.person2FirstName,data.person2LastName].filter(Boolean).join(" ")?`<div style="font-size:13pt;color:${colors.sky};font-weight:600;margin-top:-4px;margin-bottom:10px;">&amp; ${[data.person2FirstName,data.person2LastName].filter(Boolean).join(" ")}</div>`:"<div style='margin-bottom:16px'></div>"}
       <div class="cover-date">${dateStr}</div>
       <div class="cover-bar"></div>
       <!-- Accroche sans données sensibles -->
@@ -486,7 +508,7 @@ export function buildAndPrintPdf(params: PdfReportParams) {
 </div>` : "";
 
   const pageSuccession = () => `<div class="page">
-  ${pH("Succession")}
+  ${pH("Succession")}${cohabConjointWarning?`\n  ${cohabConjointWarning}`:""}
   <div class="kpi-grid">
     ${kpi("Actif successoral net",euro(succession.activeNet||0),"",true)}
     ${kpi("Droits totaux",euro(succession.totalRights||0),"",true)}

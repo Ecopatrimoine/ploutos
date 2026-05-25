@@ -28,6 +28,7 @@ import { HelpTooltip, Field, MoneyField, MetricCard, BracketFillChart, SectionTi
 import { supabase } from "./lib/supabase";
 import { buildAndPrintPdf as _buildAndPrintPdf } from "./lib/pdf/pdfReport";
 import { buildAndPrintMission as _buildAndPrintMission } from "./lib/pdf/pdfMission";
+import type { Recipient } from "./lib/pdf/pdfCore";
 
 // ── Imports modules refactorisés ──────────────────────────────────────────────
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "./constants";
@@ -1098,21 +1099,28 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   };
 
 
-  const buildAndPrintPdf = (sections: Record<string, boolean>) => {
+  // Si recipient="person2", recalcule succession pour deceasedPerson="person2".
+  // Sinon, réutilise la succession déjà calculée (memoisée).
+  const successionForRecipient = (recipient?: Recipient) =>
+    (recipient === "person2" && successionData.deceasedPerson !== "person2")
+      ? computeSuccession({ ...successionData, deceasedPerson: "person2" }, data)
+      : succession;
+
+  const buildAndPrintPdf = (sections: Record<string, boolean>, recipient?: Recipient) => {
     _buildAndPrintPdf({
-      sections, data, ir, ifi, succession, irOptions,
+      sections, data, ir, ifi, succession: successionForRecipient(recipient), irOptions,
       cabinet: cabinet as Record<string, string>,
-      clientName, notes, logoSrc, hypothesisResults,
+      clientName, notes, logoSrc, hypothesisResults, recipient,
     });
   };
 
     const generateMissionPdf = () => { setPdfMissionModalOpen(true); };
 
-  const buildAndPrintMission = (sections: Record<string, boolean>) => {
+  const buildAndPrintMission = (sections: Record<string, boolean>, recipient?: Recipient) => {
     _buildAndPrintMission({
-      sections, data, ir, ifi, succession, irOptions,
+      sections, data, ir, ifi, succession: successionForRecipient(recipient), irOptions,
       cabinet: cabinet as Record<string, string>,
-      clientName, logoSrc, signatureSrc, mission,
+      clientName, logoSrc, signatureSrc, mission, recipient,
     });
   };
 

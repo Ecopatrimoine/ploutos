@@ -350,6 +350,41 @@ export function buildFixtureComputed() {
   return { ir, ifi, succession };
 }
 
+// ─── Fixture CONCUBIN avec partenaire héritier (garde-fou Lot 3) ────────────
+// Reproduit le scénario du bug moteur signalé : coupleStatus="cohab" + un heir
+// avec relation="conjoint" → exonération abusive du concubin survivant.
+// Sert au snapshot du bandeau d'avertissement visuel.
+export const fixtureDataCohab: PatrimonialData = {
+  ...fixtureData,
+  coupleStatus: "cohab",
+  matrimonialRegime: "separation_biens",  // les concubins n'ont pas de régime
+};
+
+export const fixtureSuccessionDataCohab: SuccessionData = {
+  deceasedPerson: "person1",
+  spousePresent: true,
+  spouseOption: "none",
+  useTestament: false,
+  legsMode: "global",
+  heirs: [
+    // Le partenaire concubin survivant — étiqueté "conjoint" comme aujourd'hui
+    // (cf. bug moteur buildCollectedHeirs). C'est exactement ce que le garde-fou
+    // visuel doit signaler.
+    { name: "Sophie Dupont", relation: "conjoint", share: "0", priorDonations: "0", childLink: null },
+    { name: "Léa Dupont",  relation: "enfant", share: "50", priorDonations: "0", childLink: "common_child" },
+    { name: "Hugo Dupont", relation: "enfant", share: "50", priorDonations: "0", childLink: "common_child" },
+  ],
+  testamentHeirs: [],
+  legsPrecisItems: [],
+};
+
+export function buildFixtureComputedCohab() {
+  const ir = computeIR(fixtureDataCohab, fixtureIrOptions);
+  const ifi = computeIFI(fixtureDataCohab);
+  const succession = computeSuccession(fixtureSuccessionDataCohab, fixtureDataCohab);
+  return { ir, ifi, succession };
+}
+
 // ─── Hypothèses (vides — pas de scénario actif dans la fixture par défaut) ──
 export const fixtureHypothesisResults: Array<{
   hypothesis: Hypothesis;
