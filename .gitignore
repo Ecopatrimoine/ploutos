@@ -31,3 +31,6 @@ release
 .claude/
 
 supabase/.temp/
+
+# Lot 9 — sortie locale des PDFs v2 (générés via scripts/generatePdfLocal.ts)
+out/
