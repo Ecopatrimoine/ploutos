@@ -29,6 +29,8 @@ import {
   type Recommandation,
   type DimensionRecommandation,
 } from "../conformite/recommandations";
+// Lot 8e — section IPID rendue dynamique selon les pièces réellement rattachées.
+import { filterByType, type PieceJointe } from "../conformite/piecesJointes";
 import type { PatrimonialData } from "../../types/patrimoine";
 
 export interface PdfFicheDDAParams {
@@ -40,6 +42,9 @@ export interface PdfFicheDDAParams {
   mission: Record<string, any>;
   /** Recommandations du Lot 7 (libellé + justification + dimension + besoinKey). */
   recommandations?: ReadonlyArray<Recommandation>;
+  /** Pièces jointes IPID/DIC rattachées au dossier (Lot 8e). Vide ou absent →
+   *  la section IPID affichera « IPID à remettre » au lieu de « joint en annexe ». */
+  piecesJointes?: ReadonlyArray<PieceJointe>;
   /** Nom du client pour personnaliser l'en-tête. */
   clientName?: string;
   /** Logo du cabinet (sinon repli sur cabinet.logoSrc). */
@@ -61,6 +66,8 @@ export function buildAndPrintFicheDDA(params: PdfFicheDDAParams): void {
   const data = params.data || ({} as PatrimonialData);
   const mission = params.mission || {};
   const recommandations = filterComplete(params.recommandations || []);
+  // Lot 8e — pièces IPID réellement rattachées (filtre depuis params.piecesJointes).
+  const ipidsRattaches = filterByType(params.piecesJointes || [], "ipid");
   const logoSrc = cabinet.logoSrc || params.logoSrc || "";
 
   // Nom du client pour l'en-tête.
@@ -237,12 +244,18 @@ export function buildAndPrintFicheDDA(params: PdfFicheDDAParams): void {
   </div>` : "";
 
   // ─── Section IPID (assurance non-vie) ──────────────────────────────────
+  // Lot 8e — wording DYNAMIQUE selon les pièces réellement rattachées :
+  //   • 0 IPID dans piecesJointes → « IPID à remettre » (état non joint)
+  //   • ≥ 1 IPID → « IPID joint en annexe — N pièce(s) : <noms> »
+  const ipidStatusHtml = ipidsRattaches.length === 0
+    ? `<p style="margin-top:5px;font-style:italic;color:#92400E;"><strong>IPID à remettre</strong> (non joint à ce jour) — le client doit recevoir l'IPID préalablement à la souscription. Rattacher la pièce dans l'onglet « Lettre de mission » → bloc « Pièces jointes ».</p>`
+    : `<p style="margin-top:5px;font-style:italic;color:#0F5132;"><strong>IPID joint en annexe</strong> — ${ipidsRattaches.length} pièce${ipidsRattaches.length > 1 ? "s" : ""} : ${ipidsRattaches.map(p => p.nom).join(", ")}.</p>`;
   const pageIpid = sections.ipid ? `<div class="section">
     <div class="section-title">Documents IPID — assurance non-vie</div>
     <div class="block">
       <p>Pour chaque contrat d'assurance <strong>non-vie</strong> recommandé (santé, prévoyance hors décès, dommages…), le <strong>Document d'Information sur le Produit d'Assurance (IPID)</strong> doit être remis au client préalablement à la souscription, conformément à l'article <strong>L.112-2 II du Code des assurances</strong>.</p>
       <p style="margin-top:5px;">Format : document standardisé court (2 pages maximum), structuré selon le règlement d'exécution (UE) 2017/1469.</p>
-      <p style="margin-top:5px;font-style:italic;color:#666;">Emplacement : <strong>IPID joint en annexe</strong> de la présente fiche (mécanisme d'attachement géré au niveau de la mission — voir module IPID/DIC).</p>
+      ${ipidStatusHtml}
     </div>
   </div>` : "";
 

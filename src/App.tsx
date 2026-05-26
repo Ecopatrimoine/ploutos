@@ -50,6 +50,8 @@ import type {
 } from "./types/patrimoine";
 // Lot 7 — modèle « recommandation » persistée dans le payload client (Supabase).
 import type { Recommandation } from "./lib/conformite/recommandations";
+// Lot 8e — modèle « pièce jointe IPID/DIC » : métadonnées + data URL dans le payload.
+import type { PieceJointe } from "./lib/conformite/piecesJointes";
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets,
   personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs,
   getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance,
@@ -442,6 +444,8 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const [baseSnapshot, setBaseSnapshot] = useState<BaseSnapshot>({ savedAt: null, data: null, successionData: null, irOptions: null });
   // Lot 7 — recommandations par dossier (payload Supabase, jamais localStorage propre).
   const [recommandations, setRecommandations] = useState<Recommandation[]>([]);
+  // Lot 8e — pièces jointes IPID/DIC par dossier (payload Supabase).
+  const [piecesJointes, setPiecesJointes] = useState<PieceJointe[]>([]);
 
   // ── Autosave ──
   useEffect(() => {
@@ -449,7 +453,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     setAutoSaveStatus("saving");
     const timer = setTimeout(() => {
       const payload = {
-        clientName, notes, data, irOptions, successionData, hypotheses, baseSnapshot, mission, recommandations,
+        clientName, notes, data, irOptions, successionData, hypotheses, baseSnapshot, mission, recommandations, piecesJointes,
       };
       const displayName = clientName || activeClient.displayName;
       saveClient(activeClient.id, payload as ClientPayload, displayName);
@@ -457,7 +461,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       setTimeout(() => setAutoSaveStatus("idle"), 2500);
     }, 1500);
     return () => clearTimeout(timer);
-  }, [data, clientName, notes, irOptions, successionData, hypotheses, baseSnapshot, mission, recommandations, activeClient]);
+  }, [data, clientName, notes, irOptions, successionData, hypotheses, baseSnapshot, mission, recommandations, piecesJointes, activeClient]);
 
   const person1 = personLabel(data, 1);
   const person2 = personLabel(data, 2);
@@ -1010,7 +1014,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const handleSaveAndClose = () => {
     if (!activeClient) return
     const payload: ClientPayload = {
-      clientName, notes, data, irOptions, successionData, hypotheses, baseSnapshot, mission, recommandations,
+      clientName, notes, data, irOptions, successionData, hypotheses, baseSnapshot, mission, recommandations, piecesJointes,
     }
     const displayName = [(data as any).person1LastName, (data as any).person1FirstName].filter(Boolean).join(' ') || clientName
     saveClient(activeClient.id, payload as ClientPayload, displayName)
@@ -1060,6 +1064,8 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     if (p.mission) setMission(p.mission as typeof mission)
     // Lot 7 — recommandations (champ absent des dossiers d'avant le Lot 7 → fallback []).
     setRecommandations(Array.isArray(p.recommandations) ? (p.recommandations as Recommandation[]) : [])
+    // Lot 8e — pièces jointes (champ absent des dossiers d'avant le Lot 8e → fallback []).
+    setPiecesJointes(Array.isArray(p.piecesJointes) ? (p.piecesJointes as PieceJointe[]) : [])
     setActiveClient(client)
   }
 
@@ -1096,6 +1102,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     ])
     setBaseSnapshot({ savedAt: null, data: null, successionData: null, irOptions: null })
     setRecommandations([])  // Lot 7 — dossier vierge
+    setPiecesJointes([])    // Lot 8e — dossier vierge
     setActiveClient(client)
   }
 
@@ -1168,12 +1175,14 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   };
 
   // Lot 8c — Fiche d'information et de conseil DDA : dépend du dossier client.
+  // Lot 8e — la section IPID reflète l'état réel des pièces jointes du dossier.
   const buildAndPrintFicheDDA = () => {
     _buildAndPrintFicheDDA({
       cabinet: cabinet as Record<string, any>,
       data,
       mission,
       recommandations,
+      piecesJointes,
       clientName,
       logoSrc,
     });
@@ -1704,7 +1713,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
           </TabsContent>
 
           {/* ════ LETTRE DE MISSION ════ */}
-          <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} showPdfMissionModal={() => setPdfMissionModalOpen(true)} person1={person1} person2={person2} recommandations={recommandations} setRecommandations={setRecommandations} onPrintDER={buildAndPrintDER} onPrintFicheDDA={buildAndPrintFicheDDA} onPrintAdequation={buildAndPrintAdequation} />
+          <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} showPdfMissionModal={() => setPdfMissionModalOpen(true)} person1={person1} person2={person2} recommandations={recommandations} setRecommandations={setRecommandations} piecesJointes={piecesJointes} setPiecesJointes={setPiecesJointes} onPrintDER={buildAndPrintDER} onPrintFicheDDA={buildAndPrintFicheDDA} onPrintAdequation={buildAndPrintAdequation} />
 
           {/* ════ PARAMÈTRES CABINET ════ */}
           <TabParametres

@@ -20,6 +20,8 @@ import { vocabulaireReglementaire, type VocabulaireReglementaire } from "../../l
 import type { StatutFlags } from "../../lib/conformite/referencesLegales";
 // ─── Lot 7 — modèle Recommandation + libellés des dimensions ───────────────
 import { DIMENSIONS_LABEL, DIMENSIONS_ORDER, type Recommandation, type DimensionRecommandation } from "../../lib/conformite/recommandations";
+// ─── Lot 8e — pièces jointes IPID/DIC (rattachement, pas génération) ───────
+import { PIECE_TYPE_LABELS, formatTaille, type PieceJointe, type PieceJointeType } from "../../lib/conformite/piecesJointes";
 
 
 // ── TabMission ─────────────────────────────────────────────────────────────────────
@@ -479,6 +481,115 @@ const TabMission = React.memo(function TabMission(props: any) {
               >
                 <Plus className="h-3.5 w-3.5" /> Ajouter une recommandation
               </button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Pièces jointes IPID/DIC (Lot 8e — rattachement, jamais génération) */}
+      {(() => {
+        const pieces: PieceJointe[] = Array.isArray(props.piecesJointes) ? props.piecesJointes : [];
+        const setPieces: (next: PieceJointe[]) => void = props.setPiecesJointes || (() => {});
+        const updateOne = (id: string, patch: Partial<PieceJointe>) =>
+          setPieces(pieces.map(p => p.id === id ? { ...p, ...patch } : p));
+        const removeOne = (id: string) => setPieces(pieces.filter(p => p.id !== id));
+        const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          if (file.size > 5 * 1024 * 1024) {
+            alert("Fichier trop volumineux (> 5 Mo). Préférez le stockage local Electron (à venir).");
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const dataUrl = ev.target?.result;
+            if (typeof dataUrl !== "string") return;
+            const id = (typeof crypto !== "undefined" && crypto.randomUUID)
+              ? crypto.randomUUID()
+              : `piece_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
+            const piece: PieceJointe = {
+              id,
+              type: "ipid",
+              nom: file.name,
+              mimeType: file.type || "application/octet-stream",
+              taille: file.size,
+              uploadedAt: new Date().toISOString(),
+              dataUrl,
+            };
+            setPieces([...pieces, piece]);
+          };
+          reader.readAsDataURL(file);
+          // Reset l'input pour permettre de re-sélectionner le même fichier
+          e.target.value = "";
+        };
+        return (
+          <div>
+            <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>PIÈCES JOINTES — IPID / DIC</h3>
+            <div className="p-4 space-y-3" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, borderRadius: 14 }}>
+              <div className="text-xs text-slate-600" style={{ background: "rgba(146,64,14,0.05)", border: "1px solid rgba(146,64,14,0.25)", padding: "8px 10px", borderRadius: 6 }}>
+                <strong style={{ color: "#92400E" }}>Important :</strong> Ploutos <strong>ne génère pas</strong> d'IPID ni de DIC. Ces documents sont fournis <strong>par l'assureur</strong> (règlement UE 2017/1469 pour l'IPID, règlement 1286/2014 PRIIPs pour le DIC). Le cabinet les <strong>rattache</strong> au dossier et la fiche DDA les <strong>référence</strong>.
+              </div>
+              {pieces.length === 0 && (
+                <div className="text-xs text-slate-400 italic py-2">
+                  Aucune pièce jointe rattachée à ce dossier. La fiche DDA affichera « IPID à remettre ».
+                </div>
+              )}
+              {pieces.map((p, idx) => (
+                <div key={p.id} className="p-3 rounded-lg" style={{ background: "#fff", border: `1px solid ${SURFACE.border}` }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold" style={{ color: BRAND.sky }}>Pièce #{idx + 1} — {formatTaille(p.taille)}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeOne(p.id)}
+                      className="text-xs text-red-500 hover:text-red-700"
+                      title="Supprimer cette pièce jointe"
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>Type</Label>
+                      <select
+                        value={p.type}
+                        onChange={e => updateOne(p.id, { type: e.target.value as PieceJointeType })}
+                        className="w-full rounded-lg px-2 py-1.5 text-sm border"
+                        style={{ borderColor: SURFACE.border, background: "#fff" }}
+                      >
+                        {(Object.keys(PIECE_TYPE_LABELS) as PieceJointeType[]).map(t => (
+                          <option key={t} value={t}>{PIECE_TYPE_LABELS[t]}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>Nom du fichier (fourni par l'assureur)</Label>
+                      <Input
+                        value={p.nom}
+                        onChange={e => updateOne(p.id, { nom: e.target.value })}
+                        className="rounded-lg text-sm"
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>Contrat ou garantie liée (optionnel)</Label>
+                      <Input
+                        value={p.contratLie || ""}
+                        onChange={e => updateOne(p.id, { contratLie: e.target.value })}
+                        placeholder="ex : Garantie ITT — police n°12345"
+                        className="rounded-lg text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <label className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold cursor-pointer" style={{ background: BRAND.navy, color: "#fff" }}>
+                <Plus className="h-3.5 w-3.5" /> Ajouter une pièce jointe (PDF / image)
+                <input
+                  type="file"
+                  accept="application/pdf,image/png,image/jpeg"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+              </label>
             </div>
           </div>
         );

@@ -154,7 +154,7 @@ exports[`pdfFicheDDA — snapshot CIF coché + recommandations (sur-ensemble all
     <div class="block">
       <p>Pour chaque contrat d'assurance <strong>non-vie</strong> recommandé (santé, prévoyance hors décès, dommages…), le <strong>Document d'Information sur le Produit d'Assurance (IPID)</strong> doit être remis au client préalablement à la souscription, conformément à l'article <strong>L.112-2 II du Code des assurances</strong>.</p>
       <p style="margin-top:5px;">Format : document standardisé court (2 pages maximum), structuré selon le règlement d'exécution (UE) 2017/1469.</p>
-      <p style="margin-top:5px;font-style:italic;color:#666;">Emplacement : <strong>IPID joint en annexe</strong> de la présente fiche (mécanisme d'attachement géré au niveau de la mission — voir module IPID/DIC).</p>
+      <p style="margin-top:5px;font-style:italic;color:#92400E;"><strong>IPID à remettre</strong> (non joint à ce jour) — le client doit recevoir l'IPID préalablement à la souscription. Rattacher la pièce dans l'onglet « Lettre de mission » → bloc « Pièces jointes ».</p>
     </div>
   </div>
     <div class="section">
@@ -347,7 +347,7 @@ exports[`pdfFicheDDA — snapshot COA seul + recommandations (fixture David) > g
     <div class="block">
       <p>Pour chaque contrat d'assurance <strong>non-vie</strong> recommandé (santé, prévoyance hors décès, dommages…), le <strong>Document d'Information sur le Produit d'Assurance (IPID)</strong> doit être remis au client préalablement à la souscription, conformément à l'article <strong>L.112-2 II du Code des assurances</strong>.</p>
       <p style="margin-top:5px;">Format : document standardisé court (2 pages maximum), structuré selon le règlement d'exécution (UE) 2017/1469.</p>
-      <p style="margin-top:5px;font-style:italic;color:#666;">Emplacement : <strong>IPID joint en annexe</strong> de la présente fiche (mécanisme d'attachement géré au niveau de la mission — voir module IPID/DIC).</p>
+      <p style="margin-top:5px;font-style:italic;color:#92400E;"><strong>IPID à remettre</strong> (non joint à ce jour) — le client doit recevoir l'IPID préalablement à la souscription. Rattacher la pièce dans l'onglet « Lettre de mission » → bloc « Pièces jointes ».</p>
     </div>
   </div>
     <div class="section">
@@ -479,7 +479,7 @@ exports[`pdfFicheDDA — snapshot dossier vide (aucune reco, aucun besoin coché
     <div class="block">
       <p>Pour chaque contrat d'assurance <strong>non-vie</strong> recommandé (santé, prévoyance hors décès, dommages…), le <strong>Document d'Information sur le Produit d'Assurance (IPID)</strong> doit être remis au client préalablement à la souscription, conformément à l'article <strong>L.112-2 II du Code des assurances</strong>.</p>
       <p style="margin-top:5px;">Format : document standardisé court (2 pages maximum), structuré selon le règlement d'exécution (UE) 2017/1469.</p>
-      <p style="margin-top:5px;font-style:italic;color:#666;">Emplacement : <strong>IPID joint en annexe</strong> de la présente fiche (mécanisme d'attachement géré au niveau de la mission — voir module IPID/DIC).</p>
+      <p style="margin-top:5px;font-style:italic;color:#92400E;"><strong>IPID à remettre</strong> (non joint à ce jour) — le client doit recevoir l'IPID préalablement à la souscription. Rattacher la pièce dans l'onglet « Lettre de mission » → bloc « Pièces jointes ».</p>
     </div>
   </div>
     <div class="section">

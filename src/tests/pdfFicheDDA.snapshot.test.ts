@@ -148,10 +148,14 @@ describe("pdfFicheDDA — invariants COA seul", () => {
     expect(h).toContain("Capacité à subir des pertes");
   });
 
-  it("contient la référence 'IPID joint en annexe' (mécanisme = Lot 8e)", () => {
+  it("contient la référence IPID — wording dynamique 'à remettre' (fixture sans pièce jointe)", () => {
+    // Lot 8e — sans piecesJointes IPID dans la fixture, le wording est
+    // « IPID à remettre » (pas « joint en annexe »). La fonction reflète
+    // l'état réel des pièces rattachées.
     const h = html();
     expect(h).toContain("IPID");
-    expect(h).toContain("joint en annexe");
+    expect(h).toContain("IPID à remettre");
+    expect(h).not.toContain("joint en annexe");
   });
 
   it("le cadre réglementaire affiché est 'DDA' (pas 'MIF II')", () => {
