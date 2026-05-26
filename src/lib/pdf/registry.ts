@@ -57,8 +57,23 @@ export const MISSION_SECTIONS: SectionMeta[] = [
   { id: "signature",  label: "Signature & engagements",          groupe: "Conformité" },
 ];
 
+// ─── DER (Document d'entrée en relation) — Lot 8b ──────────────────────────
+// Document court et standardisé du cabinet, INDÉPENDANT du dossier client.
+// Sections « assurance » et « cif » sont CONDITIONNELLES aux statuts ORIAS
+// (assurance si coa OR mia, cif si cif coché). Les autres sont toujours là.
+export const DER_SECTIONS: SectionMeta[] = [
+  { id: "identite",     label: "Identité du cabinet",                       groupe: "Conformité" },
+  { id: "statuts",      label: "Statuts détenus & autorités de tutelle",    groupe: "Conformité" },
+  { id: "assurance",    label: "Volet assurance — liens & rémunération",    groupe: "Conformité" },
+  { id: "cif",          label: "Volet CIF — rémunération",                  groupe: "Conformité" },
+  { id: "reclamations", label: "Traitement des réclamations & médiation",   groupe: "Conformité" },
+  { id: "conflits",     label: "Politique de gestion des conflits d'intérêts", groupe: "Conformité" },
+  { id: "rgpd",         label: "Protection des données personnelles (RGPD)", groupe: "Conformité" },
+];
+
 // ─── Presets de documents — liste ordonnée des ids ─────────────────────────
 // Un preset = la séquence des sections d'un document. Plus tard, l'UI
 // permettra à l'utilisateur de cocher/décocher et réordonner ces sections.
 export const REPORT_PRESET: readonly string[] = REPORT_SECTIONS.map(s => s.id);
 export const MISSION_PRESET: readonly string[] = MISSION_SECTIONS.map(s => s.id);
+export const DER_PRESET: readonly string[]     = DER_SECTIONS.map(s => s.id);

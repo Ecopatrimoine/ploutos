@@ -540,9 +540,15 @@ const TabMission = React.memo(function TabMission(props: any) {
         </div>
       </div>
 
-      <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md" style={{ background: BRAND.navy, color: "#fff" }} onClick={showPdfMissionModal}>
-        <Download className="mr-2 h-4 w-4" />Générer PDF Lettre de mission
-      </Button>
+      <div className="flex flex-wrap gap-3">
+        <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md" style={{ background: BRAND.navy, color: "#fff" }} onClick={showPdfMissionModal}>
+          <Download className="mr-2 h-4 w-4" />Générer PDF Lettre de mission
+        </Button>
+        {/* Lot 8b — DER (Document d'Entrée en Relation) — piloté par les statuts du Lot 5. */}
+        <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md" style={{ background: BRAND.sky, color: "#fff" }} onClick={props.onPrintDER}>
+          <Download className="mr-2 h-4 w-4" />Générer DER
+        </Button>
+      </div>
 
     </CardContent>
   </Card>
