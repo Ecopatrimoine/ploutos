@@ -385,6 +385,11 @@ const dataMaquetteFicheDDA: FicheDDAPageData = {
   cabinetStatut: "courtier / mandataire",
   cabinetModeRemuneration: "commissions / honoraires",
   dateLettre: "25 mai 2026",
+  client: {
+    person1: { nom: "Hélène Dubreuil", naissance: "15/03/1975" },
+    person2: { nom: "Marc Dubreuil",   naissance: "22/08/1972" },
+    adresse: "12 rue des Lilas, 66000 Perpignan",
+  },
   origineDesBesoins: "issu du dossier",
   besoins: [
     { iconeKey: "shieldHeart",        texteHtml: "Protéger le foyer (conjoint + 2 enfants) en cas de décès, à hauteur du capital restant dû et des besoins futurs." },
@@ -407,6 +412,36 @@ const dataMaquetteFicheDDA: FicheDDAPageData = {
     "La nature et, le cas échéant, le montant de la rémunération vous sont communiqués <strong>avant la souscription</strong>. Le cabinet agit sans que sa rémunération n'oriente le choix du contrat.",
   documentsRemisHtml:
     "<strong>Documents remis avec cette fiche</strong> : pour l'assurance non-vie, le document d'information normalisé <strong>(IPID)</strong> ; pour l'assurance-vie, le <strong>document d'informations clés (DIC)</strong>. Ces documents sont établis par l'assureur concepteur du produit.",
+  documents: [
+    { type: "ipid", nom: "IPID_Prévoyance_2026.pdf" },
+    { type: "dic",  nom: "DIC_AssuranceVie_multisupport.pdf" },
+  ],
+  recommandationsGroupees: [
+    {
+      dimensionLabel: "Besoin exprimé",
+      recos: [
+        {
+          libelle: "Mettre en place une garantie capital décès à hauteur du capital restant dû",
+          justification: "Le foyer dépend des revenus du conjoint actif ; le capital décès couvre le crédit restant et sécurise les enfants jusqu'à leur autonomie.",
+          besoinLibelle: "Prévoyance — Décès",
+        },
+        {
+          libelle: "Souscrire une rente d'invalidité couvrant 60 % du revenu d'activité",
+          justification: "Un arrêt prolongé ferait chuter le revenu de 35 % du foyer ; la rente comble cet écart sans toucher à l'épargne de précaution.",
+          besoinLibelle: "Prévoyance — Arrêt de travail / invalidité",
+        },
+      ],
+    },
+    {
+      dimensionLabel: "Préférences en matière de durabilité (ESG)",
+      recos: [
+        {
+          libelle: "Privilégier des UC labellisées ISR / Greenfin / Finansol",
+          justification: "Préférence ESG significative exprimée au questionnaire ; les labels publics garantissent la cohérence des supports avec les attentes.",
+        },
+      ],
+    },
+  ],
   mentionNonContractuelle:
     "Document d'aide à la conformité remis à titre indicatif. Ne constitue ni une attestation de conformité, ni un conseil juridique. À valider au regard des textes en vigueur et du contrôle de l'association agréée. EcoPatrimoine Conseil — ORIAS n° 25006907 (statuts à confirmer sur www.orias.fr).",
 };

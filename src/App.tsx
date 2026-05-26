@@ -1203,7 +1203,9 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     runFicheDDAV2({
       cabinet: cabinet as Record<string, any>,
       mission: mission as Record<string, any>,
+      data: data as Record<string, any>,
       recommandations,
+      piecesJointes,
     });
   };
 

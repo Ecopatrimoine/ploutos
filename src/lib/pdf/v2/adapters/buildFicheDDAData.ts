@@ -4,13 +4,32 @@
 // conseil sont synthétisés à partir de mission.besoin* (cochés ou non) et
 // des recommandations filtrées complètes (Lot 7).
 
-import type { FicheDDAPageData, BesoinIcone, LigneGarantie, LigneMiseEnRegard } from "../pages/pageFicheDDA";
-import { filterComplete, type Recommandation } from "../../../conformite/recommandations";
+import type {
+  FicheDDAPageData,
+  BesoinIcone,
+  LigneGarantie,
+  LigneMiseEnRegard,
+  DocumentAnnexe,
+} from "../pages/pageFicheDDA";
+import type { GroupeRecommandationsParDimension } from "../pages/pageDeclarationAdequation";
+import {
+  filterComplete,
+  groupRecommandationsByDimension,
+  DIMENSIONS_LABEL,
+  DIMENSIONS_ORDER,
+  BESOIN_LIBELLES,
+  type Recommandation,
+} from "../../../conformite/recommandations";
+import { filterByType, type PieceJointe } from "../../../conformite/piecesJointes";
 
 export type BuildFicheDDADataParams = {
   cabinet: Record<string, any>;
   mission: Record<string, any>;
+  /** Données dossier client (PatrimonialData) — pour identité client. */
+  data?: Record<string, any>;
   recommandations?: ReadonlyArray<Recommandation>;
+  /** Pièces jointes IPID/DIC du dossier (Lot 8e). */
+  piecesJointes?: ReadonlyArray<PieceJointe>;
   dateLettre?: string;
 };
 
@@ -91,10 +110,55 @@ export function buildFicheDDAData(p: BuildFicheDDADataParams): FicheDDAPageData 
     ? "Pour le contrat d'assurance-vie en unités de compte, une <strong>adéquation renforcée</strong> est réalisée : cohérence avec votre profil, votre horizon, votre capacité à subir des pertes et vos <strong>préférences de durabilité (ESG)</strong>, exprimées au questionnaire."
     : "Pour le contrat d'assurance-vie en unités de compte, une <strong>adéquation renforcée</strong> est réalisée : cohérence avec votre profil, votre horizon, votre capacité à subir des pertes (préférences ESG non exprimées au questionnaire).";
 
-  // ── Recommandations filtrées : non utilisées directement dans la fiche
-  // (la fiche raisonne en garanties, pas en recos détaillées). Mais on
-  // s'en sert pour valider qu'il y a bien du contenu côté plan d'action.
-  void filterComplete(p.recommandations || []);
+  // ── Identité client compacte (sous header page 1) ─────────────────────
+  // Person1 toujours présente (si renseignée), person2 ajoutée seulement
+  // pour les couples (married/pacs/cohab) avec nom person2 saisi. Dates de
+  // naissance affichées au format jj/mm/aaaa (l'app stocke en ISO).
+  const dataDossier = p.data || {};
+  const p1Nom = [dataDossier.person1FirstName, dataDossier.person1LastName].filter(Boolean).join(" ");
+  const p2Nom = [dataDossier.person2FirstName, dataDossier.person2LastName].filter(Boolean).join(" ");
+  const isCouple = dataDossier.coupleStatus === "married" || dataDossier.coupleStatus === "pacs" || dataDossier.coupleStatus === "cohab";
+  const adresse = [dataDossier.adresse, dataDossier.codePostal, dataDossier.ville].filter(Boolean).join(", ") || undefined;
+  const client = p1Nom
+    ? {
+        person1: { nom: p1Nom, naissance: isoToFr(dataDossier.person1BirthDate) },
+        person2: (isCouple && p2Nom)
+          ? { nom: p2Nom, naissance: isoToFr(dataDossier.person2BirthDate) }
+          : undefined,
+        adresse,
+      }
+    : undefined;
+
+  // ── Recommandations groupées par dimension (encart page 2) ───────────
+  // Pattern identique à l'Adéquation : groupBy + BESOIN_LIBELLES pour le
+  // libellé humain du besoin lié. Si pas de recos, encart omis (page rend
+  // alors la version 2-pages standard).
+  const recosComplete = filterComplete(p.recommandations || []);
+  let recommandationsGroupees: GroupeRecommandationsParDimension[] | undefined;
+  if (recosComplete.length > 0) {
+    const grouped = groupRecommandationsByDimension(recosComplete);
+    recommandationsGroupees = DIMENSIONS_ORDER
+      .map(dim => ({ dim, recos: grouped[dim] || [] }))
+      .filter(g => g.recos.length > 0)
+      .map(g => ({
+        dimensionLabel: DIMENSIONS_LABEL[g.dim],
+        recos: g.recos.map(r => ({
+          libelle: r.libelle,
+          justification: r.justification,
+          besoinLibelle: r.besoinKey ? BESOIN_LIBELLES[r.besoinKey] : undefined,
+        })),
+      }));
+  }
+
+  // ── Documents IPID/DIC réels du dossier (Lot 8e) ─────────────────────
+  // Si liste réelle fournie (≥ 1 pièce), la page affiche les noms en
+  // pastilles. Sinon, fallback sur le wording générique documentsRemisHtml.
+  const piecesIpid = filterByType(p.piecesJointes || [], "ipid");
+  const piecesDic  = filterByType(p.piecesJointes || [], "dic");
+  const documents: DocumentAnnexe[] = [
+    ...piecesIpid.map(piece => ({ type: "ipid" as const, nom: piece.nom })),
+    ...piecesDic.map(piece  => ({ type: "dic"  as const, nom: piece.nom })),
+  ];
 
   return {
     cabinetNom:        cabinet.cabinetName || "—",
@@ -104,11 +168,14 @@ export function buildFicheDDAData(p: BuildFicheDDADataParams): FicheDDAPageData 
     cabinetStatut:           cabinet.statutLibelle || "courtier / mandataire",
     cabinetModeRemuneration: cabinet.remunerationType || "commissions / honoraires",
     dateLettre,
+    client,
     origineDesBesoins: "issu du dossier",
     besoins,
     garanties,
     miseEnRegard,
     voletIbipHtml,
+    recommandationsGroupees,
+    documents: documents.length > 0 ? documents : undefined,
     textRemunerationImpartialiteHtml:
       "La nature et, le cas échéant, le montant de la rémunération vous sont communiqués <strong>avant la souscription</strong>. Le cabinet agit sans que sa rémunération n'oriente le choix du contrat.",
     documentsRemisHtml:
@@ -122,4 +189,18 @@ export function buildFicheDDAData(p: BuildFicheDDADataParams): FicheDDAPageData 
 
 function formatDateFr(d: Date): string {
   return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+}
+
+/** Convertit une date "YYYY-MM-DD" (format ISO stocké par l'app) en
+ *  "DD/MM/YYYY" pour affichage. Tolère un format déjà français.
+ *  Retourne undefined si vide / illisible — ce qui supprime la parenthèse
+ *  vide dans le bandeau identité (pas de « (…) » orphelines). */
+function isoToFr(iso: string | undefined | null): string | undefined {
+  if (!iso) return undefined;
+  const s = String(iso).trim();
+  if (!s) return undefined;
+  const mIso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (mIso) return `${mIso[3]}/${mIso[2]}/${mIso[1]}`;
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;  // déjà au bon format
+  return undefined;  // format inconnu → on n'affiche pas
 }
