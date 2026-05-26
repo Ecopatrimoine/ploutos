@@ -655,18 +655,52 @@ const TabMission = React.memo(function TabMission(props: any) {
         <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md" style={{ background: BRAND.navy, color: "#fff" }} onClick={showPdfMissionModal}>
           <Download className="mr-2 h-4 w-4" />Générer PDF Lettre de mission
         </Button>
+        {/* Lot 9 bascule — Aperçu Lettre de mission v2. */}
+        {props.onPreviewLettreMissionV2 && (
+          <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md"
+                  style={{ background: "#fff", color: BRAND.navy, border: `1.5px dashed ${BRAND.navy}` }}
+                  onClick={props.onPreviewLettreMissionV2}>
+            <Download className="mr-2 h-4 w-4" />Aperçu Mission v2 (test)
+          </Button>
+        )}
         {/* Lot 8b — DER (Document d'Entrée en Relation) — piloté par les statuts du Lot 5. */}
         <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md" style={{ background: BRAND.sky, color: "#fff" }} onClick={props.onPrintDER}>
           <Download className="mr-2 h-4 w-4" />Générer DER
         </Button>
+        {/* Lot 9 bascule — Aperçu DER v2 (test sur dossier réel avant
+            bascule franche). Bouton temporaire : retiré au moment de la
+            bascule. Cohabite avec le bouton v1 ci-dessus. */}
+        {props.onPreviewDerV2 && (
+          <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md"
+                  style={{ background: "#fff", color: BRAND.sky, border: `1.5px dashed ${BRAND.sky}` }}
+                  onClick={props.onPreviewDerV2}>
+            <Download className="mr-2 h-4 w-4" />Aperçu DER v2 (test)
+          </Button>
+        )}
         {/* Lot 8c — Fiche d'information et de conseil DDA — consomme besoins + recommandations. */}
         <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md" style={{ background: BRAND.gold, color: "#fff" }} onClick={props.onPrintFicheDDA}>
           <Download className="mr-2 h-4 w-4" />Générer Fiche conseil DDA
         </Button>
+        {/* Lot 9 bascule — Aperçu Fiche conseil DDA v2. */}
+        {props.onPreviewFicheDDAV2 && (
+          <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md"
+                  style={{ background: "#fff", color: BRAND.gold, border: `1.5px dashed ${BRAND.gold}` }}
+                  onClick={props.onPreviewFicheDDAV2}>
+            <Download className="mr-2 h-4 w-4" />Aperçu Fiche DDA v2 (test)
+          </Button>
+        )}
         {/* Lot 8d — Déclaration d'adéquation — justifie le conseil et relie reco↔KYC. */}
         <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md" style={{ background: BRAND.success, color: "#fff" }} onClick={props.onPrintAdequation}>
           <Download className="mr-2 h-4 w-4" />Générer Déclaration d'adéquation
         </Button>
+        {/* Lot 9 bascule — Aperçu Déclaration adéquation v2. */}
+        {props.onPreviewAdequationV2 && (
+          <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md"
+                  style={{ background: "#fff", color: BRAND.success, border: `1.5px dashed ${BRAND.success}` }}
+                  onClick={props.onPreviewAdequationV2}>
+            <Download className="mr-2 h-4 w-4" />Aperçu Adéquation v2 (test)
+          </Button>
+        )}
       </div>
 
     </CardContent>

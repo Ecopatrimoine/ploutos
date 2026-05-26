@@ -31,6 +31,13 @@ import { buildAndPrintMission as _buildAndPrintMission } from "./lib/pdf/pdfMiss
 // Lot 8b — Document d'Entrée en Relation : document standardisé du cabinet,
 // indépendant du dossier client, piloté par les statuts du Lot 5.
 import { buildAndPrintDER as _buildAndPrintDER } from "./lib/pdf/pdfDER";
+// ─── Lot 9 bascule — runners v2 (Aperçu v2 temporaire pour validation
+// sur dossier réel, avant la bascule franche). Les boutons v1 restent
+// actifs en parallèle. ──────────────────────────────────────────────────
+import { runDerV2 } from "./lib/pdf/v2/runners/runDerV2";
+import { runLettreMissionV2 } from "./lib/pdf/v2/runners/runLettreMissionV2";
+import { runFicheDDAV2 } from "./lib/pdf/v2/runners/runFicheDDAV2";
+import { runDeclarationAdequationV2 } from "./lib/pdf/v2/runners/runDeclarationAdequationV2";
 // Lot 8c — Fiche d'information et de conseil DDA : dépend du dossier client
 // (data + mission + recommandations) ; consomme les helpers Lot 5 + 7.
 import { buildAndPrintFicheDDA as _buildAndPrintFicheDDA } from "./lib/pdf/pdfFicheDDA";
@@ -1174,6 +1181,42 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     });
   };
 
+  // Lot 9 bascule — Aperçu DER v2 (test sur dossier réel, AVANT bascule
+  // franche). Coexiste avec le bouton v1 ci-dessus. À retirer au moment
+  // du commit de bascule.
+  const buildAndPrintDerV2 = () => {
+    runDerV2({ cabinet: cabinet as Record<string, any> });
+  };
+
+  // Lot 9 bascule — Aperçu Lettre de mission v2 (idem, temporaire).
+  const buildAndPrintLettreMissionV2 = () => {
+    runLettreMissionV2({
+      cabinet: cabinet as Record<string, any>,
+      mission: mission as Record<string, any>,
+      data: data as Record<string, any>,
+      clientName,
+    });
+  };
+
+  // Lot 9 bascule — Aperçu Fiche conseil DDA v2 (idem, temporaire).
+  const buildAndPrintFicheDDAV2 = () => {
+    runFicheDDAV2({
+      cabinet: cabinet as Record<string, any>,
+      mission: mission as Record<string, any>,
+      recommandations,
+    });
+  };
+
+  // Lot 9 bascule — Aperçu Déclaration d'adéquation v2 (idem, temporaire).
+  const buildAndPrintAdequationV2 = () => {
+    runDeclarationAdequationV2({
+      cabinet: cabinet as Record<string, any>,
+      data,
+      mission: mission as Record<string, any>,
+      recommandations,
+    });
+  };
+
   // Lot 8c — Fiche d'information et de conseil DDA : dépend du dossier client.
   // Lot 8e — la section IPID reflète l'état réel des pièces jointes du dossier.
   const buildAndPrintFicheDDA = () => {
@@ -1713,7 +1756,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
           </TabsContent>
 
           {/* ════ LETTRE DE MISSION ════ */}
-          <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} showPdfMissionModal={() => setPdfMissionModalOpen(true)} person1={person1} person2={person2} recommandations={recommandations} setRecommandations={setRecommandations} piecesJointes={piecesJointes} setPiecesJointes={setPiecesJointes} onPrintDER={buildAndPrintDER} onPrintFicheDDA={buildAndPrintFicheDDA} onPrintAdequation={buildAndPrintAdequation} />
+          <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} showPdfMissionModal={() => setPdfMissionModalOpen(true)} person1={person1} person2={person2} recommandations={recommandations} setRecommandations={setRecommandations} piecesJointes={piecesJointes} setPiecesJointes={setPiecesJointes} onPrintDER={buildAndPrintDER} onPrintFicheDDA={buildAndPrintFicheDDA} onPrintAdequation={buildAndPrintAdequation} onPreviewDerV2={buildAndPrintDerV2} onPreviewLettreMissionV2={buildAndPrintLettreMissionV2} onPreviewFicheDDAV2={buildAndPrintFicheDDAV2} onPreviewAdequationV2={buildAndPrintAdequationV2} />
 
           {/* ════ PARAMÈTRES CABINET ════ */}
           <TabParametres
