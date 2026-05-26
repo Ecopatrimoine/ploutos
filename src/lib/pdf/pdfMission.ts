@@ -7,6 +7,9 @@ import { resolveCabinetColors, resolveRecipient, kpi, sec, tbl, hbar, segB, open
 import type { Recipient } from "./pdfCore";
 import { MISSION_PRESET } from "./registry";
 import type { PatrimonialData, IrOptions } from "../../types/patrimoine";
+// ─── Lot 8a — pilotage par les statuts (Lot 5) + vocabulaire réglementaire ──
+import { referencesLegales, type StatutFlags } from "../conformite/referencesLegales";
+import { vocabulaireReglementaire } from "../conformite/vocabulaire";
 
 type IrResult = any;
 type IfiResult = any;
@@ -19,7 +22,9 @@ export interface PdfMissionParams {
   ifi: IfiResult;
   succession: SuccessionResult;
   irOptions: IrOptions;
-  cabinet: Record<string, string>;
+  /** Lot 8a — élargi à `any` pour accueillir les flags booléens du Lot 5
+   *  (statutCoa, etc.) sans cast à chaque accès. */
+  cabinet: Record<string, any>;
   clientName: string;
   logoSrc: string;
   signatureSrc: string;
@@ -67,8 +72,7 @@ export function buildAndPrintMission(params: PdfMissionParams) {
     : "";
   const p2n = [data.person2FirstName, data.person2LastName].filter(Boolean).join(" ") || "—";
 
-  // Lot 6bis — l'horizon entre dans pts via PONDERATION_HORIZON
-  // (0/4/8/16). Le mapping à 5 niveaux du PDF reste inchangé jusqu'au Lot 8.
+  // Lot 6bis — l'horizon entre dans pts via PONDERATION_HORIZON (0/4/8/16).
   const HORIZON_PTS: Record<string, number> = { "0-4": 0, "5-8": 4, "9-15": 8, "15+": 16 };
   const pts = mission.attitude + mission.reactionBaisse +
     (mission.connaitFondsEuros?1:0)+(mission.investiFondsEuros?1:0)+
@@ -81,8 +85,31 @@ export function buildAndPrintMission(params: PdfMissionParams) {
     (mission.modeGestion==="pilote"?2:mission.modeGestion==="libre"?4:0)+
     (mission.savoirUCRisque?2:0)+(mission.savoirHorizonUC?2:0)+(mission.savoirRisqueRendement?2:0)+
     (HORIZON_PTS[mission.horizon as string] || 0);
-  const profil = pts<=10?"Sécuritaire":pts<=20?"Prudent":pts<=40?"Équilibré":pts<=60?"Dynamique":"Offensif";
-  const profilColor = pts<=10?"#22c55e":pts<=20?"#84cc16":pts<=40?"#E3AF64":pts<=60?"#f97316":"#dc2626";
+  // Lot 8a — mapping aligné sur 4 niveaux (seuils 20/40/60), cohérent avec la
+  // source unique src/lib/conformite/profil.ts (écran). Pour la fixture pts=54,
+  // "Dynamique" et la couleur #f97316 restent inchangés.
+  const profil = pts<=20?"Prudent":pts<=40?"Équilibré":pts<=60?"Dynamique":"Offensif";
+  const profilColor = pts<=20?"#84cc16":pts<=40?"#E3AF64":pts<=60?"#f97316":"#dc2626";
+
+  // Lot 8a — statuts du cabinet (Lot 5) → références & vocabulaire dynamiques.
+  // Aucun texte « COA seul » figé : tout passe par les helpers, ce qui allume
+  // automatiquement le sur-ensemble dès que CIF (ou autre) est coché.
+  const statuts: StatutFlags = {
+    coa:    !!cabinet?.statutCoa,
+    mia:    !!cabinet?.statutMia,
+    iobsp:  !!cabinet?.statutIobsp,
+    cif:    !!cabinet?.statutCif,
+    carteT: !!cabinet?.statutCarteT,
+  };
+  const refsLegales = referencesLegales(statuts);
+  const voc = vocabulaireReglementaire(statuts);
+  // Bloc de références à afficher dans la section legal. Vide si aucun statut.
+  const refsLegalesHtml = refsLegales.length > 0
+    ? refsLegales.map(r => `<li><strong>${r.code}</strong> · ${r.article} — ${r.libelle}${r.note?` <em style="color:#92400E">(${r.note})</em>`:""}</li>`).join("")
+    : `<li><em style="color:#92400E">Statuts ORIAS à renseigner dans Paramètres → Statuts &amp; conformité.</em></li>`;
+  // Libellé du cadre réglementaire (DDA, MIF II, ou les deux) — remplace les
+  // anciennes mentions « MIF2 » figées en dur (Lot 5 : ÉCRAN ; Lot 8a : PDF).
+  const cadreReglementaire = voc.cadreReglementaire;
 
   const cb = (v: boolean) => v
     ? `<span style="display:inline-block;width:12px;height:12px;border:2px solid #26428B;border-radius:2px;background:#26428B;margin-right:5px;vertical-align:middle"></span>`
@@ -245,7 +272,7 @@ export function buildAndPrintMission(params: PdfMissionParams) {
       <div style="margin-top:24px;max-width:480px;">
         <div style="background:rgba(16,27,59,0.04);border-radius:12px;padding:14px 16px;border-left:4px solid ${colors.gold};">
           <div style="font-size:8.5pt;font-weight:700;color:${colors.navy};margin-bottom:5px;">Document précontractuel réglementaire</div>
-          <div style="font-size:7.5pt;color:#666;line-height:1.6;">Lettre de mission et fiche de conseil établies conformément aux obligations DDA et MIF2, sur la base des informations recueillies lors de notre entretien.</div>
+          <div style="font-size:7.5pt;color:#666;line-height:1.6;">Lettre de mission et fiche de conseil établies conformément aux obligations ${cadreReglementaire}, sur la base des informations recueillies lors de notre entretien.</div>
         </div>
         <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
           <div style="background:rgba(16,27,59,0.05);border-radius:8px;padding:7px 12px;font-size:7.5pt;color:${colors.navy};font-weight:600;">👤 Informations légales</div>
@@ -269,9 +296,20 @@ export function buildAndPrintMission(params: PdfMissionParams) {
     <div>
       <div class="legal-block">
         <div class="legal-title">Qui sommes-nous ?</div>
-        <p>${cabinet.cabinetName||"Le cabinet"}${cabinet.forme?`, ${cabinet.forme}`:""}, est immatriculé${cabinet.forme?.includes("SARL")||cabinet.forme?.includes("SAS")?"e":""} au RCS de ${cabinet.villeRcs||"—"} sous le n° ${cabinet.rcs||"—"} et a son siège social au ${cabinet.adresse||""} ${cabinet.codePostal||""} ${cabinet.ville||""}.</p>
-        <p style="margin-top:6px"><strong>${cabinet.cabinetName||"Le cabinet"}</strong> est immatriculé à l'ORIAS (<a href="https://www.orias.fr">www.orias.fr</a>) sous le n° <strong>${cabinet.orias||"—"}</strong> en qualité de Courtier d'assurance.</p>
-        <p style="margin-top:6px">L'autorité en charge du contrôle de nos opérations est l'<strong>ACPR</strong> (Autorité de Contrôle Prudentiel et de Résolution), 4 place de Budapest CS 92459, 75436 Paris Cedex 09.</p>
+        <p>${cabinet.cabinetName||"Le cabinet"}${cabinet.forme?`, ${cabinet.forme}`:""}, est immatriculé${cabinet.forme?.includes("SARL")||cabinet.forme?.includes("SAS")?"e":""} au RCS de ${cabinet.villeRcs||"—"} sous le n° ${cabinet.rcs||"—"}${cabinet.siren?` · SIREN ${cabinet.siren}`:""}${cabinet.capital?` · Capital ${cabinet.capital}`:""} et a son siège social au ${cabinet.adresse||""} ${cabinet.codePostal||""} ${cabinet.ville||""}.</p>
+        <p style="margin-top:6px"><strong>${cabinet.cabinetName||"Le cabinet"}</strong> est immatriculé à l'ORIAS (<a href="https://www.orias.fr">www.orias.fr</a>) sous le n° <strong>${cabinet.orias||"—"}</strong>${(() => {
+          // Lot 8a — statuts ORIAS détenus, calculés depuis cabinet.statut*.
+          const libelles: string[] = [];
+          if (statuts.coa) libelles.push("Courtier en assurance (COA)");
+          if (statuts.mia) libelles.push("Mandataire d'intermédiaire en assurance (MIA)");
+          if (statuts.iobsp) libelles.push("Intermédiaire en opérations de banque et services de paiement (IOBSP)");
+          if (statuts.cif) libelles.push("Conseiller en investissements financiers (CIF)");
+          if (statuts.carteT) libelles.push("Titulaire de la carte T (transactions immobilières)");
+          return libelles.length > 0
+            ? ` en qualité de : ${libelles.join(" · ")}.`
+            : ` <em style="color:#92400E">(statuts ORIAS à renseigner dans Paramètres → Statuts &amp; conformité.)</em>`;
+        })()}</p>
+        <p style="margin-top:6px">L'autorité en charge du contrôle de nos opérations est l'<strong>ACPR</strong> (Autorité de Contrôle Prudentiel et de Résolution), 4 place de Budapest CS 92459, 75436 Paris Cedex 09${statuts.cif?` ; pour le volet CIF, l'autorité compétente est l'<strong>AMF</strong> (Autorité des Marchés Financiers), 17 place de la Bourse, 75082 Paris Cedex 02${cabinet.associationCif?`. Notre cabinet est adhérent de l'association <strong>${cabinet.associationCif}</strong>`:""}`:""}.</p>
       </div>
       <div class="legal-block">
         <div class="legal-title">Nous contacter</div>
@@ -308,6 +346,8 @@ export function buildAndPrintMission(params: PdfMissionParams) {
           <li>${rb(cabinet.remunerationType==="honoraire")} Par <strong>honoraires</strong> payés directement par le client</li>
           <li>${rb(cabinet.remunerationType==="mixte")} Par une <strong>combinaison</strong> des deux (commission + honoraires)</li>
         </ul>
+        ${cabinet.baremeHonoraires?`<p style="margin-top:4px;font-size:7.5pt;color:#555">Barème d'honoraires : <strong>${cabinet.baremeHonoraires}</strong>.</p>`:""}
+        ${cabinet.natureConseil==="independant"?`<p style="margin-top:4px;font-size:7.5pt;color:#555">Nature du conseil : <strong>conseil indépendant</strong> (analyse impartiale et personnalisée d'un nombre suffisant de produits offerts sur le marché).</p>`:cabinet.natureConseil==="non_independant"?`<p style="margin-top:4px;font-size:7.5pt;color:#555">Nature du conseil : <strong>conseil non indépendant</strong>.</p>`:""}
         <p style="margin-top:4px;font-size:7.5pt;color:#666">Notre cabinet n'entretient aucune participation directe ou indirecte ≥ 10% dans le capital d'un assureur, ni aucun assureur dans notre capital (art. L521-2 I).</p>
       </div>
     </div>
@@ -352,6 +392,14 @@ export function buildAndPrintMission(params: PdfMissionParams) {
       </div>
     </div>
   `)}
+  ${sec("Références légales applicables — calculées d'après les statuts du cabinet",`
+    <ul style="margin:0;padding-left:18px;font-size:8pt;color:#555;line-height:1.7;">
+      ${refsLegalesHtml}
+    </ul>
+  `)}
+  <div style="margin-top:10px;font-size:7pt;color:#92400E;line-height:1.5;background:rgba(146,64,14,0.05);border-left:3px solid rgba(146,64,14,0.35);padding:6px 10px;border-radius:4px;">
+    <strong>Portée du document — Ploutos (Ecopatrimoine).</strong> Ce document est généré pour vous aider à respecter vos obligations de conformité. Il ne constitue ni une attestation, ni une garantie d'exhaustivité réglementaire. Le conseiller reste seul responsable de la cohérence des mentions avec sa situation et le référentiel de son association professionnelle.
+  </div>
   ${pF("Lettre de mission — Informations légales")}
 </div>` : "";
 
@@ -360,12 +408,16 @@ export function buildAndPrintMission(params: PdfMissionParams) {
   <div class="two-col">
     <div>${sec("Personne 1",`<div class="info-block">
       <div class="info-row"><span class="info-label">Identité</span><span class="info-value">${p1n}</span></div>
-      ${data.person1BirthDate?`<div class="info-row"><span class="info-label">Naissance</span><span class="info-value">${new Date(data.person1BirthDate).toLocaleDateString("fr-FR")}</span></div>`:""}
+      ${data.person1NomNaissance?`<div class="info-row"><span class="info-label">Nom de naissance</span><span class="info-value">${data.person1NomNaissance}</span></div>`:""}
+      ${data.person1BirthDate?`<div class="info-row"><span class="info-label">Naissance</span><span class="info-value">${new Date(data.person1BirthDate).toLocaleDateString("fr-FR")}${data.person1LieuNaissance?` · ${data.person1LieuNaissance}`:""}</span></div>`:""}
+      ${data.person1Nationalite?`<div class="info-row"><span class="info-label">Nationalité</span><span class="info-value">${data.person1Nationalite}</span></div>`:""}
       ${data.person1JobTitle?`<div class="info-row"><span class="info-label">Profession</span><span class="info-value">${data.person1JobTitle}</span></div>`:""}
     </div>`)}</div>
     <div>${data.coupleStatus!=="single"?sec("Personne 2",`<div class="info-block">
       <div class="info-row"><span class="info-label">Identité</span><span class="info-value">${p2n}</span></div>
-      ${data.person2BirthDate?`<div class="info-row"><span class="info-label">Naissance</span><span class="info-value">${new Date(data.person2BirthDate).toLocaleDateString("fr-FR")}</span></div>`:""}
+      ${data.person2NomNaissance?`<div class="info-row"><span class="info-label">Nom de naissance</span><span class="info-value">${data.person2NomNaissance}</span></div>`:""}
+      ${data.person2BirthDate?`<div class="info-row"><span class="info-label">Naissance</span><span class="info-value">${new Date(data.person2BirthDate).toLocaleDateString("fr-FR")}${data.person2LieuNaissance?` · ${data.person2LieuNaissance}`:""}</span></div>`:""}
+      ${data.person2Nationalite?`<div class="info-row"><span class="info-label">Nationalité</span><span class="info-value">${data.person2Nationalite}</span></div>`:""}
       ${data.person2JobTitle?`<div class="info-row"><span class="info-label">Profession</span><span class="info-value">${data.person2JobTitle}</span></div>`:""}
     </div>`):""}</div>
   </div>
@@ -438,7 +490,7 @@ export function buildAndPrintMission(params: PdfMissionParams) {
     <span>${rb(mission.horizon==="9-15")} 9 à 15 ans</span>
     <span>${rb(mission.horizon==="15+")} + de 15 ans</span>
   </div>`)}
-  ${sec("Préférences en matière de durabilité — ESG (MIF2 depuis 2023)",`
+  ${sec(`Préférences en matière de durabilité — ESG (${cadreReglementaire})`,`
     <div class="two-col" style="margin-bottom:0">
       <div class="info-block" style="font-size:8pt;line-height:1.6;">
         <p style="margin-bottom:6px;font-weight:700;color:${colors.navy}">Souhaitez-vous intégrer des critères ESG dans vos investissements ?</p>
@@ -622,7 +674,7 @@ export function buildAndPrintMission(params: PdfMissionParams) {
       <p style="margin-top:4px;font-size:7.5pt;color:#555;line-height:1.5;">Vos données sont collectées pour exécuter la présente mission. Vous disposez d'un droit d'accès, de rectification et de suppression (art. 15 à 17 RGPD). Responsable de traitement : ${cabinet.cabinetName||"le cabinet"}.</p>
       <p style="margin-top:4px;font-size:7.5pt;color:#666">Bloctel : www.bloctel.gouv.fr</p>
       <p style="margin-top:6px;"><strong style="color:${colors.sky}">⚠️ Conflits d'intérêts</strong></p>
-      <p style="margin-top:3px;font-size:7.5pt;color:#555;line-height:1.5;">Le cabinet tient un registre des conflits d'intérêts conformément aux obligations MIF2. Notre politique est disponible sur demande. En cas de conflit détecté, nous vous en informerons préalablement à toute recommandation.</p>
+      <p style="margin-top:3px;font-size:7.5pt;color:#555;line-height:1.5;">Le cabinet tient un registre des conflits d'intérêts conformément aux obligations ${cadreReglementaire}. Notre politique est disponible sur demande. En cas de conflit détecté, nous vous en informerons préalablement à toute recommandation.</p>
     </div>
   </div>`)}
   <div class="sign-grid">

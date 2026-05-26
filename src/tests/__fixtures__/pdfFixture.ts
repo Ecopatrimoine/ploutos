@@ -22,12 +22,19 @@ export const fixtureData: PatrimonialData = {
   person1JobTitle: "Cadre informatique",
   person1Csp: "38",
   person1PcsGroupe: "3",
+  // Lot 8a — état civil détaillé (exigence DDA lettre de mission)
+  person1NomNaissance: "Dupont",
+  person1LieuNaissance: "Lyon (Rhône)",
+  person1Nationalite: "française",
   person2FirstName: "Sophie",
   person2LastName: "Dupont",
   person2BirthDate: "1978-09-25",
   person2JobTitle: "Médecin libéral",
   person2Csp: "31",
   person2PcsGroupe: "3",
+  person2NomNaissance: "Martin",
+  person2LieuNaissance: "Marseille (Bouches-du-Rhône)",
+  person2Nationalite: "française",
   coupleStatus: "married",
   matrimonialRegime: "communaute_legale",
   singleParent: false,
@@ -235,7 +242,10 @@ export const fixtureSuccessionData: SuccessionData = {
 };
 
 // ─── Cabinet (EcoPatrimoine Conseil, données réelles confirmées) ────────────
-export const fixtureCabinet: Record<string, string> = {
+// Lot 8a — type élargi à `any` pour accueillir les flags de statut booléens
+// (statutCoa, etc.) introduits par le Lot 5 ; aligne le type de la fixture
+// avec celui du runtime (App.tsx : Record<string, any>).
+export const fixtureCabinet: Record<string, any> = {
   cabinetName: "EcoPatrimoine Conseil",
   conseiller: "David Perry",
   forme: "EI",
@@ -262,6 +272,22 @@ export const fixtureCabinet: Record<string, string> = {
   colorBlue: "#516AC7",
   logoSrc: "",
   signatureSrc: "",
+  // ── Lot 8a — statut COA actif par défaut (cohérent réalité David, ORIAS 25006907)
+  statutCoa: true,
+  statutMia: false, statutIobsp: false, statutCif: false, statutCarteT: false,
+  capital: "—",
+  natureConseil: "non_independant",
+  associationCif: "",
+};
+
+// ─── Cabinet « CIF coché » — fixture de TEST pour prouver l'allumage du
+//     sur-ensemble (RG AMF + MIF II + L.541-1 et s.) côté lettre de mission.
+//     N'est PAS utilisée pour générer un PDF en production : David n'a pas
+//     le statut CIF aujourd'hui. Sert uniquement aux tests Lot 8a.
+export const fixtureCabinetCifCoche: Record<string, any> = {
+  ...fixtureCabinet,
+  statutCif: true,
+  associationCif: "ANACOFI-CIF",
 };
 
 // ─── Cabinet SANS couleurs personnalisées — déclenche le repli Encre & Or ──

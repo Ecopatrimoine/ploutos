@@ -160,12 +160,19 @@ export type PatrimonialData = {
   person1JobTitle: string;
   person1Csp: string;
   person1PcsGroupe: string;
+  // ── État civil détaillé (Lot 8a — exigence DDA / lettre de mission) ──
+  person1NomNaissance?: string;     // nom de naissance (si différent du nom d'usage)
+  person1LieuNaissance?: string;    // ville + département / pays
+  person1Nationalite?: string;
   person2FirstName: string;
   person2LastName: string;
   person2BirthDate: string;
   person2JobTitle: string;
   person2Csp: string;
   person2PcsGroupe: string;
+  person2NomNaissance?: string;
+  person2LieuNaissance?: string;
+  person2Nationalite?: string;
   coupleStatus: string;
   matrimonialRegime: string;
   singleParent: boolean;

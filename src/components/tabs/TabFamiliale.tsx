@@ -57,6 +57,18 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
           </div>
         </div>
       </Field>
+      {/* État civil détaillé (Lot 8a — exigence DDA lettre de mission) */}
+      <div className="grid gap-3 grid-cols-2">
+        <Field label="Nom de naissance">
+          <Input value={data.person1NomNaissance || ""} onChange={(e) => setField("person1NomNaissance", e.target.value)} placeholder="si différent du nom d'usage" className="rounded-xl" />
+        </Field>
+        <Field label="Nationalité">
+          <Input value={data.person1Nationalite || ""} onChange={(e) => setField("person1Nationalite", e.target.value)} placeholder="ex : française" className="rounded-xl" />
+        </Field>
+      </div>
+      <Field label="Lieu de naissance">
+        <Input value={data.person1LieuNaissance || ""} onChange={(e) => setField("person1LieuNaissance", e.target.value)} placeholder="ville (département / pays si étranger)" className="rounded-xl" />
+      </Field>
     </div>
     {/* Personne 2 */}
     <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
@@ -87,6 +99,18 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
             </span>
           </div>
         </div>
+      </Field>
+      {/* État civil détaillé (Lot 8a) */}
+      <div className="grid gap-3 grid-cols-2">
+        <Field label="Nom de naissance">
+          <Input value={data.person2NomNaissance || ""} onChange={(e) => setField("person2NomNaissance", e.target.value)} placeholder="si différent du nom d'usage" className="rounded-xl" />
+        </Field>
+        <Field label="Nationalité">
+          <Input value={data.person2Nationalite || ""} onChange={(e) => setField("person2Nationalite", e.target.value)} placeholder="ex : française" className="rounded-xl" />
+        </Field>
+      </div>
+      <Field label="Lieu de naissance">
+        <Input value={data.person2LieuNaissance || ""} onChange={(e) => setField("person2LieuNaissance", e.target.value)} placeholder="ville (département / pays si étranger)" className="rounded-xl" />
       </Field>
     </div>
   </div>
