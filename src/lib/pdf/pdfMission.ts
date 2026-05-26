@@ -67,6 +67,9 @@ export function buildAndPrintMission(params: PdfMissionParams) {
     : "";
   const p2n = [data.person2FirstName, data.person2LastName].filter(Boolean).join(" ") || "—";
 
+  // Lot 6bis — l'horizon entre dans pts via PONDERATION_HORIZON
+  // (0/4/8/16). Le mapping à 5 niveaux du PDF reste inchangé jusqu'au Lot 8.
+  const HORIZON_PTS: Record<string, number> = { "0-4": 0, "5-8": 4, "9-15": 8, "15+": 16 };
   const pts = mission.attitude + mission.reactionBaisse +
     (mission.connaitFondsEuros?1:0)+(mission.investiFondsEuros?1:0)+
     (mission.connaitActions?1:0)+(mission.investiActions?3:0)+
@@ -76,7 +79,8 @@ export function buildAndPrintMission(params: PdfMissionParams) {
     (mission.connaitStructures?1:0)+(mission.investiStructures?4:0)+
     (mission.reactionPertes||0)+(mission.reactionGains||0)+
     (mission.modeGestion==="pilote"?2:mission.modeGestion==="libre"?4:0)+
-    (mission.savoirUCRisque?2:0)+(mission.savoirHorizonUC?2:0)+(mission.savoirRisqueRendement?2:0);
+    (mission.savoirUCRisque?2:0)+(mission.savoirHorizonUC?2:0)+(mission.savoirRisqueRendement?2:0)+
+    (HORIZON_PTS[mission.horizon as string] || 0);
   const profil = pts<=10?"Sécuritaire":pts<=20?"Prudent":pts<=40?"Équilibré":pts<=60?"Dynamique":"Offensif";
   const profilColor = pts<=10?"#22c55e":pts<=20?"#84cc16":pts<=40?"#E3AF64":pts<=60?"#f97316":"#dc2626";
 
@@ -120,7 +124,8 @@ export function buildAndPrintMission(params: PdfMissionParams) {
   };
 
   const jaugeSvg = () => {
-    const max=80; const pct=Math.min(1,pts/max);
+    // Lot 6bis — max relevé à 96 (80 base + 16 horizon max).
+    const max=96; const pct=Math.min(1,pts/max);
     const cx=120; const cy=100; const r=80;
     const zones=[{c:"#22c55e",f:0,t:0.2},{c:"#84cc16",f:0.2,t:0.4},{c:"#E3AF64",f:0.4,t:0.6},{c:"#f97316",f:0.6,t:0.8},{c:"#dc2626",f:0.8,t:1}];
     const arcPath=(from:number,to:number)=>{
@@ -564,7 +569,7 @@ export function buildAndPrintMission(params: PdfMissionParams) {
         <div style="font-size:7.5pt;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Score obtenu</div>
         ${jaugeSvg()}
         <div class="profil-badge" style="background:${profilColor}">${profil}</div>
-        <div style="font-size:8pt;color:#666;margin-top:3px">Score : ${pts} / 80 pts</div>
+        <div style="font-size:8pt;color:#666;margin-top:3px">Score : ${pts} / 96 pts</div>
       </div>
     </div>
     <div>

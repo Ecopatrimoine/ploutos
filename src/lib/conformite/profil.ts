@@ -1,29 +1,36 @@
-// ─── Lot 6 — Source unique du scoring profil investisseur ───────────────────
+// ─── Source unique du scoring profil investisseur (Lot 6 → 6bis) ───────────
 //
-// 🔴 Périmètre ÉCRAN UNIQUEMENT en Lot 6.
-// Le PDF lettre de mission (pdfMission.ts) garde son scoring interne à 5
-// niveaux jusqu'au Lot 8 (refonte PDF dédiée, avec régénération coordonnée
-// des snapshots). Divergence temporaire assumée.
+// Lot 6 :  4 niveaux + sous-score ESG (axe risque indépendant de l'ESG).
+// Lot 6bis : réintégration de l'HORIZON dans le scoring de risque (le bloc
+//            Horizon — saisi à l'écran avec un barème 0/4/8/16 — était
+//            historiquement non comptabilisé, bug latent corrigé ici).
 //
-// Invariant principal : à réponses de risque identiques, le profil n'est PAS
-// déplacé par l'ajout du sous-score ESG. L'axe risque reste calculé sur les
-// seules questions de risque ; l'ESG produit un sous-score séparé qui entre
-// dans le total affiché mais ne change pas la catégorie de profil.
+// 🔴 Périmètre partagé écran + PDF depuis le Lot 6bis : pdfMission.ts a aussi
+// été aligné (formule, max=96, '/96 pts'). Le mapping 5→niveaux du PDF reste
+// inchangé jusqu'au Lot 8 (refonte PDF dédiée).
+//
+// Invariants :
+// - À réponses identiques (risque + horizon), l'ESG ne déplace PAS le profil
+//   — il produit un sous-score séparé qui entre dans le total mais pas dans
+//   la catégorisation.
+// - L'horizon est intégré au scoreRisque : un long horizon PEUT pousser un
+//   profil d'un cran (équilibré → dynamique → offensif), conformément à
+//   l'attendu pédagogique de la grille de profil.
 
 export type Profil = "prudent" | "équilibré" | "dynamique" | "offensif";
 
 export type EsgPref = "oui" | "partiel" | "non" | "";
 
 export type ScoreProfil = {
-  /** Score de risque calculé sur les questions d'attitude/connaissance/expérience.
-   *  C'est lui (et lui seul) qui détermine le profil. */
+  /** Score de risque (attitude + connaissance + expérience + HORIZON).
+   *  C'est lui (et lui seul) qui détermine le profil. Borné [0, MAX_RISQUE]. */
   scoreRisque: number;
   /** Sous-score ESG (préférences de durabilité). Entre dans le total mais
    *  ne modifie PAS le profil. */
   sousScoreESG: number;
   /** Total affiché : scoreRisque + sousScoreESG. */
   total: number;
-  /** Dénominateur du total (max théorique : 80 risque + 4 ESG = 84). */
+  /** Dénominateur du total = MAX_RISQUE + max ESG = 96 + 4 = 100 (Lot 6bis). */
   totalMax: number;
   /** Profil à 4 niveaux dérivé de scoreRisque uniquement. */
   profil: Profil;
@@ -50,10 +57,35 @@ export const SOUS_SCORE_ESG = {
 } as const;
 
 /**
- * Calcule le score de risque pur (sans ESG). Formule strictement identique
- * à celle utilisée dans TabMission.tsx et pdfMission.ts avant le Lot 6 — voir
- * src/tests/profil.caracterisation.test.ts pour le filet qui fige ce calcul.
- * Borné [0, 80] (max théorique).
+ * Pondération du bloc Horizon de placement (Lot 6bis).
+ * Barème strictement identique aux libellés déjà affichés à l'écran dans
+ * TabMission (radios "0-4 (0 pt)", "5-8 (4 pts)", "9-15 (8 pts)", "15+ (16 pts)").
+ * Paramétrable : modifier ces valeurs UNIQUEMENT en cohérence avec les
+ * libellés UI.
+ */
+export const PONDERATION_HORIZON = {
+  "0-4":  0,
+  "5-8":  4,
+  "9-15": 8,
+  "15+":  16,
+} as const;
+
+/** Max théorique du scoreRisque (Lot 6bis : 80 base + 16 horizon = 96). */
+export const MAX_RISQUE = 96;
+
+/** Max théorique total (risque + ESG). */
+export const MAX_TOTAL = MAX_RISQUE + SOUS_SCORE_ESG.oui;  // 100
+
+function ptsHorizon(horizon: unknown): number {
+  if (typeof horizon !== "string") return 0;
+  return (PONDERATION_HORIZON as Record<string, number>)[horizon] || 0;
+}
+
+/**
+ * Calcule le score de risque (Lot 6bis : INCLUT l'horizon). Borné [0, 96].
+ * Lot 6 historique : la formule omettait l'horizon (bug latent). La
+ * réintégration corrige le bug et peut faire basculer un dossier d'un cran
+ * de profil — voir src/tests/profil.test.ts pour les preuves.
  */
 export function computeScoreRisque(mission: any): number {
   return (mission?.attitude || 0) + (mission?.reactionBaisse || 0) +
@@ -65,7 +97,8 @@ export function computeScoreRisque(mission: any): number {
     (mission?.connaitStructures?1:0)+(mission?.investiStructures?4:0)+
     (mission?.reactionPertes||0)+(mission?.reactionGains||0)+
     (mission?.modeGestion==="pilote"?2:mission?.modeGestion==="libre"?4:0)+
-    (mission?.savoirUCRisque?2:0)+(mission?.savoirHorizonUC?2:0)+(mission?.savoirRisqueRendement?2:0);
+    (mission?.savoirUCRisque?2:0)+(mission?.savoirHorizonUC?2:0)+(mission?.savoirRisqueRendement?2:0)+
+    ptsHorizon(mission?.horizon);
 }
 
 export function computeSousScoreESG(esgPref: EsgPref | undefined | null): number {
@@ -81,17 +114,15 @@ export function profilFromScore(scoreRisque: number): Profil {
   return "offensif";
 }
 
-/** Source unique consommée par l'écran (TabMission). */
+/** Source unique consommée par l'écran (TabMission) et alignée avec pdfMission. */
 export function computeProfilRisque(mission: any): ScoreProfil {
   const scoreRisque  = computeScoreRisque(mission);
   const sousScoreESG = computeSousScoreESG(mission?.esgPref);
-  // Dénominateur : 80 (max risque, cohérent avec la jauge PDF "max=80") + 4 (max ESG).
-  const totalMax = 80 + SOUS_SCORE_ESG.oui;
   return {
     scoreRisque,
     sousScoreESG,
     total: scoreRisque + sousScoreESG,
-    totalMax,
+    totalMax: MAX_TOTAL,
     profil: profilFromScore(scoreRisque),
   };
 }

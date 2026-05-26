@@ -410,13 +410,13 @@ exports[`pdfMission — garde-fou visuel cohab + heir conjoint > concubin + heir
         <div style="font-size:7.5pt;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Score obtenu</div>
         <svg width="240" height="115" viewBox="0 0 240 115" xmlns="http://www.w3.org/2000/svg">
       <path d="M40,100.00000000000001 A80,80 0 0,1 55.278640450004204,52.97717981660216" fill="none" stroke="#22c55e" stroke-width="18" stroke-linecap="butt"/><path d="M55.278640450004204,52.97717981660216 A80,80 0 0,1 95.27864045000419,23.915478696387723" fill="none" stroke="#84cc16" stroke-width="18" stroke-linecap="butt"/><path d="M95.27864045000419,23.915478696387723 A80,80 0 0,1 144.72135954999578,23.91547869638771" fill="none" stroke="#E3AF64" stroke-width="18" stroke-linecap="butt"/><path d="M144.72135954999578,23.91547869638771 A80,80 0 0,1 184.72135954999578,52.97717981660213" fill="none" stroke="#f97316" stroke-width="18" stroke-linecap="butt"/><path d="M184.72135954999578,52.97717981660213 A80,80 0 0,1 200,99.99999999999999" fill="none" stroke="#dc2626" stroke-width="18" stroke-linecap="butt"/>
-      <line x1="120" y1="100" x2="138.67562910847238" y2="22.210406368185858" stroke="#101B3B" stroke-width="3" stroke-linecap="round"/>
+      <line x1="120" y1="100" x2="135.60722576129027" y2="21.537177567741566" stroke="#101B3B" stroke-width="3" stroke-linecap="round"/>
       <circle cx="120" cy="100" r="6" fill="#101B3B"/>
-      <text x="120" y="86" text-anchor="middle" font-size="18" font-weight="900" fill="#101B3B" font-family="Lato,sans-serif">46</text>
+      <text x="120" y="86" text-anchor="middle" font-size="18" font-weight="900" fill="#101B3B" font-family="Lato,sans-serif">54</text>
       <text x="120" y="116" text-anchor="middle" font-size="10" fill="#555" font-family="Lato,sans-serif">Dynamique</text>
     </svg>
         <div class="profil-badge" style="background:#f97316">Dynamique</div>
-        <div style="font-size:8pt;color:#666;margin-top:3px">Score : 46 / 80 pts</div>
+        <div style="font-size:8pt;color:#666;margin-top:3px">Score : 54 / 96 pts</div>
       </div>
     </div>
     <div>
@@ -878,13 +878,13 @@ exports[`pdfMission — gros patrimoine (synthèse + annexes) > ≥ 16 propertie
         <div style="font-size:7.5pt;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Score obtenu</div>
         <svg width="240" height="115" viewBox="0 0 240 115" xmlns="http://www.w3.org/2000/svg">
       <path d="M40,100.00000000000001 A80,80 0 0,1 55.278640450004204,52.97717981660216" fill="none" stroke="#22c55e" stroke-width="18" stroke-linecap="butt"/><path d="M55.278640450004204,52.97717981660216 A80,80 0 0,1 95.27864045000419,23.915478696387723" fill="none" stroke="#84cc16" stroke-width="18" stroke-linecap="butt"/><path d="M95.27864045000419,23.915478696387723 A80,80 0 0,1 144.72135954999578,23.91547869638771" fill="none" stroke="#E3AF64" stroke-width="18" stroke-linecap="butt"/><path d="M144.72135954999578,23.91547869638771 A80,80 0 0,1 184.72135954999578,52.97717981660213" fill="none" stroke="#f97316" stroke-width="18" stroke-linecap="butt"/><path d="M184.72135954999578,52.97717981660213 A80,80 0 0,1 200,99.99999999999999" fill="none" stroke="#dc2626" stroke-width="18" stroke-linecap="butt"/>
-      <line x1="120" y1="100" x2="138.67562910847238" y2="22.210406368185858" stroke="#101B3B" stroke-width="3" stroke-linecap="round"/>
+      <line x1="120" y1="100" x2="135.60722576129027" y2="21.537177567741566" stroke="#101B3B" stroke-width="3" stroke-linecap="round"/>
       <circle cx="120" cy="100" r="6" fill="#101B3B"/>
-      <text x="120" y="86" text-anchor="middle" font-size="18" font-weight="900" fill="#101B3B" font-family="Lato,sans-serif">46</text>
+      <text x="120" y="86" text-anchor="middle" font-size="18" font-weight="900" fill="#101B3B" font-family="Lato,sans-serif">54</text>
       <text x="120" y="116" text-anchor="middle" font-size="10" fill="#555" font-family="Lato,sans-serif">Dynamique</text>
     </svg>
         <div class="profil-badge" style="background:#f97316">Dynamique</div>
-        <div style="font-size:8pt;color:#666;margin-top:3px">Score : 46 / 80 pts</div>
+        <div style="font-size:8pt;color:#666;margin-top:3px">Score : 54 / 96 pts</div>
       </div>
     </div>
     <div>
@@ -1344,13 +1344,13 @@ exports[`pdfMission — recipient (mode destinataire) > recipient='person1' sur 
         <div style="font-size:7.5pt;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Score obtenu</div>
         <svg width="240" height="115" viewBox="0 0 240 115" xmlns="http://www.w3.org/2000/svg">
       <path d="M40,100.00000000000001 A80,80 0 0,1 55.278640450004204,52.97717981660216" fill="none" stroke="#22c55e" stroke-width="18" stroke-linecap="butt"/><path d="M55.278640450004204,52.97717981660216 A80,80 0 0,1 95.27864045000419,23.915478696387723" fill="none" stroke="#84cc16" stroke-width="18" stroke-linecap="butt"/><path d="M95.27864045000419,23.915478696387723 A80,80 0 0,1 144.72135954999578,23.91547869638771" fill="none" stroke="#E3AF64" stroke-width="18" stroke-linecap="butt"/><path d="M144.72135954999578,23.91547869638771 A80,80 0 0,1 184.72135954999578,52.97717981660213" fill="none" stroke="#f97316" stroke-width="18" stroke-linecap="butt"/><path d="M184.72135954999578,52.97717981660213 A80,80 0 0,1 200,99.99999999999999" fill="none" stroke="#dc2626" stroke-width="18" stroke-linecap="butt"/>
-      <line x1="120" y1="100" x2="138.67562910847238" y2="22.210406368185858" stroke="#101B3B" stroke-width="3" stroke-linecap="round"/>
+      <line x1="120" y1="100" x2="135.60722576129027" y2="21.537177567741566" stroke="#101B3B" stroke-width="3" stroke-linecap="round"/>
       <circle cx="120" cy="100" r="6" fill="#101B3B"/>
-      <text x="120" y="86" text-anchor="middle" font-size="18" font-weight="900" fill="#101B3B" font-family="Lato,sans-serif">46</text>
+      <text x="120" y="86" text-anchor="middle" font-size="18" font-weight="900" fill="#101B3B" font-family="Lato,sans-serif">54</text>
       <text x="120" y="116" text-anchor="middle" font-size="10" fill="#555" font-family="Lato,sans-serif">Dynamique</text>
     </svg>
         <div class="profil-badge" style="background:#f97316">Dynamique</div>
-        <div style="font-size:8pt;color:#666;margin-top:3px">Score : 46 / 80 pts</div>
+        <div style="font-size:8pt;color:#666;margin-top:3px">Score : 54 / 96 pts</div>
       </div>
     </div>
     <div>
@@ -1801,13 +1801,13 @@ exports[`pdfMission — recipient (mode destinataire) > recipient='person2' sur 
         <div style="font-size:7.5pt;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Score obtenu</div>
         <svg width="240" height="115" viewBox="0 0 240 115" xmlns="http://www.w3.org/2000/svg">
       <path d="M40,100.00000000000001 A80,80 0 0,1 55.278640450004204,52.97717981660216" fill="none" stroke="#22c55e" stroke-width="18" stroke-linecap="butt"/><path d="M55.278640450004204,52.97717981660216 A80,80 0 0,1 95.27864045000419,23.915478696387723" fill="none" stroke="#84cc16" stroke-width="18" stroke-linecap="butt"/><path d="M95.27864045000419,23.915478696387723 A80,80 0 0,1 144.72135954999578,23.91547869638771" fill="none" stroke="#E3AF64" stroke-width="18" stroke-linecap="butt"/><path d="M144.72135954999578,23.91547869638771 A80,80 0 0,1 184.72135954999578,52.97717981660213" fill="none" stroke="#f97316" stroke-width="18" stroke-linecap="butt"/><path d="M184.72135954999578,52.97717981660213 A80,80 0 0,1 200,99.99999999999999" fill="none" stroke="#dc2626" stroke-width="18" stroke-linecap="butt"/>
-      <line x1="120" y1="100" x2="138.67562910847238" y2="22.210406368185858" stroke="#101B3B" stroke-width="3" stroke-linecap="round"/>
+      <line x1="120" y1="100" x2="135.60722576129027" y2="21.537177567741566" stroke="#101B3B" stroke-width="3" stroke-linecap="round"/>
       <circle cx="120" cy="100" r="6" fill="#101B3B"/>
-      <text x="120" y="86" text-anchor="middle" font-size="18" font-weight="900" fill="#101B3B" font-family="Lato,sans-serif">46</text>
+      <text x="120" y="86" text-anchor="middle" font-size="18" font-weight="900" fill="#101B3B" font-family="Lato,sans-serif">54</text>
       <text x="120" y="116" text-anchor="middle" font-size="10" fill="#555" font-family="Lato,sans-serif">Dynamique</text>
     </svg>
         <div class="profil-badge" style="background:#f97316">Dynamique</div>
-        <div style="font-size:8pt;color:#666;margin-top:3px">Score : 46 / 80 pts</div>
+        <div style="font-size:8pt;color:#666;margin-top:3px">Score : 54 / 96 pts</div>
       </div>
     </div>
     <div>
@@ -2258,13 +2258,13 @@ exports[`pdfMission — repli Encre & Or (cabinet sans couleurs) > cabinet sans 
         <div style="font-size:7.5pt;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Score obtenu</div>
         <svg width="240" height="115" viewBox="0 0 240 115" xmlns="http://www.w3.org/2000/svg">
       <path d="M40,100.00000000000001 A80,80 0 0,1 55.278640450004204,52.97717981660216" fill="none" stroke="#22c55e" stroke-width="18" stroke-linecap="butt"/><path d="M55.278640450004204,52.97717981660216 A80,80 0 0,1 95.27864045000419,23.915478696387723" fill="none" stroke="#84cc16" stroke-width="18" stroke-linecap="butt"/><path d="M95.27864045000419,23.915478696387723 A80,80 0 0,1 144.72135954999578,23.91547869638771" fill="none" stroke="#E3AF64" stroke-width="18" stroke-linecap="butt"/><path d="M144.72135954999578,23.91547869638771 A80,80 0 0,1 184.72135954999578,52.97717981660213" fill="none" stroke="#f97316" stroke-width="18" stroke-linecap="butt"/><path d="M184.72135954999578,52.97717981660213 A80,80 0 0,1 200,99.99999999999999" fill="none" stroke="#dc2626" stroke-width="18" stroke-linecap="butt"/>
-      <line x1="120" y1="100" x2="138.67562910847238" y2="22.210406368185858" stroke="#101B3B" stroke-width="3" stroke-linecap="round"/>
+      <line x1="120" y1="100" x2="135.60722576129027" y2="21.537177567741566" stroke="#101B3B" stroke-width="3" stroke-linecap="round"/>
       <circle cx="120" cy="100" r="6" fill="#101B3B"/>
-      <text x="120" y="86" text-anchor="middle" font-size="18" font-weight="900" fill="#101B3B" font-family="Lato,sans-serif">46</text>
+      <text x="120" y="86" text-anchor="middle" font-size="18" font-weight="900" fill="#101B3B" font-family="Lato,sans-serif">54</text>
       <text x="120" y="116" text-anchor="middle" font-size="10" fill="#555" font-family="Lato,sans-serif">Dynamique</text>
     </svg>
         <div class="profil-badge" style="background:#f97316">Dynamique</div>
-        <div style="font-size:8pt;color:#666;margin-top:3px">Score : 46 / 80 pts</div>
+        <div style="font-size:8pt;color:#666;margin-top:3px">Score : 54 / 96 pts</div>
       </div>
     </div>
     <div>
@@ -2715,13 +2715,13 @@ exports[`pdfMission — snapshot complet (toutes sections actives) > génère le
         <div style="font-size:7.5pt;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Score obtenu</div>
         <svg width="240" height="115" viewBox="0 0 240 115" xmlns="http://www.w3.org/2000/svg">
       <path d="M40,100.00000000000001 A80,80 0 0,1 55.278640450004204,52.97717981660216" fill="none" stroke="#22c55e" stroke-width="18" stroke-linecap="butt"/><path d="M55.278640450004204,52.97717981660216 A80,80 0 0,1 95.27864045000419,23.915478696387723" fill="none" stroke="#84cc16" stroke-width="18" stroke-linecap="butt"/><path d="M95.27864045000419,23.915478696387723 A80,80 0 0,1 144.72135954999578,23.91547869638771" fill="none" stroke="#E3AF64" stroke-width="18" stroke-linecap="butt"/><path d="M144.72135954999578,23.91547869638771 A80,80 0 0,1 184.72135954999578,52.97717981660213" fill="none" stroke="#f97316" stroke-width="18" stroke-linecap="butt"/><path d="M184.72135954999578,52.97717981660213 A80,80 0 0,1 200,99.99999999999999" fill="none" stroke="#dc2626" stroke-width="18" stroke-linecap="butt"/>
-      <line x1="120" y1="100" x2="138.67562910847238" y2="22.210406368185858" stroke="#101B3B" stroke-width="3" stroke-linecap="round"/>
+      <line x1="120" y1="100" x2="135.60722576129027" y2="21.537177567741566" stroke="#101B3B" stroke-width="3" stroke-linecap="round"/>
       <circle cx="120" cy="100" r="6" fill="#101B3B"/>
-      <text x="120" y="86" text-anchor="middle" font-size="18" font-weight="900" fill="#101B3B" font-family="Lato,sans-serif">46</text>
+      <text x="120" y="86" text-anchor="middle" font-size="18" font-weight="900" fill="#101B3B" font-family="Lato,sans-serif">54</text>
       <text x="120" y="116" text-anchor="middle" font-size="10" fill="#555" font-family="Lato,sans-serif">Dynamique</text>
     </svg>
         <div class="profil-badge" style="background:#f97316">Dynamique</div>
-        <div style="font-size:8pt;color:#666;margin-top:3px">Score : 46 / 80 pts</div>
+        <div style="font-size:8pt;color:#666;margin-top:3px">Score : 54 / 96 pts</div>
       </div>
     </div>
     <div>
@@ -3792,13 +3792,13 @@ exports[`pdfMission — snapshots section par section > section seule : profil 1
         <div style="font-size:7.5pt;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Score obtenu</div>
         <svg width="240" height="115" viewBox="0 0 240 115" xmlns="http://www.w3.org/2000/svg">
       <path d="M40,100.00000000000001 A80,80 0 0,1 55.278640450004204,52.97717981660216" fill="none" stroke="#22c55e" stroke-width="18" stroke-linecap="butt"/><path d="M55.278640450004204,52.97717981660216 A80,80 0 0,1 95.27864045000419,23.915478696387723" fill="none" stroke="#84cc16" stroke-width="18" stroke-linecap="butt"/><path d="M95.27864045000419,23.915478696387723 A80,80 0 0,1 144.72135954999578,23.91547869638771" fill="none" stroke="#E3AF64" stroke-width="18" stroke-linecap="butt"/><path d="M144.72135954999578,23.91547869638771 A80,80 0 0,1 184.72135954999578,52.97717981660213" fill="none" stroke="#f97316" stroke-width="18" stroke-linecap="butt"/><path d="M184.72135954999578,52.97717981660213 A80,80 0 0,1 200,99.99999999999999" fill="none" stroke="#dc2626" stroke-width="18" stroke-linecap="butt"/>
-      <line x1="120" y1="100" x2="138.67562910847238" y2="22.210406368185858" stroke="#101B3B" stroke-width="3" stroke-linecap="round"/>
+      <line x1="120" y1="100" x2="135.60722576129027" y2="21.537177567741566" stroke="#101B3B" stroke-width="3" stroke-linecap="round"/>
       <circle cx="120" cy="100" r="6" fill="#101B3B"/>
-      <text x="120" y="86" text-anchor="middle" font-size="18" font-weight="900" fill="#101B3B" font-family="Lato,sans-serif">46</text>
+      <text x="120" y="86" text-anchor="middle" font-size="18" font-weight="900" fill="#101B3B" font-family="Lato,sans-serif">54</text>
       <text x="120" y="116" text-anchor="middle" font-size="10" fill="#555" font-family="Lato,sans-serif">Dynamique</text>
     </svg>
         <div class="profil-badge" style="background:#f97316">Dynamique</div>
-        <div style="font-size:8pt;color:#666;margin-top:3px">Score : 46 / 80 pts</div>
+        <div style="font-size:8pt;color:#666;margin-top:3px">Score : 54 / 96 pts</div>
       </div>
     </div>
     <div>
@@ -4619,13 +4619,13 @@ exports[`pdfMission — sélecteur palette (pdfPalette = 'encre_or') > cabinet a
         <div style="font-size:7.5pt;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Score obtenu</div>
         <svg width="240" height="115" viewBox="0 0 240 115" xmlns="http://www.w3.org/2000/svg">
       <path d="M40,100.00000000000001 A80,80 0 0,1 55.278640450004204,52.97717981660216" fill="none" stroke="#22c55e" stroke-width="18" stroke-linecap="butt"/><path d="M55.278640450004204,52.97717981660216 A80,80 0 0,1 95.27864045000419,23.915478696387723" fill="none" stroke="#84cc16" stroke-width="18" stroke-linecap="butt"/><path d="M95.27864045000419,23.915478696387723 A80,80 0 0,1 144.72135954999578,23.91547869638771" fill="none" stroke="#E3AF64" stroke-width="18" stroke-linecap="butt"/><path d="M144.72135954999578,23.91547869638771 A80,80 0 0,1 184.72135954999578,52.97717981660213" fill="none" stroke="#f97316" stroke-width="18" stroke-linecap="butt"/><path d="M184.72135954999578,52.97717981660213 A80,80 0 0,1 200,99.99999999999999" fill="none" stroke="#dc2626" stroke-width="18" stroke-linecap="butt"/>
-      <line x1="120" y1="100" x2="138.67562910847238" y2="22.210406368185858" stroke="#101B3B" stroke-width="3" stroke-linecap="round"/>
+      <line x1="120" y1="100" x2="135.60722576129027" y2="21.537177567741566" stroke="#101B3B" stroke-width="3" stroke-linecap="round"/>
       <circle cx="120" cy="100" r="6" fill="#101B3B"/>
-      <text x="120" y="86" text-anchor="middle" font-size="18" font-weight="900" fill="#101B3B" font-family="Lato,sans-serif">46</text>
+      <text x="120" y="86" text-anchor="middle" font-size="18" font-weight="900" fill="#101B3B" font-family="Lato,sans-serif">54</text>
       <text x="120" y="116" text-anchor="middle" font-size="10" fill="#555" font-family="Lato,sans-serif">Dynamique</text>
     </svg>
         <div class="profil-badge" style="background:#f97316">Dynamique</div>
-        <div style="font-size:8pt;color:#666;margin-top:3px">Score : 46 / 80 pts</div>
+        <div style="font-size:8pt;color:#666;margin-top:3px">Score : 54 / 96 pts</div>
       </div>
     </div>
     <div>

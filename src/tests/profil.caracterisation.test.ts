@@ -1,25 +1,26 @@
-// ─── Lot 6 — Filet de caractérisation du scoring profil investisseur ────────
+// ─── Lot 6 → 6bis — Filet de caractérisation du scoring profil ─────────────
 //
-// Capture du STATU QUO avant la bascule du profil à 4 niveaux et l'ajout du
-// sous-score ESG. Ce fichier sert de TÉMOIN pour :
-//   1. documenter la formule actuelle de calcul de `pts` (dupliquée à
-//      l'identique dans TabMission.tsx:316 et pdfMission.ts:80) ;
-//   2. figer le mapping à 5 niveaux qui sera remplacé par 4 niveaux côté
-//      écran (le PDF reste à 5 niveaux jusqu'au Lot 8 — refonte dédiée) ;
-//   3. prouver l'invariant clef du Lot 6 : à réponses de risque identiques,
-//      le label de profil ne change pas (la fixture pts=46 reste "Dynamique"
-//      après bascule 5→4 niveaux).
+// Lot 6 : capture du statu quo avant la bascule 5→4 niveaux et l'ajout du
+// sous-score ESG. Les helpers `ptsActuel5niveaux` et `profilActuel5` sont
+// gardés comme témoins de la formule pré-bascule, pour documenter la
+// fusion Sécuritaire→prudent.
 //
-// Les tests sont écrits SANS dépendance au code de production : ils
-// dupliquent volontairement la formule pour figer l'état d'avant. Si le
-// scoring change un jour, ce fichier devra être mis à jour explicitement.
+// Lot 6bis : la formule de scoring AJOUTE désormais l'horizon (bloc qui
+// était auparavant saisi à l'écran mais jamais comptabilisé — bug latent
+// figé puis levé). Le test « Horizon n'est PAS comptabilisé » a été REMPLACÉ
+// par son contraire : « Horizon EST comptabilisé ».
+//
+// Les tests dupliquent volontairement les formules pour rester indépendants
+// du code de production : si le scoring change un jour, ce fichier devra
+// être mis à jour explicitement.
 
 import { describe, it, expect } from "vitest";
 import { fixtureMission } from "./__fixtures__/pdfFixture";
 
-// ─── Formule de scoring actuel (copie EXACTE de TabMission.tsx:305-315
-//     et pdfMission.ts:70-79 — les deux sont strictement identiques) ──────────
-function ptsActuel(mission: any): number {
+// ─── Formule HÉRITÉE (Lot 6 et avant) — n'inclut PAS l'horizon ─────────────
+//     Gardée comme témoin de la fusion 5→4 niveaux. Ne décrit plus la
+//     formule courante (cf. ptsCourant ci-dessous, Lot 6bis).
+function ptsActuel5niveaux(mission: any): number {
   return mission.attitude + mission.reactionBaisse +
     (mission.connaitFondsEuros?1:0)+(mission.investiFondsEuros?1:0)+
     (mission.connaitActions?1:0)+(mission.investiActions?3:0)+
@@ -32,6 +33,12 @@ function ptsActuel(mission: any): number {
     (mission.savoirUCRisque?2:0)+(mission.savoirHorizonUC?2:0)+(mission.savoirRisqueRendement?2:0);
 }
 
+// ─── Formule COURANTE (Lot 6bis) — inclut l'horizon ──────────────────────
+function ptsCourant(mission: any): number {
+  const horizonPts: Record<string, number> = { "0-4": 0, "5-8": 4, "9-15": 8, "15+": 16 };
+  return ptsActuel5niveaux(mission) + (horizonPts[mission.horizon as string] || 0);
+}
+
 // Mapping ACTUEL à 5 niveaux (à figer pour comparaison future).
 function profilActuel5(pts: number): string {
   return pts<=10?"Sécuritaire":pts<=20?"Prudent":pts<=40?"Équilibré":pts<=60?"Dynamique":"Offensif";
@@ -42,16 +49,20 @@ function profilCible4(pts: number): string {
   return pts<=20?"prudent":pts<=40?"équilibré":pts<=60?"dynamique":"offensif";
 }
 
-describe("Lot 6 — caractérisation : score brut sur la fixture", () => {
-  it("fixtureMission produit pts = 46 (figé)", () => {
-    expect(ptsActuel(fixtureMission)).toBe(46);
+describe("Lot 6 → 6bis — caractérisation : score brut sur la fixture", () => {
+  it("fixtureMission — formule héritée (sans horizon) = 46 (témoin)", () => {
+    expect(ptsActuel5niveaux(fixtureMission)).toBe(46);
   });
 
-  it("Horizon n'est PAS comptabilisé dans pts (bug latent documenté, hors périmètre Lot 6)", () => {
-    // Modifier horizon ne doit pas changer pts avec la formule actuelle.
-    const ptsAvec = ptsActuel({ ...fixtureMission, horizon: "15+" });
-    const ptsSans = ptsActuel({ ...fixtureMission, horizon: "0-4" });
-    expect(ptsAvec).toBe(ptsSans);
+  it("fixtureMission — formule Lot 6bis (avec horizon '9-15' = +8) = 54", () => {
+    expect(ptsCourant(fixtureMission)).toBe(54);
+  });
+
+  it("Lot 6bis — Horizon EST désormais comptabilisé dans pts (bug levé)", () => {
+    const ptsHorizonCourt = ptsCourant({ ...fixtureMission, horizon: "0-4" });
+    const ptsHorizonLong  = ptsCourant({ ...fixtureMission, horizon: "15+" });
+    // Différence attendue = max - min = 16 - 0 = 16.
+    expect(ptsHorizonLong - ptsHorizonCourt).toBe(16);
   });
 });
 
@@ -71,7 +82,7 @@ describe("Lot 6 — caractérisation : mapping à 5 niveaux (statu quo)", () => 
 
 describe("Lot 6 — invariant clef : passage 5→4 niveaux conserve le label sur la fixture", () => {
   it("fixture pts=46 : 5 niveaux → 'Dynamique' / 4 niveaux → 'dynamique' (même catégorie)", () => {
-    const pts = ptsActuel(fixtureMission);
+    const pts = ptsActuel5niveaux(fixtureMission);
     expect(profilActuel5(pts).toLowerCase()).toBe(profilCible4(pts));
   });
 
