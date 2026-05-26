@@ -31,6 +31,9 @@ import { buildAndPrintMission as _buildAndPrintMission } from "./lib/pdf/pdfMiss
 // Lot 8b — Document d'Entrée en Relation : document standardisé du cabinet,
 // indépendant du dossier client, piloté par les statuts du Lot 5.
 import { buildAndPrintDER as _buildAndPrintDER } from "./lib/pdf/pdfDER";
+// Lot 8c — Fiche d'information et de conseil DDA : dépend du dossier client
+// (data + mission + recommandations) ; consomme les helpers Lot 5 + 7.
+import { buildAndPrintFicheDDA as _buildAndPrintFicheDDA } from "./lib/pdf/pdfFicheDDA";
 import type { Recipient } from "./lib/pdf/pdfCore";
 
 // ── Imports modules refactorisés ──────────────────────────────────────────────
@@ -1161,6 +1164,18 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     });
   };
 
+  // Lot 8c — Fiche d'information et de conseil DDA : dépend du dossier client.
+  const buildAndPrintFicheDDA = () => {
+    _buildAndPrintFicheDDA({
+      cabinet: cabinet as Record<string, any>,
+      data,
+      mission,
+      recommandations,
+      clientName,
+      logoSrc,
+    });
+  };
+
   
   // ── Export JSON ──
   const exportDataFile = async () => {
@@ -1674,7 +1689,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
           </TabsContent>
 
           {/* ════ LETTRE DE MISSION ════ */}
-          <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} showPdfMissionModal={() => setPdfMissionModalOpen(true)} person1={person1} person2={person2} recommandations={recommandations} setRecommandations={setRecommandations} onPrintDER={buildAndPrintDER} />
+          <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} showPdfMissionModal={() => setPdfMissionModalOpen(true)} person1={person1} person2={person2} recommandations={recommandations} setRecommandations={setRecommandations} onPrintDER={buildAndPrintDER} onPrintFicheDDA={buildAndPrintFicheDDA} />
 
           {/* ════ PARAMÈTRES CABINET ════ */}
           <TabParametres

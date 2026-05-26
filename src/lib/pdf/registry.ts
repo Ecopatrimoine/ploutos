@@ -71,9 +71,23 @@ export const DER_SECTIONS: SectionMeta[] = [
   { id: "rgpd",         label: "Protection des données personnelles (RGPD)", groupe: "Conformité" },
 ];
 
+// ─── Fiche d'information et de conseil DDA — Lot 8c ────────────────────────
+// Document orienté assurance (volet COA/MIA). Dépend du dossier client :
+// consomme data (identité), mission (besoins + ESG), recommandations (Lot 7).
+// Section « cadre » contient un avertissement si ni coa ni mia.
+export const FICHE_DDA_SECTIONS: SectionMeta[] = [
+  { id: "identite",   label: "Client(s) — identité et état civil",       groupe: "Conformité" },
+  { id: "besoins",    label: "Exigences et besoins exprimés",            groupe: "Prévoyance" },
+  { id: "conseil",    label: "Conseil fourni et justification",          groupe: "Conformité" },
+  { id: "ipid",       label: "Documents IPID — assurance non-vie",       groupe: "Conformité" },
+  { id: "adequation", label: "Adéquation renforcée (vie / IBIP) + durabilité", groupe: "Prévoyance" },
+  { id: "cadre",      label: "Cadre réglementaire & références légales", groupe: "Conformité" },
+];
+
 // ─── Presets de documents — liste ordonnée des ids ─────────────────────────
 // Un preset = la séquence des sections d'un document. Plus tard, l'UI
 // permettra à l'utilisateur de cocher/décocher et réordonner ces sections.
-export const REPORT_PRESET: readonly string[] = REPORT_SECTIONS.map(s => s.id);
-export const MISSION_PRESET: readonly string[] = MISSION_SECTIONS.map(s => s.id);
-export const DER_PRESET: readonly string[]     = DER_SECTIONS.map(s => s.id);
+export const REPORT_PRESET: readonly string[]    = REPORT_SECTIONS.map(s => s.id);
+export const MISSION_PRESET: readonly string[]   = MISSION_SECTIONS.map(s => s.id);
+export const DER_PRESET: readonly string[]       = DER_SECTIONS.map(s => s.id);
+export const FICHE_DDA_PRESET: readonly string[] = FICHE_DDA_SECTIONS.map(s => s.id);

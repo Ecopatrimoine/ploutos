@@ -42,6 +42,40 @@ export const DIMENSIONS_ORDER: ReadonlyArray<DimensionRecommandation> =
   ["besoin", "risque", "esg", "capacitePerte"];
 
 /**
+ * Lot 8c — table partagée des libellés humains des 14 besoins du
+ * formulaire mission (mission.besoinSante/Prev/Retraite/Epargne_*). Permet
+ * d'afficher « Lié au besoin : Prévoyance — Arrêt de travail / invalidité »
+ * dans la fiche DDA (8c) puis dans la matrice besoin↔réponse (8d).
+ * Centralisée ici pour rester source unique.
+ */
+export const BESOIN_LIBELLES: Record<string, string> = {
+  // Santé
+  besoinSante_depenses: "Santé — Dépenses non remboursées",
+  besoinSante_hospit:   "Santé — Hospitalisation",
+  besoinSante_depasse:  "Santé — Dépassements d'honoraires",
+  besoinSante_surcompl: "Santé — Sur-complémentaire",
+  // Prévoyance
+  besoinPrev_arret:    "Prévoyance — Arrêt de travail / invalidité",
+  besoinPrev_deces:    "Prévoyance — Décès",
+  besoinPrev_fraisGen: "Prévoyance — Frais généraux pro",
+  // Retraite
+  besoinRetraite_capital:    "Retraite — Capital retraite",
+  besoinRetraite_rente:      "Retraite — Rente complémentaire",
+  besoinRetraite_moderniser: "Retraite — Optimiser l'épargne retraite existante",
+  // Épargne & investissement
+  besoinEpargne_valoriser:   "Épargne — Valoriser un capital",
+  besoinEpargne_transmettre: "Épargne — Préparer la transmission",
+  besoinEpargne_completer:   "Épargne — Compléter les revenus",
+  besoinEpargne_projet:      "Épargne — Financer un projet",
+};
+
+/** Libellé humain d'un besoin (besoinKey) ou la clé brute si inconnue. */
+export function besoinLabel(key: string | null | undefined): string {
+  if (!key) return "";
+  return BESOIN_LIBELLES[key] || key;
+}
+
+/**
  * Vrai si la recommandation est complète (libellé et justification non vides).
  * Les recos incomplètes ne sont pas rendues dans le PDF (filtrage en amont).
  */
