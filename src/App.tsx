@@ -95,7 +95,7 @@ function migrateCabinetForUser(_userId: string) {
 }
 
 // Lit le cabinet depuis localStorage — retourne null si absent ou invalide
-function loadCabinetFromStorage(userId: string): Record<string, string> | null {
+function loadCabinetFromStorage(userId: string): Record<string, any> | null {
   try {
     const raw = localStorage.getItem(getCabinetKey(userId));
     if (!raw) return null;
@@ -111,7 +111,7 @@ function loadCabinetFromStorage(userId: string): Record<string, string> | null {
 // 1. Fichier Electron (si dispo) — le plus à jour en local
 // 2. localStorage — toujours synchronisé à chaque sauvegarde
 // 3. null — premier lancement
-async function loadCabinetAsync(userId: string): Promise<Record<string, string> | null> {
+async function loadCabinetAsync(userId: string): Promise<Record<string, any> | null> {
   if (_isElectron && _eAPI?.readCabinet) {
     try {
       const data = await _eAPI.readCabinet();
@@ -129,7 +129,7 @@ async function loadCabinetAsync(userId: string): Promise<Record<string, string> 
 
 // Charge les paramètres cabinet depuis Supabase (multi-appareils)
 // Merge avec les données locales : Supabase gagne sauf pour logoSrc/signatureSrc (stockés local only)
-async function loadCabinetFromSupabase(userId: string): Promise<Record<string, string> | null> {
+async function loadCabinetFromSupabase(userId: string): Promise<Record<string, any> | null> {
   try {
     const { data, error } = await supabase
       .from("cabinet_settings")
@@ -137,16 +137,16 @@ async function loadCabinetFromSupabase(userId: string): Promise<Record<string, s
       .eq("user_id", userId)
       .single();
     if (error || !data?.settings) return null;
-    return data.settings as Record<string, string>;
+    return data.settings as Record<string, any>;
   } catch { return null; }
 }
 
 // Sauvegarde triple : localStorage + fichier Electron + Supabase
 // Si l'un échoue, les deux autres sont intacts — données jamais perdues
-async function saveCabinetAsync(data: Record<string, string>, userId?: string) {
+async function saveCabinetAsync(data: Record<string, any>, userId?: string) {
   // Toujours horodater pour le merge multi-appareils
   const ts = new Date().toISOString();
-  const dataWithTs: Record<string, string> = { ...data, updatedAt: ts };
+  const dataWithTs: Record<string, any> = { ...data, updatedAt: ts };
   // Normaliser nom ↔ cabinetName avant sauvegarde
   if (!dataWithTs.cabinetName && dataWithTs.nom) dataWithTs.cabinetName = dataWithTs.nom;
   if (!dataWithTs.nom && dataWithTs.cabinetName) dataWithTs.nom = dataWithTs.cabinetName;
@@ -199,6 +199,21 @@ const DEFAULT_CABINET = {
   signatureSrc: "",
   cabinetName: "",
   pdfPalette: "cabinet",  // "cabinet" | "encre_or" — défaut rétrocompat
+  // ── Statuts & conformité (Lot 5) ── clés plates, JSONB rétrocompat ──
+  statutCoa: true as boolean,        // par défaut : David est COA confirmé
+  statutMia: false as boolean,
+  statutIobsp: false as boolean,
+  statutCif: false as boolean,
+  statutCarteT: false as boolean,
+  categorieAssurance: "",            // catégorie de statut (texte libre)
+  encaisseFonds: false as boolean,
+  garantieFinanciere: "",            // texte (assureur + montant), si encaisseFonds
+  associationCif: "",                // requis seulement si statutCif
+  natureConseil: "",                 // "" | "non_independant" | "independant"
+  remuneration: "",                  // "" | "commissions" | "honoraires" | "mixte"
+  baremeHonoraires: "",
+  capital: "",
+  siren: "",
 };
 
 function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string; userEmail: string; authState: string; onSignOut: () => void }) {
@@ -238,7 +253,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   // Charger le cabinet au démarrage : local d'abord, puis Supabase (merge par timestamp)
   useEffect(() => {
     // Helper normalisation nom <-> cabinetName
-    const normalize = (base: Record<string, string>): Record<string, string> => {
+    const normalize = (base: Record<string, any>): Record<string, any> => {
       if (!base.cabinetName && base.nom) base.cabinetName = base.nom;
       if (!base.nom && base.cabinetName) base.nom = base.cabinetName;
       return base;
@@ -260,7 +275,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
           // Le plus récent gagne — Supabase gagne en cas d'égalité
           const winner = remoteTs >= localTs ? remoteData : prev;
           const loser  = remoteTs >= localTs ? prev      : remoteData;
-          const merged = normalize({ ...DEFAULT_CABINET, ...loser, ...winner } as Record<string, string>);
+          const merged = normalize({ ...DEFAULT_CABINET, ...loser, ...winner } as Record<string, any>);
 
           // Logo et signature : toujours local only (trop volumineux pour Supabase)
           merged.logoSrc      = (prev as any).logoSrc      || "";
@@ -276,13 +291,13 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     }
   }, [userId]);
 
-  const updateCabinet = (key: keyof typeof cabinet, val: string) => {
+  const updateCabinet = (key: keyof typeof cabinet, val: string | boolean) => {
     setCabinet(prev => {
       const next = { ...prev, [key]: val };
       // Synchroniser nom <-> cabinetName automatiquement
       if (key === "nom") (next as any).cabinetName = val;
       if (key === "cabinetName") (next as any).nom = val;
-      saveCabinetAsync(next as Record<string, string>, userId);
+      saveCabinetAsync(next as Record<string, any>, userId);
       return next;
     });
   };
@@ -352,7 +367,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
         const newLogo = ev.target.result as string;
         setLogoSrc(newLogo);
         // Persister le logo avec les paramètres cabinet
-        saveCabinetAsync({ ...cabinet, logoSrc: newLogo } as Record<string, string>, userId);
+        saveCabinetAsync({ ...cabinet, logoSrc: newLogo } as Record<string, any>, userId);
       }
     };
     reader.readAsDataURL(file);
@@ -1109,7 +1124,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const buildAndPrintPdf = (sections: Record<string, boolean>, recipient?: Recipient) => {
     _buildAndPrintPdf({
       sections, data, ir, ifi, succession: successionForRecipient(recipient), irOptions,
-      cabinet: cabinet as Record<string, string>,
+      cabinet: cabinet as unknown as Record<string, string>,
       clientName, notes, logoSrc, hypothesisResults, recipient,
     });
   };
@@ -1119,7 +1134,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const buildAndPrintMission = (sections: Record<string, boolean>, recipient?: Recipient) => {
     _buildAndPrintMission({
       sections, data, ir, ifi, succession: successionForRecipient(recipient), irOptions,
-      cabinet: cabinet as Record<string, string>,
+      cabinet: cabinet as unknown as Record<string, string>,
       clientName, logoSrc, signatureSrc, mission, recipient,
     });
   };

@@ -142,6 +142,113 @@ const TabParametres = React.memo(function TabParametres(props: any) {
         </div>
       </div>
 
+      {/* ── Statuts & conformité (Lot 5) ── */}
+      <div>
+        <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>STATUTS & CONFORMITÉ</h3>
+
+        {/* Sous-groupe Statuts ORIAS */}
+        <div className="mb-4">
+          <div className="text-xs font-black mb-2 pb-1" style={{ color: BRAND.navy, borderBottom: `2px solid ${BRAND.gold}`, display: "inline-block" }}>Statuts ORIAS</div>
+          <p className="text-xs text-slate-500 mb-2">Cochez les statuts détenus par le cabinet. Les références légales affichées dans les documents sont calculées d'après ces statuts.</p>
+          <div className="space-y-1.5">
+            {([
+              ["statutCoa", "COA — Courtier en assurance"],
+              ["statutMia", "MIA — Mandataire d'intermédiaire en assurance"],
+              ["statutIobsp", "IOBSP — Intermédiaire en opérations de banque et services de paiement"],
+              ["statutCif", "CIF — Conseiller en investissements financiers"],
+              ["statutCarteT", "Carte T — Transactions immobilières (loi Hoguet)"],
+            ] as [string, string][]).map(([key, label]) => (
+              <label key={key} className="flex items-start gap-2 cursor-pointer text-sm">
+                <input
+                  type="checkbox"
+                  checked={!!cabinet[key]}
+                  onChange={e => updateCabinet(key, e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded accent-[#0F172A]"
+                />
+                <span>{label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Sous-groupe Détails statut assurance — grisé si ni COA ni MIA */}
+        {(() => {
+          const assuActif = !!cabinet.statutCoa || !!cabinet.statutMia;
+          return (
+            <div className="mb-4" style={!assuActif ? { opacity: 0.55, pointerEvents: "none" } : undefined} aria-disabled={!assuActif}>
+              <div className="text-xs font-black mb-2 pb-1" style={{ color: BRAND.navy, borderBottom: `2px solid ${BRAND.gold}`, display: "inline-block" }}>Détails statut assurance</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>Catégorie d'assurance</Label>
+                  <Input value={cabinet.categorieAssurance || ""} onChange={e => updateCabinet("categorieAssurance", e.target.value)} placeholder="ex : toutes branches" className="rounded-xl text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>Garantie financière (si encaissement de fonds)</Label>
+                  <Input value={cabinet.garantieFinanciere || ""} onChange={e => updateCabinet("garantieFinanciere", e.target.value)} placeholder="ex : 115 000 € — Lloyd's" className="rounded-xl text-sm" disabled={!cabinet.encaisseFonds} style={!cabinet.encaisseFonds ? { opacity: 0.55 } : undefined} />
+                </div>
+                <label className="flex items-start gap-2 cursor-pointer text-sm col-span-2">
+                  <input type="checkbox" checked={!!cabinet.encaisseFonds} onChange={e => updateCabinet("encaisseFonds", e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#0F172A]" />
+                  <span>Encaissement de fonds pour le compte des clients</span>
+                </label>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Sous-groupe Association CIF — grisé si !statutCif */}
+        <div className="mb-4" style={!cabinet.statutCif ? { opacity: 0.55, pointerEvents: "none" } : undefined} aria-disabled={!cabinet.statutCif}>
+          <div className="text-xs font-black mb-2 pb-1" style={{ color: BRAND.navy, borderBottom: `2px solid ${BRAND.gold}`, display: "inline-block" }}>Association CIF</div>
+          <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>Association CIF de rattachement</Label>
+          <Input value={cabinet.associationCif || ""} onChange={e => updateCabinet("associationCif", e.target.value)} placeholder={cabinet.statutCif ? "ex : ANACOFI-CIF" : "—"} className="rounded-xl text-sm" disabled={!cabinet.statutCif} />
+        </div>
+
+        {/* Sous-groupe Conseil & rémunération */}
+        <div className="mb-4">
+          <div className="text-xs font-black mb-2 pb-1" style={{ color: BRAND.navy, borderBottom: `2px solid ${BRAND.gold}`, display: "inline-block" }}>Conseil & rémunération</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>Nature du conseil</Label>
+              <div className="space-y-1 mt-1">
+                {([["non_independant","Non indépendant"],["independant","Indépendant"]] as [string,string][]).map(([v, l]) => (
+                  <label key={v} className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input type="radio" name="natureConseil" checked={cabinet.natureConseil === v} onChange={() => updateCabinet("natureConseil", v)} className="h-4 w-4 accent-[#0F172A]" />
+                    <span>{l}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>Mode de rémunération principal</Label>
+              <div className="space-y-1 mt-1">
+                {([["commissions","Commissions"],["honoraires","Honoraires"],["mixte","Mixte"]] as [string,string][]).map(([v, l]) => (
+                  <label key={v} className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input type="radio" name="remuneration" checked={cabinet.remuneration === v} onChange={() => updateCabinet("remuneration", v)} className="h-4 w-4 accent-[#0F172A]" />
+                    <span>{l}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>Barème d'honoraires</Label>
+              <Input value={cabinet.baremeHonoraires || ""} onChange={e => updateCabinet("baremeHonoraires", e.target.value)} placeholder="ex : 1 % du capital, 200 €/h, ou forfait" className="rounded-xl text-sm" />
+            </div>
+          </div>
+        </div>
+
+        {/* Sous-groupe Identité juridique étendue */}
+        <div>
+          <div className="text-xs font-black mb-2 pb-1" style={{ color: BRAND.navy, borderBottom: `2px solid ${BRAND.gold}`, display: "inline-block" }}>Identité juridique étendue</div>
+          <div className="grid grid-cols-2 gap-3">
+            {([["siren","SIREN"],["capital","Capital social"]] as [string, string][]).map(([key, label]) => (
+              <div key={String(key)}>
+                <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>{label}</Label>
+                <Input value={cabinet[key] || ""} onChange={e => updateCabinet(key, e.target.value)} className="rounded-xl text-sm" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* ── Documents ── */}
       <div>
         <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>DOCUMENTS</h3>
