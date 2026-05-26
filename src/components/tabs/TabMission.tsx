@@ -13,6 +13,11 @@ import type { Child, Property, Placement, PatrimonialData, IrOptions, Succession
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
+// ─── Lot 6 — source unique du profil + capacité de perte + vocabulaire ESG ──
+import { computeProfilRisque } from "../../lib/conformite/profil";
+import { computeCapacitePerte } from "../../lib/conformite/capacitePerte";
+import { vocabulaireReglementaire, type VocabulaireReglementaire } from "../../lib/conformite/vocabulaire";
+import type { StatutFlags } from "../../lib/conformite/referencesLegales";
 
 
 // ── TabMission ─────────────────────────────────────────────────────────────────────
@@ -301,47 +306,89 @@ const TabMission = React.memo(function TabMission(props: any) {
           </div>
         </div>
 
-        {/* Score */}
+        {/* Q7 — ESG (préférences de durabilité, Lot 6) ─ libellé via helper vocabulaire (Lot 5) */}
         {(() => {
-          const pts = mission.attitude + mission.reactionBaisse +
-            (mission.connaitFondsEuros?1:0)+(mission.investiFondsEuros?1:0)+
-            (mission.connaitActions?1:0)+(mission.investiActions?3:0)+
-            (mission.connaitOPCVM?1:0)+(mission.investiOPCVM?3:0)+
-            (mission.connaitImmo?1:0)+(mission.investiImmo?2:0)+
-            (mission.connaitTrackers?1:0)+(mission.investiTrackers?3:0)+
-            (mission.connaitStructures?1:0)+(mission.investiStructures?4:0)+
-            (mission.reactionPertes||0)+(mission.reactionGains||0)+
-            (mission.modeGestion==="pilote"?2:mission.modeGestion==="libre"?4:0)+
-            (mission.savoirUCRisque?2:0)+(mission.savoirHorizonUC?2:0)+(mission.savoirRisqueRendement?2:0);
-          const profil = pts<=10?"Sécuritaire":pts<=20?"Prudent":pts<=40?"Équilibré":pts<=60?"Dynamique":"Offensif";
-          const horizonLabel: Record<string, string> = { "0-4": "court terme (0–4 ans)", "5-8": "moyen terme (5–8 ans)", "9-15": "long terme (9–15 ans)", "15+": "très long terme (+ 15 ans)" };
+          const statuts: StatutFlags = {
+            coa:    !!cabinet?.statutCoa,
+            mia:    !!cabinet?.statutMia,
+            iobsp:  !!cabinet?.statutIobsp,
+            cif:    !!cabinet?.statutCif,
+            carteT: !!cabinet?.statutCarteT,
+          };
+          const voc: VocabulaireReglementaire = vocabulaireReglementaire(statuts);
+          const cadreSuffix = voc.cadreReglementaire !== "—" ? ` — ${voc.cadreReglementaire}` : "";
+          return (
+            <div className="p-4" style={{ borderRadius: 14, background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}>
+              <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: BRAND.sky }}>
+                Q7 — Préférences en matière de durabilité (ESG){cadreSuffix}
+              </div>
+              <p className="text-xs text-slate-500 mb-2">Souhaitez-vous intégrer des critères ESG dans vos investissements ?</p>
+              <div className="space-y-1.5">
+                {([["oui","Oui, de façon prioritaire (4 pts)"],["partiel","Partiellement (2 pts)"],["non","Non / Pas de préférence (0 pt)"]] as [string,string][]).map(([v, l]) => (
+                  <label key={v} className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input type="radio" name="esgPref" checked={mission.esgPref === v} onChange={() => updateMission("esgPref", v)} className="h-4 w-4 accent-[#0F172A]" />
+                    <span>{l}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Score & Profil (Lot 6 — source unique, 4 niveaux, ESG noté en sous-score) */}
+        {(() => {
+          const r = computeProfilRisque(mission);
+          const capacite = computeCapacitePerte(data);
+          // Première lettre en majuscule pour l'affichage ; clés du module en minuscules.
+          const profilLabel = r.profil.charAt(0).toUpperCase() + r.profil.slice(1);
           const profilDesc: Record<string, string> = {
-            "Sécuritaire": "La préservation du capital est votre priorité absolue. Votre portefeuille est composé quasi-exclusivement d'actifs sans risque (fonds euros, obligations). Vous acceptez une rentabilité faible en échange d'une garantie du capital.",
-            "Prudent": "Vous acceptez une légère exposition aux marchés pour améliorer le rendement, mais la stabilité reste primordiale. Une majorité d'actifs obligataires (70–80%) avec une petite poche actions (20–30%).",
-            "Équilibré": "Vous recherchez un compromis entre sécurité et performance. Votre allocation cible est 50/50 entre actifs obligataires et actions. Vous acceptez des fluctuations modérées sur le moyen terme.",
-            "Dynamique": "La croissance de votre patrimoine est votre objectif principal. Vous tolérez des variations significatives à court terme pour viser une performance supérieure à long terme. Allocation majoritairement actions (60–80%).",
-            "Offensif": "Vous êtes orienté performance maximale et acceptez des variations importantes de votre portefeuille. Une allocation très largement actions (80–100%), avec une vision long terme et une forte tolérance à la volatilité.",
+            "prudent":   "Vous acceptez une légère exposition aux marchés pour améliorer le rendement, mais la stabilité reste primordiale. Une majorité d'actifs obligataires (70–80%) avec une petite poche actions (20–30%).",
+            "équilibré": "Vous recherchez un compromis entre sécurité et performance. Votre allocation cible est 50/50 entre actifs obligataires et actions. Vous acceptez des fluctuations modérées sur le moyen terme.",
+            "dynamique": "La croissance de votre patrimoine est votre objectif principal. Vous tolérez des variations significatives à court terme pour viser une performance supérieure à long terme. Allocation majoritairement actions (60–80%).",
+            "offensif":  "Vous êtes orienté performance maximale et acceptez des variations importantes de votre portefeuille. Une allocation très largement actions (80–100%), avec une vision long terme et une forte tolérance à la volatilité.",
           };
           const profilHorizonNote: Record<string, string> = {
-            "Sécuritaire": "Ce profil est adapté à tout horizon, y compris court terme.",
-            "Prudent": "Ce profil convient à un horizon de placement d'au moins 3 à 5 ans.",
-            "Équilibré": "Ce profil nécessite un horizon de placement d'au moins 5 à 7 ans pour lisser les fluctuations.",
-            "Dynamique": "Ce profil est adapté à un horizon long terme de 8 ans minimum pour absorber la volatilité.",
-            "Offensif": "Ce profil requiert un horizon très long terme (10 ans et plus) pour optimiser le rapport risque/rendement.",
+            "prudent":   "Ce profil convient à un horizon de placement d'au moins 3 à 5 ans (adapté à tout horizon en cas de coussin liquide important).",
+            "équilibré": "Ce profil nécessite un horizon de placement d'au moins 5 à 7 ans pour lisser les fluctuations.",
+            "dynamique": "Ce profil est adapté à un horizon long terme de 8 ans minimum pour absorber la volatilité.",
+            "offensif":  "Ce profil requiert un horizon très long terme (10 ans et plus) pour optimiser le rapport risque/rendement.",
           };
+          const horizonLabel: Record<string, string> = { "0-4": "court terme (0–4 ans)", "5-8": "moyen terme (5–8 ans)", "9-15": "long terme (9–15 ans)", "15+": "très long terme (+ 15 ans)" };
           const horizonStr = mission.horizon ? horizonLabel[mission.horizon] || "" : "";
-          const horizonNote = horizonStr ? ` Avec un horizon de placement ${horizonStr}, ${profil === "Sécuritaire" || profil === "Prudent" ? "ce profil est cohérent avec votre durée d'investissement." : profil === "Équilibré" ? "un profil équilibré est bien adapté à votre durée d'investissement." : "veillez à vous assurer que vous n'aurez pas besoin de ces fonds avant la fin de l'horizon prévu."}` : "";
+          const horizonNote = horizonStr
+            ? ` Avec un horizon de placement ${horizonStr}, ${r.profil === "prudent" ? "ce profil est cohérent avec votre durée d'investissement." : r.profil === "équilibré" ? "un profil équilibré est bien adapté à votre durée d'investissement." : "veillez à vous assurer que vous n'aurez pas besoin de ces fonds avant la fin de l'horizon prévu."}`
+            : "";
           return (
             <div className="rounded-xl overflow-hidden" style={{ border: `2px solid ${BRAND.sky}` }}>
-              <div className="flex items-center gap-4 px-5 py-3 text-sm font-semibold" style={{ background: BRAND.navy, color: BRAND.gold }}>
-                <span>Score : {pts} pts</span>
+              <div className="flex items-center gap-3 flex-wrap px-5 py-3 text-sm font-semibold" style={{ background: BRAND.navy, color: BRAND.gold }}>
+                <span>Risque : {r.scoreRisque} pts</span>
                 <span style={{ color: "rgba(255,255,255,0.3)" }}>|</span>
-                <span>Profil déterminé : <strong>{profil}</strong></span>
+                <span>ESG : {r.sousScoreESG} pts</span>
+                <span style={{ color: "rgba(255,255,255,0.3)" }}>|</span>
+                <span>Total : {r.total} / {r.totalMax} pts</span>
+                <span style={{ color: "rgba(255,255,255,0.3)" }}>|</span>
+                <span>Profil : <strong>{profilLabel}</strong></span>
               </div>
-              <div className="px-5 py-4 space-y-2" style={{ background: SURFACE.card }}>
-                <p className="text-sm" style={{ color: BRAND.navy }}>{profilDesc[profil]}</p>
+              <div className="px-5 py-4 space-y-3" style={{ background: SURFACE.card }}>
+                <p className="text-sm" style={{ color: BRAND.navy }}>{profilDesc[r.profil]}</p>
                 {horizonNote && <p className="text-sm font-medium" style={{ color: BRAND.sky }}>{horizonNote}</p>}
-                <p className="text-xs text-slate-500 italic">{profilHorizonNote[profil]}</p>
+                <p className="text-xs text-slate-500 italic">{profilHorizonNote[r.profil]}</p>
+
+                {/* Capacité de perte — distincte de la tolérance (Lot 6) */}
+                <div className="mt-2 pt-3" style={{ borderTop: `1px solid ${SURFACE.border}` }}>
+                  <div className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: BRAND.sky }}>
+                    Capacité à subir des pertes (dérivée du patrimoine)
+                  </div>
+                  <p className="text-sm" style={{ color: BRAND.navy }}>
+                    Niveau : <strong>{capacite.niveau}</strong>
+                  </p>
+                  <ul className="text-xs text-slate-600 list-disc ml-5 mt-1 space-y-0.5">
+                    {capacite.justification.map((j, i) => <li key={i}>{j}</li>)}
+                  </ul>
+                  <p className="text-xs text-slate-400 italic mt-1">
+                    Distincte de la tolérance au risque (calculée sur les questions d'attitude).
+                  </p>
+                </div>
               </div>
             </div>
           );
