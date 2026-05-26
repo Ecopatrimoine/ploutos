@@ -71,6 +71,21 @@ export const DER_SECTIONS: SectionMeta[] = [
   { id: "rgpd",         label: "Protection des données personnelles (RGPD)", groupe: "Conformité" },
 ];
 
+// ─── Déclaration d'adéquation — Lot 8d ─────────────────────────────────────
+// Document qui JUSTIFIE le conseil et relie chaque recommandation aux infos
+// KYC recueillies (besoin + dimension du profil). Cœur = la matrice
+// profil/besoin → reco justifiée. Sans recommandation complète, le document
+// passe en état DÉGRADÉ explicite (bandeau « NON VALIDE »).
+export const ADEQUATION_SECTIONS: SectionMeta[] = [
+  { id: "entete",         label: "En-tête réglementaire (date + heure + remise sans transaction)", groupe: "Conformité" },
+  { id: "profilSynthese", label: "Synthèse du profil KYC",                       groupe: "Prévoyance" },
+  { id: "besoinsKyc",     label: "Rappel des besoins exprimés (KYC)",            groupe: "Prévoyance" },
+  { id: "matrice",        label: "Matrice profil/besoin → recommandation justifiée", groupe: "Conformité" },
+  { id: "coutsFrais",     label: "Coûts, frais et impact durabilité",            groupe: "Conformité" },
+  { id: "suivi",          label: "Modalités de suivi périodique",                groupe: "Conformité" },
+  { id: "cadre",          label: "Cadre réglementaire & références légales",     groupe: "Conformité" },
+];
+
 // ─── Fiche d'information et de conseil DDA — Lot 8c ────────────────────────
 // Document orienté assurance (volet COA/MIA). Dépend du dossier client :
 // consomme data (identité), mission (besoins + ESG), recommandations (Lot 7).
@@ -91,3 +106,4 @@ export const REPORT_PRESET: readonly string[]    = REPORT_SECTIONS.map(s => s.id
 export const MISSION_PRESET: readonly string[]   = MISSION_SECTIONS.map(s => s.id);
 export const DER_PRESET: readonly string[]       = DER_SECTIONS.map(s => s.id);
 export const FICHE_DDA_PRESET: readonly string[] = FICHE_DDA_SECTIONS.map(s => s.id);
+export const ADEQUATION_PRESET: readonly string[] = ADEQUATION_SECTIONS.map(s => s.id);

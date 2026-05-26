@@ -34,6 +34,9 @@ import { buildAndPrintDER as _buildAndPrintDER } from "./lib/pdf/pdfDER";
 // Lot 8c — Fiche d'information et de conseil DDA : dépend du dossier client
 // (data + mission + recommandations) ; consomme les helpers Lot 5 + 7.
 import { buildAndPrintFicheDDA as _buildAndPrintFicheDDA } from "./lib/pdf/pdfFicheDDA";
+// Lot 8d — Déclaration d'adéquation : justifie le conseil, relie reco↔KYC,
+// règle de validité dégradée si aucune reco complète. Date+heure paramétrable.
+import { buildAndPrintAdequation as _buildAndPrintAdequation } from "./lib/pdf/pdfAdequation";
 import type { Recipient } from "./lib/pdf/pdfCore";
 
 // ── Imports modules refactorisés ──────────────────────────────────────────────
@@ -1176,6 +1179,18 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     });
   };
 
+  // Lot 8d — Déclaration d'adéquation : date et heure réelles à la génération.
+  const buildAndPrintAdequation = () => {
+    _buildAndPrintAdequation({
+      cabinet: cabinet as Record<string, any>,
+      data,
+      mission,
+      recommandations,
+      clientName,
+      logoSrc,
+    });
+  };
+
   
   // ── Export JSON ──
   const exportDataFile = async () => {
@@ -1689,7 +1704,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
           </TabsContent>
 
           {/* ════ LETTRE DE MISSION ════ */}
-          <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} showPdfMissionModal={() => setPdfMissionModalOpen(true)} person1={person1} person2={person2} recommandations={recommandations} setRecommandations={setRecommandations} onPrintDER={buildAndPrintDER} onPrintFicheDDA={buildAndPrintFicheDDA} />
+          <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} showPdfMissionModal={() => setPdfMissionModalOpen(true)} person1={person1} person2={person2} recommandations={recommandations} setRecommandations={setRecommandations} onPrintDER={buildAndPrintDER} onPrintFicheDDA={buildAndPrintFicheDDA} onPrintAdequation={buildAndPrintAdequation} />
 
           {/* ════ PARAMÈTRES CABINET ════ */}
           <TabParametres

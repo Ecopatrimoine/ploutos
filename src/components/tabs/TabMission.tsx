@@ -552,6 +552,10 @@ const TabMission = React.memo(function TabMission(props: any) {
         <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md" style={{ background: BRAND.gold, color: "#fff" }} onClick={props.onPrintFicheDDA}>
           <Download className="mr-2 h-4 w-4" />Générer Fiche conseil DDA
         </Button>
+        {/* Lot 8d — Déclaration d'adéquation — justifie le conseil et relie reco↔KYC. */}
+        <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md" style={{ background: BRAND.success, color: "#fff" }} onClick={props.onPrintAdequation}>
+          <Download className="mr-2 h-4 w-4" />Générer Déclaration d'adéquation
+        </Button>
       </div>
 
     </CardContent>
