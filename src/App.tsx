@@ -225,15 +225,30 @@ const DEFAULT_CABINET = {
   statutIobsp: false as boolean,
   statutCif: false as boolean,
   statutCarteT: false as boolean,
-  categorieAssurance: "",            // catégorie de statut (texte libre)
+  categorieAssurance: "",            // legacy texte libre — conservé pour rétrocompat ; les nouveaux toggles ci-dessous le remplacent en saisie UI
   encaisseFonds: false as boolean,
   garantieFinanciere: "",            // texte (assureur + montant), si encaisseFonds
   associationCif: "",                // requis seulement si statutCif
   natureConseil: "",                 // "" | "non_independant" | "independant"
-  remuneration: "",                  // "" | "commissions" | "honoraires" | "mixte"
+  remuneration: "",                  // legacy — clé écrite par updateCabinet en synchro avec remunerationType (rétrocompat builders v1+v2)
   baremeHonoraires: "",
   capital: "",
   siren: "",
+  // ── Lot Paramètres v2 — nouveaux champs (jamais saisissables avant) ──
+  remunerationType: "",              // CANONIQUE : "" | "commission" | "honoraire" | "mixte" — lu par les builders PDFs v1+v2
+  niveauConseil: "",                 // "" | "1" | "2" — niveau de conseil délivré (Lettre mission M2)
+  rcpMontants: "",                   // montants garantie RCP (DER page 1, Lettre mission M1)
+  mediateurAmf: "",                  // médiateur AMF / association — visible si statutCif (DER page 2)
+  remunerationCif: "",               // mode rémunération CIF — visible si statutCif (DER)
+  remunerationIas: "",               // mode rémunération IAS — visible si statutCoa/Mia (DER)
+  // Catégories d'assurance distribuées (toggles, remplacent categorieAssurance texte legacy)
+  categAssVie: false as boolean,         // Vie & capitalisation
+  categAssPrev: false as boolean,        // Prévoyance & santé
+  categAssIard: false as boolean,        // IARD (dommages)
+  categAssPro: false as boolean,         // Risques professionnels
+  // Catégorie IOBSP (toggles)
+  categIobspCobsp: false as boolean,     // Courtier en op. de banque
+  categIobspMiobsp: false as boolean,    // Mandataire d'intermédiaire
 };
 
 function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string; userEmail: string; authState: string; onSignOut: () => void }) {
@@ -317,6 +332,18 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       // Synchroniser nom <-> cabinetName automatiquement
       if (key === "nom") (next as any).cabinetName = val;
       if (key === "cabinetName") (next as any).nom = val;
+      // Lot Paramètres v2 — synchroniser remunerationType (canonique) <-> remuneration (legacy)
+      // Les builders PDFs v1+v2 lisent remunerationType ("commission"/"honoraire"/"mixte"),
+      // mais l'UI historique écrivait dans remuneration ("commissions"/"honoraires"/"mixte").
+      // On maintient les 2 clés en miroir pour rétro-compat lecture/écriture.
+      if (key === "remunerationType" && typeof val === "string") {
+        const legacy = val === "commission" ? "commissions" : val === "honoraire" ? "honoraires" : val;
+        (next as any).remuneration = legacy;
+      }
+      if (key === "remuneration" && typeof val === "string") {
+        const canonique = val === "commissions" ? "commission" : val === "honoraires" ? "honoraire" : val;
+        (next as any).remunerationType = canonique;
+      }
       saveCabinetAsync(next as Record<string, any>, userId);
       return next;
     });
