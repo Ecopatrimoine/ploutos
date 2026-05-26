@@ -22,20 +22,31 @@ import { buildTokens } from "../tokens";
 import { coquilleDocument } from "../primitives";
 import { openPrintPopup } from "../../pdfCore";
 
-// ─── Renderers v2 — pour cette itération, uniquement les 4 docs réglementaires ──
-// Les sections bilan v2 (couverture/bilan/IR/IFI/succession/profil/prévoyance)
-// seront branchées dans une prochaine itération quand leurs adapters
-// auront besoin des données calculées (ir/ifi/succession via useMemo).
+// ─── Renderers v2 ─────────────────────────────────────────────────────
+// Docs réglementaires (4) + 5 sections bilan câblées en 1ère passe.
+// Les 6 autres sections (cabinet/famille/travail/hypos/recos/mentions +
+// bilanEndettement/successionB/prevoyanceInd/prevoyanceColl) restent en
+// placeholder pour une 2ème passe.
 import { pageLettreMission } from "../pages/pageLettreMission";
 import { pageDer } from "../pages/pageDer";
 import { pageFicheDDA } from "../pages/pageFicheDDA";
 import { pageDeclarationAdequation } from "../pages/pageDeclarationAdequation";
+import { pageCouverture } from "../pages/pageCouverture";
+import { pageIR } from "../pages/pageIR";
+import { pageIFI } from "../pages/pageIFI";
+import { pageSuccessionA } from "../pages/pageSuccessionA";
+import { pageProfil } from "../pages/pageProfil";
 
 // ─── Adapters ─────────────────────────────────────────────────────────
 import { buildDerData } from "../adapters/buildDerData";
 import { buildLettreMissionData } from "../adapters/buildLettreMissionData";
 import { buildFicheDDAData } from "../adapters/buildFicheDDAData";
 import { buildAdequationData } from "../adapters/buildDeclarationAdequationData";
+import { buildCouvertureData } from "../adapters/buildCouvertureData";
+import { buildIRData } from "../adapters/buildIRData";
+import { buildIFIData } from "../adapters/buildIFIData";
+import { buildSuccessionAData } from "../adapters/buildSuccessionAData";
+import { buildProfilData } from "../adapters/buildProfilData";
 
 export type PackOverrides = {
   /** Override palette PDF (vide = défaut cabinet via mapCabinetToThemeV2). */
@@ -98,24 +109,36 @@ function renderItemBody(
       return pageDeclarationAdequation(t, d);
     }
 
-    // ─── Bilan patrimonial — sections v2 disponibles ────────────────
-    // Pour l'instant : pages v2 thématiques rendues avec leurs fixtures
-    // par défaut (les vrais adapters seront branchés ultérieurement quand
-    // ir/ifi/succession seront mappés vers les types Page*Data v2).
-    // Cette itération câble UNIQUEMENT les 4 docs réglementaires et le DER.
-    // Les sections du bilan v2 restent à câbler dans une prochaine
-    // itération (la pop-card peut les cocher, le PDF généré les sautera
-    // proprement en attendant les adapters).
-    case "couverture":
+    // ─── Bilan patrimonial — sections v2 câblées (1ère passe) ────────
+    case "couverture": {
+      const d = buildCouvertureData({ cabinet, data, clientName: payload.clientName, dateLettre });
+      return pageCouverture(t, d);
+    }
+    case "ir": {
+      if (!payload.ir) return placeholderSection(t, item, "Section IR requiert le résultat de computeIR (non fourni)");
+      const d = buildIRData({ ir: payload.ir, data, cabinet, clientName: payload.clientName, dateLettre });
+      return pageIR(t, d);
+    }
+    case "ifi": {
+      if (!payload.ifi) return placeholderSection(t, item, "Section IFI requiert le résultat de computeIFI (non fourni)");
+      const d = buildIFIData({ ifi: payload.ifi, data, cabinet, clientName: payload.clientName, dateLettre });
+      return pageIFI(t, d);
+    }
+    case "successionA": {
+      if (!payload.succession) return placeholderSection(t, item, "Section Succession requiert le résultat de computeSuccession (non fourni)");
+      const d = buildSuccessionAData({ succession: payload.succession, data, cabinet, clientName: payload.clientName, dateLettre });
+      return pageSuccessionA(t, d);
+    }
+    case "profil": {
+      const d = buildProfilData({ mission, data: data as any, cabinet, clientName: payload.clientName, dateLettre });
+      return pageProfil(t, d);
+    }
+
+    // ─── Sections bilan v2 à câbler en 2ème passe ───────────────────
     case "bilanEndettement":
-    case "ir":
-    case "ifi":
-    case "successionA":
     case "successionB":
-    case "profil":
     case "prevoyanceInd":
     case "prevoyanceColl":
-      // À câbler dans la prochaine itération (adapters ir/ifi/succession → PageData v2)
       return placeholderSection(t, item);
 
     // ─── Sections v1-only (pas encore refaites en v2) ───────────────
@@ -132,18 +155,16 @@ function renderItemBody(
   }
 }
 
-/** Placeholder visible pour les sections pas encore câblées (1 page A4
- *  sobre indiquant que la section sera ajoutée dans une prochaine itération). */
-function placeholderSection(t: any, item: PackItem): string {
+/** Placeholder visible pour les sections pas encore câblées ou qui manquent
+ *  une donnée requise. Optionnel `customMessage` pour préciser la raison. */
+function placeholderSection(t: any, item: PackItem, customMessage?: string): string {
+  const message = customMessage ||
+    "Cette section est sélectionnée dans le pack mais son adapter v2 n'est pas encore branché. Elle sera disponible dans une prochaine itération du Lot Dossier client.";
   return `<div style="position:relative;width:210mm;height:297mm;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center;font-family:'Lato',system-ui,sans-serif">
     <div style="text-align:center;padding:40px;max-width:500px">
       <div style="font-size:48px;margin-bottom:18px;opacity:.3">📄</div>
       <div style="font-size:14px;font-weight:700;color:${t.navy};margin-bottom:8px">Section « ${item} » en attente de câblage</div>
-      <div style="font-size:11px;color:${t.texteFaible};line-height:1.6">
-        Cette section est sélectionnée dans le pack mais son adapter v2 n'est pas
-        encore branché. Elle sera disponible dans une prochaine itération du Lot
-        Dossier client.
-      </div>
+      <div style="font-size:11px;color:${t.texteFaible};line-height:1.6">${message}</div>
     </div>
   </div>`;
 }
