@@ -21,6 +21,28 @@ import { renderIFI } from "../src/lib/pdf/v2/renderIFI";
 import type { IFIPageData } from "../src/lib/pdf/v2/pages/pageIFI";
 import { renderIR } from "../src/lib/pdf/v2/renderIR";
 import type { IRPageData } from "../src/lib/pdf/v2/pages/pageIR";
+import { renderCouverture } from "../src/lib/pdf/v2/renderCouverture";
+import type { CouverturePageData } from "../src/lib/pdf/v2/pages/pageCouverture";
+import { renderSuccessionA } from "../src/lib/pdf/v2/renderSuccessionA";
+import type { SuccessionAPageData } from "../src/lib/pdf/v2/pages/pageSuccessionA";
+import { renderSuccessionB } from "../src/lib/pdf/v2/renderSuccessionB";
+import type { SuccessionBPageData } from "../src/lib/pdf/v2/pages/pageSuccessionB";
+import { renderProfil } from "../src/lib/pdf/v2/renderProfil";
+import type { ProfilPageData } from "../src/lib/pdf/v2/pages/pageProfil";
+import { renderPrevoyanceInd } from "../src/lib/pdf/v2/renderPrevoyanceInd";
+import type { PrevoyanceIndPageData } from "../src/lib/pdf/v2/pages/pagePrevoyanceInd";
+import { renderPrevoyanceColl } from "../src/lib/pdf/v2/renderPrevoyanceColl";
+import type { PrevoyanceCollPageData } from "../src/lib/pdf/v2/pages/pagePrevoyanceColl";
+import { renderBilanEndettement } from "../src/lib/pdf/v2/renderBilanEndettement";
+import type { BilanEndettementPageData } from "../src/lib/pdf/v2/pages/pageBilanEndettement";
+import { renderLettreMission } from "../src/lib/pdf/v2/renderLettreMission";
+import type { LettreMissionPageData } from "../src/lib/pdf/v2/pages/pageLettreMission";
+import { renderDer } from "../src/lib/pdf/v2/renderDer";
+import type { DerPageData } from "../src/lib/pdf/v2/pages/pageDer";
+import { renderFicheDDA } from "../src/lib/pdf/v2/renderFicheDDA";
+import type { FicheDDAPageData } from "../src/lib/pdf/v2/pages/pageFicheDDA";
+import { renderDeclarationAdequation } from "../src/lib/pdf/v2/renderDeclarationAdequation";
+import type { DeclarationAdequationPageData } from "../src/lib/pdf/v2/pages/pageDeclarationAdequation";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outDir = join(__dirname, "..", "out");
@@ -102,10 +124,328 @@ const cabinetColorsTest = {
   sky:   "#5B7089",
 };
 
+// ─── Données figées pour la page Couverture (correspondent à la maquette) ─
+const dataMaquetteCouverture: CouverturePageData = {
+  cabinetNom: "EcoPatrimoine Conseil",
+  cabinetSousTitre: "CONSEIL",
+  orias: "25006907",
+  eyebrowDocument: "Conseil en gestion de patrimoine",
+  titreDocument: "Rapport\npatrimonial",
+  clientName: "Hélène & Marc Dubreuil",
+  dateStr: "25 mai 2026",
+};
+
+// ─── Données figées pour la page Succession A (correspondent à la maquette) ─
+const dataMaquetteSuccessionA: SuccessionAPageData = {
+  clientName: "Dubreuil",
+  dateStr: "25 mai 2026",
+  masseSuccessoraleNette: 1_060_600,
+  droitsSuccession: 90_200,
+  netTransmis: 970_400,
+  tauxMoyen: "8,5 %",
+  noteKpi: "Masse civile, hors assurance-vie et PER (transmis hors succession — voir page suivante).",
+  devolutionBadge: "Dévolution légale",
+  devolutionDescription: "2 enfants · conjoint — option ¼ en pleine propriété",
+  reservePct: 67,
+  reserveLabel: "Réserve héréditaire · 2/3",
+  reserveMontant: 707_067,
+  quotitePct: 33,
+  quotiteLabel: "Quotité dispo. · 1/3",
+  quotiteMontant: 353_533,
+  heritiers: [
+    { nom: "Hélène Dubreuil",  lien: "Conjoint", partRecue: 265_150, droits: 0,       droitsExonere: true,  net: 265_150 },
+    { nom: "Lucas Dubreuil",   lien: "Enfant",   partRecue: 397_725, abattement: 100_000, droits: 45_100, net: 352_625 },
+    { nom: "Camille Dubreuil", lien: "Enfant",   partRecue: 397_725, abattement: 100_000, droits: 45_100, net: 352_625 },
+  ],
+  notreLecture:
+    "Avec deux enfants, la réserve héréditaire couvre les deux tiers de la masse, le tiers restant formant la quotité disponible ; le conjoint est exonéré et chaque enfant profite de l'abattement de 100 000 €, d'où des droits limités à 8,5 %. L'assurance-vie, transmise hors succession, est traitée page suivante.",
+  pagePosition: "4 / 8",
+  cabinetLibellePied: "EcoPatrimoine Conseil · Transmission — confidentiel",
+};
+
+// ─── Données figées pour la page Succession B (correspondent à la maquette) ─
+const dataMaquetteSuccessionB: SuccessionBPageData = {
+  clientName: "Dubreuil",
+  dateStr: "25 mai 2026",
+  capitauxTransmis: 188_000,
+  fiscaliteTotale: 0,
+  netAuxBeneficiaires: 188_000,
+  abattementRestant: 117_000,
+  noteKpi: "Régime : 990 I pour les versements avant 70 ans (abattement de 152 500 € par bénéficiaire) ; 757 B après 70 ans (abattement global de 30 500 €).",
+  beneficiaires: [
+    { nom: "Lucas Dubreuil",   lien: "Enfant", capital: 94_000, abattement990I: 152_500, fiscalite: 0, net: 94_000 },
+    { nom: "Camille Dubreuil", lien: "Enfant", capital: 94_000, abattement990I: 152_500, fiscalite: 0, net: 94_000 },
+  ],
+  clauseBeneficiaireHtml: "Clause bénéficiaire retenue : <em>mes enfants vivants ou représentés, par parts égales</em>.",
+  totalNetTransmis: 1_158_400,
+  totalLabelHaut: "Total transmis net aux proches",
+  totalLabelBas: "(succession + assurance-vie)",
+  notreLecture:
+    "Le capital reçu par chaque enfant reste sous le plafond d'abattement de 152 500 € : la transmission s'opère donc entièrement hors fiscalité, et 117 000 € d'abattement demeurent mobilisables pour de futurs versements. L'assurance-vie reste ainsi votre levier de transmission le plus efficace, en complément de la succession civile.",
+  pagePosition: "5 / 8",
+  cabinetLibellePied: "EcoPatrimoine Conseil · Transmission — confidentiel",
+};
+
+// ─── Données figées pour la page Profil (correspondent à la maquette) ────
+// Itération validée par David : tableau MIF II remplacé par synthèse +
+// renvoi déclaration d'adéquation, ajout encart signature client+conseiller.
+const dataMaquetteProfil: ProfilPageData = {
+  clientName: "Dubreuil",
+  dateStr: "25 mai 2026",
+  profilRisque: "Équilibré",
+  scoreMifII: "38 / 66",
+  horizonPlacement: "8 ans",
+  capacitePerte: "Modérée",
+  noteKpi: "Capacité à subir des pertes appréciée d'après la situation financière (patrimoine, revenus, épargne disponible) — distincte de la tolérance au risque.",
+  niveauActif: "équilibré",
+  questionnaire: [
+    { question: "Attitude face au risque",         reponse: "Équilibre rendement / risque" },
+    { question: "Réaction à une baisse de 20 %",   reponse: "Maintien des positions" },
+    { question: "Connaissances & expérience",      reponse: "Fonds €, actions, OPCVM, SCPI" },
+    { question: "Pertes / gains déjà subis",       reponse: "Oui, sans modifier sa stratégie" },
+    { question: "Mode de gestion",                 reponse: "Conseillée" },
+    { question: "Préférences de durabilité (ESG)", reponse: "Souhaitées — part significative", reponseCouleur: "#1F5A41" },
+  ],
+  adequationTitre: "Adéquation MIF II",
+  adequationTexte: "L'allocation recommandée est cohérente avec un profil équilibré, un horizon de 8 ans, une capacité de perte modérée et une préférence marquée pour les investissements durables. Profil établi le 25 mai 2026 — à actualiser en cas d'évolution de votre situation.",
+  nomClientSignature: "Hélène & Marc Dubreuil",
+  nomConseiller: "David Perry",
+  villeSignature: "Perpignan",
+  dateSignature: "25 mai 2026",
+  pagePosition: "6 / 8",
+  cabinetLibellePied: "EcoPatrimoine Conseil · Profil & conformité — confidentiel",
+};
+
+// ─── Données figées pour la page Prévoyance individuelle (maquette) ────
+const dataMaquettePrevoyanceInd: PrevoyanceIndPageData = {
+  clientName: "Dubreuil",
+  dateStr: "25 mai 2026",
+  sousTitre: "Profession libérale · affiliation CIPAV",
+  deficitCapitalDeces: "185 000 €",
+  revenuAProteger: "80 000 €/an",
+  foyerAProteger: "Conjoint + 2 enfants",
+  capitalDecesCouvert: "115 000 €",
+  lignes: [
+    { label: "Décès",          besoinTexte: "besoin · 300 000 €",     pctCouverture: 38, deficit: "− 185 000 €" },
+    { label: "Invalidité (IPT)", besoinTexte: "besoin · 48 000 €/an", pctCouverture: 38, deficit: "− 30 000 €", deficitSuffixe: "/an" },
+    { label: "Arrêt de travail", besoinTexte: "besoin · 48 000 €/an", pctCouverture: 42, deficit: "− 28 000 €", deficitSuffixe: "/an" },
+  ],
+  notreLecture:
+    "En l'état, un décès laisserait un déficit de 185 000 € — proche du capital restant dû sur votre crédit — et une invalidité ou un arrêt prolongé amputerait votre revenu d'environ 30 000 €/an non couverts. Renforcer le capital décès et prévoir une rente de maintien de revenu sont les deux priorités pour mettre votre foyer à l'abri.",
+  mentionNonContractuelle:
+    "Montants illustratifs, à valider auprès de votre caisse (CIPAV) et selon les garanties de votre contrat de prévoyance. Simulation non contractuelle ; toute recommandation s'inscrit dans le cadre du devoir de conseil (DDA).",
+  pagePosition: "7 / 8",
+  cabinetLibellePied: "EcoPatrimoine Conseil · Prévoyance — confidentiel",
+};
+
+// ─── Données figées pour la page Prévoyance collective (maquette) ──────
+const dataMaquettePrevoyanceColl: PrevoyanceCollPageData = {
+  clientName: "Audit entreprise",
+  dateStr: "25 mai 2026",
+  sousTitre: "SAS Atlas Ingénierie · 12 salariés",
+  conformiteResume: "1 écart",
+  effectif: "12 sal.",
+  effectifCadres: "3",
+  statutDirigeant: "Assimilé salarié",
+  ccnLabel: "Convention collective applicable",
+  ccnValeur: "Syntec — IDCC 1486",
+  ccnPillStatut: "success",
+  ccnPillLabel: "Résolue via SIRET · fiable",
+  matrice: [
+    { titre: "Santé collective obligatoire", reference: "ANI 2013 · art. L.911-7 CSS",                statut: "success", pillLabel: "Conforme" },
+    { titre: "Prévoyance décès cadres",      reference: "cotisation 1,50 % sur la tranche T1 (≤ PASS)", statut: "warning", pillLabel: "Écart" },
+    { titre: "Planchers de branche",          reference: "lecture détaillée de la CCN Syntec requise", statut: "info",    pillLabel: "À confirmer" },
+    { titre: "Catégories objectives",         reference: "décret 2021-1002 · applicable depuis 2025",   statut: "success", pillLabel: "Conforme" },
+  ],
+  conseilDirigeantHtml: "Président de SAS, <strong>assimilé salarié</strong> : il bénéficie du régime collectif santé et prévoyance de l'entreprise. Une retraite supplémentaire reste mobilisable via un PERO.",
+  mentionNonContractuelle: "Analyse non contractuelle, à valider au regard de la convention collective applicable et de la situation réelle de l'entreprise. Ne constitue pas un conseil juridique, fiscal ou en investissement. EcoPatrimoine Conseil — ORIAS n° 25006907.",
+  pagePosition: "1 / 4",
+  cabinetLibellePied: "EcoPatrimoine Conseil · Audit entreprise — confidentiel",
+};
+
+// ─── Données figées pour la page Bilan patrimonial / endettement (maquette) ─
+const dataMaquetteBilanEndettement: BilanEndettementPageData = {
+  clientName: "Dubreuil",
+  dateStr: "25 mai 2026",
+  patrimoineNet: 1_248_600,
+  actifBrut: 1_460_000,
+  passifTotal: 211_400,
+  tauxEndettement: "25 %",
+  noteKpi: "Taux d'endettement (méthode bancaire) : charges de crédit, assurance comprise, ÷ revenus nets retenus — loyers comptés à 70 %. Plafond HCSF de 35 %.",
+  // Détail du calcul pour transparence : 19 800 / 79 200 = 25 %
+  calculTaux: {
+    chargesCreditAnnuelles:   18_600,   // 1 550 €/mois × 12
+    assuranceCreditAnnuelle:   1_200,   // 100 €/mois × 12
+    salairesNetsAnnuels:      74_000,   // cohérent fixture IR (salaires & traitements)
+    loyersBrutsAnnuels:        7_429,   // ≈ pour avoir 5 200 € retenus à 70 %
+    quotitLoyers: 0.70,
+  },
+  immobilier:           953_400,
+  placementsFinanciers: 318_600,
+  assuranceVieEtPER:    188_000,
+  creditImmobilier:     185_000,
+  autresCredits:         26_400,
+  notreLecture:
+    "Votre patrimoine net atteint 1 248 600 €, porté par l'immobilier (953 400 € bruts) et une poche financière de 506 600 €, après 211 400 € de crédits dont 185 000 € affectés à l'immobilier. Calculé à la manière des banques, votre taux d'endettement ressort à 25 %, sous le plafond de 35 % — vous conservez donc une capacité d'emprunt ; l'assurance-vie et le PER (188 000 €) restent par ailleurs un levier clé de transmission, détaillée au chapitre suivant.",
+  pagePosition: "1 / 8",
+  cabinetLibellePied: "EcoPatrimoine Conseil · Patrimoine — confidentiel",
+};
+
+// ─── Données figées pour la Lettre de mission v2 (post-audit conformité) ─
+const dataMaquetteLettreMission: LettreMissionPageData = {
+  // Cabinet
+  cabinetNom: "EcoPatrimoine Conseil",
+  cabinetAdresse: "6 rue Victor Mirabeau, 66000 Perpignan",
+  cabinetTel: "tel à renseigner",                  // M6
+  cabinetEmail: "contact@ecopatrimoine-conseil.com", // M6
+  cabinetORIAS: "25006907",
+  cabinetStatuts: "Courtier en assurance (COA)",
+  cabinetConseiller: "David Perry",
+  cabinetBaremeHonoraires: "barème honoraires",
+  cabinetPartenaires: "à compléter dans Paramètres",  // M3
+  cabinetNiveauConseil: "1",                       // M2 (Niveau 1 par défaut)
+  cabinetRcpAssureur: "assureur RCP à confirmer",  // M1
+  cabinetRcpContrat: "n° contrat à confirmer",     // M1
+  cabinetRcpGarantiesMin: "1 564 610 € par sinistre / 2 315 610 € par année (arrêté du 29 oct. 2024 — à revérifier)", // M1
+  cabinetMediateur: "Médiateur de l'Assurance",    // M5
+  cabinetMediateurAdresse: "TSA 50110, 75441 Paris Cedex 09",
+  cabinetMediateurUrl: "www.mediation-assurance.org",
+  cabinetAssociationCif: undefined,                // non applicable (statutCif false)
+  // Statuts (B2 : AMF + association CIF désactivés quand statutCif false)
+  statutCif: false,                                // David est COA seul aujourd'hui
+  // Client (varm)
+  clientNom: "nom & prénom",
+  clientAdresse: "adresse",
+  clientContact: "contact",
+  dateLettre: "25 mai 2026",
+  // Prestations
+  prestations: [
+    { label: "Bilan patrimonial global",           cochee: true  },
+    { label: "Optimisation fiscale (IR / IFI)",    cochee: true  },
+    { label: "Stratégie de transmission",          cochee: true  },
+    { label: "Analyse prévoyance & protection",    cochee: true  },
+    { label: "Préparation de la retraite",         cochee: false },
+    { label: "Allocation d'actifs / placements",   cochee: false },
+  ],
+  remunerationMode: "mode & montant / assiette",
+  natureConseil: "non indépendant",
+  dureeMission: "ponctuelle / annuelle / reconductible",
+  delaiPreavis: "délai",
+  villeSignature: "lieu",
+  mentionNonContractuelle: "Document d'aide à la conformité remis à titre indicatif. Ne constitue ni une attestation de conformité, ni un conseil juridique. À valider au regard des textes en vigueur, du contrôle de l'association agréée et, le cas échéant, d'un avocat. EcoPatrimoine Conseil — ORIAS n° 25006907 (statuts à confirmer sur www.orias.fr).",
+};
+
+// ─── Données figées pour le DER v2 (cabinet David COA seul) ────────────
+const dataMaquetteDer: DerPageData = {
+  cabinetNom: "EcoPatrimoine Conseil",
+  cabinetAdresse: "6 rue Victor Mirabeau, 66000 Perpignan",
+  cabinetEmail: "contact@ecopatrimoine-conseil.com",
+  cabinetTel: undefined,
+  cabinetORIAS: "25006907",
+  cabinetForme: "forme",       // affiché annoté champCabinet
+  cabinetCapital: "capital",
+  cabinetSiren: "SIREN",
+  cabinetConseiller: "David Perry",
+  // Statuts ORIAS (David COA seul aujourd'hui)
+  statutCif: false,
+  statutIas: true,
+  cabinetCategorieIas: "Courtier en assurance (COA)",
+  statutIobsp: false,
+  cabinetAssociationCif: undefined,
+  cabinetCategorieIobsp: undefined,
+  // RCP
+  cabinetRcpAssureur: "assureur RCP",
+  cabinetRcpContrat: "n° police",
+  cabinetRcpMontants: "1 564 610 € / sinistre — 2 315 610 € / an (arrêté 29/10/2024)",
+  cabinetGarantieFinanciere: "garantie financière / « ne reçoit aucun fonds »",
+  // Rémunération
+  remunerationCifMode: undefined,  // statutCif false → ne sera pas affiché
+  remunerationIasMode: "courtier / mandataire · commissions / honoraires",
+  natureConseil: "indépendant / non indépendant",
+  partenaires: "liste des partenaires / promoteurs",
+  // Médiateurs
+  mediateurAmf: undefined,         // statutCif false → ne sera pas affiché
+  mediateurAssurance: "médiateur de l'assurance",
+  dateLettre: "25 mai 2026",
+  villeSignature: "lieu",
+  mentionNonContractuelle: "Document d'aide à la conformité remis à titre indicatif. Ne constitue ni une attestation de conformité, ni un conseil juridique. À valider au regard des textes en vigueur, du contrôle de l'association agréée et, le cas échéant, d'un avocat. EcoPatrimoine Conseil — ORIAS n° 25006907 (statuts à confirmer sur www.orias.fr).",
+};
+
+// ─── Données figées pour la Fiche conseil DDA v2 (cabinet David COA seul) ─
+const dataMaquetteFicheDDA: FicheDDAPageData = {
+  cabinetNom: "EcoPatrimoine Conseil",
+  cabinetORIAS: "25006907",
+  cabinetConseiller: "David Perry",
+  cabinetCategorieIas: "catégorie IAS",
+  cabinetStatut: "courtier / mandataire",
+  cabinetModeRemuneration: "commissions / honoraires",
+  dateLettre: "25 mai 2026",
+  origineDesBesoins: "issu du dossier",
+  besoins: [
+    { iconeKey: "shieldHeart",        texteHtml: "Protéger le foyer (conjoint + 2 enfants) en cas de décès, à hauteur du capital restant dû et des besoins futurs." },
+    { iconeKey: "activityHeartbeat",  texteHtml: "Maintenir le revenu en cas d'invalidité ou d'arrêt de travail prolongé." },
+    { iconeKey: "calendarEuro",       texteHtml: "Disposer d'une épargne de moyen-long terme à vocation de valorisation et de transmission." },
+  ],
+  garanties: [
+    { texteHtml: "Contrat de prévoyance avec <strong>capital décès</strong> couvrant le déficit identifié." },
+    { texteHtml: "Garantie <strong>maintien de revenu</strong> (rente d'invalidité et indemnités d'arrêt de travail)." },
+    { texteHtml: "Contrat d'<strong>assurance-vie</strong> multisupport avec poche d'unités de compte durables." },
+  ],
+  miseEnRegard: [
+    { besoin: "Protection en cas de décès", reponse: "Le capital décès couvre le crédit restant et sécurise les besoins du conjoint et des enfants." },
+    { besoin: "Maintien du revenu",         reponse: "La rente d'invalidité et les indemnités compensent la perte de revenu en cas d'incapacité." },
+    { besoin: "Épargne & transmission",     reponse: "L'assurance-vie valorise l'épargne à moyen terme et organise la transmission via la clause bénéficiaire." },
+  ],
+  voletIbipHtml:
+    "Pour le contrat d'assurance-vie en unités de compte, une <strong>adéquation renforcée</strong> est réalisée : cohérence avec votre profil, votre horizon, votre capacité à subir des pertes et vos <strong>préférences de durabilité (ESG)</strong>, exprimées au questionnaire.",
+  textRemunerationImpartialiteHtml:
+    "La nature et, le cas échéant, le montant de la rémunération vous sont communiqués <strong>avant la souscription</strong>. Le cabinet agit sans que sa rémunération n'oriente le choix du contrat.",
+  documentsRemisHtml:
+    "<strong>Documents remis avec cette fiche</strong> : pour l'assurance non-vie, le document d'information normalisé <strong>(IPID)</strong> ; pour l'assurance-vie, le <strong>document d'informations clés (DIC)</strong>. Ces documents sont établis par l'assureur concepteur du produit.",
+  mentionNonContractuelle:
+    "Document d'aide à la conformité remis à titre indicatif. Ne constitue ni une attestation de conformité, ni un conseil juridique. À valider au regard des textes en vigueur et du contrôle de l'association agréée. EcoPatrimoine Conseil — ORIAS n° 25006907 (statuts à confirmer sur www.orias.fr).",
+};
+
+// ─── Données figées pour la Déclaration d'adéquation v2 (cabinet David) ─
+const dataMaquetteDeclarationAdequation: DeclarationAdequationPageData = {
+  cabinetNom: "EcoPatrimoine Conseil",
+  cabinetConseiller: "David Perry",
+  dateConseil: "25 mai 2026",
+  heureConseil: "14h30",
+  dateQuestionnaire: "10 mai 2026",
+  origineRecommandations: "contenu dossier",
+  profil: [
+    { label: "Objectif principal",            valeurHtml: "Valoriser son patrimoine &amp; préparer la transmission" },
+    { label: "Horizon",                       valeurHtml: "8 ans" },
+    { label: "Profil de risque",              valeurHtml: `Équilibré <span style="color:#8C8472">(échelle 4 niveaux)</span>` },
+    { label: "Capacité à subir des pertes",   valeurHtml: "Modérée" },
+    { label: "Préférences de durabilité (ESG)", valeurHtml: "Souhaitées — part significative d'investissements durables", pleineLargeur: true },
+  ],
+  recommandations: [
+    { texteHtml: "Allocation cible 60 % supports sécurisés / 40 % unités de compte, dont une poche d'investissements durables." },
+    { texteHtml: "Versement sur un <strong>PER</strong> pour préparer la retraite et optimiser l'impôt sur le revenu." },
+    { texteHtml: "Renforcement de la clause bénéficiaire de l'assurance-vie au profit des enfants." },
+  ],
+  miseEnRegard: [
+    { besoin: "Objectif : valoriser & transmettre", reponse: "L'allocation et le PER visent la valorisation long terme ; la clause bénéficiaire sert la transmission." },
+    { besoin: "Horizon de 8 ans",                    reponse: "La part d'unités de compte est cohérente avec un placement à moyen-long terme." },
+    { besoin: "Profil équilibré",                    reponse: "Le couple 60 / 40 correspond à une prise de risque mesurée, sans recherche de performance maximale." },
+    { besoin: "Capacité de perte modérée",           reponse: "La poche sécurisée majoritaire limite l'amplitude des pertes possibles au regard de votre situation." },
+    { besoin: "Préférence de durabilité",            reponse: "Une poche d'investissements durables répond à votre souhait exprimé en matière d'ESG." },
+  ],
+  coutConseilHtml: "honoraires du dossier",
+  fraisSupportsHtml: "frais courants / entrée",
+  natureConseilHtml: "indépendant / non",
+  suiviActiveHtml: "est / n'est pas",
+  periodiciteSuiviHtml: "périodicité",
+  mentionNonContractuelle: "Document d'aide à la conformité remis à titre indicatif. Ne constitue ni une attestation de conformité, ni un conseil juridique. À valider au regard des textes en vigueur, du contrôle de l'association agréée et, le cas échéant, d'un avocat. EcoPatrimoine Conseil — ORIAS n° 25006907 (statuts à confirmer sur www.orias.fr).",
+};
+
 async function main(): Promise<void> {
   const cible = process.argv[2] || "ifi";
-  if (cible !== "ifi" && cible !== "ir") {
-    console.error(`Cible inconnue : "${cible}". Cibles disponibles : ifi, ir`);
+  const ciblesValides = ["ifi", "ir", "couverture", "successionA", "successionB", "profil", "prevoyanceInd", "prevoyanceColl", "bilanEndettement", "lettreMission", "der", "ficheDDA", "declarationAdequation"];
+  if (!ciblesValides.includes(cible)) {
+    console.error(`Cible inconnue : "${cible}". Cibles disponibles : ${ciblesValides.join(", ")}`);
     process.exit(1);
   }
 
@@ -127,6 +467,105 @@ async function main(): Promise<void> {
     await genererPdf(htmlCabinet, join(outDir, "ir-cabinet.pdf"));
     console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
     console.log("  revue-preview/pdf/refonte_pdf_page_fiscalite_A4_graphique_corrige.html");
+  }
+
+  if (cible === "couverture") {
+    const htmlEncreOr = renderCouverture({ theme: "encreOr", data: dataMaquetteCouverture });
+    await genererPdf(htmlEncreOr, join(outDir, "couverture-encreOr.pdf"));
+    const htmlCabinet = renderCouverture({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquetteCouverture });
+    await genererPdf(htmlCabinet, join(outDir, "couverture-cabinet.pdf"));
+    console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
+    console.log("  revue-preview/pdf/refonte_pdf_couverture_C_retouchee.html");
+  }
+
+  if (cible === "successionA") {
+    const htmlEncreOr = renderSuccessionA({ theme: "encreOr", data: dataMaquetteSuccessionA });
+    await genererPdf(htmlEncreOr, join(outDir, "successionA-encreOr.pdf"));
+    const htmlCabinet = renderSuccessionA({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquetteSuccessionA });
+    await genererPdf(htmlCabinet, join(outDir, "successionA-cabinet.pdf"));
+    console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
+    console.log("  revue-preview/pdf/refonte_pdf_succession_pageA_corrige_hauteur.html");
+  }
+
+  if (cible === "successionB") {
+    const htmlEncreOr = renderSuccessionB({ theme: "encreOr", data: dataMaquetteSuccessionB });
+    await genererPdf(htmlEncreOr, join(outDir, "successionB-encreOr.pdf"));
+    const htmlCabinet = renderSuccessionB({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquetteSuccessionB });
+    await genererPdf(htmlCabinet, join(outDir, "successionB-cabinet.pdf"));
+    console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
+    console.log("  revue-preview/pdf/refonte_pdf_succession_pageB_consolide_deux_lignes.html");
+  }
+
+  if (cible === "profil") {
+    const htmlEncreOr = renderProfil({ theme: "encreOr", data: dataMaquetteProfil });
+    await genererPdf(htmlEncreOr, join(outDir, "profil-encreOr.pdf"));
+    const htmlCabinet = renderProfil({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquetteProfil });
+    await genererPdf(htmlCabinet, join(outDir, "profil-cabinet.pdf"));
+    console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
+    console.log("  revue-preview/pdf/refonte_pdf_profil_conformite_4niveaux_esg.html");
+  }
+
+  if (cible === "prevoyanceInd") {
+    const htmlEncreOr = renderPrevoyanceInd({ theme: "encreOr", data: dataMaquettePrevoyanceInd });
+    await genererPdf(htmlEncreOr, join(outDir, "prevoyanceInd-encreOr.pdf"));
+    const htmlCabinet = renderPrevoyanceInd({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquettePrevoyanceInd });
+    await genererPdf(htmlCabinet, join(outDir, "prevoyanceInd-cabinet.pdf"));
+    console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
+    console.log("  revue-preview/pdf/refonte_pdf_page_theme_prevoyance_individuelle_A4.html");
+  }
+
+  if (cible === "prevoyanceColl") {
+    const htmlEncreOr = renderPrevoyanceColl({ theme: "encreOr", data: dataMaquettePrevoyanceColl });
+    await genererPdf(htmlEncreOr, join(outDir, "prevoyanceColl-encreOr.pdf"));
+    const htmlCabinet = renderPrevoyanceColl({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquettePrevoyanceColl });
+    await genererPdf(htmlCabinet, join(outDir, "prevoyanceColl-cabinet.pdf"));
+    console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
+    console.log("  revue-preview/pdf/refonte_pdf_page_theme_prevoyance_collective_premier_jet.html");
+  }
+
+  if (cible === "bilanEndettement") {
+    const htmlEncreOr = renderBilanEndettement({ theme: "encreOr", data: dataMaquetteBilanEndettement });
+    await genererPdf(htmlEncreOr, join(outDir, "bilanEndettement-encreOr.pdf"));
+    const htmlCabinet = renderBilanEndettement({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquetteBilanEndettement });
+    await genererPdf(htmlCabinet, join(outDir, "bilanEndettement-cabinet.pdf"));
+    console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
+    console.log("  revue-preview/pdf/refonte_pdf_bilan_taux_endettement_methode_bancaire.html");
+  }
+
+  if (cible === "lettreMission") {
+    const htmlEncreOr = renderLettreMission({ theme: "encreOr", data: dataMaquetteLettreMission });
+    await genererPdf(htmlEncreOr, join(outDir, "lettreMission-encreOr.pdf"));
+    const htmlCabinet = renderLettreMission({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquetteLettreMission });
+    await genererPdf(htmlCabinet, join(outDir, "lettreMission-cabinet.pdf"));
+    console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
+    console.log("  revue-preview/pdf/refonte_pdf_lettre_de_mission_2pages.html");
+  }
+
+  if (cible === "der") {
+    const htmlEncreOr = renderDer({ theme: "encreOr", data: dataMaquetteDer });
+    await genererPdf(htmlEncreOr, join(outDir, "der-encreOr.pdf"));
+    const htmlCabinet = renderDer({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquetteDer });
+    await genererPdf(htmlCabinet, join(outDir, "der-cabinet.pdf"));
+    console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
+    console.log("  revue-preview/pdf/refonte_pdf_der_document_entree_en_relation_2pages.html");
+  }
+
+  if (cible === "ficheDDA") {
+    const htmlEncreOr = renderFicheDDA({ theme: "encreOr", data: dataMaquetteFicheDDA });
+    await genererPdf(htmlEncreOr, join(outDir, "ficheDDA-encreOr.pdf"));
+    const htmlCabinet = renderFicheDDA({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquetteFicheDDA });
+    await genererPdf(htmlCabinet, join(outDir, "ficheDDA-cabinet.pdf"));
+    console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
+    console.log("  revue-preview/pdf/refonte_pdf_fiche_conseil_dda_2pages.html");
+  }
+
+  if (cible === "declarationAdequation") {
+    const htmlEncreOr = renderDeclarationAdequation({ theme: "encreOr", data: dataMaquetteDeclarationAdequation });
+    await genererPdf(htmlEncreOr, join(outDir, "declarationAdequation-encreOr.pdf"));
+    const htmlCabinet = renderDeclarationAdequation({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquetteDeclarationAdequation });
+    await genererPdf(htmlCabinet, join(outDir, "declarationAdequation-cabinet.pdf"));
+    console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
+    console.log("  revue-preview/pdf/refonte_pdf_declaration_adequation_2pages.html");
   }
 }
 
