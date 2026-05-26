@@ -184,7 +184,7 @@ exports[`pdfAdequation — snapshot CIF coché + 5 recos (cadre MIF II + DDA all
       <p>Cette déclaration d'adéquation est établie conformément aux obligations MIF II + DDA applicables à l'activité du cabinet EcoPatrimoine Conseil (intermédiaire en assurance et conseiller en investissements financiers).</p>
       <p style="margin-top:6px;">Références applicables :</p>
       <ul style="margin-top:4px;padding-left:14px;font-size:8.5pt;line-height:1.7;">
-        <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-x — Devoir d'information et de conseil <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Code des assurances</strong> · L.522-x — Assurance-vie / UC — règles spécifiques <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li><li><strong>CMF</strong> · L.541-1 et s. — Conseil en investissements financiers</li><li><strong>RG AMF</strong> · — — Règlement général AMF — références à paramétrer <em style="color:#92400E">(références précises à confirmer (paramétrables via le modèle de l'association CIF))</em></li><li><strong>Directive MIF II</strong> · — — Marchés d'instruments financiers</li>
+        <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-1 et s. — Devoir d'information et de conseil — DDA transposée en droit français</li><li><strong>Code des assurances</strong> · L.522-1 et s. — Règles spécifiques aux contrats d'assurance-vie et unités de compte (IBIP)</li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li><li><strong>CMF</strong> · L.541-1 et s. — Conseil en investissements financiers</li><li><strong>RG AMF</strong> · Livre III — Règles de bonne conduite et obligations professionnelles applicables aux CIF</li><li><strong>Directive MIF II</strong> · — — Marchés d'instruments financiers</li>
       </ul>
     </div>
   </div>
@@ -379,7 +379,7 @@ exports[`pdfAdequation — snapshot COA seul + 5 recos (matrice complète) > gé
       <p>Cette déclaration d'adéquation est établie conformément aux obligations DDA applicables à l'activité du cabinet EcoPatrimoine Conseil (intermédiaire en assurance).</p>
       <p style="margin-top:6px;">Références applicables :</p>
       <ul style="margin-top:4px;padding-left:14px;font-size:8.5pt;line-height:1.7;">
-        <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-x — Devoir d'information et de conseil <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Code des assurances</strong> · L.522-x — Assurance-vie / UC — règles spécifiques <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
+        <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-1 et s. — Devoir d'information et de conseil — DDA transposée en droit français</li><li><strong>Code des assurances</strong> · L.522-1 et s. — Règles spécifiques aux contrats d'assurance-vie et unités de compte (IBIP)</li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
       </ul>
     </div>
   </div>
@@ -537,7 +537,7 @@ exports[`pdfAdequation — snapshot état dégradé (0 recommandation) > génèr
       <p>Cette déclaration d'adéquation est établie conformément aux obligations DDA applicables à l'activité du cabinet EcoPatrimoine Conseil (intermédiaire en assurance).</p>
       <p style="margin-top:6px;">Références applicables :</p>
       <ul style="margin-top:4px;padding-left:14px;font-size:8.5pt;line-height:1.7;">
-        <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-x — Devoir d'information et de conseil <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Code des assurances</strong> · L.522-x — Assurance-vie / UC — règles spécifiques <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
+        <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-1 et s. — Devoir d'information et de conseil — DDA transposée en droit français</li><li><strong>Code des assurances</strong> · L.522-1 et s. — Règles spécifiques aux contrats d'assurance-vie et unités de compte (IBIP)</li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
       </ul>
     </div>
   </div>

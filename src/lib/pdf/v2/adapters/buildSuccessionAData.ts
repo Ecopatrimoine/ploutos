@@ -43,17 +43,18 @@ export function buildSuccessionAData(p: BuildSuccessionADataParams): SuccessionA
   const reserveFraction = nbEnfants === 1 ? "1/2" : nbEnfants === 2 ? "2/3" : nbEnfants >= 3 ? "3/4" : "—";
   const quotiteFraction = nbEnfants === 1 ? "1/2" : nbEnfants === 2 ? "1/3" : nbEnfants >= 3 ? "1/4" : "—";
 
-  // Héritiers — mapping souple depuis succession.results[] (structure v1)
-  const heritiersRaw: any[] = Array.isArray(s.results) ? s.results : (Array.isArray(s.heirs) ? s.heirs : []);
+  // Héritiers — clés réelles SuccessionResult de computeSuccession :
+  //   name, relation, grossReceived, successionDuties, avDuties, allowance, netReceived
+  const heritiersRaw: any[] = Array.isArray(s.results) ? s.results : [];
   const heritiers = heritiersRaw.map(h => {
-    const partRecue = num(h.partRecue ?? h.grossNet ?? h.value ?? h.net ?? 0);
-    const abattement = num(h.abattement ?? h.allowance ?? 0);
-    const droits = num(h.droits ?? h.tax ?? 0);
-    const droitsExonere = !!h.droitsExonere || (h.relation === "conjoint" && (data.coupleStatus === "married" || data.coupleStatus === "pacs"));
-    const net = num(h.net ?? h.netAfterTax ?? (partRecue - droits));
+    const partRecue = num(h.grossReceived ?? 0);
+    const abattement = num(h.allowance ?? 0);
+    const droits = num(h.successionDuties ?? 0) + num(h.avDuties ?? 0);
+    const droitsExonere = droits === 0 && (h.relation === "conjoint" && (data.coupleStatus === "married" || data.coupleStatus === "pacs"));
+    const net = num(h.netReceived ?? (partRecue - droits));
     return {
-      nom: h.nom ?? h.name ?? h.firstName ? `${h.firstName || ""} ${h.lastName || ""}`.trim() : "Héritier",
-      lien: relationLabel(h.relation ?? h.relationship),
+      nom: h.name || "Héritier",
+      lien: relationLabel(h.relation),
       partRecue,
       abattement: abattement > 0 ? abattement : undefined,
       droits,

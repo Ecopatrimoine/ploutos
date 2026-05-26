@@ -95,8 +95,10 @@ describe("pdfDER — invariants COA seul (sous-ensemble)", () => {
     const h = html();
     expect(h).toContain("Références légales applicables");
     expect(h).toContain("L.511-1 et s.");
-    expect(h).toContain("L.521-x");
-    expect(h).toMatch(/L\.521-x[^]*à confirmer/i);
+    expect(h).toContain("L.521-1 et s.");
+    // Refacto wording (libellés génériques pro) : plus de marqueur « à confirmer »
+    // sur les articles du code des assurances. On vérifie l'absence (régression).
+    expect(h).not.toMatch(/L\.521[^]{0,80}à confirmer/i);
   });
 });
 
@@ -126,11 +128,12 @@ describe("pdfDER — invariants CIF coché (sur-ensemble allumé)", () => {
     expect(h).toContain("Lettre de mission CIF à venir");
   });
 
-  it("le bloc références allume RG AMF (avec 'à confirmer') et MIF II + L.541-1 et s.", () => {
+  it("le bloc références allume RG AMF + MIF II + L.541-1 et s.", () => {
     const h = html();
     expect(h).toContain("L.541-1 et s.");
     expect(h).toContain("RG AMF");
-    expect(h).toMatch(/RG AMF[^]*à confirmer/i);
+    // Refacto wording : RG AMF affiché avec « Livre III » (au lieu de « à confirmer »)
+    expect(h).toContain("Livre III");
     expect(h).toContain("MIF II");
   });
 

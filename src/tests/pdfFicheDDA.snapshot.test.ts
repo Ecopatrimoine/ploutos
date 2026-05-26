@@ -169,11 +169,12 @@ describe("pdfFicheDDA — invariants COA seul", () => {
     expect(html()).toContain("Portée du document — Ploutos (Ecopatrimoine)");
   });
 
-  it("contient les références code des assurances (L.511-1, L.521-x à confirmer)", () => {
+  it("contient les références code des assurances (L.511-1, L.521-1 et s.)", () => {
     const h = html();
     expect(h).toContain("L.511-1 et s.");
-    expect(h).toContain("L.521-x");
-    expect(h).toMatch(/L\.521-x[^]*à confirmer/i);
+    expect(h).toContain("L.521-1 et s.");
+    // Refacto wording : plus de marqueur « à confirmer » sur les articles
+    expect(h).not.toMatch(/L\.521[^]{0,80}à confirmer/i);
   });
 });
 
@@ -241,7 +242,7 @@ describe("pdfFicheDDA — invariants CIF coché", () => {
   it("conserve les références code des assurances (sur-ensemble n'efface pas)", () => {
     const h = html();
     expect(h).toContain("L.511-1 et s.");
-    expect(h).toContain("L.521-x");
+    expect(h).toContain("L.521-1 et s.");
   });
 
   it("contenu assurance inchangé : besoins + recommandations + IPID", () => {

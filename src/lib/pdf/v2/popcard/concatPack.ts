@@ -35,7 +35,11 @@ import { pageCouverture } from "../pages/pageCouverture";
 import { pageIR } from "../pages/pageIR";
 import { pageIFI } from "../pages/pageIFI";
 import { pageSuccessionA } from "../pages/pageSuccessionA";
+import { pageSuccessionB } from "../pages/pageSuccessionB";
 import { pageProfil } from "../pages/pageProfil";
+import { pageBilanEndettement } from "../pages/pageBilanEndettement";
+import { pagePrevoyanceInd } from "../pages/pagePrevoyanceInd";
+import { pagePrevoyanceColl } from "../pages/pagePrevoyanceColl";
 
 // ─── Adapters ─────────────────────────────────────────────────────────
 import { buildDerData } from "../adapters/buildDerData";
@@ -46,7 +50,11 @@ import { buildCouvertureData } from "../adapters/buildCouvertureData";
 import { buildIRData } from "../adapters/buildIRData";
 import { buildIFIData } from "../adapters/buildIFIData";
 import { buildSuccessionAData } from "../adapters/buildSuccessionAData";
+import { buildSuccessionBData } from "../adapters/buildSuccessionBData";
 import { buildProfilData } from "../adapters/buildProfilData";
+import { buildBilanEndettementData } from "../adapters/buildBilanEndettementData";
+import { buildPrevoyanceIndData } from "../adapters/buildPrevoyanceIndData";
+import { buildPrevoyanceCollData } from "../adapters/buildPrevoyanceCollData";
 
 export type PackOverrides = {
   /** Override palette PDF (vide = défaut cabinet via mapCabinetToThemeV2). */
@@ -133,13 +141,23 @@ function renderItemBody(
       const d = buildProfilData({ mission, data: data as any, cabinet, clientName: payload.clientName, dateLettre });
       return pageProfil(t, d);
     }
-
-    // ─── Sections bilan v2 à câbler en 2ème passe ───────────────────
-    case "bilanEndettement":
-    case "successionB":
-    case "prevoyanceInd":
-    case "prevoyanceColl":
-      return placeholderSection(t, item);
+    case "bilanEndettement": {
+      const d = buildBilanEndettementData({ data, cabinet, ir: payload.ir, clientName: payload.clientName, dateLettre });
+      return pageBilanEndettement(t, d);
+    }
+    case "successionB": {
+      if (!payload.succession) return placeholderSection(t, item, "Section Succession B requiert le résultat de computeSuccession (non fourni)");
+      const d = buildSuccessionBData({ succession: payload.succession, data, cabinet, clientName: payload.clientName, dateLettre });
+      return pageSuccessionB(t, d);
+    }
+    case "prevoyanceInd": {
+      const d = buildPrevoyanceIndData({ data, cabinet, clientName: payload.clientName, dateLettre });
+      return pagePrevoyanceInd(t, d);
+    }
+    case "prevoyanceColl": {
+      const d = buildPrevoyanceCollData({ data, cabinet, clientName: payload.clientName, dateLettre });
+      return pagePrevoyanceColl(t, d);
+    }
 
     // ─── Sections v1-only (pas encore refaites en v2) ───────────────
     case "cabinet":

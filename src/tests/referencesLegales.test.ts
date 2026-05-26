@@ -36,12 +36,12 @@ describe("referencesLegales — règle critique : aucun RG AMF / MIF II sans CIF
 });
 
 describe("referencesLegales — socle par statut", () => {
-  it("COA seul → Code des assurances L.511-1 / L.521-x / L.522-x + DDA", () => {
+  it("COA seul → Code des assurances L.511-1 / L.521-1 et s. / L.522-1 et s. + DDA", () => {
     const refs = referencesLegales({ ...NO_STATUTS, coa: true });
     const articles = refs.map(r => r.article);
     expect(articles).toContain("L.511-1 et s.");
-    expect(articles).toContain("L.521-x");
-    expect(articles).toContain("L.522-x");
+    expect(articles).toContain("L.521-1 et s.");
+    expect(articles).toContain("L.522-1 et s.");
     expect(refs.some(r => /DDA/.test(r.code))).toBe(true);
     expect(refs.every(r => r.statut === "coa")).toBe(true);
   });
@@ -81,22 +81,30 @@ describe("referencesLegales — socle par statut", () => {
   });
 });
 
-describe("referencesLegales — paramétrabilité (jamais d'invention)", () => {
-  it("L.521-x est marqué « à confirmer »", () => {
+describe("referencesLegales — libellés génériques pro (refacto wording Lot Dossier)", () => {
+  // Le refactor wording a remplacé les libellés provisoires « L.521-x à confirmer »
+  // par des références génériques affirmatives (« L.521-1 et s. » + libellé complet
+  // « DDA transposée en droit français »). Ces tests vérifient l'absence du
+  // marqueur « à confirmer » (régression) et la présence des nouveaux libellés.
+  it("L.521-1 et s. n'est PLUS marqué « à confirmer » (refacto wording)", () => {
     const refs = referencesLegales({ ...NO_STATUTS, coa: true });
-    const r = refs.find(x => x.article === "L.521-x");
-    expect(r?.note).toMatch(/à confirmer/i);
+    const r = refs.find(x => x.article === "L.521-1 et s.");
+    expect(r).toBeDefined();
+    expect(r?.note).toBeUndefined();
   });
 
-  it("L.522-x est marqué « à confirmer »", () => {
+  it("L.522-1 et s. n'est PLUS marqué « à confirmer » (refacto wording)", () => {
     const refs = referencesLegales({ ...NO_STATUTS, coa: true });
-    const r = refs.find(x => x.article === "L.522-x");
-    expect(r?.note).toMatch(/à confirmer/i);
+    const r = refs.find(x => x.article === "L.522-1 et s.");
+    expect(r).toBeDefined();
+    expect(r?.note).toBeUndefined();
   });
 
-  it("RG AMF est marqué « à confirmer »", () => {
+  it("RG AMF n'est PLUS marqué « à confirmer » (libellé Livre III à la place)", () => {
     const refs = referencesLegales({ ...NO_STATUTS, cif: true });
     const r = refs.find(x => x.code === "RG AMF");
-    expect(r?.note).toMatch(/à confirmer/i);
+    expect(r).toBeDefined();
+    expect(r?.note).toBeUndefined();
+    expect(r?.article).toBe("Livre III");
   });
 });

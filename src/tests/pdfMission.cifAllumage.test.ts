@@ -46,12 +46,12 @@ describe("Lot 8a — Lettre de mission : COA seul (par défaut)", () => {
 
   it("contient les références du Code des assurances (COA)", () => {
     expect(html()).toContain("L.511-1 et s.");
-    expect(html()).toContain("L.521-x");
-    expect(html()).toContain("L.522-x");
+    expect(html()).toContain("L.521-1 et s.");
+    expect(html()).toContain("L.522-1 et s.");
   });
 
-  it("contient la mention 'à confirmer' pour les numéros L.521/L.522 paramétrables", () => {
-    expect(html()).toMatch(/L\.521-x[^]*à confirmer/i);
+  it("ne contient PLUS de mention 'à confirmer' sur les articles L.521/L.522 (refacto wording)", () => {
+    expect(html()).not.toMatch(/L\.521[^]{0,80}à confirmer/i);
   });
 
   it("affiche 'Courtier en assurance (COA)' dans les statuts ORIAS", () => {
@@ -80,10 +80,10 @@ describe("Lot 8a — Lettre de mission : CIF coché (sur-ensemble allumé automa
     expect(html()).toContain("L.541-1 et s.");
   });
 
-  it("allume RG AMF avec marqueur 'à confirmer' (paramétrable, jamais inventé)", () => {
+  it("allume RG AMF avec mention 'Livre III' (refacto wording, plus de 'à confirmer')", () => {
     const h = html();
     expect(h).toContain("RG AMF");
-    expect(h).toMatch(/RG AMF[^]*à confirmer/i);
+    expect(h).toContain("Livre III");
   });
 
   it("allume MIF II dans le bloc références (sans inventer un numéro d'article)", () => {
@@ -110,7 +110,7 @@ describe("Lot 8a — Lettre de mission : CIF coché (sur-ensemble allumé automa
   it("conserve les références COA (le sur-ensemble n'efface pas le sous-ensemble)", () => {
     const h = html();
     expect(h).toContain("L.511-1 et s.");
-    expect(h).toContain("L.521-x");
+    expect(h).toContain("L.521-1 et s.");
   });
 });
 

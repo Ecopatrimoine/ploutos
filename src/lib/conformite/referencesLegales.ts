@@ -65,18 +65,16 @@ export function referencesLegales(
     refs.push({
       regulateur: "ACPR",
       code: "Code des assurances",
-      article: "L.521-x",
-      libelle: "Devoir d'information et de conseil",
+      article: "L.521-1 et s.",
+      libelle: "Devoir d'information et de conseil — DDA transposée en droit français",
       statut: s,
-      note: "numéro précis à confirmer (paramétrable selon le modèle de l'association)",
     });
     refs.push({
       regulateur: "ACPR",
       code: "Code des assurances",
-      article: "L.522-x",
-      libelle: "Assurance-vie / UC — règles spécifiques",
+      article: "L.522-1 et s.",
+      libelle: "Règles spécifiques aux contrats d'assurance-vie et unités de compte (IBIP)",
       statut: s,
-      note: "numéro précis à confirmer (paramétrable selon le modèle de l'association)",
     });
     refs.push({
       regulateur: "ACPR/UE",
@@ -118,10 +116,9 @@ export function referencesLegales(
     refs.push({
       regulateur: "AMF",
       code: "RG AMF",
-      article: "—",
-      libelle: "Règlement général AMF — références à paramétrer",
+      article: "Livre III",
+      libelle: "Règles de bonne conduite et obligations professionnelles applicables aux CIF",
       statut: "cif",
-      note: "références précises à confirmer (paramétrables via le modèle de l'association CIF)",
     });
     refs.push({
       regulateur: "AMF/UE",

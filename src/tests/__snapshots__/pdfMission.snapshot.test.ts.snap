@@ -233,7 +233,7 @@ exports[`pdfMission — garde-fou visuel cohab + heir conjoint > concubin + heir
   </div>
   <div class="section"><div class="section-title">Références légales applicables — calculées d'après les statuts du cabinet</div>
     <ul style="margin:0;padding-left:18px;font-size:8pt;color:#555;line-height:1.7;">
-      <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-x — Devoir d'information et de conseil <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Code des assurances</strong> · L.522-x — Assurance-vie / UC — règles spécifiques <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
+      <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-1 et s. — Devoir d'information et de conseil — DDA transposée en droit français</li><li><strong>Code des assurances</strong> · L.522-1 et s. — Règles spécifiques aux contrats d'assurance-vie et unités de compte (IBIP)</li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
     </ul>
   </div>
   <div style="margin-top:10px;font-size:7pt;color:#92400E;line-height:1.5;background:rgba(146,64,14,0.05);border-left:3px solid rgba(146,64,14,0.35);padding:6px 10px;border-radius:4px;">
@@ -705,7 +705,7 @@ exports[`pdfMission — gros patrimoine (synthèse + annexes) > ≥ 16 propertie
   </div>
   <div class="section"><div class="section-title">Références légales applicables — calculées d'après les statuts du cabinet</div>
     <ul style="margin:0;padding-left:18px;font-size:8pt;color:#555;line-height:1.7;">
-      <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-x — Devoir d'information et de conseil <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Code des assurances</strong> · L.522-x — Assurance-vie / UC — règles spécifiques <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
+      <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-1 et s. — Devoir d'information et de conseil — DDA transposée en droit français</li><li><strong>Code des assurances</strong> · L.522-1 et s. — Règles spécifiques aux contrats d'assurance-vie et unités de compte (IBIP)</li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
     </ul>
   </div>
   <div style="margin-top:10px;font-size:7pt;color:#92400E;line-height:1.5;background:rgba(146,64,14,0.05);border-left:3px solid rgba(146,64,14,0.35);padding:6px 10px;border-radius:4px;">
@@ -1196,7 +1196,7 @@ exports[`pdfMission — recipient (mode destinataire) > recipient='person1' sur 
   </div>
   <div class="section"><div class="section-title">Références légales applicables — calculées d'après les statuts du cabinet</div>
     <ul style="margin:0;padding-left:18px;font-size:8pt;color:#555;line-height:1.7;">
-      <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-x — Devoir d'information et de conseil <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Code des assurances</strong> · L.522-x — Assurance-vie / UC — règles spécifiques <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
+      <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-1 et s. — Devoir d'information et de conseil — DDA transposée en droit français</li><li><strong>Code des assurances</strong> · L.522-1 et s. — Règles spécifiques aux contrats d'assurance-vie et unités de compte (IBIP)</li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
     </ul>
   </div>
   <div style="margin-top:10px;font-size:7pt;color:#92400E;line-height:1.5;background:rgba(146,64,14,0.05);border-left:3px solid rgba(146,64,14,0.35);padding:6px 10px;border-radius:4px;">
@@ -1667,7 +1667,7 @@ exports[`pdfMission — recipient (mode destinataire) > recipient='person2' sur 
   </div>
   <div class="section"><div class="section-title">Références légales applicables — calculées d'après les statuts du cabinet</div>
     <ul style="margin:0;padding-left:18px;font-size:8pt;color:#555;line-height:1.7;">
-      <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-x — Devoir d'information et de conseil <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Code des assurances</strong> · L.522-x — Assurance-vie / UC — règles spécifiques <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
+      <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-1 et s. — Devoir d'information et de conseil — DDA transposée en droit français</li><li><strong>Code des assurances</strong> · L.522-1 et s. — Règles spécifiques aux contrats d'assurance-vie et unités de compte (IBIP)</li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
     </ul>
   </div>
   <div style="margin-top:10px;font-size:7pt;color:#92400E;line-height:1.5;background:rgba(146,64,14,0.05);border-left:3px solid rgba(146,64,14,0.35);padding:6px 10px;border-radius:4px;">
@@ -2609,7 +2609,7 @@ exports[`pdfMission — snapshot complet (toutes sections actives) > génère le
   </div>
   <div class="section"><div class="section-title">Références légales applicables — calculées d'après les statuts du cabinet</div>
     <ul style="margin:0;padding-left:18px;font-size:8pt;color:#555;line-height:1.7;">
-      <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-x — Devoir d'information et de conseil <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Code des assurances</strong> · L.522-x — Assurance-vie / UC — règles spécifiques <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
+      <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-1 et s. — Devoir d'information et de conseil — DDA transposée en droit français</li><li><strong>Code des assurances</strong> · L.522-1 et s. — Règles spécifiques aux contrats d'assurance-vie et unités de compte (IBIP)</li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
     </ul>
   </div>
   <div style="margin-top:10px;font-size:7pt;color:#92400E;line-height:1.5;background:rgba(146,64,14,0.05);border-left:3px solid rgba(146,64,14,0.35);padding:6px 10px;border-radius:4px;">
@@ -3761,7 +3761,7 @@ exports[`pdfMission — snapshots section par section > section seule : legal 1`
   </div>
   <div class="section"><div class="section-title">Références légales applicables — calculées d'après les statuts du cabinet</div>
     <ul style="margin:0;padding-left:18px;font-size:8pt;color:#555;line-height:1.7;">
-      <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-x — Devoir d'information et de conseil <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Code des assurances</strong> · L.522-x — Assurance-vie / UC — règles spécifiques <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
+      <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-1 et s. — Devoir d'information et de conseil — DDA transposée en droit français</li><li><strong>Code des assurances</strong> · L.522-1 et s. — Règles spécifiques aux contrats d'assurance-vie et unités de compte (IBIP)</li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
     </ul>
   </div>
   <div style="margin-top:10px;font-size:7pt;color:#92400E;line-height:1.5;background:rgba(146,64,14,0.05);border-left:3px solid rgba(146,64,14,0.35);padding:6px 10px;border-radius:4px;">
@@ -4541,7 +4541,7 @@ exports[`pdfMission — sélecteur palette (pdfPalette = 'encre_or') > cabinet a
   </div>
   <div class="section"><div class="section-title">Références légales applicables — calculées d'après les statuts du cabinet</div>
     <ul style="margin:0;padding-left:18px;font-size:8pt;color:#555;line-height:1.7;">
-      <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-x — Devoir d'information et de conseil <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Code des assurances</strong> · L.522-x — Assurance-vie / UC — règles spécifiques <em style="color:#92400E">(numéro précis à confirmer (paramétrable selon le modèle de l'association))</em></li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
+      <li><strong>Code des assurances</strong> · L.511-1 et s. — Conditions d'exercice de l'intermédiation en assurance</li><li><strong>Code des assurances</strong> · L.521-1 et s. — Devoir d'information et de conseil — DDA transposée en droit français</li><li><strong>Code des assurances</strong> · L.522-1 et s. — Règles spécifiques aux contrats d'assurance-vie et unités de compte (IBIP)</li><li><strong>Directive UE 2016/97 (DDA)</strong> · — — Distribution d'assurance</li>
     </ul>
   </div>
   <div style="margin-top:10px;font-size:7pt;color:#92400E;line-height:1.5;background:rgba(146,64,14,0.05);border-left:3px solid rgba(146,64,14,0.35);padding:6px 10px;border-radius:4px;">
