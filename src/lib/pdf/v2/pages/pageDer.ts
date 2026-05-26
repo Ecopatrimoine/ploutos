@@ -26,6 +26,7 @@ import {
   icones,
 } from "../primitives";
 import type { Tokens } from "../tokens";
+import { referencesLegales, type StatutFlags } from "../../../conformite/referencesLegales";
 
 export type DerPageData = {
   // ── Cabinet (Paramètres / Lot 5) ──────────────────────────────────────
@@ -37,14 +38,21 @@ export type DerPageData = {
   cabinetForme?: string;        // ex: "EI", "SAS", "SARL"
   cabinetCapital?: string;      // ex: "10 000 €"
   cabinetSiren?: string;
+  cabinetRcsVille?: string;     // ex: "Perpignan" — ville du greffe RCS
+  cabinetRcs?: string;          // ex: "123 456 789" — n° d'immatriculation RCS
   cabinetConseiller: string;    // "David Perry"
-  // Statuts ORIAS détenus (par catégorie)
+  // Statuts ORIAS détenus (par catégorie). statutIas est requis (rétro-compat).
+  // Les flags fins ci-dessous (statutCoa/Mia/CarteT) servent à la page 3
+  // Références légales — si absents, la dérivation se replie sur statutIas.
   statutCif: boolean;
   cabinetAssociationCif?: string;
   statutIas: boolean;
+  statutCoa?: boolean;
+  statutMia?: boolean;
   cabinetCategorieIas?: string; // ex: "Courtier en assurance (COA)"
   statutIobsp: boolean;
   cabinetCategorieIobsp?: string;
+  statutCarteT?: boolean;       // Carte T (transactions immobilières) — page 3 réf. légales
   // RCP & garantie financière
   cabinetRcpAssureur?: string;
   cabinetRcpContrat?: string;
@@ -64,6 +72,17 @@ export type DerPageData = {
   // Mention non-contractuelle
   mentionNonContractuelle: string;
 };
+
+// ─── Helper local : libellé d'immatriculation RCS unique ─────────────
+// Combine ville du greffe + numéro (rcs si renseigné, sinon siren — c'est
+// le même nombre dans 99 % des cas, l'immatriculation au greffe reprend
+// le SIREN). Rend un seul libellé « RCS {ville} · {numéro} » au lieu de
+// 2 lignes SIREN + RCS qui faisaient doublon.
+function immatriculationRcs(d: DerPageData): string {
+  const numero = d.cabinetRcs || d.cabinetSiren;
+  if (!numero) return "n° d'immatriculation RCS";
+  return d.cabinetRcsVille ? `RCS ${d.cabinetRcsVille} · ${numero}` : `RCS · ${numero}`;
+}
 
 export function pageDer(t: Tokens, d: DerPageData): string {
   // ─── PAGE 1 — Identité + Statuts + Autorités + RCP ──────────────────
@@ -85,8 +104,8 @@ export function pageDer(t: Tokens, d: DerPageData): string {
         <div class="lt" style="font-size:11px;color:${t.texte};line-height:1.5;margin-top:2px">${d.cabinetAdresse}</div>
       </div>
       <div>
-        <div style="font-family:'Lato',sans-serif;font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;color:${t.texteFaibleClair}">SIREN</div>
-        <div class="lt" style="font-size:11px;color:${t.texte};line-height:1.5;margin-top:2px">${champCabinet(t, d.cabinetSiren || "SIREN")}</div>
+        <div style="font-family:'Lato',sans-serif;font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;color:${t.texteFaibleClair}">Immatriculation</div>
+        <div class="lt" style="font-size:11px;color:${t.texte};line-height:1.5;margin-top:2px">${champCabinet(t, immatriculationRcs(d))}</div>
       </div>
       <div style="grid-column:1 / -1">
         <div style="font-family:'Lato',sans-serif;font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;color:${t.texteFaibleClair}">Contact</div>
@@ -191,7 +210,7 @@ export function pageDer(t: Tokens, d: DerPageData): string {
     contenu: page1Contenu,
     pied: piedPageDocReg(t, {
       gauche: `${d.cabinetNom} · Document d'entrée en relation`,
-      droite: "1 / 2",
+      droite: "1 / 3",
     }),
   });
 
@@ -282,9 +301,81 @@ export function pageDer(t: Tokens, d: DerPageData): string {
     signature: page2Signature,
     pied: piedPageDocReg(t, {
       gauche: `${d.cabinetNom} · Document d'entrée en relation`,
-      droite: "2 / 2",
+      droite: "2 / 3",
     }),
   });
 
-  return page1 + page2;
+  // ─── PAGE 3 — Références légales applicables (dynamiques) ───────────
+  // Dérivation des flags fins depuis les statuts agrégés (rétro-compat
+  // avec la fixture v2 historique qui ne distinguait pas COA/MIA).
+  const statutFlags: StatutFlags = {
+    coa:    d.statutCoa    ?? d.statutIas,
+    mia:    d.statutMia    ?? false,
+    iobsp:  d.statutIobsp,
+    cif:    d.statutCif,
+    carteT: d.statutCarteT ?? false,
+  };
+  const refs = referencesLegales(statutFlags);
+
+  // Groupement par régulateur pour la lisibilité (ACPR / AMF / DGCCRF...)
+  // — l'ordre suit l'apparition (Map préserve l'insertion order).
+  const refsByRegulateur = new Map<string, typeof refs>();
+  for (const r of refs) {
+    const arr = refsByRegulateur.get(r.regulateur) || [];
+    arr.push(r);
+    refsByRegulateur.set(r.regulateur, arr);
+  }
+
+  const refsParRegulateurHtml = refs.length === 0
+    ? `<div class="lt" style="font-size:11px;color:${t.texteFaibleClair};font-style:italic">Aucun statut ORIAS coché dans Paramètres → la liste des références applicables se construira automatiquement dès qu'un statut sera renseigné.</div>`
+    : Array.from(refsByRegulateur.entries()).map(([reg, items]) => `
+        <div style="margin-bottom:12px">
+          <div style="font-family:'Lato',sans-serif;font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;color:${t.texteFaibleClair};margin-bottom:6px">${reg}</div>
+          ${items.map(r => `
+            <div style="display:grid;grid-template-columns:140px 1fr;gap:0;padding:6px 0;border-bottom:1px solid ${t.bordureClaire}">
+              <div class="lt" style="font-size:10.5px;color:${t.texte};font-weight:700">${r.code}${r.article && r.article !== "—" ? ` · ${r.article}` : ""}</div>
+              <div class="lt" style="font-size:10.5px;color:${t.texte};line-height:1.45;padding-left:12px">${r.libelle}${r.note ? ` ${marqueurAConfirmer(t, r.note)}` : ""}</div>
+            </div>
+          `).join("")}
+        </div>
+      `).join("");
+
+  const introRefs = `Le tableau ci-dessous est <strong>généré dynamiquement</strong> à partir des statuts ORIAS renseignés dans les Paramètres du cabinet. Toute modification de ces statuts (ajout du CIF, par exemple) met automatiquement à jour cette page.`;
+
+  const page3Contenu = `
+    ${headerDocReg(t, {
+      eyebrow: "Document réglementaire · Annexe",
+      titre: "Références légales\napplicables",
+      cabinetNom: d.cabinetNom,
+      dateLabel: "Remis le",
+      dateValeur: d.dateLettre,
+      dateAsChamp: false,
+    })}
+
+    <div class="lt" style="font-size:10px;color:${t.texteFaible};line-height:1.5;margin-top:11px">
+      ${introRefs}
+    </div>
+
+    ${encadreDocReg(t, {
+      titre: "Cadre légal calculé d'après vos statuts",
+      marginTop: "15px",
+      contenuHtml: refsParRegulateurHtml,
+    })}
+
+    ${noteIconee(t, {
+      iconeSvg: icones.infoCircle(t.eyebrowOr, 13),
+      texteHtml: "Document d'aide à la conformité. Les numéros d'articles marqués « à confirmer » sont paramétrables selon le référentiel validé par votre association agréée (CNCGP, ANACOFI, La Compagnie des CGP…). Le conseiller reste seul responsable de la cohérence des mentions avec sa situation.",
+      style: "discrete",
+    })}
+  `;
+
+  const page3 = coquillePageDocReg(t, {
+    contenu: page3Contenu,
+    pied: piedPageDocReg(t, {
+      gauche: `${d.cabinetNom} · Document d'entrée en relation · Références`,
+      droite: "3 / 3",
+    }),
+  });
+
+  return page1 + page2 + page3;
 }

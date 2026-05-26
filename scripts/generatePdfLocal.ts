@@ -345,14 +345,19 @@ const dataMaquetteDer: DerPageData = {
   cabinetForme: "forme",       // affiché annoté champCabinet
   cabinetCapital: "capital",
   cabinetSiren: "SIREN",
+  cabinetRcsVille: "Perpignan",
+  cabinetRcs: "123 456 789",
   cabinetConseiller: "David Perry",
   // Statuts ORIAS (David COA seul aujourd'hui)
   statutCif: false,
   statutIas: true,
+  statutCoa: true,
+  statutMia: false,
   cabinetCategorieIas: "Courtier en assurance (COA)",
   statutIobsp: false,
   cabinetAssociationCif: undefined,
   cabinetCategorieIobsp: undefined,
+  statutCarteT: false,
   // RCP
   cabinetRcpAssureur: "assureur RCP",
   cabinetRcpContrat: "n° police",

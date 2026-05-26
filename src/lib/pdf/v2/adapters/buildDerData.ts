@@ -31,6 +31,7 @@ export function buildDerData(params: BuildDerDataParams): DerPageData {
   const statutIas    = statutCoa || statutMia;
   const statutCif    = !!cabinet.statutCif;
   const statutIobsp  = !!cabinet.statutIobsp;
+  const statutCarteT = !!cabinet.statutCarteT;
 
   // Catégorie IAS textuelle déduite des sous-statuts cochés.
   const categoriesIas: string[] = [];
@@ -48,14 +49,19 @@ export function buildDerData(params: BuildDerDataParams): DerPageData {
     cabinetForme:       cabinet.forme || cabinet.formeJuridique || undefined,
     cabinetCapital:     cabinet.capital || undefined,
     cabinetSiren:       cabinet.siren || undefined,
+    cabinetRcsVille:    cabinet.villeRcs || undefined,
+    cabinetRcs:         cabinet.rcs || undefined,
     cabinetConseiller:  cabinet.conseillerNom || cabinet.conseiller || "—",
     // Statuts
     statutCif,
     cabinetAssociationCif: cabinet.associationCif || cabinet.assocCif || undefined,
     statutIas,
+    statutCoa,
+    statutMia,
     cabinetCategorieIas,
     statutIobsp,
     cabinetCategorieIobsp: cabinet.categorieIobsp || undefined,
+    statutCarteT,
     // RCP
     cabinetRcpAssureur:   cabinet.rcpAssureur || undefined,
     cabinetRcpContrat:    cabinet.rcpContrat || cabinet.rcpPolice || undefined,
