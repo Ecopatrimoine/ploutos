@@ -76,12 +76,14 @@ export function buildLettreMissionData(p: BuildLettreMissionDataParams): LettreM
     dateLettre,
     // Prestations
     prestations,
-    // Rémunération
-    remunerationMode: cabinet.remunerationType || "honoraires / commissions",
-    natureConseil:    cabinet.natureConseil || "non indépendant",
-    // Durée / résiliation
-    dureeMission: mission.dureeMission || "ponctuelle / annuelle / reconductible",
-    delaiPreavis: mission.delaiPreavis || "30 jours",
+    // Rémunération (cabinet.remunerationType, cabinet.natureConseil)
+    // — convertis en libellé humain ; sentinel explicite si vide.
+    remunerationMode: libelleRemuneration(cabinet.remunerationType),
+    natureConseil:    libelleNatureConseil(cabinet.natureConseil),
+    // Durée / résiliation : pas de source dans l'app aujourd'hui
+    // (à venir au Lot Paramètres v2 #76). Sentinel explicite.
+    dureeMission: "à confirmer dans Paramètres",
+    delaiPreavis: "à confirmer dans Paramètres",
     villeSignature: mission.lieuSignature || cabinet.ville || undefined,
     mentionNonContractuelle:
       "Document d'aide à la conformité remis à titre indicatif. Ne constitue ni une attestation de conformité, ni un conseil juridique. À valider au regard des textes en vigueur, du contrôle de l'association agréée et, le cas échéant, d'un avocat." +
@@ -92,4 +94,22 @@ export function buildLettreMissionData(p: BuildLettreMissionDataParams): LettreM
 
 function formatDateFr(d: Date): string {
   return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+}
+
+/** Convertit cabinet.remunerationType (« commission » / « honoraire » /
+ *  « mixte » / vide) en libellé humain affiché dans la lettre de mission.
+ *  Aligné sur les libellés v1 (pdfMission.ts:345-347). */
+function libelleRemuneration(raw: string | undefined): string {
+  if (raw === "commission") return "Commission versée par l'assureur (incluse dans la prime)";
+  if (raw === "honoraire")  return "Honoraires payés directement par le client";
+  if (raw === "mixte")      return "Combinaison commission + honoraires";
+  return "à confirmer dans Paramètres";
+}
+
+/** Convertit cabinet.natureConseil (« independant » / « non_independant » /
+ *  vide) en libellé humain. */
+function libelleNatureConseil(raw: string | undefined): string {
+  if (raw === "independant")     return "indépendant";
+  if (raw === "non_independant") return "non indépendant";
+  return "à confirmer dans Paramètres";
 }
