@@ -54,7 +54,7 @@ const TabParametres = React.memo(function TabParametres(props: any) {
           checked={!!cabinet[ckKey]}
           onChange={e => updateCabinet(ckKey, e.target.checked)}
         />
-        <span className="absolute inset-0 bg-slate-300 rounded-full transition-colors peer-checked:bg-slate-900" />
+        <span className="absolute inset-0 bg-slate-300 rounded-full transition-colors peer-checked:bg-[#C4973D]" />
         <span className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
       </span>
       <span className="flex-1 text-sm leading-snug">
@@ -195,7 +195,7 @@ const TabParametres = React.memo(function TabParametres(props: any) {
                             checked={isActive}
                             onChange={e => updateCabinet(key, e.target.checked)}
                           />
-                          <span className="absolute inset-0 bg-slate-300 rounded-full transition-colors peer-checked:bg-slate-900" />
+                          <span className="absolute inset-0 bg-slate-300 rounded-full transition-colors peer-checked:bg-[#C4973D]" />
                           <span className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-3" />
                         </span>
                         <div className="text-sm font-extrabold text-slate-900">{short}</div>

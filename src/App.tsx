@@ -38,6 +38,8 @@ import { runDerV2 } from "./lib/pdf/v2/runners/runDerV2";
 import { runLettreMissionV2 } from "./lib/pdf/v2/runners/runLettreMissionV2";
 import { runFicheDDAV2 } from "./lib/pdf/v2/runners/runFicheDDAV2";
 import { runDeclarationAdequationV2 } from "./lib/pdf/v2/runners/runDeclarationAdequationV2";
+// ─── Lot Dossier client — pop-card d'impression universelle ──────────
+import { PopcardImpression } from "./components/popcard/PopcardImpression";
 // Lot 8c — Fiche d'information et de conseil DDA : dépend du dossier client
 // (data + mission + recommandations) ; consomme les helpers Lot 5 + 7.
 import { buildAndPrintFicheDDA as _buildAndPrintFicheDDA } from "./lib/pdf/pdfFicheDDA";
@@ -401,6 +403,13 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     residenceFranceIR: true, residenceFranceIFI: false,
     nationaliteUS: false, residentFiscalUS: false,
     ppe: false, ppeDetails: "",
+    // ─── Lot Dossier client — nouveaux champs LCB-FT (consommés par pdfMission v1) ──
+    justifDomicile: false as boolean,        // KYC : justificatif de domicile collecté
+    justifOrigineFonds: false as boolean,    // KYC : justificatif d'origine des fonds
+    // ─── Lot Dossier client — ESG (Q7 questionnaire MIF II, déjà saisi UI) ──
+    esgPref: "" as "" | "oui" | "partiel" | "non",
+    // ─── Lot Dossier client — override palette PDF per-dossier (vide = défaut cabinet) ──
+    pdfPaletteOverride: "" as "" | "cabinet" | "encre_or",
     // Lieu signature
     lieuSignature: "Perpignan",
   });
@@ -453,6 +462,8 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  // Lot Dossier client — pop-card universelle d'impression (panier multi-docs)
+  const [popcardOpen, setPopcardOpen] = useState(false);
   const [pdfMissionModalOpen, setPdfMissionModalOpen] = useState(false);
   const [pdfSections, setPdfSections] = useState({
     cabinet: true, famille: true, travail: true, bilan: true,
@@ -1692,7 +1703,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
             </TabsList>
             <TabsList className="p-1.5" style={{ background: SURFACE.card, border: `2px solid ${SURFACE.border}`, borderRadius: 14, height: "52px", boxShadow: SURFACE.cardShadow }}>
               <TabsTrigger value="mission" className="flex items-center justify-center px-4 font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.muted, fontSize: 12 }}>
-                📋 Mission
+                👤 Dossier client
               </TabsTrigger>
             </TabsList>
             <TabsList className="p-1.5" style={{ background: SURFACE.card, border: `2px solid ${SURFACE.border}`, borderRadius: 14, height: "52px", boxShadow: SURFACE.cardShadow }}>
@@ -1785,7 +1796,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
           </TabsContent>
 
           {/* ════ LETTRE DE MISSION ════ */}
-          <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} showPdfMissionModal={() => setPdfMissionModalOpen(true)} person1={person1} person2={person2} recommandations={recommandations} setRecommandations={setRecommandations} piecesJointes={piecesJointes} setPiecesJointes={setPiecesJointes} onPrintDER={buildAndPrintDER} onPrintFicheDDA={buildAndPrintFicheDDA} onPrintAdequation={buildAndPrintAdequation} onPreviewDerV2={buildAndPrintDerV2} onPreviewLettreMissionV2={buildAndPrintLettreMissionV2} onPreviewFicheDDAV2={buildAndPrintFicheDDAV2} onPreviewAdequationV2={buildAndPrintAdequationV2} />
+          <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} showPdfMissionModal={() => setPdfMissionModalOpen(true)} person1={person1} person2={person2} recommandations={recommandations} setRecommandations={setRecommandations} piecesJointes={piecesJointes} setPiecesJointes={setPiecesJointes} onPrintDER={buildAndPrintDER} onPrintFicheDDA={buildAndPrintFicheDDA} onPrintAdequation={buildAndPrintAdequation} onPreviewDerV2={buildAndPrintDerV2} onPreviewLettreMissionV2={buildAndPrintLettreMissionV2} onPreviewFicheDDAV2={buildAndPrintFicheDDAV2} onPreviewAdequationV2={buildAndPrintAdequationV2} onOpenPopcardImpression={() => setPopcardOpen(true)} />
 
           {/* ════ PARAMÈTRES CABINET ════ */}
           <TabParametres
@@ -1797,7 +1808,24 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
         </Tabs>
       </div>
 
-      {/* ── Modal PDF Rapport ── */}
+      {/* ── Pop-card universelle d'impression (Lot Dossier client) ── */}
+      <PopcardImpression
+        open={popcardOpen}
+        onClose={() => setPopcardOpen(false)}
+        cabinet={cabinet as Record<string, any>}
+        mission={mission as Record<string, any>}
+        data={data as Record<string, any>}
+        updateMission={updateMission as any}
+        recommandations={recommandations}
+        piecesJointes={piecesJointes}
+        ir={ir}
+        ifi={ifi}
+        succession={succession}
+        hypothesisResults={hypothesisResults}
+        clientName={clientName}
+      />
+
+      {/* ── Modal PDF Rapport (v1 — conservé en parallèle, à débrancher au lot bascule franche) ── */}
       <PdfModal
         open={pdfModalOpen}
         onClose={() => setPdfModalOpen(false)}

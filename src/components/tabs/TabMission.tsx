@@ -651,6 +651,34 @@ const TabMission = React.memo(function TabMission(props: any) {
         </div>
       </div>
 
+      {/* ─── Lot Dossier client — bouton unique « Générer un document PDF »
+           ouvre la pop-card universelle (panier multi-docs + overrides +
+           check complétude). Les boutons v1 sont conservés sous une
+           section « ancien flux » jusqu'à la bascule franche. ─── */}
+      {props.onOpenPopcardImpression && (
+        <div className="rounded-2xl p-4 mb-4" style={{ background: "linear-gradient(135deg, rgba(196,151,61,.08) 0%, rgba(196,151,61,.02) 100%)", border: `1.5px solid ${BRAND.gold}` }}>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <div className="text-sm font-bold mb-1" style={{ color: BRAND.navy }}>📄 Génération de documents PDF</div>
+              <div className="text-xs" style={{ color: BRAND.muted }}>
+                Panier multi-documents : combinez librement sections du bilan patrimonial + documents réglementaires.
+                1 seul PDF final.
+              </div>
+            </div>
+            <Button
+              className="rounded-xl px-6 py-3 text-sm font-bold shadow-md"
+              style={{ background: `linear-gradient(135deg, ${BRAND.goldText} 0%, ${BRAND.gold} 100%)`, color: "#fff" }}
+              onClick={props.onOpenPopcardImpression}
+            >
+              <Download className="mr-2 h-4 w-4" />Générer un document PDF
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="text-xs font-bold mb-2" style={{ color: BRAND.muted, letterSpacing: ".05em", textTransform: "uppercase" }}>
+        Ancien flux (v1 — conservé jusqu'à bascule franche)
+      </div>
       <div className="flex flex-wrap gap-3">
         <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md" style={{ background: BRAND.navy, color: "#fff" }} onClick={showPdfMissionModal}>
           <Download className="mr-2 h-4 w-4" />Générer PDF Lettre de mission
