@@ -18,6 +18,8 @@ import { computeProfilRisque } from "../../lib/conformite/profil";
 import { computeCapacitePerte } from "../../lib/conformite/capacitePerte";
 import { vocabulaireReglementaire, type VocabulaireReglementaire } from "../../lib/conformite/vocabulaire";
 import type { StatutFlags } from "../../lib/conformite/referencesLegales";
+// ─── Lot 7 — modèle Recommandation + libellés des dimensions ───────────────
+import { DIMENSIONS_LABEL, DIMENSIONS_ORDER, type Recommandation, type DimensionRecommandation } from "../../lib/conformite/recommandations";
 
 
 // ── TabMission ─────────────────────────────────────────────────────────────────────
@@ -394,6 +396,93 @@ const TabMission = React.memo(function TabMission(props: any) {
           );
         })()}
       </div>
+
+      {/* Recommandations / plan d'action (Lot 7) ─ source unique des recos consommée par le rapport + Lot 8 */}
+      {(() => {
+        const recos: Recommandation[] = Array.isArray(props.recommandations) ? props.recommandations : [];
+        const setRecos: (next: Recommandation[]) => void = props.setRecommandations || (() => {});
+        const updateOne = (id: string, patch: Partial<Recommandation>) =>
+          setRecos(recos.map(r => r.id === id ? { ...r, ...patch } : r));
+        const removeOne = (id: string) => setRecos(recos.filter(r => r.id !== id));
+        const addOne = () => {
+          const id = (typeof crypto !== "undefined" && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : `reco_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
+          setRecos([...recos, { id, libelle: "", justification: "", dimension: "besoin" }]);
+        };
+        return (
+          <div>
+            <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>RECOMMANDATIONS & PLAN D'ACTION</h3>
+            <div className="p-4 space-y-3" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, borderRadius: 14 }}>
+              <p className="text-xs text-slate-500">
+                Chaque recommandation se rattache à une <strong>dimension du profil</strong> (besoin exprimé, tolérance au risque, ESG, capacité à subir des pertes). Raisonner <strong>garantie / besoin</strong> — ne pas nommer de produit ni d'assureur.
+              </p>
+              {recos.length === 0 && (
+                <div className="text-xs text-slate-400 italic py-2">
+                  Aucune recommandation pour ce dossier. La section « Recommandations » du rapport ne s'affichera pas tant qu'aucune n'est saisie.
+                </div>
+              )}
+              {recos.map((r, idx) => (
+                <div key={r.id} className="p-3 rounded-lg" style={{ background: "#fff", border: `1px solid ${SURFACE.border}` }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold" style={{ color: BRAND.sky }}>Reco #{idx + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeOne(r.id)}
+                      className="text-xs text-red-500 hover:text-red-700"
+                      title="Supprimer cette recommandation"
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2">
+                      <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>Libellé</Label>
+                      <Input
+                        value={r.libelle}
+                        onChange={e => updateOne(r.id, { libelle: e.target.value })}
+                        placeholder="ex : Renforcer la part obligataire / Souscrire une garantie ITT"
+                        className="rounded-lg text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>Dimension</Label>
+                      <select
+                        value={r.dimension}
+                        onChange={e => updateOne(r.id, { dimension: e.target.value as DimensionRecommandation })}
+                        className="w-full rounded-lg px-2 py-1.5 text-sm border"
+                        style={{ borderColor: SURFACE.border, background: "#fff" }}
+                      >
+                        {DIMENSIONS_ORDER.map(d => (
+                          <option key={d} value={d}>{DIMENSIONS_LABEL[d]}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-span-3">
+                      <Label className="text-xs font-semibold tracking-wide mb-1 block" style={{ color: BRAND.muted }}>Justification (rattachée à la dimension)</Label>
+                      <Textarea
+                        value={r.justification}
+                        onChange={e => updateOne(r.id, { justification: e.target.value })}
+                        placeholder="ex : Cohérent avec un profil prudent et un horizon court terme"
+                        className="rounded-lg text-sm"
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addOne}
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold"
+                style={{ background: BRAND.navy, color: "#fff" }}
+              >
+                <Plus className="h-3.5 w-3.5" /> Ajouter une recommandation
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Rémunération */}
       <div>

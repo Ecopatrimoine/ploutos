@@ -8,6 +8,14 @@ import { resolveCabinetColors, resolveRecipient, kpi, sec, tbl, hbar, segB, open
 import type { Recipient } from "./pdfCore";
 import { REPORT_PRESET } from "./registry";
 import type { PatrimonialData, IrOptions, Hypothesis } from "../../types/patrimoine";
+// Lot 7 — section conditionnelle Recommandations (rendue uniquement si non vide).
+import {
+  filterComplete,
+  groupRecommandationsByDimension,
+  DIMENSIONS_LABEL,
+  DIMENSIONS_ORDER,
+  type Recommandation,
+} from "../conformite/recommandations";
 
 type IrResult = any;
 type IfiResult = any;
@@ -33,6 +41,9 @@ export interface PdfReportParams {
   logoSrc: string;
   hypothesisResults: HypothesisResult[];
   recipient?: Recipient;
+  /** Lot 7 — recommandations à inclure dans la section conditionnelle.
+   *  Absente ou vide → section non rendue (snapshots existants intacts). */
+  recommandations?: ReadonlyArray<Recommandation>;
 }
 
 export function buildAndPrintPdf(params: PdfReportParams) {
@@ -604,6 +615,40 @@ export function buildAndPrintPdf(params: PdfReportParams) {
   ${pF("Scénarios")}
 </div>`:"";
 
+  // Lot 7 — Recommandations / plan d'action.
+  // Section CONDITIONNELLE : si aucune reco complète, renvoie "" et la section
+  // disparaît du PDF (filter(Boolean) dans l'assemblage). C'est ce qui garantit
+  // que les snapshots existants (sans recos dans la fixture) restent intacts.
+  const recosComplete = filterComplete(params.recommandations || []);
+  const pageRecommandations = () => {
+    if (recosComplete.length === 0) return "";
+    const grouped = groupRecommandationsByDimension(recosComplete);
+    // Styles INLINE (et non classes globales) pour garantir que rien n'est
+    // émis dans <style> si la section reste vide → snapshots intacts.
+    const renderCard = (r: Recommandation) => `
+      <div style="background:#fff;border:1px solid rgba(227,175,100,0.25);border-left:3px solid ${colors.gold};border-radius:6px;padding:7px 10px;margin-bottom:5px;page-break-inside:avoid;break-inside:avoid;">
+        <div style="font-size:9pt;font-weight:700;color:${colors.navy};margin-bottom:3px;">${r.libelle}</div>
+        <div style="font-size:8pt;color:#555;line-height:1.5;">${r.justification}</div>
+      </div>`;
+    const renderGroup = (dim: typeof DIMENSIONS_ORDER[number]) => {
+      const recos = grouped[dim];
+      if (!recos || recos.length === 0) return "";
+      return `<div style="margin-bottom:10px;">
+        <div style="font-size:9pt;font-weight:700;color:${colors.navy};border-bottom:1px solid rgba(227,175,100,0.4);padding-bottom:3px;margin-bottom:5px;">${DIMENSIONS_LABEL[dim]}</div>
+        ${recos.map(renderCard).join("")}
+      </div>`;
+    };
+    const body = DIMENSIONS_ORDER.map(renderGroup).filter(Boolean).join("");
+    return `<div class="page">
+  ${pH("Recommandations & plan d'action")}
+  ${sec("Recommandations issues du diagnostic",`
+    <p style="font-size:8pt;color:#666;margin-bottom:8px;line-height:1.5;">Chaque recommandation se rattache à une dimension du profil. Le cabinet raisonne en garanties et besoins ; aucun produit ni assureur n'est nommé à ce stade.</p>
+    ${body}
+  `)}
+  ${pF("Plan d'action")}
+</div>`;
+  };
+
   const pageMentions = () => `<div class="page">
   ${pH("Notes & Mentions légales")}
   ${sec("Notes du conseiller",`<div class="notes-box">${notes||"Aucune note saisie."}</div>`)}
@@ -627,6 +672,9 @@ export function buildAndPrintPdf(params: PdfReportParams) {
     ifi:        () => showIFI ? pageIFI() : "",
     succession: pageSuccession,
     hypos:      () => activeHypos.length > 0 ? pageHypos() : "",
+    // Lot 7 — section conditionnelle aux recos complètes. Vide si aucune reco
+    // → filter(Boolean) dans REPORT_PRESET map ci-dessous.
+    recommandations: pageRecommandations,
     // Lot 4 — Les annexes ne sont rendues que si elles ont été accumulées en amont
     // (tableaux qui ont basculé en synthèse). Sinon : section vide → filter(Boolean).
     annexes:    () => annexes.length > 0 ? annexes.join("") : "",

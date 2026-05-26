@@ -471,6 +471,7 @@ export const fixtureHypothesisResults: Array<{
 export const allSectionsReport: Record<string, boolean> = {
   cabinet: true, famille: true, travail: true, bilan: true,
   ir: true, ifi: true, succession: true, hypos: true,
+  recommandations: true,  // Lot 7 — rendue uniquement si des recos non vides sont passées
   annexes: true,  // Lot 4 — rendue uniquement si un tableau a basculé en synthèse
   mentions: true,
 };

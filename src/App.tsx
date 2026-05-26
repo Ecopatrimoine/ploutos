@@ -39,6 +39,8 @@ import type {
   BaseSnapshot, ChargesDetail,
   Beneficiary, DifferenceLine
 } from "./types/patrimoine";
+// Lot 7 — modèle « recommandation » persistée dans le payload client (Supabase).
+import type { Recommandation } from "./lib/conformite/recommandations";
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets,
   personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs,
   getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance,
@@ -409,7 +411,9 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const [pdfMissionModalOpen, setPdfMissionModalOpen] = useState(false);
   const [pdfSections, setPdfSections] = useState({
     cabinet: true, famille: true, travail: true, bilan: true,
-    ir: true, ifi: true, succession: true, hypos: true, mentions: true,
+    ir: true, ifi: true, succession: true, hypos: true,
+    recommandations: true,  // Lot 7 — conditionnelle au contenu, sans effet si pas de recos
+    mentions: true,
   });
   const [pdfMissionSections, setPdfMissionSections] = useState({
     legal: true, famille: true, travail: true, besoins: true,
@@ -427,6 +431,8 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     { id: 3, name: "Hypothèse 3", notes: "", objective: "", savedAt: null, data: null, successionData: null, irOptions: null },
   ]);
   const [baseSnapshot, setBaseSnapshot] = useState<BaseSnapshot>({ savedAt: null, data: null, successionData: null, irOptions: null });
+  // Lot 7 — recommandations par dossier (payload Supabase, jamais localStorage propre).
+  const [recommandations, setRecommandations] = useState<Recommandation[]>([]);
 
   // ── Autosave ──
   useEffect(() => {
@@ -434,7 +440,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     setAutoSaveStatus("saving");
     const timer = setTimeout(() => {
       const payload = {
-        clientName, notes, data, irOptions, successionData, hypotheses, baseSnapshot, mission,
+        clientName, notes, data, irOptions, successionData, hypotheses, baseSnapshot, mission, recommandations,
       };
       const displayName = clientName || activeClient.displayName;
       saveClient(activeClient.id, payload as ClientPayload, displayName);
@@ -442,7 +448,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       setTimeout(() => setAutoSaveStatus("idle"), 2500);
     }, 1500);
     return () => clearTimeout(timer);
-  }, [data, clientName, notes, irOptions, successionData, hypotheses, baseSnapshot, mission, activeClient]);
+  }, [data, clientName, notes, irOptions, successionData, hypotheses, baseSnapshot, mission, recommandations, activeClient]);
 
   const person1 = personLabel(data, 1);
   const person2 = personLabel(data, 2);
@@ -995,7 +1001,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const handleSaveAndClose = () => {
     if (!activeClient) return
     const payload: ClientPayload = {
-      clientName, notes, data, irOptions, successionData, hypotheses, baseSnapshot, mission,
+      clientName, notes, data, irOptions, successionData, hypotheses, baseSnapshot, mission, recommandations,
     }
     const displayName = [(data as any).person1LastName, (data as any).person1FirstName].filter(Boolean).join(' ') || clientName
     saveClient(activeClient.id, payload as ClientPayload, displayName)
@@ -1043,6 +1049,8 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     if (p.hypotheses) setHypotheses(p.hypotheses as typeof hypotheses)
     if (p.baseSnapshot) setBaseSnapshot(p.baseSnapshot as typeof baseSnapshot)
     if (p.mission) setMission(p.mission as typeof mission)
+    // Lot 7 — recommandations (champ absent des dossiers d'avant le Lot 7 → fallback []).
+    setRecommandations(Array.isArray(p.recommandations) ? (p.recommandations as Recommandation[]) : [])
     setActiveClient(client)
   }
 
@@ -1078,6 +1086,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       { id: 3, name: "Hypothèse 3", notes: "", objective: "", savedAt: null, data: null, successionData: null, irOptions: null },
     ])
     setBaseSnapshot({ savedAt: null, data: null, successionData: null, irOptions: null })
+    setRecommandations([])  // Lot 7 — dossier vierge
     setActiveClient(client)
   }
 
@@ -1126,6 +1135,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       sections, data, ir, ifi, succession: successionForRecipient(recipient), irOptions,
       cabinet: cabinet as unknown as Record<string, string>,
       clientName, notes, logoSrc, hypothesisResults, recipient,
+      recommandations,  // Lot 7 — section PDF conditionnelle (rendue si non vide)
     });
   };
 
@@ -1652,7 +1662,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
           </TabsContent>
 
           {/* ════ LETTRE DE MISSION ════ */}
-          <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} showPdfMissionModal={() => setPdfMissionModalOpen(true)} person1={person1} person2={person2} />
+          <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} showPdfMissionModal={() => setPdfMissionModalOpen(true)} person1={person1} person2={person2} recommandations={recommandations} setRecommandations={setRecommandations} />
 
           {/* ════ PARAMÈTRES CABINET ════ */}
           <TabParametres

@@ -16,6 +16,7 @@ export type ClientPayload = {
   hypotheses?: unknown;
   baseSnapshot?: unknown;
   mission?: unknown;
+  recommandations?: unknown;  // Lot 7 — Recommandation[] (cf. lib/conformite/recommandations)
 };
 
 export type ClientRecord = {

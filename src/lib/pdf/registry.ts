@@ -35,6 +35,8 @@ export const REPORT_SECTIONS: SectionMeta[] = [
   { id: "ifi",        label: "Impôt sur la fortune immobilière", groupe: "Fiscalité" },
   { id: "succession", label: "Succession",                       groupe: "Patrimoine" },
   { id: "hypos",      label: "Scénarios d'optimisation",         groupe: "Patrimoine" },
+  // Lot 7 — section conditionnelle, ne s'affiche que si recommandations non vides.
+  { id: "recommandations", label: "Recommandations & plan d'action", groupe: "Conformité" },
   { id: "annexes",    label: "Annexes — détail tableaux",        groupe: "Patrimoine" },
   { id: "mentions",   label: "Notes & mentions légales",         groupe: "Conformité" },
 ];

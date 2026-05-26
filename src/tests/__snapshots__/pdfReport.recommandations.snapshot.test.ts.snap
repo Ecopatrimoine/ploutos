@@ -1,0 +1,170 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`pdfReport — section Recommandations (Lot 7) > section isolée avec 5 recos couvrant les 4 dimensions → snapshot HTML figé 1`] = `
+"<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/>
+<title>Rapport — Pierre Dupont</title>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Lato','Helvetica Neue',Arial,sans-serif;font-size:9pt;color:#333;background:#fff;}
+  .cover{height:100vh;background:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:0;page-break-after:always;position:relative;overflow:hidden;}
+  .cover-inner{padding:56px 60px;flex:1;display:flex;flex-direction:column;justify-content:space-between;position:relative;z-index:2;}
+  .cover-logo{max-height:52px;max-width:180px;}
+  .cover-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding:40px 0;}
+  .cover-doc-type{font-size:11pt;font-weight:700;color:#26428B;text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;}
+  .cover-client{font-size:28pt;font-weight:900;color:#0F172A;line-height:1.1;margin-bottom:8px;}
+  .cover-date{font-size:10pt;color:#777;margin-bottom:20px;}
+  .cover-bar{width:60px;height:4px;background:linear-gradient(90deg,#C4973D,#516AC7);border-radius:2px;margin-bottom:16px;}
+  .cover-tagline{font-size:9pt;color:#999;font-style:italic;}
+  .cover-footer{font-size:7.5pt;color:#bbb;}
+  .cover-shape1{position:absolute;top:-60px;right:-60px;width:300px;height:300px;border-radius:50%;background:#0F172A;opacity:0.04;z-index:1;}
+  .cover-shape2{position:absolute;top:40px;right:40px;width:120px;height:120px;border-radius:50%;background:#C4973D;opacity:0.10;z-index:1;}
+  .cover-shape3{position:absolute;bottom:80px;right:-30px;width:200px;height:200px;background:#26428B;opacity:0.07;transform:rotate(45deg);z-index:1;}
+  .cover-shape4{position:absolute;bottom:-40px;left:220px;width:160px;height:160px;border-radius:50%;background:#C4973D;opacity:0.08;z-index:1;}
+  .cover-shape5{position:absolute;top:0;left:0;width:6px;height:100%;background:linear-gradient(180deg,#0F172A 0%,#C4973D 100%);z-index:3;}
+  .page{padding:34px 42px;page-break-after:always;}
+  .page:last-child{page-break-after:auto;}
+  .page-header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #C4973D;padding-bottom:8px;margin-bottom:20px;}
+  .page-header-title{font-size:13pt;font-weight:700;color:#0F172A;}
+  .page-header-client{font-size:8pt;color:#26428B;font-weight:600;}
+  .page-footer{margin-top:20px;border-top:1px solid #e5e0d8;padding-top:7px;font-size:7pt;color:#888;display:flex;justify-content:space-between;}
+  .section{margin-bottom:18px;}
+  .section-title{font-size:8.5pt;font-weight:700;color:#26428B;border-left:3px solid #C4973D;padding-left:8px;margin-bottom:9px;text-transform:uppercase;letter-spacing:0.5px;padding-bottom:2px;}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px;}
+  .kpi-grid-3{grid-template-columns:repeat(3,1fr);}
+  .kpi-grid-2{grid-template-columns:repeat(2,1fr);}
+  .kpi{background:linear-gradient(160deg,#FDF6E8 0%,#fff8f0 100%);border:0.5px solid rgba(227,175,100,0.3);border-radius:10px;padding:9px 11px;box-shadow:0 1px 2px rgba(0,0,0,0.03);}
+  .kpi-label{font-size:6.5pt;color:#26428B;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;}
+  .kpi-value{font-size:13pt;font-weight:700;color:#101B3B;line-height:1;}
+  .kpi-sub{font-size:7pt;color:#777;margin-top:2px;}
+  .kpi-accent{background:linear-gradient(160deg,#0F172A 0%,#26428B 100%);border-color:#26428B;}
+  .kpi-accent .kpi-label{color:rgba(255,255,255,0.7);}
+  .kpi-accent .kpi-value{color:#C4973D;}
+  .kpi-accent .kpi-sub{color:rgba(255,255,255,0.5);}
+  table{width:100%;border-collapse:collapse;font-size:7.5pt;margin-bottom:4px;}
+  th{background:linear-gradient(90deg,rgba(227,175,100,0.18) 0%,rgba(227,175,100,0.06) 100%);text-align:left;padding:5px 7px;font-weight:700;color:#26428B;border-bottom:2px solid rgba(227,175,100,0.35);font-size:7pt;text-transform:uppercase;letter-spacing:0.3px;}
+  td{padding:4px 7px;border-bottom:1px solid rgba(0,0,0,0.05);vertical-align:top;}
+  .row-even{background:#fff;} .row-odd{background:rgba(251,236,215,0.14);}
+  td.highlight{font-weight:700;color:#101B3B;}
+  .graph-box{background:linear-gradient(160deg,#f9f8f7 0%,#fff 100%);border:0.5px solid rgba(227,175,100,0.25);border-radius:10px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+  .graph-title{font-size:7.5pt;font-weight:700;color:#26428B;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:9px;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:10px;}
+  .info-block{background:#f8f7f6;border:1px solid rgba(227,175,100,0.18);border-radius:8px;padding:11px 14px;margin-bottom:8px;}
+  .info-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(0,0,0,0.04);}
+  .info-row:last-child{border-bottom:none;}
+  .info-label{color:#666;font-size:8pt;} .info-value{font-weight:600;color:#101B3B;font-size:8pt;}
+  .legal-block{background:#f8f7f6;border:1px solid rgba(227,175,100,0.18);border-radius:8px;padding:11px 14px;margin-bottom:11px;font-size:8.5pt;line-height:1.6;}
+  .legal-title{font-weight:700;color:#26428B;margin-bottom:5px;font-size:9pt;}
+  .legal-block ul{padding-left:16px;} .legal-block li{margin-bottom:3px;}
+  .demarche-block{border:1px solid rgba(227,175,100,0.22);border-radius:10px;padding:16px;background:linear-gradient(135deg,#0F172A06 0%,#C4973D0a 100%);}
+  .demarche-step{display:flex;align-items:flex-start;gap:11px;margin-bottom:12px;}
+  .demarche-step:last-child{margin-bottom:0;}
+  .demarche-num{width:26px;height:26px;border-radius:50%;background:#0F172A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:9.5pt;font-weight:700;flex-shrink:0;}
+  .demarche-text{font-size:8.5pt;line-height:1.5;} .demarche-text strong{color:#0F172A;}
+  .hypo-block{background:linear-gradient(160deg,#f9f8f7 0%,#fff 100%);border:0.5px solid rgba(227,175,100,0.3);border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
+  .hypo-title{font-size:11pt;font-weight:700;color:#0F172A;margin-bottom:3px;}
+  .hypo-notes{font-size:8pt;color:#555;font-style:italic;background:rgba(227,175,100,0.1);padding:5px 9px;border-radius:4px;margin-bottom:9px;border-left:3px solid #C4973D;}
+  .hypo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:9px 0;}
+  .hypo-kpi{background:#fff;border:1px solid rgba(227,175,100,0.2);border-radius:6px;padding:7px 9px;}
+  .hypo-kpi-label{font-size:6.5pt;color:#26428B;font-weight:700;text-transform:uppercase;margin-bottom:2px;}
+  .hypo-kpi-value{font-size:11pt;font-weight:700;color:#101B3B;}
+  .hypo-kpi-delta{font-size:7pt;font-weight:600;margin-top:2px;}
+  .pos{color:#16a34a;} .neg{color:#dc2626;} .neutral{color:#888;}
+  .notes-box{background:#f8f7f6;border:1px solid rgba(227,175,100,0.2);border-radius:8px;padding:12px 14px;font-size:8.5pt;white-space:pre-wrap;min-height:50px;color:#333;line-height:1.6;}
+  .mentions{font-size:7pt;color:#888;line-height:1.5;}
+  .besoins-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px;}
+  .besoin-card{border:1.5px solid #0F172A;border-radius:8px;padding:11px 13px;}
+  .besoin-card-title{font-weight:700;font-size:9pt;text-align:center;margin-bottom:7px;color:#0F172A;}
+  .besoin-item{margin-bottom:4px;font-size:8pt;line-height:1.4;display:flex;align-items:flex-start;gap:2px;}
+  .profil-card{background:linear-gradient(135deg,#0F172A08 0%,#C4973D12 100%);border:1px solid rgba(227,175,100,0.25);border-radius:10px;padding:14px;text-align:center;margin-bottom:12px;}
+  .profil-badge{display:inline-block;padding:5px 18px;border-radius:20px;font-weight:900;font-size:13pt;color:#fff;margin:7px 0;}
+  .sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:36px;margin-top:18px;}
+  .sign-box{border:1px dashed #bbb;border-radius:8px;min-height:72px;padding:10px;background:#fafafa;}
+  .sign-label{font-weight:700;font-size:8.5pt;margin-bottom:3px;color:#26428B;}
+  .sign-check{display:flex;align-items:flex-start;gap:7px;font-size:8.5pt;line-height:1.5;margin-bottom:5px;}
+  @media print{
+    @page{margin:0.9cm 1.1cm;size:A4;}
+    .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .kpi,.hypo-block,.hypo-kpi,.graph-box,.demarche-block,.besoin-card,.profil-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    /* Garde de pagination (Lot 4) — blocs de synthèse insécables, tableaux écoulables. */
+    .kpi,.kpi-grid,.graph-box,.info-block,.legal-block,.demarche-block,.hypo-block,.hypo-grid,.profil-card,.besoin-card,.notes-box{page-break-inside:avoid;break-inside:avoid;}
+    tr{page-break-inside:avoid;break-inside:avoid;}
+    thead{display:table-header-group;}
+  }</style></head><body>
+<div class="cover">
+  <div class="cover-shape1"></div><div class="cover-shape2"></div><div class="cover-shape3"></div><div class="cover-shape4"></div>
+  <!-- Bandeau top dégradé -->
+  <div style="position:absolute;top:0;left:0;width:100%;height:6px;background:linear-gradient(90deg,#0F172A 0%,#C4973D 60%,#26428B 100%);z-index:4;"></div>
+  <!-- Barre verticale gauche -->
+  <div class="cover-shape5"></div>
+  <div class="cover-inner">
+    <!-- Header logo + date -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div><div style="font-size:17pt;font-weight:900;color:#0F172A">EcoPatrimoine Conseil</div></div>
+      <div style="text-align:right;font-size:7.5pt;color:#888;margin-top:4px;">ORIAS n° <strong style="color:#666">25006907</strong><br/>25 mai 2026</div>
+    </div>
+    <!-- Corps cover -->
+    <div class="cover-body">
+      <div style="display:inline-block;background:#0F172A;color:#C4973D;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:2px;padding:5px 16px;border-radius:20px;margin-bottom:22px;">Rapport patrimonial</div>
+      <div class="cover-client">Pierre Dupont</div>
+      <div style="font-size:13pt;color:#26428B;font-weight:600;margin-top:-4px;margin-bottom:10px;">&amp; Sophie Dupont</div>
+      <div class="cover-date">25 mai 2026</div>
+      <div class="cover-bar"></div>
+      <!-- Accroche sans données sensibles -->
+      <div style="margin-top:28px;max-width:480px;">
+        <div style="background:rgba(16,27,59,0.04);border-radius:12px;padding:16px 18px;border-left:4px solid #C4973D;">
+          <div style="font-size:9pt;font-weight:700;color:#0F172A;margin-bottom:6px;">Analyse patrimoniale complète</div>
+          <div style="font-size:8pt;color:#666;line-height:1.6;">Ce rapport présente une synthèse de votre situation patrimoniale, fiscale et successorale, établie sur la base des informations recueillies lors de notre entretien.</div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+          
+          
+          
+          
+          
+        </div>
+      </div>
+    </div>
+    <div class="cover-footer">EcoPatrimoine Conseil · ORIAS n° 25006907 · Rapport confidentiel · 25 mai 2026</div>
+  </div>
+</div><div class="page">
+  <div class="page-header"><div class="page-header-title">Recommandations & plan d'action</div><div class="page-header-client">Pierre Dupont · 25 mai 2026</div></div>
+  <div class="section"><div class="section-title">Recommandations issues du diagnostic</div>
+    <p style="font-size:8pt;color:#666;margin-bottom:8px;line-height:1.5;">Chaque recommandation se rattache à une dimension du profil. Le cabinet raisonne en garanties et besoins ; aucun produit ni assureur n'est nommé à ce stade.</p>
+    <div style="margin-bottom:10px;">
+        <div style="font-size:9pt;font-weight:700;color:#0F172A;border-bottom:1px solid rgba(227,175,100,0.4);padding-bottom:3px;margin-bottom:5px;">Besoin exprimé</div>
+        
+      <div style="background:#fff;border:1px solid rgba(227,175,100,0.25);border-left:3px solid #C4973D;border-radius:6px;padding:7px 10px;margin-bottom:5px;page-break-inside:avoid;break-inside:avoid;">
+        <div style="font-size:9pt;font-weight:700;color:#0F172A;margin-bottom:3px;">Souscrire une garantie ITT renforcée</div>
+        <div style="font-size:8pt;color:#555;line-height:1.5;">Couvre l'arrêt de travail au-delà du régime obligatoire — besoin prévoyance prioritaire identifié.</div>
+      </div>
+      <div style="background:#fff;border:1px solid rgba(227,175,100,0.25);border-left:3px solid #C4973D;border-radius:6px;padding:7px 10px;margin-bottom:5px;page-break-inside:avoid;break-inside:avoid;">
+        <div style="font-size:9pt;font-weight:700;color:#0F172A;margin-bottom:3px;">Compléter la couverture décès toutes causes</div>
+        <div style="font-size:8pt;color:#555;line-height:1.5;">Besoin protection famille exprimé — capital actuel insuffisant pour maintenir le train de vie 5 ans.</div>
+      </div>
+      </div><div style="margin-bottom:10px;">
+        <div style="font-size:9pt;font-weight:700;color:#0F172A;border-bottom:1px solid rgba(227,175,100,0.4);padding-bottom:3px;margin-bottom:5px;">Tolérance au risque</div>
+        
+      <div style="background:#fff;border:1px solid rgba(227,175,100,0.25);border-left:3px solid #C4973D;border-radius:6px;padding:7px 10px;margin-bottom:5px;page-break-inside:avoid;break-inside:avoid;">
+        <div style="font-size:9pt;font-weight:700;color:#0F172A;margin-bottom:3px;">Réajuster l'allocation cible vers une part actions plus élevée</div>
+        <div style="font-size:8pt;color:#555;line-height:1.5;">Profil dynamique avec horizon long terme (9-15 ans) — la part actions actuelle est en-deçà.</div>
+      </div>
+      </div><div style="margin-bottom:10px;">
+        <div style="font-size:9pt;font-weight:700;color:#0F172A;border-bottom:1px solid rgba(227,175,100,0.4);padding-bottom:3px;margin-bottom:5px;">Préférences en matière de durabilité (ESG)</div>
+        
+      <div style="background:#fff;border:1px solid rgba(227,175,100,0.25);border-left:3px solid #C4973D;border-radius:6px;padding:7px 10px;margin-bottom:5px;page-break-inside:avoid;break-inside:avoid;">
+        <div style="font-size:9pt;font-weight:700;color:#0F172A;margin-bottom:3px;">Diversifier en supports labellisés ISR sur l'assurance-vie</div>
+        <div style="font-size:8pt;color:#555;line-height:1.5;">Cohérent avec la préférence ESG partielle exprimée au questionnaire.</div>
+      </div>
+      </div><div style="margin-bottom:10px;">
+        <div style="font-size:9pt;font-weight:700;color:#0F172A;border-bottom:1px solid rgba(227,175,100,0.4);padding-bottom:3px;margin-bottom:5px;">Capacité à subir des pertes</div>
+        
+      <div style="background:#fff;border:1px solid rgba(227,175,100,0.25);border-left:3px solid #C4973D;border-radius:6px;padding:7px 10px;margin-bottom:5px;page-break-inside:avoid;break-inside:avoid;">
+        <div style="font-size:9pt;font-weight:700;color:#0F172A;margin-bottom:3px;">Constituer une réserve liquide complémentaire</div>
+        <div style="font-size:8pt;color:#555;line-height:1.5;">Coussin actuel inférieur à 12 mois de revenus — viser un horizon de 18 mois.</div>
+      </div>
+      </div>
+  </div>
+  <div class="page-footer"><span>EcoPatrimoine Conseil · Plan d'action</span><span>25 mai 2026</span></div>
+</div></body></html>"
+`;
