@@ -423,7 +423,15 @@ const dataMaquetteDeclarationAdequation: DeclarationAdequationPageData = {
     { label: "Objectif principal",            valeurHtml: "Valoriser son patrimoine &amp; préparer la transmission" },
     { label: "Horizon",                       valeurHtml: "8 ans" },
     { label: "Profil de risque",              valeurHtml: `Équilibré <span style="color:#8C8472">(échelle 4 niveaux)</span>` },
-    { label: "Capacité à subir des pertes",   valeurHtml: "Modérée" },
+    {
+      label: "Capacité à subir des pertes",
+      valeurHtml: "Modérée",
+      puces: [
+        "Coussin liquide de 8 mois de revenu — au-dessus du seuil de 6 mois (capacité faible).",
+        "Endettement raisonnable (25 %), sous le plafond HCSF de 35 %.",
+        "Revenus de couple stables (2 actifs), pas de pénalité revenu unique.",
+      ],
+    },
     { label: "Préférences de durabilité (ESG)", valeurHtml: "Souhaitées — part significative d'investissements durables", pleineLargeur: true },
   ],
   recommandations: [
@@ -443,6 +451,50 @@ const dataMaquetteDeclarationAdequation: DeclarationAdequationPageData = {
   natureConseilHtml: "indépendant / non",
   suiviActiveHtml: "est / n'est pas",
   periodiciteSuiviHtml: "périodicité",
+  recommandationsGroupees: [
+    {
+      dimensionLabel: "Besoin exprimé",
+      recos: [
+        {
+          libelle: "Mettre en place une garantie capital décès à hauteur du capital restant dû",
+          justification: "Le foyer dépend des revenus du conjoint actif ; le capital décès couvre le crédit restant et sécurise les enfants jusqu'à leur autonomie.",
+          besoinLibelle: "Prévoyance — Décès",
+        },
+        {
+          libelle: "Souscrire une rente d'invalidité couvrant 60 % du revenu d'activité",
+          justification: "Un arrêt prolongé ferait chuter le revenu de 35 % du foyer ; la rente comble cet écart sans toucher à l'épargne de précaution.",
+          besoinLibelle: "Prévoyance — Arrêt de travail / invalidité",
+        },
+      ],
+    },
+    {
+      dimensionLabel: "Tolérance au risque",
+      recos: [
+        {
+          libelle: "Allocation 60 % supports sécurisés / 40 % unités de compte",
+          justification: "Profil équilibré : prise de risque mesurée, sans recherche de performance maximale. La poche UC permet de capter la croissance long terme.",
+        },
+      ],
+    },
+    {
+      dimensionLabel: "Préférences en matière de durabilité (ESG)",
+      recos: [
+        {
+          libelle: "Privilégier des UC labellisées ISR / Greenfin / Finansol",
+          justification: "Préférence ESG significative exprimée au questionnaire ; les labels publics garantissent la cohérence des supports avec les attentes.",
+        },
+      ],
+    },
+    {
+      dimensionLabel: "Capacité à subir des pertes",
+      recos: [
+        {
+          libelle: "Limiter à 40 % la part d'UC pour préserver le coussin liquide",
+          justification: "Capacité modérée : un coussin liquide de 8 mois existe mais ne doit pas être consommé par des pertes UC sur un horizon court.",
+        },
+      ],
+    },
+  ],
   mentionNonContractuelle: "Document d'aide à la conformité remis à titre indicatif. Ne constitue ni une attestation de conformité, ni un conseil juridique. À valider au regard des textes en vigueur, du contrôle de l'association agréée et, le cas échéant, d'un avocat. EcoPatrimoine Conseil — ORIAS n° 25006907 (statuts à confirmer sur www.orias.fr).",
 };
 

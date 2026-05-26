@@ -36,11 +36,28 @@ export type ChampProfilAdequation = {
   valeurHtml: string;
   /** Par défaut 1 col ; passer true pour occuper toute la largeur (ESG). */
   pleineLargeur?: boolean;
+  /** Liste de puces optionnelles sous la valeur (utilisé pour la capacité
+   *  à subir des pertes — affiche les justifications calculées par
+   *  `computeCapacitePerte(data)`). */
+  puces?: string[];
 };
 
 export type LigneRecommandation = {
   /** HTML autorisé (ex: "Versement sur un <strong>PER</strong>…"). */
   texteHtml: string;
+};
+
+/** Groupe de recommandations par dimension (matrice page 2). */
+export type GroupeRecommandationsParDimension = {
+  /** Libellé humain de la dimension (ex: « Tolérance au risque »). */
+  dimensionLabel: string;
+  /** Recommandations de cette dimension. */
+  recos: Array<{
+    libelle: string;
+    justification: string;
+    /** Libellé humain du besoin lié (ex: « Prévoyance — Décès »), si présent. */
+    besoinLibelle?: string;
+  }>;
 };
 
 export type DeclarationAdequationPageData = {
@@ -67,6 +84,11 @@ export type DeclarationAdequationPageData = {
   // ── Suivi de l'adéquation (varc) ──────────────────────────────────────
   suiviActiveHtml: string;          // varc — ex: "est / n'est pas"
   periodiciteSuiviHtml: string;     // varc — ex: "annuelle"
+  // ── Recos détaillées par dimension (matrice page 2) ──────────────────
+  /** Recommandations Lot 7 groupées par dimension, avec leur justification
+   *  et le libellé de besoin associé. Si absent ou tableau vide, l'encadré
+   *  matrice n'est pas rendu. */
+  recommandationsGroupees?: GroupeRecommandationsParDimension[];
   // ── Mentions ──────────────────────────────────────────────────────────
   mentionNonContractuelle: string;
 };
@@ -79,9 +101,13 @@ export function pageDeclarationAdequation(t: Tokens, d: DeclarationAdequationPag
   // largeur pour ESG, + note source MIF II en bas
   const renderProfil = (c: ChampProfilAdequation) => {
     const colSpan = c.pleineLargeur ? `style="grid-column:1 / -1"` : "";
+    const pucesHtml = (c.puces && c.puces.length > 0)
+      ? `<ul style="margin:4px 0 0 0;padding-left:14px;list-style:disc;font-size:9.5px;color:${t.texteFaible};line-height:1.45">${c.puces.map(p => `<li style="margin-bottom:1px">${p}</li>`).join("")}</ul>`
+      : "";
     return `<div ${colSpan}>
       <div style="font-family:'Lato',sans-serif;font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;color:${t.texteFaibleClair}">${c.label}</div>
       <div class="lt" style="font-size:11px;color:${t.texte};line-height:1.5;margin-top:2px">${c.valeurHtml}</div>
+      ${pucesHtml}
     </div>`;
   };
   const noteProfil = `<div class="lt" style="font-size:8.5px;color:${t.texteFaibleClair};margin-top:8px">Synthèse issue du questionnaire de connaissance client et du profil MIF II daté du ${champMission(t, d.dateQuestionnaire)}.</div>`;
@@ -165,8 +191,30 @@ export function pageDeclarationAdequation(t: Tokens, d: DeclarationAdequationPag
     </div>
   `;
 
+  // ── Nouvel encadré « Recommandations issues du diagnostic » ──────────
+  // Recos Lot 7 groupées par dimension (besoin / risque / ESG / capacité
+  // de perte). Rendu seulement si l'adapter passe des recos enrichies.
+  const matriceRecosContenu = (d.recommandationsGroupees && d.recommandationsGroupees.length > 0)
+    ? d.recommandationsGroupees.map(g => `
+        <div style="margin-bottom:10px">
+          <div style="font-family:'Lato',sans-serif;font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;color:${t.texteFaibleClair};margin-bottom:5px">${g.dimensionLabel}</div>
+          ${g.recos.map(r => `
+            <div style="background:${t.fondTableauAlt};border:0.5px solid ${t.bordureClaire};border-left:3px solid ${t.or};border-radius:6px;padding:7px 11px;margin-bottom:5px;page-break-inside:avoid;break-inside:avoid">
+              <div class="lt" style="font-size:10.5px;color:${t.texte};font-weight:700;margin-bottom:2px">${r.libelle}</div>
+              <div class="lt" style="font-size:10px;color:${t.texteFaible};line-height:1.45">${r.justification}</div>
+              ${r.besoinLibelle ? `<div class="lt" style="font-size:8.5px;color:${t.texteFaibleClair};margin-top:3px;font-style:italic">Lié au besoin : ${r.besoinLibelle}</div>` : ""}
+            </div>
+          `).join("")}
+        </div>
+      `).join("")
+    : "";
+  const matriceRecos = matriceRecosContenu
+    ? encadreDocReg(t, { titre: "Recommandations issues du diagnostic", marginTop: "12px", contenuHtml: matriceRecosContenu })
+    : "";
+
   const page2Contenu = `
     ${encadreDocReg(t, { titre: "En quoi ce conseil vous correspond", marginTop: "0",    contenuHtml: miseEnRegardContenu })}
+    ${matriceRecos}
     ${encadreDocReg(t, { titre: "Coûts & frais",                       marginTop: "12px", contenuHtml: coutsContenu })}
     ${encadreDocReg(t, { titre: "Suivi de l'adéquation",               marginTop: "12px", contenuHtml: suiviContenu })}
   `;

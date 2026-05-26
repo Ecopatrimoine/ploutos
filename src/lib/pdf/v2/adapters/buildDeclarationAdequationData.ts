@@ -11,11 +11,19 @@ import type {
   DeclarationAdequationPageData,
   ChampProfilAdequation,
   LigneRecommandation,
+  GroupeRecommandationsParDimension,
 } from "../pages/pageDeclarationAdequation";
 import type { LigneBesoinReponse } from "../primitives";
 import { computeProfilRisque } from "../../../conformite/profil";
 import { computeCapacitePerte } from "../../../conformite/capacitePerte";
-import { filterComplete, type Recommandation } from "../../../conformite/recommandations";
+import {
+  filterComplete,
+  groupRecommandationsByDimension,
+  DIMENSIONS_LABEL,
+  DIMENSIONS_ORDER,
+  BESOIN_LIBELLES,
+  type Recommandation,
+} from "../../../conformite/recommandations";
 import type { PatrimonialData } from "../../../../types/patrimoine";
 
 export type BuildAdequationDataParams = {
@@ -53,15 +61,24 @@ export function buildAdequationData(p: BuildAdequationDataParams): DeclarationAd
   // → préparer la retraite, besoinEpargne_* → valoriser, etc.).
   const objectifLabel = libelleObjectif(mission);
 
+  // Justifications calculées par `computeCapacitePerte()` — liste à puces
+  // sous le champ « Capacité à subir des pertes » pour expliquer le niveau
+  // (ex: « coussin liquide de 8 mois », « endettement modéré »).
+  const capacitePuces = (capacite.justification && capacite.justification.length > 0)
+    ? capacite.justification
+    : undefined;
+
   const profil: ChampProfilAdequation[] = [
     { label: "Objectif principal",          valeurHtml: objectifLabel },
     { label: "Horizon",                     valeurHtml: horizonLabel },
     { label: "Profil de risque",            valeurHtml: `${profilLabel} <span style="color:#8C8472">(échelle 4 niveaux)</span>` },
-    { label: "Capacité à subir des pertes", valeurHtml: capaciteLabel },
+    { label: "Capacité à subir des pertes", valeurHtml: capaciteLabel, puces: capacitePuces },
     { label: "Préférences de durabilité (ESG)", valeurHtml: esgLabel, pleineLargeur: true },
   ];
 
-  // ── Recommandations : filtrer complètes + max 5 lignes (lisibilité) ──
+  // ── Recommandations : filtrer complètes ─────────────────────────────
+  // Page 1 garde la liste › synthétique (max 5 libellés). Page 2 reçoit
+  // la matrice détaillée par dimension (libellé + justification + besoin).
   const recosComplete = filterComplete(p.recommandations || []);
   const recommandations: LigneRecommandation[] = recosComplete.slice(0, 5).map((r: any) => ({
     texteHtml: r.libelle || "—",
@@ -70,6 +87,27 @@ export function buildAdequationData(p: BuildAdequationDataParams): DeclarationAd
     recommandations.push(
       { texteHtml: "Aucune recommandation finalisée dans le plan d'action (à compléter dans l'onglet Recommandations)." },
     );
+  }
+
+  // ── Matrice « Recommandations issues du diagnostic » page 2 ─────────
+  // Groupe les recos par dimension (besoin / risque / ESG / capacité) et
+  // attache le libellé humain du besoin (BESOIN_LIBELLES[besoinKey]) si
+  // disponible. Si aucune reco, on omet l'encart (recommandationsGroupees
+  // = undefined → la page ne rend pas l'encadré).
+  let recommandationsGroupees: GroupeRecommandationsParDimension[] | undefined;
+  if (recosComplete.length > 0) {
+    const grouped = groupRecommandationsByDimension(recosComplete);
+    recommandationsGroupees = DIMENSIONS_ORDER
+      .map(dim => ({ dim, recos: grouped[dim] || [] }))
+      .filter(g => g.recos.length > 0)
+      .map(g => ({
+        dimensionLabel: DIMENSIONS_LABEL[g.dim],
+        recos: g.recos.map(r => ({
+          libelle: r.libelle,
+          justification: r.justification,
+          besoinLibelle: r.besoinKey ? BESOIN_LIBELLES[r.besoinKey] : undefined,
+        })),
+      }));
   }
 
   // ── Mise en regard besoin → réponse : reflète les 5 axes du profil ──
@@ -106,6 +144,7 @@ export function buildAdequationData(p: BuildAdequationDataParams): DeclarationAd
     natureConseilHtml,
     suiviActiveHtml,
     periodiciteSuiviHtml,
+    recommandationsGroupees,
     mentionNonContractuelle:
       "Document d'aide à la conformité remis à titre indicatif. Ne constitue ni une attestation de conformité, ni un conseil juridique. À valider au regard des textes en vigueur, du contrôle de l'association agréée et, le cas échéant, d'un avocat." +
       (cabinet.cabinetName ? ` ${cabinet.cabinetName}` : "") +
