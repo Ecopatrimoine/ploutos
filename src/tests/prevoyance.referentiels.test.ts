@@ -37,6 +37,10 @@ describe("pass-2026.json", () => {
     expect(p.pass.annuel).toBeGreaterThan(0);
   });
 
+  it("PASS journalier 2026 = 220 € (D.242-17 CSS, arrêté 22 décembre 2025)", () => {
+    expect(p.pass.journalier).toBe(220);
+  });
+
   it("définit les tranches T1 et T2 cohérentes", () => {
     expect(p.tranches.T1.min).toBe(0);
     expect(p.tranches.T1.max).toBe(p.pass.annuel);
@@ -44,10 +48,40 @@ describe("pass-2026.json", () => {
     expect(p.tranches.T2.max).toBe(p.pass.annuel * 8);
   });
 
-  it("expose un bloc IJSS (avec champs TO_VERIFY admis)", () => {
+  it("expose un SMIC mensuel de référence positif (base du calcul IJ maladie)", () => {
+    expect(typeof p.smicMensuelReference).toBe("number");
+    expect(p.smicMensuelReference).toBeGreaterThan(0);
+  });
+
+  it("structure IJSS en 3 régimes : maladie ordinaire / AT / maternité-paternité", () => {
     expect(p.ijss).toBeDefined();
-    expect(p.ijss.tauxIJ).toBe(0.5);
-    expect(p.ijss.carenceJours).toBe(3);
+    expect(p.ijss.maladieOrdinaire).toBeDefined();
+    expect(p.ijss.accidentTravail).toBeDefined();
+    expect(p.ijss.maternitePaternite).toBeDefined();
+  });
+
+  it("maladie ordinaire : carence 3j, taux 50 %, plafond 1,4 × SMIC (R.323-4 CSS)", () => {
+    const m = p.ijss.maladieOrdinaire;
+    expect(m.carenceJours).toBe(3);
+    expect(m.tauxIJ).toBe(0.5);
+    expect(m.plafondSalaireBrutMensuel).toBe(2552.24);
+    // 1,4 × SMIC mensuel = plafond
+    expect(m.plafondSalaireBrutMensuel).toBeCloseTo(p.smicMensuelReference * 1.4, 2);
+  });
+
+  it("maladie ordinaire : IJ max journalière = 41,95 € (réforme décret 2025-160)", () => {
+    expect(p.ijss.maladieOrdinaire.ijMaxJournaliere).toBe(41.95);
+  });
+
+  it("accident travail : plafonds R.433-1 CSS (J1-J28 puis J29+)", () => {
+    const at = p.ijss.accidentTravail;
+    expect(at.plafondJournalierJ1_J28).toBe(240.49);
+    expect(at.plafondJournalierApresJ29).toBe(320.66);
+    expect(at.plafondJournalierApresJ29).toBeGreaterThan(at.plafondJournalierJ1_J28);
+  });
+
+  it("maternité / paternité : plafond IJ max 104,02 €/j (millésime 2026)", () => {
+    expect(p.ijss.maternitePaternite.ijMaxJournaliere).toBe(104.02);
   });
 
   it("liste au moins une source", () => {

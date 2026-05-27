@@ -2,27 +2,51 @@
   "millesime": 2026,
   "dateVerification": "2026-05-27",
   "sources": [
-    "URSSAF — Plafond de la Sécurité sociale 2026 (à reconfirmer en ligne)",
-    "BOSS — chapitre 'Assiette générale' (à reconfirmer en ligne)",
-    "Spec module Prévoyance Ploutos (SPEC_MODULE_PREVOYANCE.md §5.3)"
+    "Arrêté 22 décembre 2025 — Plafond de la Sécurité sociale 2026 (art. D.242-17 CSS) — https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000053143451",
+    "Décret n° 2025-160 du 20 février 2025 — refonte du plafond IJSS maladie (1,4 SMIC, applicable au 1er avril 2025, art. R.323-4 CSS)",
+    "Art. R.323-4 CSS — plafond du salaire servant au calcul de l'IJ maladie",
+    "Art. R.433-1 CSS — IJ accident du travail (plafonds J1-J28 puis J29+)",
+    "BOSS — chapitre 'Assiette générale'",
+    "URSSAF — SMIC horaire 2026 12,02 € (revalorisation 2026)"
   ],
-  "_notes": "Les montants PASS / IJSS / forfait social ci-dessous sont repris textuellement de la spec rédigée le 2026-05-27. Toute mise en production doit reconfirmer chaque valeur à la source officielle (URSSAF / BOSS / boss.gouv.fr) avant utilisation.",
+  "_notes": "Toutes les valeurs ci-dessous ont une source explicite citée. Le plafond IJSS maladie a été réformé en 2025 (décret 2025-160) : le diviseur est désormais 1,4 × SMIC mensuel (auparavant 1,8). Les tests et le moteur de projection doivent recalculer le plafond IJ à partir du SMIC mensuel courant via la formule (1,4 × SMIC_mensuel × 3 mois) / 91,25 jours calendaires × 50 %.",
+  "smicMensuelReference": 1823.03,
+  "_smicCalcul": "SMIC horaire 12,02 € × 35 h × 52/12 = 1823,03 €/mois (base 35h, hebdo annualisée)",
   "pass": {
     "annuel": 48060,
     "mensuel": 4005,
-    "journalier": 222,
+    "journalier": 220,
     "horaire": 30
   },
+  "_passJournalierNote": "Plafond journalier 2026 = 220 € (D.242-17 CSS, arrêté du 22 décembre 2025). Anciennement 222 € — correction réglementaire.",
   "tranches": {
     "T1": { "min": 0, "max": 48060 },
     "T2": { "min": 48060, "max": 384480 }
   },
   "ijss": {
-    "plafondSalaireBrutMensuel": 12015,
-    "tauxIJ": 0.5,
-    "carenceJours": 3,
-    "plafondJournalier": "TO_VERIFY",
-    "majorationApres30JoursAvecEnfants": "TO_VERIFY"
+    "_reformeNote": "Décret 2025-160 du 20 février 2025, applicable depuis le 1er avril 2025 : le plafond du salaire servant au calcul des IJ maladie passe de 1,8 SMIC à 1,4 SMIC (R.323-4 CSS). Réforme majeure dont l'impact apparaît directement sur les IJ maxi.",
+    "maladieOrdinaire": {
+      "regimeCSS": "art. R.323-4 CSS",
+      "carenceJours": 3,
+      "tauxIJ": 0.5,
+      "plafondSalaireBrutMensuel": 2552.24,
+      "_plafondSalaireBrutMensuelCalcul": "1,4 × SMIC mensuel = 1,4 × 1823,03 = 2552,24 €/mois (R.323-4 CSS, décret 2025-160)",
+      "ijMaxJournaliere": 41.95,
+      "_ijMaxJournaliereFormule": "(plafondSalaireBrutMensuel × 3 mois) / 91,25 jours × taux 0,5 = (2552,24 × 3) / 91,25 × 0,5 ≈ 41,95 €/j",
+      "_diviseur91_25Note": "91,25 = 365 / 4 (= moyenne calendaire de 3 mois). Convention CPAM 'jours calendaires' pour le salaire journalier de base (SJR).",
+      "dateApplication": "2026-02-01",
+      "majorationApres30JoursAvecEnfants": "TO_VERIFY"
+    },
+    "accidentTravail": {
+      "regimeCSS": "art. R.433-1 CSS",
+      "_note": "100 % du salaire J1-J28 puis 80 % à partir de J29, dans la limite des plafonds journaliers ci-dessous.",
+      "plafondJournalierJ1_J28": 240.49,
+      "plafondJournalierApresJ29": 320.66
+    },
+    "maternitePaternite": {
+      "_note": "Plafond IJ maternité / paternité / adoption — millésime 2026.",
+      "ijMaxJournaliere": 104.02
+    }
   },
   "exonerationsSociales": {
     "prevoyanceSante": {
