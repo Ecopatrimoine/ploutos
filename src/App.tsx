@@ -82,6 +82,7 @@ import { TabSuccession } from "./components/tabs/TabSuccession";
 import { TabHypotheses } from "./components/tabs/TabHypotheses";
 import { TabMission } from "./components/tabs/TabMission";
 import { TabParametres } from "./components/tabs/TabParametres";
+import { TabPrevoyancePerso } from "./components/tabs/TabPrevoyancePerso";
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
 
@@ -1458,9 +1459,9 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
         {/* ── Navigation ── */}
         <Tabs defaultValue="collecte" className="space-y-6">
           <div className="flex gap-2" style={{ alignItems: "stretch" }}>
-            <TabsList className="flex-1 grid grid-cols-5 p-1.5" style={{ background: SURFACE.card, border: `2px solid ${SURFACE.border}`, borderRadius: 14, height: "52px", boxShadow: SURFACE.cardShadow }}>
-              {(["collecte", "ir", "ifi", "succession", "hypotheses"] as const).map((tab) => {
-                const labels: Record<string, string> = { collecte: "Collecte patrimoniale", ir: "Impôt sur le revenu", ifi: "IFI", succession: "Succession", hypotheses: "Hypothèses" };
+            <TabsList className="flex-1 grid grid-cols-6 p-1.5" style={{ background: SURFACE.card, border: `2px solid ${SURFACE.border}`, borderRadius: 14, height: "52px", boxShadow: SURFACE.cardShadow }}>
+              {(["collecte", "ir", "ifi", "succession", "prevoyance", "hypotheses"] as const).map((tab) => {
+                const labels: Record<string, string> = { collecte: "Collecte patrimoniale", ir: "Impôt sur le revenu", ifi: "IFI", succession: "Succession", prevoyance: "Prévoyance", hypotheses: "Hypothèses" };
                 return (
                   <TabsTrigger key={tab} value={tab} className="flex items-center justify-center px-4 text-center font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.muted, fontSize: 12 }}>
                     {labels[tab]}
@@ -1530,6 +1531,14 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
             addLoan={addLoan} updateLoan={updateLoan} removeLoan={removeLoan}
             effectiveSpouseOption={effectiveSpouseOption} spouseOptions={spouseOptions}
             person1={person1} person2={person2}
+          />
+
+          {/* ════ PRÉVOYANCE PERSONNELLE ════ */}
+          <TabPrevoyancePerso
+            data={data}
+            setField={setField}
+            person1={person1}
+            person2={person2}
           />
 
           {/* ════ HYPOTHÈSES ════ */}

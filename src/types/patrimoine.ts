@@ -231,6 +231,11 @@ export type PatrimonialData = {
   //    par personne (statut + caisse + employeur). Optionnel : les
   //    anciens dossiers sans `travail` continuent de fonctionner.
   travail?: PayloadTravailPair;
+  // ── Lot module Prévoyance v1.4.0 — saisie prévoyance individuelle
+  //    (contrats individuels, couverture collective, catégorie
+  //    d'invalidité projetée). Optionnel : les anciens dossiers
+  //    affichent un état vide invitant à compléter.
+  prevoyance?: PayloadPrevoyance;
 };
 
 // ─── Module Prévoyance (v1.4.0) — types partagés ────────────────────────────
@@ -297,6 +302,64 @@ export type PayloadTravail = {
 export type PayloadTravailPair = {
   p1: PayloadTravail;
   p2: PayloadTravail | null;
+};
+
+// ─── Lot module Prévoyance v1.4.0 — persistance des saisies UI ─────────
+//
+// Note volontaire : on duplique ici les types fonctionnels du moteur
+// (ContratIndividuel / CouvertureCollective définis dans
+// src/lib/prevoyance/types.ts) plutôt que d'importer pour ne pas
+// créer de cycle types ↔ moteur. Les structures sont identiques.
+// Si elles divergent un jour, ajouter une fonction d'adaptation.
+
+export type CategorieInvalidite = "cat1" | "cat2" | "cat3";
+
+export type PayloadContratIndividuel = {
+  id: string;
+  type:
+    | "deces_capital"
+    | "deces_rente_conj"
+    | "deces_rente_educ"
+    | "ij"
+    | "invalidite"
+    | "ptia"
+    | "dependance"
+    | "gav";
+  capitalOuMontant: number;
+  franchiseJours?: number;
+  plafondJoursIJ?: number;
+  baseInvalidite?: number;
+  conditions?: string;
+};
+
+export type PayloadCouvertureCollective = {
+  ij?: {
+    pctSalaire: number;
+    franchise: number;
+    plafondJours: number;
+    baseCalcul: "T1_T2" | "T1_seul" | "brut_total";
+  };
+  invalidite?: {
+    cat1: { pctSalaire: number };
+    cat2: { pctSalaire: number };
+    cat3: { pctSalaire: number };
+  };
+  capitalDeces?: {
+    montant: number;
+    baseFormule?: string;
+  };
+};
+
+export type PayloadPrevoyancePerso = {
+  contratsIndividuels: PayloadContratIndividuel[];
+  couvertureCollective: PayloadCouvertureCollective | null;
+  categorieInvaliditeProjetee: CategorieInvalidite;
+};
+
+export type PayloadPrevoyance = {
+  version: 1;
+  p1: PayloadPrevoyancePerso;
+  p2: PayloadPrevoyancePerso | null;
 };
 
 // ── Rente PER (sortie en rente — onglet Revenus) ─────────────────────────
