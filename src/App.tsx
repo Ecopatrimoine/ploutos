@@ -83,6 +83,7 @@ import { TabHypotheses } from "./components/tabs/TabHypotheses";
 import { TabMission } from "./components/tabs/TabMission";
 import { TabParametres } from "./components/tabs/TabParametres";
 import { TabPrevoyancePerso } from "./components/tabs/TabPrevoyancePerso";
+import { TabPrevoyanceCollective } from "./components/tabs/TabPrevoyanceCollective";
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
 
@@ -1459,9 +1460,9 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
         {/* ── Navigation ── */}
         <Tabs defaultValue="collecte" className="space-y-6">
           <div className="flex gap-2" style={{ alignItems: "stretch" }}>
-            <TabsList className="flex-1 grid grid-cols-6 p-1.5" style={{ background: SURFACE.card, border: `2px solid ${SURFACE.border}`, borderRadius: 14, height: "52px", boxShadow: SURFACE.cardShadow }}>
-              {(["collecte", "ir", "ifi", "succession", "prevoyance", "hypotheses"] as const).map((tab) => {
-                const labels: Record<string, string> = { collecte: "Collecte patrimoniale", ir: "Impôt sur le revenu", ifi: "IFI", succession: "Succession", prevoyance: "Prévoyance", hypotheses: "Hypothèses" };
+            <TabsList className="flex-1 grid grid-cols-7 p-1.5" style={{ background: SURFACE.card, border: `2px solid ${SURFACE.border}`, borderRadius: 14, height: "52px", boxShadow: SURFACE.cardShadow }}>
+              {(["collecte", "ir", "ifi", "succession", "prevoyance", "prevoyance-coll", "hypotheses"] as const).map((tab) => {
+                const labels: Record<string, string> = { collecte: "Collecte patrimoniale", ir: "Impôt sur le revenu", ifi: "IFI", succession: "Succession", prevoyance: "Prévoyance perso.", "prevoyance-coll": "Prévoyance coll.", hypotheses: "Hypothèses" };
                 return (
                   <TabsTrigger key={tab} value={tab} id={`main-tab-${tab}`} className="flex items-center justify-center px-4 text-center font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.muted, fontSize: 12 }}>
                     {labels[tab]}
@@ -1546,6 +1547,14 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
                 document.getElementById("sub-tab-travail")?.click();
               });
             }}
+          />
+
+          {/* ════ PRÉVOYANCE COLLECTIVE ════ */}
+          <TabPrevoyanceCollective
+            data={data}
+            setField={setField}
+            person1={person1}
+            person2={person2}
           />
 
           {/* ════ HYPOTHÈSES ════ */}

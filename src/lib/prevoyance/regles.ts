@@ -20,6 +20,7 @@
 //   (cf. spec §13.2/§13.4).
 
 import type {
+  AuditConformite,
   Constat,
   ConstatSeverite,
   ContratIndividuel,
@@ -359,6 +360,45 @@ export function evaluerToutesLesRegles(
   for (const regle of REGLES_INDIVIDUELLES) {
     const c = regle(ctx, cible);
     if (c) constats.push(c);
+  }
+  return constats.sort((a, b) => ORDRE_SEVERITE[a.severite] - ORDRE_SEVERITE[b.severite]);
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Règles de conformité collective (Lot 8)
+// ────────────────────────────────────────────────────────────────────
+
+// Mapping ControleConformite → Constat. On adresse les 4 règles
+// conf_* attendues + on remonte les autres contrôles non-conformes /
+// en vigilance comme constats génériques d'axe "conformite".
+// Conformes et non-applicables ne génèrent rien (silencieux).
+
+const MAPPING_CONFORMITE: Record<string, string> = {
+  c_sante_ani_obligatoire: "conf_ani_sante_obligatoire",
+  c_cadres_15_t1: "conf_cadres_15_t1",
+  c_categories_objectives: "conf_categories_objectives_invalides",
+  c_ccn_branche_prevoyance: "conf_ccn_branche_obligatoire_non_respectee",
+  c_ccn_branche_sante: "conf_ccn_branche_obligatoire_non_respectee",
+  c_forfait_social_correctement_applique: "conf_forfait_social_a_auditer",
+};
+
+export function mapAuditEnConstats(audit: AuditConformite): Constat[] {
+  const constats: Constat[] = [];
+  for (const c of audit.controles) {
+    if (c.statut === "conforme" || c.statut === "non_applicable") continue;
+    const baseId = MAPPING_CONFORMITE[c.id] ?? c.id;
+    const severite: ConstatSeverite =
+      c.statut === "non_conforme" ? "non_conformite" : "attention";
+    constats.push({
+      id: `${baseId}_${c.id}`,
+      severite,
+      axe: "conformite",
+      cible: "entreprise",
+      titre: c.libelle,
+      detail: c.detail,
+      reference: c.reference,
+      action: c.actionCorrective ?? "Vérifier la conformité du dispositif déclaré et le formaliser au regard de la référence légale citée.",
+    });
   }
   return constats.sort((a, b) => ORDRE_SEVERITE[a.severite] - ORDRE_SEVERITE[b.severite]);
 }

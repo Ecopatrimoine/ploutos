@@ -356,10 +356,41 @@ export type PayloadPrevoyancePerso = {
   categorieInvaliditeProjetee: CategorieInvalidite;
 };
 
+// ─── Lot 8 — Prévoyance collective d'entreprise (audit conformité) ────
+
+// Données entreprise saisies/auto-résolues pour l'audit collectif.
+export type EntrepriseAudit = {
+  siret: string | null;
+  nom: string | null;
+  formeJuridique: string | null;
+  effectif: number | null;
+  idccCCN: string | null;
+  nomCCN: string | null;
+  codeNAF: string | null;
+  // Déclarations couverture en place (saisies par le client)
+  santeCollectiveEnPlace: boolean;
+  participationEmployeurSante: number;     // 0-1
+  prevoyanceCadresEnPlace: boolean;
+  tauxT1Cadres: number;                    // % (0-2)
+  prevoyanceNonCadresEnPlace: boolean;
+  categoriesObjectivesDeclarees: string;   // libellé/texte libre
+  retraiteSuppEnPlace: boolean;
+};
+
+// Source du contexte entreprise.
+export type PrevoyanceCollectiveSource = "dirigeant_p1" | "dirigeant_p2" | "analyse_externe";
+
+export type PayloadPrevoyanceCollective = {
+  active: boolean;
+  source: PrevoyanceCollectiveSource;
+  entreprise: EntrepriseAudit;
+};
+
 export type PayloadPrevoyance = {
   version: 1;
   p1: PayloadPrevoyancePerso;
   p2: PayloadPrevoyancePerso | null;
+  collective?: PayloadPrevoyanceCollective | null;
 };
 
 // ── Rente PER (sortie en rente — onglet Revenus) ─────────────────────────

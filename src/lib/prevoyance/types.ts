@@ -152,6 +152,33 @@ export type ContexteRegle = {
 
 export type Regle = (ctx: ContexteRegle, cible: "p1" | "p2") => Constat | null;
 
+// ─── Audit conformité collective (Lot 8) ────────────────────────────────
+
+export type ControleStatut = "conforme" | "non_conforme" | "vigilance" | "non_applicable";
+
+export type ControleAxe =
+  | "sante"
+  | "prevoyance"
+  | "categories_objectives"
+  | "retraite_supp"
+  | "ccn"
+  | "forfait_social";
+
+export type ControleConformite = {
+  id: string;                       // identifiant stable (c_*)
+  axe: ControleAxe;
+  libelle: string;
+  statut: ControleStatut;
+  reference: string;
+  detail: string;
+  actionCorrective?: string;
+};
+
+export type AuditConformite = {
+  controles: ControleConformite[];
+  scoreGlobal: number;              // 0-100, % de contrôles conformes sur applicables
+};
+
 export type ProjectionResult = {
   axe: AxePoint[];
   series: SerieEmpilee;
