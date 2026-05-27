@@ -31,6 +31,8 @@ export type CouverturePageData = {
   clientName: string;
   /** Date de génération formatée (ex: "25 mai 2026"). */
   dateStr: string;
+  /** Nom du conseiller en charge du dossier (optionnel, affiché sous la date). */
+  conseillerName?: string;
   /** Mention pied (par défaut : "Document strictement confidentiel — <cabinetNom>"). */
   mentionPied?: string;
 };
@@ -98,6 +100,7 @@ export function pageCouverture(t: Tokens, d: CouverturePageData): string {
           <div class="lt" style="font-size:20px;letter-spacing:.2em;text-transform:uppercase;color:${t.texteFaible}">Préparé pour</div>
           <div class="ser" style="font-size:38px;color:${t.navy};margin-top:8px">${d.clientName}</div>
           <div class="lt" style="margin-top:10px;font-size:23px;color:${t.texteFaible}">${d.dateStr}</div>
+          ${d.conseillerName ? `<div class="lt" style="margin-top:14px;font-size:14px;color:${t.texteFaible};font-style:italic">Conseiller en charge : <span style="color:${t.navy};font-style:normal">${d.conseillerName}</span></div>` : ""}
         </div>
       </div>
 

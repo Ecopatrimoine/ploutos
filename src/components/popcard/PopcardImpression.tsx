@@ -30,6 +30,7 @@ export type PopcardImpressionProps = {
   ifi?: any;
   succession?: any;
   irOptions?: { expenseMode1?: string; expenseMode2?: string };
+  recipient?: "person1" | "person2" | "couple";
   hypothesisResults?: any;
   clientName?: string;
 };
@@ -164,6 +165,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
       ifi: p.ifi,
       succession: p.succession,
       irOptions: p.irOptions,
+      recipient: p.recipient,
       hypothesisResults: p.hypothesisResults,
       clientName: p.clientName,
     });

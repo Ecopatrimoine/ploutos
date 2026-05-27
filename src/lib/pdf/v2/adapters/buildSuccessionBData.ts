@@ -83,9 +83,40 @@ export function buildSuccessionBData(p: BuildSuccessionBDataParams): SuccessionB
     totalNetTransmis,
     totalLabelHaut: "Total transmis net aux proches",
     totalLabelBas: "(succession + assurance-vie)",
-    notreLecture: p.notreLecture || (fiscaliteTotale === 0
-      ? `Les capitaux décès s'élèvent à ${formatEuro(capitauxTransmis)} et restent intégralement transmis grâce aux abattements 990 I (152 500 € par bénéficiaire).`
-      : `Les capitaux décès s'élèvent à ${formatEuro(capitauxTransmis)}, dont ${formatEuro(fiscaliteTotale)} de fiscalité due (dépassement des abattements 990 I).`),
+    notreLecture: p.notreLecture || (() => {
+      const nbBenefs = Math.max(0, beneficiaires.length);
+      const aucunBenef = nbBenefs === 0;
+      const fiscaliteNulle = fiscaliteTotale === 0;
+
+      // Leviers contextuels
+      const leviers: string[] = [];
+      if (aucunBenef) {
+        leviers.push("rédiger une clause bénéficiaire structurée (ne JAMAIS laisser 'mes héritiers' — perte de l'avantage 990 I)");
+      } else {
+        if (fiscaliteTotale > 0) {
+          leviers.push("compléter la clause bénéficiaire pour répartir entre plus de bénéficiaires (chaque abattement de 152 500 € est par bénéficiaire)");
+          leviers.push("démembrement de la clause (usufruitier conjoint + nu-propriétaires enfants) pour optimiser fiscalement");
+        }
+        if (capitauxTransmis > 0 && fiscaliteNulle && abattementRestant > 0) {
+          leviers.push(`marge d'abattement restante : ${formatEuro(abattementRestant)} — capacité de versement avant 70 ans à utiliser`);
+        }
+        leviers.push("arbitrage avant/après 70 ans : versements avant 70 ans = 990 I (152 500 € par bénéf.) ; après 70 ans = 757 B (abattement global 30 500 €, plus-values exonérées)");
+      }
+
+      return `
+        <p style="margin:0 0 10px 0">L'assurance-vie et le PER échappent à la succession civile et bénéficient d'un <strong>régime fiscal dédié</strong> : abattement de 152 500 € par bénéficiaire (versements avant 70 ans, CGI art. 990 I) et abattement global de 30 500 € après 70 ans (art. 757 B). La clause bénéficiaire est le levier central.</p>
+        <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
+          <li><strong>Capitaux décès AV/PER</strong> — ${aucunBenef
+            ? `Aucun bénéficiaire renseigné.`
+            : `${formatEuro(capitauxTransmis)} pour ${nbBenefs} bénéficiaire${nbBenefs > 1 ? "s" : ""}.`}</li>
+          <li><strong>Fiscalité 990 I</strong> — ${fiscaliteNulle
+            ? `Aucune fiscalité due — abattements (152 500 € par bénéficiaire) absorbent l'intégralité. Marge restante : ${formatEuro(abattementRestant)}.`
+            : `${formatEuro(fiscaliteTotale)} dus (dépassement des abattements). Net aux bénéficiaires : ${formatEuro(netAuxBeneficiaires)}.`}</li>
+          <li><strong>Transmission consolidée</strong> — Civil + AV/PER = <strong>${formatEuro(totalNetTransmis)}</strong> reçus net par vos proches.</li>
+        </ul>
+        <p style="margin:0;font-style:italic;color:#6B6353"><strong>Leviers à étudier :</strong> ${leviers.join(" ; ")}.</p>
+      `.trim();
+    })(),
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Transmission — confidentiel`,
   };

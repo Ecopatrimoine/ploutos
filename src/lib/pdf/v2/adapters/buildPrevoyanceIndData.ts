@@ -85,9 +85,41 @@ export function buildPrevoyanceIndData(p: BuildPrevoyanceIndDataParams): Prevoya
         deficitSuffixe: "/an",
       },
     ],
-    notreLecture: p.notreLecture || (deficitDeces > 0
-      ? `En l'état, un décès laisserait un déficit de ${formatEuro(deficitDeces)} ; une invalidité ou un arrêt prolongé amputerait votre revenu d'environ ${formatEuro(deficitIPT)}/an non couverts. Renforcer le capital décès et prévoir une rente de maintien de revenu sont les deux priorités.`
-      : `Votre capital décès couvre votre besoin estimé. Le maintien de revenu en cas d'invalidité ou d'arrêt prolongé reste un sujet à traiter.`),
+    notreLecture: p.notreLecture || (() => {
+      const ratioDeficitDeces = revenuAnnuel > 0 ? deficitDeces / revenuAnnuel : 0;
+      const deficitDecesGraviteAns = ratioDeficitDeces.toFixed(1).replace(".", ",");
+
+      // Leviers contextuels
+      const leviers: string[] = [];
+      if (deficitDeces > 0) {
+        leviers.push("contrat temporaire décès (TPD) à capital fixe — coût annuel modeste rapporté au capital protégé");
+      }
+      if (deficitIPT > 0) {
+        leviers.push("contrat invalidité (IPT/IPP) avec rente de maintien de revenu indexée");
+      }
+      if (deficitArretTravail > 0) {
+        leviers.push("indemnités journalières (IJ) en complément de la Sécurité sociale (carence et plafond à vérifier)");
+      }
+      if (deficitDeces === 0 && deficitIPT === 0 && deficitArretTravail === 0) {
+        leviers.push("dispositif complet — vérifier néanmoins les exclusions, franchises et plafonds de vos contrats");
+      } else {
+        leviers.push("auditer les exclusions et la durée d'indemnisation des contrats existants (notamment cumul avec couverture employeur)");
+      }
+
+      return `
+        <p style="margin:0 0 10px 0">La prévoyance vise à <strong>maintenir le niveau de vie du foyer</strong> en cas de décès, d'invalidité ou d'arrêt de travail. Les besoins sont estimés sur la base de 4 ans de revenus (min. 150 000 €) pour le décès, et 60 % du revenu annuel pour l'invalidité et l'arrêt de travail.</p>
+        <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
+          <li><strong>Revenu à protéger</strong> — ${formatEuro(revenuAnnuel)}/an.</li>
+          <li><strong>Besoins estimés</strong> — Décès : ${formatEuro(besoinDeces)} (4 × revenus, plancher 150 k€). Invalidité : ${formatEuro(besoinInvalidite)}/an. Arrêt de travail : ${formatEuro(besoinArretTravail)}/an.</li>
+          <li><strong>Couverture décès actuelle (AV/PER)</strong> — ${formatEuro(couvertureDeces)}.</li>
+          <li><strong>Déficit décès</strong> — ${deficitDeces > 0
+            ? `<span style="color:#B0413E">${formatEuro(deficitDeces)} non couverts</span>, soit ${deficitDecesGraviteAns} année${ratioDeficitDeces > 1 ? "s" : ""} de revenus du foyer.`
+            : `<span style="color:#2F7D5B">Aucun — capital actuel couvre le besoin estimé.</span>`}</li>
+          <li><strong>Déficits invalidité / arrêt travail</strong> — Invalidité : ${formatEuro(deficitIPT)}/an non couverts ; arrêt travail : ${formatEuro(deficitArretTravail)}/an non couverts (hors complément Sécu).</li>
+        </ul>
+        <p style="margin:0;font-style:italic;color:#6B6353"><strong>Leviers à étudier :</strong> ${leviers.join(" ; ")}.</p>
+      `.trim();
+    })(),
     mentionNonContractuelle:
       "Montants illustratifs, à valider auprès de votre caisse et selon les garanties de votre contrat de prévoyance. Simulation non contractuelle ; toute recommandation s'inscrit dans le cadre du devoir de conseil (DDA).",
     pagePosition: p.pagePosition || "— / —",

@@ -42,6 +42,42 @@ export function buildIFIData(p: BuildIFIDataParams): IFIPageData {
     netTaxable: num(line.taxableNet ?? line.netTaxable ?? 0),
   }));
 
+  // ─── Analyse "masque" structurée — cadrage métier + chiffres + leviers ──
+  const nbBiens = biens.length;
+  const totalBrut = biens.reduce((s, b) => s + b.valeurBrute, 0);
+  const totalAbatRP = biens.reduce((s, b) => s + b.abattementRP, 0);
+  const totalDette = biens.reduce((s, b) => s + b.dette, 0);
+  const sousSeuil = assietteNette < SEUIL_IFI_2026;
+  const margeRelative = SEUIL_IFI_2026 > 0 ? Math.round((margeSousSeuil / SEUIL_IFI_2026) * 100) : 0;
+
+  // Leviers contextuels
+  const leviers: string[] = [];
+  if (sousSeuil && margeRelative < 20) {
+    leviers.push("vigilance : votre marge sous le seuil est inférieure à 20 % — une revalorisation immobilière peut vous faire basculer dès l'an prochain");
+  }
+  if (!sousSeuil) {
+    leviers.push("plafonnement IFI à 75 % du revenu imposable (CGI art. 979) à vérifier");
+    leviers.push("démembrement (donation de nue-propriété) pour sortir une partie du patrimoine de l'assiette taxable");
+    leviers.push("nantissement / SCI familiale : usage à étudier sans optimisation abusive");
+  }
+  if (leviers.length === 0) {
+    leviers.push("Aucun levier prioritaire — votre situation patrimoniale est confortablement sous le seuil");
+  }
+
+  const notreLectureCalculee = `
+    <p style="margin:0 0 10px 0">L'IFI taxe le <strong>patrimoine immobilier net</strong> du foyer, après abattement de 30 % sur la résidence principale et déduction des dettes affectées. Le seuil d'assujettissement est de ${formatEuro(SEUIL_IFI_2026)}.</p>
+    <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
+      <li><strong>Composition</strong> — ${nbBiens > 0
+        ? `${nbBiens} bien${nbBiens > 1 ? "s" : ""} immobilier${nbBiens > 1 ? "s" : ""} pour ${formatEuro(totalBrut)} en valeur brute, abattement RP ${formatEuro(totalAbatRP)}, dettes déductibles ${formatEuro(totalDette)}.`
+        : `Aucun bien immobilier saisi.`}</li>
+      <li><strong>Assiette nette taxable</strong> — ${formatEuro(assietteNette)}.</li>
+      <li><strong>Position</strong> — ${sousSeuil
+        ? `Sous le seuil de ${formatEuro(SEUIL_IFI_2026)}. Marge avant assujettissement : ${formatEuro(margeSousSeuil)} (${margeRelative} %).`
+        : `Au-dessus du seuil. IFI dû : <strong>${formatEuro(ifiDu)}</strong>.`}</li>
+    </ul>
+    <p style="margin:0;font-style:italic;color:#6B6353"><strong>Leviers à étudier :</strong> ${leviers.join(" ; ")}.</p>
+  `.trim();
+
   return {
     clientName,
     dateStr,
@@ -50,9 +86,7 @@ export function buildIFIData(p: BuildIFIDataParams): IFIPageData {
     margeSousSeuil,
     ifiDu,
     biens,
-    notreLecture: p.notreLecture || (assietteNette < SEUIL_IFI_2026
-      ? `Votre patrimoine immobilier net taxable s'établit à ${formatEuro(assietteNette)}, sous le seuil de ${formatEuro(SEUIL_IFI_2026)} : vous n'êtes pas redevable de l'IFI cette année, avec une marge de ${formatEuro(margeSousSeuil)}.`
-      : `Votre patrimoine immobilier net taxable dépasse le seuil de ${formatEuro(SEUIL_IFI_2026)} : vous êtes redevable d'un IFI de ${formatEuro(ifiDu)}.`),
+    notreLecture: p.notreLecture || notreLectureCalculee,
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Fiscalité — confidentiel`,
   };

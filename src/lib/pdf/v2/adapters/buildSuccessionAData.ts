@@ -95,7 +95,40 @@ export function buildSuccessionAData(p: BuildSuccessionADataParams): SuccessionA
     quotiteLabel: `Quotité dispo. · ${quotiteFraction}`,
     quotiteMontant,
     heritiers,
-    notreLecture: p.notreLecture || `Avec ${nbEnfants} enfant${nbEnfants > 1 ? "s" : ""}, les droits successoraux ressortent à ${tauxMoyen} du patrimoine net transmis. La situation reste à actualiser selon votre régime matrimonial et vos donations antérieures.`,
+    notreLecture: p.notreLecture || (() => {
+      const isCouple = data.coupleStatus === "married" || data.coupleStatus === "pacs";
+      const hasConjoint = isCouple;
+
+      // Leviers contextuels
+      const leviers: string[] = [];
+      if (nbEnfants > 0 && droitsSuccession > 0) {
+        leviers.push("donation-partage de la quotité disponible (figure les valeurs, évite les conflits ultérieurs)");
+        leviers.push("démembrement temporaire (donation de nue-propriété, conjoint usufruitier) — abat la base taxable selon Duvergier");
+      }
+      if (hasConjoint) {
+        leviers.push("option du conjoint à arbitrer (¼ PP / usufruit total / ¼ PP + ¾ usufruit) selon objectif protection vs transmission rapide");
+      }
+      if (masseSuccessoraleNette > 500_000 && nbEnfants > 0) {
+        leviers.push("AV avec clause bénéficiaire structurée (transmission hors succession civile, abattement 152 500 € par bénéficiaire avant 70 ans)");
+      }
+      if (leviers.length === 0) {
+        leviers.push("Aucun levier prioritaire — situation simple, à revoir lors d'événements familiaux ou patrimoniaux");
+      }
+
+      return `
+        <p style="margin:0 0 10px 0">La transmission civile dépend du <strong>régime matrimonial</strong>, du <strong>nombre d'enfants</strong> et de l'<strong>option du conjoint</strong>. Le conjoint marié ou pacsé est exonéré de droits (CGI art. 796-0 bis) ; chaque enfant bénéficie d'un abattement de 100 000 €.</p>
+        <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
+          <li><strong>Masse civile nette</strong> — ${formatEuroLocal(masseSuccessoraleNette)} (hors assurance-vie, voir page suivante).</li>
+          <li><strong>Droits estimés</strong> — ${droitsSuccession > 0
+            ? `${formatEuroLocal(droitsSuccession)} (taux moyen ${tauxMoyen}). Net transmis : ${formatEuroLocal(netTransmis)}.`
+            : `Aucun droit dû (exonération conjoint/PACS ou base sous abattements).`}</li>
+          <li><strong>Quotité civile</strong> — ${nbEnfants > 0
+            ? `Réserve héréditaire ${reserveFraction} = ${formatEuroLocal(reserveMontant)} (bloquée pour les enfants). Quotité disponible ${quotiteFraction} = ${formatEuroLocal(quotiteMontant)} (libre allocation).`
+            : `Pas d'enfant : quotité disponible = totalité du patrimoine.`}</li>
+        </ul>
+        <p style="margin:0;font-style:italic;color:#6B6353"><strong>Leviers à étudier :</strong> ${leviers.join(" ; ")}.</p>
+      `.trim();
+    })(),
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Transmission — confidentiel`,
   };
@@ -104,6 +137,10 @@ export function buildSuccessionAData(p: BuildSuccessionADataParams): SuccessionA
 function num(v: any): number {
   const n = typeof v === "string" ? parseFloat(v.replace(/\s/g, "").replace(",", ".")) : (v || 0);
   return Number.isFinite(n) ? Math.round(n) : 0;
+}
+
+function formatEuroLocal(n: number): string {
+  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Math.round(n)) + " €";
 }
 
 function relationLabel(r: any): string {

@@ -41,6 +41,8 @@ export type TravailPageData = {
   // Personnes
   personne1: PersonneTravail;
   personne2?: PersonneTravail;
+  // Revenus du foyer (foncier + mobilier + pensions legacy, etc.) — non rattachés P1/P2.
+  revenusFoyer: LigneRevenu[];
   // Déductions
   deductions: LigneDeduction[];   // peut être vide
   pagePosition: string;
@@ -77,6 +79,16 @@ export function pageTravail(t: Tokens, d: TravailPageData): string {
     </div>`;
   };
 
+  const cardFoyer = d.revenusFoyer.length > 0 ? `
+    <div style="margin-top:16px">
+      <div style="background:${t.fondEncart};border:0.5px solid ${t.bordureClaire};border-radius:10px;padding:14px 16px">
+        ${sousTitreSection(t, "Revenus du foyer (non rattachés à une personne)")}
+        <div style="margin-top:6px">
+          ${d.revenusFoyer.map(l => renderInfoRow(l.label, euro(l.valeur))).join("")}
+        </div>
+      </div>
+    </div>` : "";
+
   const cardDeductions = d.deductions.length > 0 ? `
     <div style="margin-top:16px">
       <div style="background:${t.fondEncart};border:0.5px solid ${t.bordureClaire};border-radius:10px;padding:14px 16px">
@@ -103,6 +115,7 @@ export function pageTravail(t: Tokens, d: TravailPageData): string {
       ${d.personne2 ? renderPersonne(d.personne2, "Personne 2") : ""}
     </div>
 
+    ${cardFoyer}
     ${cardDeductions}
   `;
 

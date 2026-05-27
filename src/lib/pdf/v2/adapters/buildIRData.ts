@@ -36,11 +36,49 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
   const revenusBruts   = salaires + fonciers + mobiliers + pensionsAutres;
   const abattement10pct = num(ir.abattement10 ?? Math.round(salaires * 0.10));
   const revenuNetImposable = num(ir.revenuNetGlobal ?? (revenusBruts - abattement10pct));
+  const impotNetDu = num(ir.finalIR ?? 0);
+  const tauxMoyenPct = revenusBruts > 0 ? (impotNetDu / revenusBruts) * 100 : 0;
+  const tmiPct = num((ir.marginalRate ?? 0) * (Number(ir.marginalRate) <= 1 ? 100 : 1));
+
+  // ─── Analyse "masque" structurée — cadrage métier + chiffres + leviers ──
+  const composition: string[] = [];
+  if (salaires       > 0) composition.push(`salaires ${formatEuro(salaires)}`);
+  if (fonciers       > 0) composition.push(`fonciers bruts ${formatEuro(fonciers)}`);
+  if (mobiliers      > 0) composition.push(`placements taxables ${formatEuro(mobiliers)}`);
+  if (pensionsAutres > 0) composition.push(`pensions ${formatEuro(pensionsAutres)}`);
+
+  // Leviers contextuels selon le profil fiscal (logique déductive, pas IA).
+  const leviers: string[] = [];
+  if (tmiPct >= 30 && impotNetDu > 0) {
+    leviers.push("PER individuel déductible (plafond annuel ~10 % des revenus pro nets) pour absorber la TMI 30–45 %");
+  }
+  if (fonciers > 0) {
+    const regimeActuel = fonciers <= 15_000 ? "micro-foncier (30 % d'abattement forfaitaire)" : "réel (par défaut au-dessus de 15 000 € de loyers)";
+    leviers.push(`arbitrage régime foncier (actuellement compatible ${regimeActuel}) — choix selon vos charges réelles déductibles`);
+  }
+  if (mobiliers > 0) {
+    leviers.push("option PFU 30 % vs barème (intéressante si TMI ≤ 11 %) sur les revenus mobiliers");
+  }
+  if (leviers.length === 0) {
+    leviers.push("Aucun levier fiscal prioritaire détecté sur cette situation");
+  }
+
+  const notreLectureCalculee = `
+    <p style="margin:0 0 10px 0">Votre fiscalité personnelle reflète la <strong>composition de vos revenus</strong> et la mécanique du <strong>quotient familial</strong>. Les abattements et déductions ramènent l'assiette brute à l'assiette taxable.</p>
+    <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
+      <li><strong>Composition</strong> — Revenus bruts annuels : ${formatEuro(revenusBruts)} (${composition.join(", ") || "à compléter dans la collecte"}).</li>
+      <li><strong>Assiette</strong> — Revenu net imposable : ${formatEuro(revenuNetImposable)} pour ${ir.parts || "—"} part${(ir.parts || 0) > 1 ? "s" : ""} fiscale${(ir.parts || 0) > 1 ? "s" : ""}.</li>
+      <li><strong>Pression fiscale</strong> — ${impotNetDu > 0
+        ? `Impôt dû : ${formatEuro(impotNetDu)}, soit ${tauxMoyenPct.toFixed(1).replace(".", ",")} % en taux moyen. Tranche marginale ${tmiPct.toFixed(0)} % — chaque euro supplémentaire est taxé à ce taux.`
+        : `Aucun impôt dû à ce stade (revenus sous le seuil ou compensés par les déductions).`}</li>
+    </ul>
+    <p style="margin:0;font-style:italic;color:#6B6353"><strong>Leviers à étudier :</strong> ${leviers.join(" ; ")}.</p>
+  `.trim();
 
   return {
     clientName,
     dateStr,
-    impotNetDu: num(ir.finalIR ?? 0),
+    impotNetDu,
     trancheMarginale: formatPct(ir.marginalRate),
     tauxMoyen: formatPct(ir.averageRate),
     quotient: ir.parts ? `${ir.parts} part${ir.parts > 1 ? "s" : ""}` : "—",
@@ -51,7 +89,7 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
     revenusBruts,
     abattement10pct,
     revenuNetImposable,
-    notreLecture: p.notreLecture || "Synthèse fiscale issue du calcul automatique. À compléter par votre conseiller pour une analyse détaillée.",
+    notreLecture: p.notreLecture || notreLectureCalculee,
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Fiscalité — confidentiel`,
   };
@@ -73,4 +111,8 @@ function formatPct(v: any): string {
 
 function formatDateFr(d: Date): string {
   return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+}
+
+function formatEuro(n: number): string {
+  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Math.round(n)) + " €";
 }

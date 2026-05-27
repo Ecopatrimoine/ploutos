@@ -95,7 +95,37 @@ export function buildBilanEndettementData(p: BuildBilanEndettementDataParams): B
     assuranceVieEtPER: avEtPER,
     creditImmobilier,
     autresCredits,
-    notreLecture: p.notreLecture || `Votre patrimoine net atteint ${formatEuro(patrimoineNet)}, porté par l'immobilier (${formatEuro(immobilier)} bruts) et une poche financière de ${formatEuro(placementsFinanciers + avEtPER)}, après ${formatEuro(passifTotal)} de crédits. Calculé à la manière des banques, votre taux d'endettement ressort à ${tauxEndettement}.`,
+    notreLecture: p.notreLecture || (() => {
+      const seuilHCSF = 35;
+      const sousSeuil = tauxEndettementPct < seuilHCSF;
+      const margePoints = Math.abs(seuilHCSF - tauxEndettementPct);
+      const capaciteResiduelle = Math.max(0, Math.round((seuilHCSF * totalRevenus / 100) - (chargesCreditAnnuelles + assuranceCreditAnnuelle)));
+
+      // Leviers contextuels
+      const leviers: string[] = [];
+      if (!sousSeuil) {
+        leviers.push("renégociation des taux ou rallongement de durée pour réduire la mensualité");
+        leviers.push("rachat de crédits si plusieurs prêts en cours");
+        leviers.push("vente d'un actif non stratégique pour désendetter");
+      } else if (tauxEndettementPct < 20) {
+        leviers.push(`capacité résiduelle d'endettement estimée à ${formatEuro(capaciteResiduelle)}/an avant plafond HCSF — opportunité d'investissement immobilier`);
+      } else {
+        leviers.push("marge présente mais limitée — un nouveau crédit doit être calibré");
+      }
+      if (avEtPER < immobilier * 0.10) {
+        leviers.push("poche financière (AV/PER) faible vs immobilier — diversification à renforcer pour la liquidité d'urgence");
+      }
+
+      return `
+        <p style="margin:0 0 10px 0">Votre bilan patrimonial révèle la <strong>structure de votre patrimoine</strong> (immobilier, financier, dettes) et votre <strong>capacité d'endettement</strong> selon la méthode bancaire (charges crédit ÷ revenus retenus, loyers à 70 %).</p>
+        <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
+          <li><strong>Patrimoine net</strong> — ${formatEuro(patrimoineNet)} (actif ${formatEuro(actifBrut)} − dettes ${formatEuro(passifTotal)}). Répartition : immobilier ${formatEuro(immobilier)}, AV/PER ${formatEuro(avEtPER)}, autres placements ${formatEuro(placementsFinanciers)}.</li>
+          <li><strong>Charges crédit annuelles</strong> — ${formatEuro(chargesCreditAnnuelles)} de mensualités + ${formatEuro(assuranceCreditAnnuelle)} d'assurance, sur ${formatEuro(totalRevenus)}/an de revenus retenus.</li>
+          <li><strong>Position vs plafond HCSF (${seuilHCSF} %)</strong> — Taux d'endettement <strong>${tauxEndettement}</strong>, ${sousSeuil ? `sous le seuil avec une marge de ${margePoints.toFixed(1).replace(".", ",")} points` : `<span style="color:#B0413E">au-dessus du seuil de ${margePoints.toFixed(1).replace(".", ",")} points — refinancement contraint</span>`}.</li>
+        </ul>
+        <p style="margin:0;font-style:italic;color:#6B6353"><strong>Leviers à étudier :</strong> ${leviers.join(" ; ")}.</p>
+      `.trim();
+    })(),
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Patrimoine — confidentiel`,
   };

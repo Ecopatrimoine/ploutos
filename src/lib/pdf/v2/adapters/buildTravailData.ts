@@ -49,9 +49,15 @@ export function buildTravailData(p: BuildTravailDataParams): TravailPageData {
   if (ca2       > 0) revenusP2.push({ label: "Chiffre d'affaires (BIC/BNC/BA)", valeur: ca2 });
   if (pensionP2 > 0) revenusP2.push({ label: "Pensions / retraites", valeur: pensionP2 });
 
-  // Cas legacy : pensions saisies au foyer (sans répartition P1/P2) — rattachées à P1 par défaut.
+  // ─── Revenus du foyer (non rattachés P1/P2) : foncier, mobilier, pensions legacy ──
+  const revenusFoyer: LigneRevenu[] = [];
+  const foncierBrut = num(ir.foncierBrut);
+  const taxablePlacements = num(ir.taxablePlacements);
+  if (foncierBrut       > 0) revenusFoyer.push({ label: "Revenus fonciers bruts (loyers)", valeur: foncierBrut });
+  if (taxablePlacements > 0) revenusFoyer.push({ label: "Revenus mobiliers (placements taxables)", valeur: taxablePlacements });
+  // Cas legacy : pensions saisies au foyer sans répartition P1/P2.
   if (pensionP1 === 0 && pensionP2 === 0 && pensionsLegacy > 0) {
-    revenusP1.push({ label: "Pensions / retraites (foyer)", valeur: pensionsLegacy });
+    revenusFoyer.push({ label: "Pensions / retraites (foyer)", valeur: pensionsLegacy });
   }
 
   const personne1: PersonneTravail = {
@@ -93,9 +99,10 @@ export function buildTravailData(p: BuildTravailDataParams): TravailPageData {
     revenusBruts,
     revenuNetImposable,
     irEstime,
-    noteKpi: "Revenus bruts = salaires + foncier + placements taxables + pensions. IR estimé selon barème en vigueur, après abattements et déductions.",
+    noteKpi: "Revenus bruts = salaires + foncier + placements taxables. IR estimé selon barème en vigueur, après abattements et déductions.",
     personne1,
     personne2,
+    revenusFoyer,
     deductions,
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Revenus — confidentiel`,

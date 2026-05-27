@@ -52,7 +52,7 @@ export function buildFamilleData(p: BuildFamilleDataParams): FamillePageData {
   const enfants: EnfantLigne[] = childrenData.map(c => ({
     prenom: c.firstName || "—",
     dateNaissance: formatDateNaissance(c.birthDate),
-    lien: composeLienEnfant(c.parentLink),
+    lien: composeLienEnfant(c.parentLink, p1Prenom, p2Prenom),
     garde: composeGarde(c.custody),
     rattache: !!c.rattached,
     handicap: !!c.handicap,
@@ -117,14 +117,17 @@ function composeStatutCouple(status: string, regime: string, singleParent: boole
   return (status === "married" || status === "pacs") && r ? `${s} · ${r}${sp}` : `${s}${sp}`;
 }
 
-function composeLienEnfant(parentLink: string): string {
-  // Vraies clés issues de src/constants/index.ts:CHILD_LINKS
-  const map: Record<string, string> = {
-    common_child: "Commun",
-    person1_only: "Personne 1 uniquement",
-    person2_only: "Personne 2 uniquement",
-  };
-  return map[parentLink] || parentLink || "—";
+function composeLienEnfant(parentLink: string, p1Prenom?: string, p2Prenom?: string): string {
+  // Vraies clés issues de src/constants/index.ts:CHILD_LINKS.
+  // Libellé enrichi : "Enfant de [prénom]" si dispo, sinon fallback générique.
+  if (parentLink === "common_child") return "Commun";
+  if (parentLink === "person1_only") {
+    return p1Prenom ? `Enfant de ${p1Prenom}` : "Personne 1 uniquement";
+  }
+  if (parentLink === "person2_only") {
+    return p2Prenom ? `Enfant de ${p2Prenom}` : "Personne 2 uniquement";
+  }
+  return parentLink || "—";
 }
 
 function composeGarde(custody: string): string {

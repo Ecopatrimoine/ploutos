@@ -88,6 +88,8 @@ export type PackPayload = {
   hypothesisResults?: any;
   /** Optionnel : mode frais (réel/standard) pour libellé Travail. */
   irOptions?: { expenseMode1?: string; expenseMode2?: string };
+  /** Destinataire du dossier (couple / person1 / person2) — routage couverture en concubinage. */
+  recipient?: "person1" | "person2" | "couple";
   clientName?: string;
 };
 
@@ -106,11 +108,14 @@ function renderItemBody(
   item: PackItem,
   payload: PackPayload,
   themeV2: ThemeV2,
+  pagination: { index: number; total: number },
 ): string {
   const t = buildTokens(themeV2.theme, themeV2.cabinetColors);
   const { cabinet, mission, data, recommandations, piecesJointes } = payload;
   const dateLettre = formatDateFr(new Date());
   const clientName = payload.clientName || [data.person1FirstName, data.person1LastName].filter(Boolean).join(" ") || "—";
+  // Position de la page dans le pack global ("3 / 12") — la couverture n'utilise pas ce champ.
+  const pagePosition = `${pagination.index} / ${pagination.total}`;
 
   switch (item) {
     // ─── Documents réglementaires v2 ────────────────────────────────
@@ -133,57 +138,57 @@ function renderItemBody(
 
     // ─── Bilan patrimonial — sections v2 câblées (1ère passe) ────────
     case "couverture": {
-      const d = buildCouvertureData({ cabinet, data, clientName: payload.clientName, dateLettre });
+      const d = buildCouvertureData({ cabinet, data, recipient: payload.recipient, clientName: payload.clientName, dateLettre });
       return pageCouverture(t, d);
     }
     case "ir": {
       if (!payload.ir) return placeholderSection(t, item, "Section IR requiert le résultat de computeIR (non fourni)");
-      const d = buildIRData({ ir: payload.ir, data, cabinet, clientName: payload.clientName, dateLettre });
+      const d = buildIRData({ ir: payload.ir, data, cabinet, clientName: payload.clientName, dateLettre, pagePosition });
       return pageIR(t, d);
     }
     case "ifi": {
       if (!payload.ifi) return placeholderSection(t, item, "Section IFI requiert le résultat de computeIFI (non fourni)");
-      const d = buildIFIData({ ifi: payload.ifi, data, cabinet, clientName: payload.clientName, dateLettre });
+      const d = buildIFIData({ ifi: payload.ifi, data, cabinet, clientName: payload.clientName, dateLettre, pagePosition });
       return pageIFI(t, d);
     }
     case "successionA": {
       if (!payload.succession) return placeholderSection(t, item, "Section Succession requiert le résultat de computeSuccession (non fourni)");
-      const d = buildSuccessionAData({ succession: payload.succession, data, cabinet, clientName: payload.clientName, dateLettre });
+      const d = buildSuccessionAData({ succession: payload.succession, data, cabinet, clientName: payload.clientName, dateLettre, pagePosition });
       return pageSuccessionA(t, d);
     }
     case "profil": {
-      const d = buildProfilData({ mission, data: data as any, cabinet, clientName: payload.clientName, dateLettre });
+      const d = buildProfilData({ mission, data: data as any, cabinet, clientName: payload.clientName, dateLettre, pagePosition });
       return pageProfil(t, d);
     }
     case "bilanEndettement": {
-      const d = buildBilanEndettementData({ data, cabinet, ir: payload.ir, clientName: payload.clientName, dateLettre });
+      const d = buildBilanEndettementData({ data, cabinet, ir: payload.ir, clientName: payload.clientName, dateLettre, pagePosition });
       return pageBilanEndettement(t, d);
     }
     case "successionB": {
       if (!payload.succession) return placeholderSection(t, item, "Section Succession B requiert le résultat de computeSuccession (non fourni)");
-      const d = buildSuccessionBData({ succession: payload.succession, data, cabinet, clientName: payload.clientName, dateLettre });
+      const d = buildSuccessionBData({ succession: payload.succession, data, cabinet, clientName: payload.clientName, dateLettre, pagePosition });
       return pageSuccessionB(t, d);
     }
     case "prevoyanceInd": {
-      const d = buildPrevoyanceIndData({ data, cabinet, clientName: payload.clientName, dateLettre });
+      const d = buildPrevoyanceIndData({ data, cabinet, clientName: payload.clientName, dateLettre, pagePosition });
       return pagePrevoyanceInd(t, d);
     }
     case "prevoyanceColl": {
-      const d = buildPrevoyanceCollData({ data, cabinet, clientName: payload.clientName, dateLettre });
+      const d = buildPrevoyanceCollData({ data, cabinet, clientName: payload.clientName, dateLettre, pagePosition });
       return pagePrevoyanceColl(t, d);
     }
 
     // ─── Sections v2 (anciennement v1-only, refondues) ──────────────
     case "cabinet": {
-      const d = buildCabinetData({ cabinet, data, clientName: payload.clientName, dateLettre });
+      const d = buildCabinetData({ cabinet, data, clientName: payload.clientName, dateLettre, pagePosition });
       return pageCabinet(t, d);
     }
     case "famille": {
-      const d = buildFamilleData({ data, cabinet, ir: payload.ir, clientName: payload.clientName, dateLettre });
+      const d = buildFamilleData({ data, cabinet, ir: payload.ir, clientName: payload.clientName, dateLettre, pagePosition });
       return pageFamille(t, d);
     }
     case "travail": {
-      const d = buildTravailData({ data, cabinet, ir: payload.ir, irOptions: payload.irOptions, clientName: payload.clientName, dateLettre });
+      const d = buildTravailData({ data, cabinet, ir: payload.ir, irOptions: payload.irOptions, clientName: payload.clientName, dateLettre, pagePosition });
       return pageTravail(t, d);
     }
     case "hypos": {
@@ -191,16 +196,16 @@ function renderItemBody(
         data, cabinet,
         ir: payload.ir, ifi: payload.ifi, succession: payload.succession,
         hypothesisResults: payload.hypothesisResults,
-        clientName: payload.clientName, dateLettre,
+        clientName: payload.clientName, dateLettre, pagePosition,
       });
       return pageHypos(t, d);
     }
     case "recommandations": {
-      const d = buildRecommandationsData({ recommandations, cabinet, data, clientName: payload.clientName, dateLettre });
+      const d = buildRecommandationsData({ recommandations, cabinet, data, clientName: payload.clientName, dateLettre, pagePosition });
       return pageRecommandations(t, d);
     }
     case "mentions": {
-      const d = buildMentionsData({ cabinet, mission, data, clientName: payload.clientName, dateLettre });
+      const d = buildMentionsData({ cabinet, mission, data, clientName: payload.clientName, dateLettre, pagePosition });
       return pageMentions(t, d);
     }
   }
@@ -240,9 +245,10 @@ export function generatePack(
     : payload.mission;
   const payloadFinal = { ...payload, mission: missionWithOverride };
 
-  // Rendu de chaque item
+  // Rendu de chaque item — pagination "X / N" calculée ici (N = total sections du pack).
+  const total = ordered.length;
   const bodies = ordered
-    .map(item => renderItemBody(item, payloadFinal, themeV2))
+    .map((item, idx) => renderItemBody(item, payloadFinal, themeV2, { index: idx + 1, total }))
     .filter(Boolean)
     .join("");
 
