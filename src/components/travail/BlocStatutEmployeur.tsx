@@ -1,10 +1,15 @@
 // ─── Bloc Statut professionnel + Employeur (module Prévoyance v1.4.0) ───
 //
 // Saisie pour UNE personne (P1 ou P2) :
-//   - Statut pro + caisse d'affiliation
+//   - Statut pro + caisse d'affiliation (caisse auto-suggérée depuis
+//     le statut, modifiable manuellement)
 //   - Bloc Employeur (SIRET + auto-résolution → IDCC + nom + NAF…)
-//   - Date d'embauche, temps de travail, salaire brut, prime
-//   - Champs TNS conditionnels (BNC/BIC, Madelin)
+//   - Date d'embauche, temps de travail
+//   - Pour salariés / assimilés : salaire brut + prime annuels
+//
+// Les revenus TNS (BNC/BIC) et l'option Madelin ne sont pas saisis
+// ici : ils sont déjà collectés dans l'onglet Revenus et dans les
+// placements. Le moteur Prévoyance les lira directement depuis là.
 //
 // Le composant est purement contrôlé : il reçoit la valeur courante
 // `value: PayloadTravail` et un setter `onChange(patch)` qui merge
@@ -17,7 +22,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BRAND, SURFACE } from "../../constants";
 import { Field } from "../shared";
 import type { PayloadTravail, EmployeurInfo, StatutPro, CodeCaisse } from "../../types/patrimoine";
-import { resolveSiret, validateSiret, createEmptyEmployeur } from "../../lib/prevoyance/utils";
+import {
+  resolveSiret,
+  validateSiret,
+  createEmptyEmployeur,
+  suggestCaisseFromStatut,
+} from "../../lib/prevoyance/utils";
 
 const STATUTS_PRO: Array<{ value: StatutPro; label: string }> = [
   { value: "salarie_non_cadre",   label: "Salarié non-cadre" },
@@ -35,28 +45,24 @@ const STATUTS_PRO: Array<{ value: StatutPro; label: string }> = [
 
 const CAISSES: Array<{ value: CodeCaisse; label: string }> = [
   { value: "CPAM",      label: "CPAM (régime général)" },
-  { value: "SSI",       label: "SSI (Sécurité sociale des indépendants)" },
-  { value: "MSA",       label: "MSA (régime agricole)" },
-  { value: "CARMF",     label: "CARMF (médecins libéraux)" },
+  { value: "SSI",       label: "SSI (indépendants)" },
+  { value: "MSA",       label: "MSA (agricole)" },
+  { value: "CARMF",     label: "CARMF (médecins)" },
   { value: "CARCDSF",   label: "CARCDSF (dentistes / sages-femmes)" },
   { value: "CARPV",     label: "CARPV (vétérinaires)" },
-  { value: "CARPIMKO",  label: "CARPIMKO (kinés / infirmiers / orthophonistes…)" },
+  { value: "CARPIMKO",  label: "CARPIMKO (paramédicaux)" },
   { value: "CIPAV",     label: "CIPAV (libéraux non réglementés)" },
   { value: "CNBF",      label: "CNBF (avocats)" },
   { value: "CAVOM",     label: "CAVOM (officiers ministériels)" },
-  { value: "CAVEC",     label: "CAVEC (experts-comptables / CAC)" },
-  { value: "CAVAMAC",   label: "CAVAMAC (agents généraux d'assurance)" },
+  { value: "CAVEC",     label: "CAVEC (experts-comptables)" },
+  { value: "CAVAMAC",   label: "CAVAMAC (agents d'assurance)" },
   { value: "CRN",       label: "CRN (notaires)" },
 ];
 
-const TNS_STATUS: StatutPro[] = ["tns_liberal", "tns_commercant", "tns_artisan", "gerant_majoritaire"];
 const SALARIE_STATUS: StatutPro[] = [
   "salarie_non_cadre", "salarie_cadre", "president_sas", "eurl_unique", "fonctionnaire",
 ];
 
-function isTNS(s: StatutPro | ""): boolean {
-  return TNS_STATUS.includes(s as StatutPro);
-}
 function isSalarieLike(s: StatutPro | ""): boolean {
   return SALARIE_STATUS.includes(s as StatutPro);
 }
@@ -76,12 +82,23 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
   const [siretError, setSiretError] = React.useState<string | null>(null);
   const employeur = value.employeur;
   const statut = value.statutPro;
-  const isTns = isTNS(statut);
   const isSal = isSalarieLike(statut);
 
   function patchEmployeur(patch: Partial<EmployeurInfo>) {
     const next: EmployeurInfo = { ...(employeur ?? createEmptyEmployeur()), ...patch };
     onChange({ employeur: next });
+  }
+
+  // Au changement de statut, on suggère la caisse SI elle n'est pas
+  // déjà renseignée. Si l'utilisateur a déjà saisi une caisse, on
+  // respecte son choix (override manuel).
+  function handleStatutChange(v: StatutPro) {
+    const patch: Partial<PayloadTravail> = { statutPro: v };
+    if (!value.caisseAffiliation) {
+      const suggested = suggestCaisseFromStatut(v);
+      if (suggested) patch.caisseAffiliation = suggested;
+    }
+    onChange(patch);
   }
 
   async function handleResolveSiret() {
@@ -109,19 +126,19 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
   }
 
   return (
-    <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+    <div className="border p-4 space-y-4" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
       <div className="text-xs font-black uppercase tracking-widest" style={{ color: BRAND.navy }}>
         {personLabel}
       </div>
 
-      {/* Statut + caisse */}
-      <div className="grid gap-3 md:grid-cols-2">
+      {/* Statut + caisse — 2 colonnes alignées, labels sur 1 ligne. */}
+      <div className="grid gap-3 md:grid-cols-2 items-start">
         <Field label="Statut professionnel">
           <Select
             value={statut || ""}
-            onValueChange={(v) => onChange({ statutPro: v as StatutPro })}
+            onValueChange={(v) => handleStatutChange(v as StatutPro)}
           >
-            <SelectTrigger className="rounded-xl"><SelectValue placeholder="Sélectionner un statut…" /></SelectTrigger>
+            <SelectTrigger className="rounded-xl"><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
             <SelectContent>
               {STATUTS_PRO.map((s) => (
                 <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
@@ -130,12 +147,12 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
           </Select>
         </Field>
 
-        <Field label="Caisse d'affiliation (assurance maladie / vieillesse)">
+        <Field label="Caisse d'affiliation">
           <Select
             value={value.caisseAffiliation ?? ""}
             onValueChange={(v) => onChange({ caisseAffiliation: (v || null) as CodeCaisse | null })}
           >
-            <SelectTrigger className="rounded-xl"><SelectValue placeholder="Sélectionner une caisse…" /></SelectTrigger>
+            <SelectTrigger className="rounded-xl"><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
             <SelectContent>
               {CAISSES.map((c) => (
                 <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
@@ -145,39 +162,61 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
         </Field>
       </div>
 
-      {/* Bloc Employeur — visible pour salariés et dirigeants assimilés.
-          Affiché aussi pour TNS si SIRET utile (entreprise individuelle). */}
-      <div className="rounded-xl border p-3 space-y-3" style={{ borderColor: SURFACE.border, background: "rgba(81,106,199,0.04)" }}>
+      {/* Bloc Employeur — encart visuellement distinct. SIRET prend
+          2/3 de la largeur du grid pour rester lisible, Effectif occupe
+          la 3e colonne. Les autres champs sont en 2 colonnes propres. */}
+      <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: "rgba(81,106,199,0.04)" }}>
         <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>
-          Employeur {isTns ? "/ entreprise" : ""}
+          Employeur / entreprise
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
-          <Field label="SIRET (14 chiffres)">
-            <div className="flex gap-2">
-              <Input
-                value={employeur?.siret ?? ""}
-                onChange={(e) => patchEmployeur({ siret: e.target.value.replace(/\s+/g, "") })}
-                className="rounded-xl"
-                inputMode="numeric"
-                placeholder="14 chiffres"
-                maxLength={14}
-              />
-              <Button
-                type="button"
-                onClick={handleResolveSiret}
-                disabled={siretLoading || !validateSiret(employeur?.siret ?? null)}
-                className="rounded-xl whitespace-nowrap"
-                style={{ background: BRAND.navy }}
-              >
-                {siretLoading ? "…" : "Résoudre"}
-              </Button>
-            </div>
-            {siretError && (
-              <div className="text-xs mt-1" style={{ color: "#B0413E" }}>{siretError}</div>
-            )}
-          </Field>
+        {/* Ligne 1 : SIRET (large) + Effectif */}
+        <div className="grid gap-3 md:grid-cols-3 items-start">
+          <div className="md:col-span-2">
+            <Field label="SIRET (14 chiffres)">
+              <div className="flex gap-2">
+                <Input
+                  value={employeur?.siret ?? ""}
+                  onChange={(e) => patchEmployeur({ siret: e.target.value.replace(/\s+/g, "") })}
+                  className="rounded-xl flex-1"
+                  inputMode="numeric"
+                  placeholder="ex. 78404636300040"
+                  maxLength={14}
+                />
+                <Button
+                  type="button"
+                  onClick={handleResolveSiret}
+                  disabled={siretLoading || !validateSiret(employeur?.siret ?? null)}
+                  className="rounded-xl whitespace-nowrap"
+                  style={{ background: BRAND.navy }}
+                >
+                  {siretLoading ? "…" : "Résoudre"}
+                </Button>
+              </div>
+              {siretError && (
+                <div className="text-xs mt-1" style={{ color: "#B0413E" }}>{siretError}</div>
+              )}
+            </Field>
+          </div>
 
+          <Field label="Effectif">
+            <Input
+              value={employeur?.effectif ?? ""}
+              onChange={(e) => {
+                const v = e.target.value.trim();
+                const n = v === "" ? null : Number(v);
+                patchEmployeur({ effectif: Number.isFinite(n as number) ? (n as number) : null });
+              }}
+              className="rounded-xl"
+              type="number"
+              min={0}
+              placeholder="—"
+            />
+          </Field>
+        </div>
+
+        {/* Ligne 2 : Nom + Forme juridique */}
+        <div className="grid gap-3 md:grid-cols-2 items-start">
           <Field label="Nom de l'employeur">
             <Input
               value={employeur?.nom ?? ""}
@@ -195,7 +234,10 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
               placeholder="SARL, SAS, SCI…"
             />
           </Field>
+        </div>
 
+        {/* Ligne 3 : Code NAF + IDCC */}
+        <div className="grid gap-3 md:grid-cols-2 items-start">
           <Field label="Code NAF / APE">
             <Input
               value={employeur?.codeNAF ?? ""}
@@ -232,25 +274,11 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
               )}
             </div>
           </Field>
-
-          <Field label="Effectif (tranche)">
-            <Input
-              value={employeur?.effectif ?? ""}
-              onChange={(e) => {
-                const v = e.target.value.trim();
-                const n = v === "" ? null : Number(v);
-                patchEmployeur({ effectif: Number.isFinite(n as number) ? (n as number) : null });
-              }}
-              className="rounded-xl"
-              type="number"
-              min={0}
-            />
-          </Field>
         </div>
       </div>
 
-      {/* Date d'embauche + temps de travail */}
-      <div className="grid gap-3 md:grid-cols-3">
+      {/* Date embauche + temps travail */}
+      <div className="grid gap-3 md:grid-cols-3 items-start">
         <Field label="Date d'embauche">
           <Input
             type="date"
@@ -280,7 +308,7 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
           </Select>
         </Field>
 
-        {value.tempsTravail.type === "partiel" && (
+        {value.tempsTravail.type === "partiel" ? (
           <Field label="Quotité (%)">
             <Input
               type="number"
@@ -299,12 +327,17 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
               className="rounded-xl"
             />
           </Field>
+        ) : (
+          // colonne vide pour conserver l'alignement de la grille
+          <div className="hidden md:block" />
         )}
       </div>
 
-      {/* Revenus — salaire brut ou TNS selon statut */}
+      {/* Salaire brut + prime — uniquement pour salariés / assimilés.
+          Pour les TNS, les revenus sont saisis dans l'onglet Revenus
+          (CA, BNC/BIC, régime micro/réel) et lus par le moteur. */}
       {isSal && (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2 items-start">
           <Field label="Salaire brut annuel (€)">
             <Input
               type="number"
@@ -325,48 +358,8 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
                 onChange({ primeAnnuelle: Number.isFinite(v as number) ? (v as number) : null });
               }}
               className="rounded-xl"
+              placeholder="0"
             />
-          </Field>
-        </div>
-      )}
-
-      {isTns && (
-        <div className="grid gap-3 md:grid-cols-3">
-          <Field label="Revenu BNC annuel (€)">
-            <Input
-              type="number"
-              min={0}
-              value={value.revenuBNC ?? ""}
-              onChange={(e) => {
-                const v = e.target.value === "" ? null : Number(e.target.value);
-                onChange({ revenuBNC: Number.isFinite(v as number) ? (v as number) : null });
-              }}
-              className="rounded-xl"
-            />
-          </Field>
-          <Field label="Revenu BIC annuel (€)">
-            <Input
-              type="number"
-              min={0}
-              value={value.revenuBIC ?? ""}
-              onChange={(e) => {
-                const v = e.target.value === "" ? null : Number(e.target.value);
-                onChange({ revenuBIC: Number.isFinite(v as number) ? (v as number) : null });
-              }}
-              className="rounded-xl"
-            />
-          </Field>
-          <Field label="Contrat Madelin">
-            <Select
-              value={value.optionMadelin ? "oui" : "non"}
-              onValueChange={(v) => onChange({ optionMadelin: v === "oui" })}
-            >
-              <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="non">Non</SelectItem>
-                <SelectItem value="oui">Oui</SelectItem>
-              </SelectContent>
-            </Select>
           </Field>
         </div>
       )}

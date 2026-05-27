@@ -7,6 +7,7 @@ import {
   lookupCCNName,
   createEmptyTravail,
   createEmptyEmployeur,
+  suggestCaisseFromStatut,
 } from "../lib/prevoyance/utils";
 
 describe("validateSiret", () => {
@@ -59,6 +60,34 @@ describe("createEmptyEmployeur", () => {
     expect(e.siret).toBeNull();
     expect(e.idccCCN).toBeNull();
     expect(e.sourceCCN).toBe("non_defini");
+  });
+});
+
+describe("suggestCaisseFromStatut", () => {
+  it("CPAM pour salariés et assimilés", () => {
+    expect(suggestCaisseFromStatut("salarie_non_cadre")).toBe("CPAM");
+    expect(suggestCaisseFromStatut("salarie_cadre")).toBe("CPAM");
+    expect(suggestCaisseFromStatut("president_sas")).toBe("CPAM");
+    expect(suggestCaisseFromStatut("eurl_unique")).toBe("CPAM");
+    expect(suggestCaisseFromStatut("fonctionnaire")).toBe("CPAM");
+  });
+
+  it("SSI pour TNS commerce / artisan / gérant majoritaire", () => {
+    expect(suggestCaisseFromStatut("tns_commercant")).toBe("SSI");
+    expect(suggestCaisseFromStatut("tns_artisan")).toBe("SSI");
+    expect(suggestCaisseFromStatut("gerant_majoritaire")).toBe("SSI");
+  });
+
+  it("null pour TNS libéral (caisse dépend de la profession)", () => {
+    expect(suggestCaisseFromStatut("tns_liberal")).toBeNull();
+  });
+
+  it("null pour retraité, sans activité, vide, null", () => {
+    expect(suggestCaisseFromStatut("retraite")).toBeNull();
+    expect(suggestCaisseFromStatut("sans_activite")).toBeNull();
+    expect(suggestCaisseFromStatut("")).toBeNull();
+    expect(suggestCaisseFromStatut(null)).toBeNull();
+    expect(suggestCaisseFromStatut(undefined)).toBeNull();
   });
 });
 

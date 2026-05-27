@@ -14,8 +14,10 @@
 // n'a pas renseigné les libellés CCN, lookupCCNName renvoie null.
 
 import type {
+  CodeCaisse,
   EmployeurInfo,
   PayloadTravail,
+  StatutPro,
 } from "../../types/patrimoine";
 
 const API_RECHERCHE_ENTREPRISES =
@@ -101,6 +103,39 @@ export function createEmptyTravail(): PayloadTravail {
     revenuBIC: null,
     optionMadelin: false,
   };
+}
+
+// Suggestion de caisse d'affiliation à partir du statut professionnel
+// uniquement (le PCS de Ploutos n'est pas assez fin pour distinguer
+// médecin / avocat / notaire au sein de la catégorie "professions
+// libérales"). L'utilisateur peut toujours override manuellement.
+//   - salarié + assimilé + fonctionnaire → CPAM
+//   - TNS commerce / artisan / gérant majoritaire → SSI
+//   - TNS libéral → null (l'utilisateur précise sa caisse)
+//   - retraité / sans activité → null
+export function suggestCaisseFromStatut(
+  statut: StatutPro | "" | null | undefined
+): CodeCaisse | null {
+  switch (statut) {
+    case "salarie_non_cadre":
+    case "salarie_cadre":
+    case "president_sas":
+    case "eurl_unique":
+    case "fonctionnaire":
+      return "CPAM";
+    case "tns_commercant":
+    case "tns_artisan":
+    case "gerant_majoritaire":
+      return "SSI";
+    case "tns_liberal":
+    case "retraite":
+    case "sans_activite":
+    case "":
+    case null:
+    case undefined:
+    default:
+      return null;
+  }
 }
 
 export function createEmptyEmployeur(): EmployeurInfo {
