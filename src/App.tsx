@@ -26,10 +26,8 @@ import { LoanModal } from "./components/LoanModal";
 import { HelpMenu } from "./components/HelpMenu";
 import { HelpTooltip, Field, MoneyField, MetricCard, BracketFillChart, SectionTitle, DifferenceBadge } from "./components/shared";
 import { supabase } from "./lib/supabase";
-import { buildAndPrintMission as _buildAndPrintMission } from "./lib/pdf/pdfMission";
 // Lot 8b — Document d'Entrée en Relation : document standardisé du cabinet,
 // indépendant du dossier client, piloté par les statuts du Lot 5.
-import { buildAndPrintDER as _buildAndPrintDER } from "./lib/pdf/pdfDER";
 // ─── Lot 9 bascule — runners v2 (Aperçu v2 temporaire pour validation
 // sur dossier réel, avant la bascule franche). Les boutons v1 restent
 // actifs en parallèle. ──────────────────────────────────────────────────
@@ -41,10 +39,8 @@ import { runDeclarationAdequationV2 } from "./lib/pdf/v2/runners/runDeclarationA
 import { PopcardImpression } from "./components/popcard/PopcardImpression";
 // Lot 8c — Fiche d'information et de conseil DDA : dépend du dossier client
 // (data + mission + recommandations) ; consomme les helpers Lot 5 + 7.
-import { buildAndPrintFicheDDA as _buildAndPrintFicheDDA } from "./lib/pdf/pdfFicheDDA";
 // Lot 8d — Déclaration d'adéquation : justifie le conseil, relie reco↔KYC,
 // règle de validité dégradée si aucune reco complète. Date+heure paramétrable.
-import { buildAndPrintAdequation as _buildAndPrintAdequation } from "./lib/pdf/pdfAdequation";
 import type { Recipient } from "./lib/pdf/pdfCore";
 
 // ── Imports modules refactorisés ──────────────────────────────────────────────
@@ -466,11 +462,6 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const [isInstallable, setIsInstallable] = useState(false);
   // Lot Dossier client — pop-card universelle d'impression (panier multi-docs)
   const [popcardOpen, setPopcardOpen] = useState(false);
-  const [pdfMissionModalOpen, setPdfMissionModalOpen] = useState(false);
-  const [pdfMissionSections, setPdfMissionSections] = useState({
-    legal: true, famille: true, travail: true, besoins: true,
-    bilan: true, ir: true, ifi: true, succession: true, profil: true, signature: true,
-  });
   // Dialog détail charges
   const [chargesDialogOpen, setChargesDialogOpen] = useState<1|2|null>(null);
   const [chargesPdfLoading, setChargesPdfLoading] = useState(false);
@@ -724,42 +715,6 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     return () => { document.getElementById(id)?.remove(); };
   }, []);
 
-
-  // ── Composant modal sélection PDF ──
-  const PdfModal = ({ open, onClose, sections, setSections, onPrint, title, sectionLabels }: {
-    open: boolean; onClose: () => void;
-    sections: Record<string, boolean>;
-    setSections: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-    onPrint: (s: Record<string, boolean>) => void;
-    title: string;
-    sectionLabels: { key: string; label: string; always?: boolean }[];
-  }) => {
-    if (!open) return null;
-    return (
-      <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.45)", zIndex:9999, display:"flex", alignItems:"center", justifyContent:"center" }}>
-        <div style={{ background:"#fff", borderRadius:"16px", padding:"28px 32px", minWidth:"360px", maxWidth:"480px", width:"100%", boxShadow:"0 24px 80px rgba(0,0,0,0.2)" }}>
-          <div style={{ fontFamily:"'Lato',sans-serif", fontWeight:900, fontSize:"16px", color:"#101B3B", marginBottom:"6px" }}>{title}</div>
-          <div style={{ fontSize:"13px", color:"#888", marginBottom:"20px" }}>Sélectionnez les sections à inclure</div>
-          <div style={{ display:"flex", flexDirection:"column", gap:"10px", marginBottom:"24px" }}>
-            {sectionLabels.map(({ key, label, always }) => (
-              <label key={key} style={{ display:"flex", alignItems:"center", gap:"10px", cursor: always ? "default" : "pointer", opacity: always ? 0.5 : 1 }}>
-                <input type="checkbox" checked={always || sections[key]} disabled={always}
-                  onChange={e => setSections(prev => ({ ...prev, [key]: e.target.checked }))}
-                  style={{ width:"16px", height:"16px", accentColor:"#101B3B" }} />
-                <span style={{ fontSize:"14px", color:"#333", fontWeight: sections[key] ? 600 : 400 }}>{label}</span>
-              </label>
-            ))}
-          </div>
-          <div style={{ display:"flex", gap:"10px", justifyContent:"flex-end" }}>
-            <button onClick={onClose} style={{ padding:"8px 18px", borderRadius:"8px", border:"1px solid #e5e7eb", background:"#fff", cursor:"pointer", fontSize:"13px", color:"#666" }}>Annuler</button>
-            <button onClick={() => { onClose(); onPrint(sections); }} style={{ padding:"8px 22px", borderRadius:"8px", border:"none", background:"#101B3B", cursor:"pointer", fontSize:"13px", color:"#fff", fontWeight:700 }}>
-              Générer le PDF
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   const baseReference = useMemo(() => {
     if (baseSnapshot.data && baseSnapshot.irOptions && baseSnapshot.successionData) {
@@ -1178,28 +1133,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       ? computeSuccession({ ...successionData, deceasedPerson: "person2" }, data)
       : succession;
 
-    const generateMissionPdf = () => { setPdfMissionModalOpen(true); };
-
-  const buildAndPrintMission = (sections: Record<string, boolean>, recipient?: Recipient) => {
-    _buildAndPrintMission({
-      sections, data, ir, ifi, succession: successionForRecipient(recipient), irOptions,
-      cabinet: cabinet as unknown as Record<string, string>,
-      clientName, logoSrc, signatureSrc, mission, recipient,
-    });
-  };
-
-  // Lot 8b — DER : génération directe (pas de modal), piloté par cabinet.statut*.
-  const buildAndPrintDER = () => {
-    _buildAndPrintDER({
-      cabinet: cabinet as Record<string, any>,
-      clientName,
-      logoSrc,
-    });
-  };
-
-  // Lot 9 bascule — Aperçu DER v2 (test sur dossier réel, AVANT bascule
-  // franche). Coexiste avec le bouton v1 ci-dessus. À retirer au moment
-  // du commit de bascule.
+  // ─── Aperçu PDF v2 (preview individuelle avant intégration au pack) ───
   const buildAndPrintDerV2 = () => {
     runDerV2({ cabinet: cabinet as Record<string, any> });
   };
@@ -1235,33 +1169,6 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     });
   };
 
-  // Lot 8c — Fiche d'information et de conseil DDA : dépend du dossier client.
-  // Lot 8e — la section IPID reflète l'état réel des pièces jointes du dossier.
-  const buildAndPrintFicheDDA = () => {
-    _buildAndPrintFicheDDA({
-      cabinet: cabinet as Record<string, any>,
-      data,
-      mission,
-      recommandations,
-      piecesJointes,
-      clientName,
-      logoSrc,
-    });
-  };
-
-  // Lot 8d — Déclaration d'adéquation : date et heure réelles à la génération.
-  const buildAndPrintAdequation = () => {
-    _buildAndPrintAdequation({
-      cabinet: cabinet as Record<string, any>,
-      data,
-      mission,
-      recommandations,
-      clientName,
-      logoSrc,
-    });
-  };
-
-  
   // ── Export JSON ──
   const exportDataFile = async () => {
     try {
@@ -1465,9 +1372,6 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
 
                 <Button className="h-9 rounded-xl px-4 text-sm font-medium shadow-md" style={{ background: BRAND.gold, color: BRAND.navy }} onClick={() => setPopcardOpen(true)}>
                   <Download className="mr-1.5 h-3.5 w-3.5" />Pack PDF
-                </Button>
-                <Button className="h-9 rounded-xl px-4 text-sm font-medium shadow-md" style={{ background: BRAND.navy, color: "#fff" }} onClick={generateMissionPdf}>
-                  <Download className="mr-1.5 h-3.5 w-3.5" />PDF Mission
                 </Button>
               </div>
             </div>
@@ -1774,7 +1678,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
           </TabsContent>
 
           {/* ════ LETTRE DE MISSION ════ */}
-          <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} showPdfMissionModal={() => setPdfMissionModalOpen(true)} person1={person1} person2={person2} recommandations={recommandations} setRecommandations={setRecommandations} piecesJointes={piecesJointes} setPiecesJointes={setPiecesJointes} onPrintDER={buildAndPrintDER} onPrintFicheDDA={buildAndPrintFicheDDA} onPrintAdequation={buildAndPrintAdequation} onPreviewDerV2={buildAndPrintDerV2} onPreviewLettreMissionV2={buildAndPrintLettreMissionV2} onPreviewFicheDDAV2={buildAndPrintFicheDDAV2} onPreviewAdequationV2={buildAndPrintAdequationV2} onOpenPopcardImpression={() => setPopcardOpen(true)} />
+          <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} person1={person1} person2={person2} recommandations={recommandations} setRecommandations={setRecommandations} piecesJointes={piecesJointes} setPiecesJointes={setPiecesJointes} onPreviewDerV2={buildAndPrintDerV2} onPreviewLettreMissionV2={buildAndPrintLettreMissionV2} onPreviewFicheDDAV2={buildAndPrintFicheDDAV2} onPreviewAdequationV2={buildAndPrintAdequationV2} onOpenPopcardImpression={() => setPopcardOpen(true)} />
 
           {/* ════ PARAMÈTRES CABINET ════ */}
           <TabParametres
@@ -1804,27 +1708,6 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
         clientName={clientName}
       />
 
-      {/* ── Modal PDF Mission ── */}
-      <PdfModal
-        open={pdfMissionModalOpen}
-        onClose={() => setPdfMissionModalOpen(false)}
-        sections={pdfMissionSections}
-        setSections={setPdfMissionSections}
-        onPrint={buildAndPrintMission}
-        title="Lettre de mission"
-        sectionLabels={[
-          { key:"legal", label:"Informations légales cabinet" },
-          { key:"famille", label:"Composition familiale & obligations fiscales" },
-          { key:"travail", label:"Situation professionnelle" },
-          { key:"besoins", label:"Besoins & Objectifs" },
-          { key:"bilan", label:"Bilan patrimonial" },
-          { key:"ir", label:"IR — Décomposition fiscale" },
-          { key:"ifi", label:`IFI${ifi.ifi <= 0 ? " (non assujetti)" : ""}` },
-          { key:"succession", label:"Succession" },
-          { key:"profil", label:"Profil investisseur" },
-          { key:"signature", label:"Signature & Engagements" },
-        ]}
-      />
       <LoanModal
         loanModalIndex={loanModalIndex}
         setLoanModalIndex={setLoanModalIndex}
