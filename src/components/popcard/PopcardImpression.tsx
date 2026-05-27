@@ -33,6 +33,8 @@ export type PopcardImpressionProps = {
   recipient?: "person1" | "person2" | "couple";
   hypothesisResults?: any;
   clientName?: string;
+  /** Logo cabinet (data URL ou URL) — utilisé sur la page de couverture v2. */
+  logoSrc?: string;
 };
 
 type PackItemDef = {
@@ -175,6 +177,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
       recipient: isCohab ? recipientChoice : "couple",
       hypothesisResults: p.hypothesisResults,
       clientName: p.clientName,
+      logoSrc: p.logoSrc,
     });
     setCheckOpen(false);
     p.onClose();

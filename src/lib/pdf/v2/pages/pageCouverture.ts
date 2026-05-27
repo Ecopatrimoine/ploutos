@@ -50,16 +50,23 @@ export function pageCouverture(t: Tokens, d: CouverturePageData): string {
     return mots.length > 1 ? mots.slice(0, -1).join(" ") : d.cabinetNom;
   })();
 
+  // Logo cabinet : si fourni, affichage libre (sans cercle ni bordure),
+  // taille généreuse pour bien identifier la marque (130×130 max, ratio
+  // préservé via object-fit:contain). Fallback initiales dans un cercle
+  // bordé or si pas de logo (placeholder visuel).
   const logoBloc = d.cabinetLogoSrc
-    ? `<div style="width:42px;height:42px;border-radius:50%;border:1.5px solid ${t.or};display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden">
+    ? `<div style="width:130px;height:130px;display:flex;align-items:center;justify-content:center;flex:none">
         <img src="${d.cabinetLogoSrc}" alt="${d.cabinetNom}" style="max-width:100%;max-height:100%;object-fit:contain" />
       </div>`
-    : `<div style="width:42px;height:42px;border-radius:50%;border:1.5px solid ${t.or};display:flex;align-items:center;justify-content:center;flex:none">
-        <span class="ser" style="font-size:14px;font-weight:600;color:${t.navy}">${initialesDe(d.cabinetNom)}</span>
+    : `<div style="width:130px;height:130px;border-radius:50%;border:2px solid ${t.or};display:flex;align-items:center;justify-content:center;flex:none">
+        <span class="ser" style="font-size:42px;font-weight:600;color:${t.navy}">${initialesDe(d.cabinetNom)}</span>
       </div>`;
 
   const oriasBloc = d.orias
-    ? `<div class="lt" style="font-size:10.5px;color:${t.texteFaible};line-height:1.55;text-align:right">ORIAS<br>${d.orias}</div>`
+    ? `<div class="lt" style="line-height:1.3;text-align:right">
+        <div style="font-weight:700;letter-spacing:0.12em;color:${t.eyebrowOr};text-transform:uppercase;font-size:14px">ORIAS</div>
+        <div style="font-weight:700;color:${t.navy};margin-top:4px;font-size:20px">n° ${d.orias}</div>
+      </div>`
     : "";
 
   const mentionPied = d.mentionPied || `Document strictement confidentiel — ${d.cabinetNom}`;
@@ -78,22 +85,18 @@ export function pageCouverture(t: Tokens, d: CouverturePageData): string {
 
       <!-- Contenu principal (avec padding adapté au liseré) -->
       <div style="padding:40px 42px 0 56px;position:relative;z-index:1">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div style="display:flex;align-items:center;gap:11px">
-            ${logoBloc}
-            <div style="line-height:1.1">
-              <div class="ser" style="font-size:15px;color:${t.navy}">${cabinetTitrePrincipal}</div>
-              ${sousTitre ? `<div class="lt" style="font-size:9px;letter-spacing:.22em;color:${t.eyebrowOr};margin-top:2px">${sousTitre}</div>` : ""}
-            </div>
-          </div>
-          ${oriasBloc}
+        <!-- Bandeau identité cabinet : logo XL à gauche, ORIAS à droite (nom du cabinet en bas à gauche) -->
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:24px">
+          <div style="flex-shrink:0">${logoBloc}</div>
+          <div style="flex-shrink:0">${oriasBloc}</div>
         </div>
 
-        <div style="height:1px;background:${t.bordureMoyenne};margin-top:28px"></div>
+        <div style="height:1px;background:${t.bordureMoyenne};margin-top:24px"></div>
 
         <!-- Bloc central : titre du document + nom + date -->
         <!-- Lot 9 itération : polices centrales × 2 vs maquette (titre 33→66, nom 19→38, date 11.5→23, eyebrows 10/11→20/22). -->
-        <div style="margin-top:90px">
+        <!-- Margin réduit (90→50) pour compenser le bandeau identité plus haut (logo 130px). -->
+        <div style="margin-top:50px">
           <div class="lt" style="font-size:22px;letter-spacing:.2em;text-transform:uppercase;color:${t.eyebrowOr}">${d.eyebrowDocument}</div>
           <div class="ser" style="font-size:66px;font-weight:600;color:${t.navy};line-height:1.08;margin-top:18px">${titreHtml}</div>
           <div style="width:96px;height:6px;background:${t.or};margin:34px 0 40px"></div>
@@ -104,9 +107,13 @@ export function pageCouverture(t: Tokens, d: CouverturePageData): string {
         </div>
       </div>
 
-      <!-- Pied : trait + mention confidentialité -->
-      <div style="position:absolute;left:56px;right:42px;bottom:30px;border-top:1px solid ${t.bordureMoyenne};padding-top:11px">
-        <span class="lt" style="font-size:10px;color:${t.texteFaible}">${mentionPied}</span>
+      <!-- Pied : trait + nom cabinet (gauche) + mention confidentialité (droite) -->
+      <div style="position:absolute;left:56px;right:42px;bottom:30px;border-top:1px solid ${t.bordureMoyenne};padding-top:11px;display:flex;justify-content:space-between;align-items:flex-end;gap:18px">
+        <div style="line-height:1.2">
+          <div class="ser" style="font-size:18px;font-weight:600;color:${t.navy};letter-spacing:-0.01em">${cabinetTitrePrincipal}</div>
+          ${sousTitre ? `<div class="lt" style="font-size:9.5px;letter-spacing:.22em;color:${t.eyebrowOr};margin-top:3px;font-weight:600;text-transform:uppercase">${sousTitre}</div>` : ""}
+        </div>
+        <span class="lt" style="font-size:10px;color:${t.texteFaible};text-align:right">${mentionPied}</span>
       </div>
     </div>
   `;

@@ -91,6 +91,8 @@ export type PackPayload = {
   /** Destinataire du dossier (couple / person1 / person2) — routage couverture en concubinage. */
   recipient?: "person1" | "person2" | "couple";
   clientName?: string;
+  /** Logo cabinet (data URL ou URL) — affiché sur la page de couverture. */
+  logoSrc?: string;
 };
 
 /** Résout le thème v2 en tenant compte d'un override per-dossier. */
@@ -138,7 +140,7 @@ function renderItemBody(
 
     // ─── Bilan patrimonial — sections v2 câblées (1ère passe) ────────
     case "couverture": {
-      const d = buildCouvertureData({ cabinet, data, recipient: payload.recipient, clientName: payload.clientName, dateLettre });
+      const d = buildCouvertureData({ cabinet, data, recipient: payload.recipient, clientName: payload.clientName, dateLettre, logoSrc: payload.logoSrc });
       return pageCouverture(t, d);
     }
     case "ir": {

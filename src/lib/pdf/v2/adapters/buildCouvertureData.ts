@@ -18,6 +18,8 @@ export type BuildCouvertureDataParams = {
   recipient?: Recipient;
   clientName?: string;
   dateLettre?: string;
+  /** Logo cabinet (data URL ou URL) — fourni via PackPayload.logoSrc. */
+  logoSrc?: string;
 };
 
 export function buildCouvertureData(p: BuildCouvertureDataParams): CouverturePageData {
@@ -46,9 +48,14 @@ export function buildCouvertureData(p: BuildCouvertureDataParams): CouverturePag
     composedName = p1 || "Client";
   }
 
+  // Logo : priorité au logoSrc fourni explicitement (state App.tsx),
+  // sinon fallback sur cabinet.logoSrc / cabinet.logo (legacy).
+  const logo = p.logoSrc || cabinet.logoSrc || cabinet.logo || undefined;
+
   return {
     cabinetNom: cabinet.cabinetName || cabinet.nom || "—",
     cabinetSousTitre: undefined,  // auto-calculé par la page si absent
+    cabinetLogoSrc: logo,
     orias: cabinet.orias || undefined,
     eyebrowDocument: "Conseil en gestion de patrimoine",
     titreDocument: "Rapport\npatrimonial",

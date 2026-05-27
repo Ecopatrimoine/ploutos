@@ -1593,6 +1593,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
         irOptions={irOptions}
         hypothesisResults={hypothesisResults}
         clientName={clientName}
+        logoSrc={logoSrc}
       />
 
       <LoanModal
