@@ -23,6 +23,11 @@ import type {
 } from "./types";
 import type { Referentiels } from "../../data/prevoyance";
 import type { StatutPro } from "../../types/patrimoine";
+import {
+  buildPlafondVariables,
+  evalFormulaPlafond,
+  type PlafondVariables,
+} from "./formula";
 
 // Paliers temporels phase AM (J0 → J1095).
 const PALIERS_AM = [0, 3, 7, 14, 30, 60, 90, 120, 180, 365, 547, 730, 912, 1095];
@@ -220,7 +225,8 @@ function computeIJObligatoireMensuel(
   caisseRef: any,
   entree: EntreePerso,
   revenuMensuelTNS: number,
-  salaireBrutMensuel: number
+  salaireBrutMensuel: number,
+  vars: PlafondVariables
 ): number | null {
   if (isCaisseToFill(caisseRef)) return null;
   const ij = caisseRef.ij;
@@ -266,8 +272,14 @@ function computeIJObligatoireMensuel(
   const revenuJournalier = baseAnnuelle / 360;
   let ijj = revenuJournalier * taux;
 
-  // Plafond journalier si renseigné
-  const plafondJ = safeNum(ij.plafondJournalier);
+  // Plafond journalier : formule paramétrique en priorité (qui suit
+  // les revalorisations du SMIC/PASS via les variables), puis valeur
+  // figée plafondJournalier si la formule absente ou échoue.
+  let plafondJ: number | null = null;
+  if (typeof ij.plafondFormule === "string") {
+    plafondJ = evalFormulaPlafond(ij.plafondFormule, vars);
+  }
+  if (plafondJ === null) plafondJ = safeNum(ij.plafondJournalier);
   if (plafondJ !== null) ijj = Math.min(ijj, plafondJ);
 
   // Majoration CPAM : 3 enfants à charge, à partir de J31
@@ -494,6 +506,7 @@ export function projeterArretMaladie(
   const salaireBrutMensuel = entree.salaireBrutAnnuel / 12;
   const revenuMensuelTNS = (entree.revenuTNSAnnuel ?? 0) / 12;
   const baseMensuelleInvalidite = isSalarie ? salaireBrutMensuel : revenuMensuelTNS;
+  const plafondVars = buildPlafondVariables(ref);
 
   // Revenu de référence : net salarié ou TNS mensuel. Sert au calcul
   // du maintien (cible monétaire) et à l'affichage UI.
@@ -527,7 +540,8 @@ export function projeterArretMaladie(
         caisseRef,
         entree,
         revenuMensuelTNS,
-        salaireBrutMensuel
+        salaireBrutMensuel,
+        plafondVars
       );
       if (ijObl === null) {
         donneesIndisponibles = true;
