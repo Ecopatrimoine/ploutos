@@ -26,8 +26,40 @@ export function buildSuccessionAData(p: BuildSuccessionADataParams): SuccessionA
   const isCouple = data.coupleStatus === "married" || data.coupleStatus === "pacs";
   const clientName = p.clientName || (isCouple && p2 ? `${p1} & ${p2}` : (data.person1LastName || p1)) || "Client";
 
-  const masseSuccessoraleNette = num(s.activeNet ?? s.netCivil ?? s.masseSuccessoraleNette ?? 0);
-  const droitsSuccession = num(s.totalRights ?? s.totalTax ?? 0);
+  // ─── Héritiers — mapping trivial sur les champs dérivés du moteur ──
+  // SOURCE UNIQUE : computeSuccession() expose déjà partRecueFiscale, netFiscal
+  // et compositionFiscale (cf. succession.ts ligne ~699-713). Aucun recalcul
+  // ici → impossible que le PDF diverge de l'UI.
+  const heritiersRaw: any[] = Array.isArray(s.results) ? s.results : [];
+  const heritiers = heritiersRaw.map(h => {
+    const partRecue = num(h.partRecueFiscale ?? 0);
+    const abattement = num(h.allowance ?? 0);
+    const droits = num(h.successionDuties ?? 0);
+    const droitsExonere = droits === 0 && h.relation === "conjoint" && isCouple;
+    const net = Math.max(0, partRecue - droits);
+    return {
+      nom: h.name || "Héritier",
+      lien: relationLabel(h.relation),
+      partRecue,
+      abattement: abattement > 0 ? abattement : undefined,
+      droits,
+      droitsExonere: droitsExonere || undefined,
+      net,
+      composition: h.compositionFiscale || undefined,
+    };
+  });
+
+  // ─── KPI dérivés des héritiers (cohérence garantie avec le tableau) ──
+  // Les totaux affichés en KPI haut de page = SOMME des valeurs par héritier.
+  // Évite l'écart entre KPI (clé succession.activeNet = économique brute) et
+  // tableau héritier (formule fiscale). Si les héritiers sont vides, fallback
+  // sur les clés succession globales.
+  const masseSuccessoraleNette = heritiers.length > 0
+    ? heritiers.reduce((sum, h) => sum + h.partRecue, 0)
+    : num(s.activeNet ?? s.netCivil ?? 0);
+  const droitsSuccession = heritiers.length > 0
+    ? heritiers.reduce((sum, h) => sum + h.droits, 0)
+    : num(s.totalRights ?? s.totalTax ?? 0);
   const netTransmis = masseSuccessoraleNette - droitsSuccession;
   const tauxMoyenPct = masseSuccessoraleNette > 0
     ? (droitsSuccession / masseSuccessoraleNette) * 100
@@ -42,26 +74,6 @@ export function buildSuccessionAData(p: BuildSuccessionADataParams): SuccessionA
   const quotiteMontant = masseSuccessoraleNette - reserveMontant;
   const reserveFraction = nbEnfants === 1 ? "1/2" : nbEnfants === 2 ? "2/3" : nbEnfants >= 3 ? "3/4" : "—";
   const quotiteFraction = nbEnfants === 1 ? "1/2" : nbEnfants === 2 ? "1/3" : nbEnfants >= 3 ? "1/4" : "—";
-
-  // Héritiers — clés réelles SuccessionResult de computeSuccession :
-  //   name, relation, grossReceived, successionDuties, avDuties, allowance, netReceived
-  const heritiersRaw: any[] = Array.isArray(s.results) ? s.results : [];
-  const heritiers = heritiersRaw.map(h => {
-    const partRecue = num(h.grossReceived ?? 0);
-    const abattement = num(h.allowance ?? 0);
-    const droits = num(h.successionDuties ?? 0) + num(h.avDuties ?? 0);
-    const droitsExonere = droits === 0 && (h.relation === "conjoint" && (data.coupleStatus === "married" || data.coupleStatus === "pacs"));
-    const net = num(h.netReceived ?? (partRecue - droits));
-    return {
-      nom: h.name || "Héritier",
-      lien: relationLabel(h.relation),
-      partRecue,
-      abattement: abattement > 0 ? abattement : undefined,
-      droits,
-      droitsExonere: droitsExonere || undefined,
-      net,
-    };
-  });
 
   // Description dévolution (composée selon situation famille)
   const devolutionDescription = describeDevolution(data, nbEnfants);

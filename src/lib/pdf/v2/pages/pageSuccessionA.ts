@@ -31,6 +31,7 @@ export type HeritierSuccession = {
   droits: number;       // 45 100 ; mettre 0 + flagExonere si exonéré
   droitsExonere?: boolean;  // true → affiche "exonéré" en vert au lieu d'un montant
   net: number;          // 352 625
+  composition?: string; // ex: "US fiscal 941 164 € (1 972 950 € × 50%)"
 };
 
 export type SuccessionAPageData = {
@@ -81,7 +82,11 @@ export function pageSuccessionA(t: Tokens, d: SuccessionAPageData): string {
     { label: "Net",        align: "right", width: "15%" },
   ];
   const rows: Cell[][] = d.heritiers.map(h => ([
-    { value: h.nom },
+    {
+      value: h.composition
+        ? `${h.nom}<div style="font-size:8.5px;color:${t.texteFaibleClair};margin-top:1px;line-height:1.25">${h.composition}</div>`
+        : h.nom,
+    },
     { value: h.lien, color: t.texteFaible },
     { value: euro(h.partRecue), align: "right" },
     {
@@ -141,6 +146,9 @@ export function pageSuccessionA(t: Tokens, d: SuccessionAPageData): string {
     <div style="margin-top:18px">
       ${sousTitreSection(t, "Détail par héritier")}
       ${tableauTitresDores(t, { cols, rows })}
+      <div class="foot" style="margin-top:6px">
+        Part reçue = pleine propriété + nue-propriété fiscale + usufruit valorisé selon le coefficient Duvergier (CGI art. 669). Le conjoint marié ou partenaire de PACS est exonéré de droits (CGI art. 796-0 bis).
+      </div>
     </div>
 
     ${encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture })}

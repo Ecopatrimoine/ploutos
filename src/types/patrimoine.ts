@@ -176,6 +176,11 @@ export type PatrimonialData = {
   coupleStatus: string;
   matrimonialRegime: string;
   singleParent: boolean;
+  // ─── Lot Dossier client — Adresse du foyer (utilisée par la fiche DDA
+  //     dans le bandeau identité client et par les pages de contact PDF). ─
+  adresse?: string;
+  codePostal?: string;
+  ville?: string;
   person1Handicap: boolean;  // personne 1 handicapée → abattement revenu 2 627 € + plafond QF +1 785 €
   person2Handicap: boolean;  // personne 2 handicapée → idem
   childrenData: Child[];
@@ -379,6 +384,16 @@ export type SuccessionResult = {
   visualMax: number;
   currentBracketLabel: string;
   effectiveReceived: number;
+  // ── Valeurs fiscales dérivées (source unique pour UI + PDF) ──
+  // partRecueFiscale = grossReceived + nueValue + usufructRawValue × usPct
+  //   (formule fiscale taxable, CGI art. 669 pour Duvergier)
+  // netFiscal       = max(0, partRecueFiscale - successionDuties) + avNetReceived
+  // compositionFiscale = "PP X € + NP fiscale Y € + US fiscal Z € (V € × U%)"
+  // usufructFiscalValue = usufructRawValue × usPct (déjà arrondi)
+  partRecueFiscale: number;
+  netFiscal: number;
+  usufructFiscalValue: number;
+  compositionFiscale: string;
 };
 
 export type SuccessionPropertyLine = {

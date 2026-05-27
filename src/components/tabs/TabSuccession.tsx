@@ -59,8 +59,8 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
     [succession.results]
   );
 
-  // Total net transmis
-  const totalNet = visibleHeirs.reduce((s: number, r: any) => s + r.grossReceived + r.nueValue + r.usufructRawValue * (succession.demembrementPct?.usufruct ?? 1) - r.successionDuties + (r.avNetReceived || 0), 0);
+  // Total net transmis — utilise les valeurs fiscales dérivées du moteur (source unique).
+  const totalNet = visibleHeirs.reduce((s: number, r: any) => s + (r.partRecueFiscale - r.successionDuties + (r.avNetReceived || 0)), 0);
 
   return (
 <TabsContent value="succession" className="space-y-4">
@@ -473,7 +473,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
             {visibleHeirs.map((heir: any, idx: number) => {
               const clr = getHeirColor(idx);
               const total = visibleHeirs.reduce((s: number, r: any) => s + r.netReceived, 0);
-              const heirNetActuel = heir.grossReceived + heir.nueValue + heir.usufructRawValue * (succession.demembrementPct?.usufruct ?? 1) - heir.successionDuties + (heir.avNetReceived || 0);
+              const heirNetActuel = heir.partRecueFiscale - heir.successionDuties + (heir.avNetReceived || 0);
               const pct = total > 0 ? (heirNetActuel / total) * 100 : 0;
               const isDonated = activeDonations?.some((d: any) => {
                 const asset = d.assetType === "property" ? data?.properties?.[d.assetIndex] : null;
@@ -654,7 +654,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
         // Data pour bar chart héritiers : gross / droits / net
         const barData = visibleHeirs.map((r: any, i: number) => ({
           name: r.name.split(" ")[0],
-          net: Math.round(r.grossReceived + r.nueValue + r.usufructRawValue * (succession.demembrementPct?.usufruct ?? 1) - r.successionDuties + (r.avNetReceived || 0)),
+          net: Math.round(r.partRecueFiscale - r.successionDuties + (r.avNetReceived || 0)),
           droits: Math.round(r.duties),
           color: COLORS[i % COLORS.length],
         }));
@@ -1010,10 +1010,9 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
           {/* Corps modal */}
           <div style={{ padding: "20px 24px", overflowY: "auto", flex: 1, background: SURFACE.card }}>
 
-            {/* KPIs principaux */}
+            {/* KPIs principaux — valeurs fiscales dérivées du moteur (source unique) */}
             {(() => {
-              const usPct = succession.demembrementPct?.usufruct ?? 0;
-              const actifSuccession = heir.grossReceived + heir.nueValue + heir.usufructRawValue * usPct;
+              const actifSuccession = heir.partRecueFiscale;
               const netSuccession = actifSuccession - heir.successionDuties;
               return (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "16px" }}>
@@ -1071,13 +1070,12 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
 
                 {heir.usufructRawValue > 0 && (() => {
                   const usPct = succession.demembrementPct?.usufruct ?? 0;
-                  const usValue = heir.usufructRawValue * usPct;
                   return (
                     <div style={{ marginTop: heir.nueRawValue > 0 ? "10px" : "0" }}>
                       {([
                         { label: "Quotité US reçue", value: Math.round(heir.usufructFraction * 100) + "% de l'actif", hint: null },
                         { label: "Coefficient Duvergier", value: Math.round(usPct * 100) + "%", hint: "Valorisation fiscale de l'usufruit selon l'âge de l'usufruitier" },
-                        { label: "Valeur de l'usufruit reçu", value: euro(usValue), color: BRAND.navy, bold: true, hint: "Valeur PP × quotité × coefficient Duvergier" },
+                        { label: "Valeur de l'usufruit reçu", value: euro(heir.usufructFiscalValue), color: BRAND.navy, bold: true, hint: "Valeur PP × quotité × coefficient Duvergier" },
                       ] as any[]).map((row, i) => (
                         <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "5px 0", borderBottom: "1px solid rgba(81,106,199,0.1)" }}>
                           <div>

@@ -9,6 +9,26 @@ import { resolveLoanValuesMulti } from './credit';
 
 // ─── CALCUL SUCCESSION ────────────────────────────────────────────────────────
 
+// ─── Helper SOURCE UNIQUE : composition fiscale lisible d'un héritier ──
+// Utilisé par computeSuccession() (pour enrichir chaque result), par TabSuccession
+// (rendu modal + tableau), et par les adapters PDF v2 (buildSuccessionAData).
+// Format: "PP 100 000 € + NP fiscale 50 000 € + US fiscal 60 000 € (100 000 € × 60%)"
+// Renvoie une string vide si tous les composants sont à 0.
+export function formatCompositionFiscale(opts: {
+  grossReceived: number;
+  nueRawValue: number;
+  nueValue: number;
+  usufructRawValue: number;
+  usufructFiscalValue: number;
+  usufructPctPercent: number; // ex: 60 pour Duvergier âge 41-50
+}): string {
+  const parts: string[] = [];
+  if (opts.grossReceived > 0)    parts.push(`PP ${euro(opts.grossReceived)}`);
+  if (opts.nueRawValue > 0)      parts.push(`NP fiscale ${euro(opts.nueValue)}`);
+  if (opts.usufructRawValue > 0) parts.push(`US fiscal ${euro(opts.usufructFiscalValue)} (${euro(opts.usufructRawValue)} × ${opts.usufructPctPercent}%)`);
+  return parts.join(" + ");
+}
+
 export function getSuccessionTaxProfile(relation: string, handicap = false) {
   const HANDICAP_BONUS = 159325; // abattement supplémentaire cumulable — CGI art. 779 II
   if (relation === "enfant") {
@@ -696,6 +716,21 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
     const visualMax = currentBracket ? (Number.isFinite(currentBracket.to) ? currentBracket.to : Math.max(successionTaxable, 1)) : 1;
     const indicatorPct = successionTaxable > 0 && visualMax > 0 ? Math.min(100, Math.max(0, (successionTaxable / visualMax) * 100)) : 0;
 
+    // ── Valeurs fiscales dérivées (source unique pour UI + PDF) ──
+    // Formule fiscale taxable : PP + NP fiscale (Duvergier nue) + Usufruit fiscal (Duvergier usufruit).
+    // Référence : CGI art. 669 (barème usufruit/nue-propriété par âge).
+    const usufructFiscalValue = Math.round(usufructRawValue * demembrementPct.usufruct);
+    const partRecueFiscale = grossReceived + nueValue + usufructFiscalValue;
+    const netFiscal = Math.max(0, partRecueFiscale - successionDuties) + avNetReceived;
+    const compositionFiscale = formatCompositionFiscale({
+      grossReceived,
+      nueRawValue,
+      nueValue,
+      usufructRawValue,
+      usufructFiscalValue,
+      usufructPctPercent: Math.round(demembrementPct.usufruct * 100),
+    });
+
     return {
       name: heir.name,
       relation: heir.relation,
@@ -710,6 +745,8 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
       indicatorPct, visualMax,
       currentBracketLabel: currentBracket?.label || "—",
       effectiveReceived: grossReceived + nueRawValue + usufructRawValue + avReceived,
+      // Source unique des valeurs dérivées
+      partRecueFiscale, netFiscal, usufructFiscalValue, compositionFiscale,
     };
   });
 

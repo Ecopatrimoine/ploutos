@@ -1,6 +1,6 @@
 // Tests calcul Succession — droits 2024/2025 — couverture exhaustive
 import { describe, it, expect } from 'vitest'
-import { computeSuccession, computeAvTax } from '../lib/calculs/succession'
+import { computeSuccession, computeAvTax, formatCompositionFiscale } from '../lib/calculs/succession'
 import { getAgeFromBirthDate, getDemembrementPercentages } from '../lib/calculs/utils'
 import { EMPTY_CHARGES_DETAIL } from '../constants'
 
@@ -561,5 +561,109 @@ describe("computeSuccession — biens en indivision", () => {
     // Bien propre person2 : pas de quote-part du défunt → valeur = 0
     expect(line.grossEstateValue).toBe(0)
     expect(line.netEstateValue).toBe(0)
+  })
+})
+
+// ─── REFACTOR — SOURCE UNIQUE valeur fiscale (partRecueFiscale + composition) ──
+// Verrouille que computeSuccession() expose des valeurs dérivées cohérentes pour
+// chaque option spouse, et que la composition lisible reflète bien la formule.
+// Si ces tests sautent, l'UI (TabSuccession) et le PDF (buildSuccessionAData)
+// divergeront sur la valeur fiscale affichée.
+
+describe("computeSuccession — source unique valeur fiscale dérivée", () => {
+
+  it("conjoint en 1/4 PP → partRecueFiscale = grossReceived (= activeNet × 0.25)", () => {
+    const s = computeSuccession(
+      { ...BASE_SUCCESSION, spouseOption: "legal_quarter_full" },
+      BASE_DATA,
+    )
+    const conjoint = s.results.find(r => r.relation === "conjoint")
+    expect(conjoint).toBeDefined()
+    if (!conjoint) return
+    // Vérité : la PP n'a pas de coef Duvergier
+    expect(conjoint.partRecueFiscale).toBe(conjoint.grossReceived + conjoint.nueValue + conjoint.usufructFiscalValue)
+    expect(conjoint.partRecueFiscale).toBeCloseTo(s.activeNet * 0.25, 0)
+    expect(conjoint.usufructFiscalValue).toBe(0)
+    // Composition doit montrer "PP …" et pas "US fiscal …"
+    expect(conjoint.compositionFiscale).toContain("PP")
+    expect(conjoint.compositionFiscale).not.toContain("US fiscal")
+  })
+
+  it("conjoint en usufruit total → partRecueFiscale = activeNet × coef Duvergier", () => {
+    const s = computeSuccession(
+      { ...BASE_SUCCESSION, spouseOption: "legal_usufruct_total" },
+      BASE_DATA,
+    )
+    const conjoint = s.results.find(r => r.relation === "conjoint")
+    expect(conjoint).toBeDefined()
+    if (!conjoint) return
+    const usPct = s.demembrementPct.usufruct
+    expect(conjoint.grossReceived).toBe(0)
+    expect(conjoint.nueValue).toBe(0)
+    expect(conjoint.usufructFiscalValue).toBeCloseTo(conjoint.usufructRawValue * usPct, 0)
+    expect(conjoint.partRecueFiscale).toBeCloseTo(s.activeNet * usPct, 0)
+    // Composition doit montrer "US fiscal …" avec le coef Duvergier en %
+    expect(conjoint.compositionFiscale).toContain("US fiscal")
+    expect(conjoint.compositionFiscale).toContain(`× ${Math.round(usPct * 100)}%`)
+  })
+
+  it("partRecueFiscale strictement = grossReceived + nueValue + usufructFiscalValue (tous héritiers)", () => {
+    const s = computeSuccession(BASE_SUCCESSION, BASE_DATA)
+    s.results.forEach(r => {
+      expect(r.partRecueFiscale).toBe(r.grossReceived + r.nueValue + r.usufructFiscalValue)
+    })
+  })
+
+  it("netFiscal = max(0, partRecueFiscale - droits) + avNetReceived", () => {
+    const s = computeSuccession(BASE_SUCCESSION, BASE_DATA)
+    s.results.forEach(r => {
+      const expected = Math.max(0, r.partRecueFiscale - r.successionDuties) + r.avNetReceived
+      expect(r.netFiscal).toBe(expected)
+    })
+  })
+
+  it("formatCompositionFiscale : enfant PP pur → 'PP X €' uniquement", () => {
+    const comp = formatCompositionFiscale({
+      grossReceived: 100_000,
+      nueRawValue: 0, nueValue: 0,
+      usufructRawValue: 0, usufructFiscalValue: 0,
+      usufructPctPercent: 60,
+    })
+    expect(comp).toMatch(/^PP\s/)
+    expect(comp).not.toContain("NP")
+    expect(comp).not.toContain("US")
+  })
+
+  it("formatCompositionFiscale : conjoint usufruit 60% → 'US fiscal … (… × 60%)'", () => {
+    const comp = formatCompositionFiscale({
+      grossReceived: 0,
+      nueRawValue: 0, nueValue: 0,
+      usufructRawValue: 1_972_950, usufructFiscalValue: 1_183_770,
+      usufructPctPercent: 60,
+    })
+    expect(comp).toContain("US fiscal")
+    expect(comp).toContain("× 60%")
+    expect(comp).not.toContain("PP")
+  })
+
+  it("formatCompositionFiscale : enfant NP + US → composition combinée", () => {
+    const comp = formatCompositionFiscale({
+      grossReceived: 0,
+      nueRawValue: 500_000, nueValue: 200_000,
+      usufructRawValue: 100_000, usufructFiscalValue: 60_000,
+      usufructPctPercent: 60,
+    })
+    expect(comp).toContain("NP fiscale")
+    expect(comp).toContain("US fiscal")
+    expect(comp.split(" + ")).toHaveLength(2)
+  })
+
+  it("formatCompositionFiscale : tout à 0 → string vide (héritier inactif)", () => {
+    const comp = formatCompositionFiscale({
+      grossReceived: 0, nueRawValue: 0, nueValue: 0,
+      usufructRawValue: 0, usufructFiscalValue: 0,
+      usufructPctPercent: 0,
+    })
+    expect(comp).toBe("")
   })
 })
