@@ -26,7 +26,6 @@ import { LoanModal } from "./components/LoanModal";
 import { HelpMenu } from "./components/HelpMenu";
 import { HelpTooltip, Field, MoneyField, MetricCard, BracketFillChart, SectionTitle, DifferenceBadge } from "./components/shared";
 import { supabase } from "./lib/supabase";
-import { buildAndPrintPdf as _buildAndPrintPdf } from "./lib/pdf/pdfReport";
 import { buildAndPrintMission as _buildAndPrintMission } from "./lib/pdf/pdfMission";
 // Lot 8b — Document d'Entrée en Relation : document standardisé du cabinet,
 // indépendant du dossier client, piloté par les statuts du Lot 5.
@@ -465,16 +464,9 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const [exportFallbackOpen, setExportFallbackOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
-  const [pdfModalOpen, setPdfModalOpen] = useState(false);
   // Lot Dossier client — pop-card universelle d'impression (panier multi-docs)
   const [popcardOpen, setPopcardOpen] = useState(false);
   const [pdfMissionModalOpen, setPdfMissionModalOpen] = useState(false);
-  const [pdfSections, setPdfSections] = useState({
-    cabinet: true, famille: true, travail: true, bilan: true,
-    ir: true, ifi: true, succession: true, hypos: true,
-    recommandations: true,  // Lot 7 — conditionnelle au contenu, sans effet si pas de recos
-    mentions: true,
-  });
   const [pdfMissionSections, setPdfMissionSections] = useState({
     legal: true, famille: true, travail: true, besoins: true,
     bilan: true, ir: true, ifi: true, succession: true, profil: true, signature: true,
@@ -768,8 +760,6 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       </div>
     );
   };
-
-  const showPdfModal = () => setPdfModalOpen(true);
 
   const baseReference = useMemo(() => {
     if (baseSnapshot.data && baseSnapshot.irOptions && baseSnapshot.successionData) {
@@ -1181,28 +1171,12 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     }
   };
 
-  const generatePdf = () => {
-    // modal state géré via setPdfModalOpen
-    // ── modal state géré en dehors — voir bouton PDF ──
-    showPdfModal();
-  };
-
-
   // Si recipient="person2", recalcule succession pour deceasedPerson="person2".
   // Sinon, réutilise la succession déjà calculée (memoisée).
   const successionForRecipient = (recipient?: Recipient) =>
     (recipient === "person2" && successionData.deceasedPerson !== "person2")
       ? computeSuccession({ ...successionData, deceasedPerson: "person2" }, data)
       : succession;
-
-  const buildAndPrintPdf = (sections: Record<string, boolean>, recipient?: Recipient) => {
-    _buildAndPrintPdf({
-      sections, data, ir, ifi, succession: successionForRecipient(recipient), irOptions,
-      cabinet: cabinet as unknown as Record<string, string>,
-      clientName, notes, logoSrc, hypothesisResults, recipient,
-      recommandations,  // Lot 7 — section PDF conditionnelle (rendue si non vide)
-    });
-  };
 
     const generateMissionPdf = () => { setPdfMissionModalOpen(true); };
 
@@ -1489,8 +1463,8 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
                   <input type="file" accept="application/json" className="hidden" onChange={importDataFile} />
                 </label>
 
-                <Button className="h-9 rounded-xl px-4 text-sm font-medium shadow-md" style={{ background: BRAND.gold, color: BRAND.navy }} onClick={() => setPdfModalOpen(true)}>
-                  <Download className="mr-1.5 h-3.5 w-3.5" />PDF Rapport
+                <Button className="h-9 rounded-xl px-4 text-sm font-medium shadow-md" style={{ background: BRAND.gold, color: BRAND.navy }} onClick={() => setPopcardOpen(true)}>
+                  <Download className="mr-1.5 h-3.5 w-3.5" />Pack PDF
                 </Button>
                 <Button className="h-9 rounded-xl px-4 text-sm font-medium shadow-md" style={{ background: BRAND.navy, color: "#fff" }} onClick={generateMissionPdf}>
                   <Download className="mr-1.5 h-3.5 w-3.5" />PDF Mission
@@ -1830,26 +1804,6 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
         clientName={clientName}
       />
 
-      {/* ── Modal PDF Rapport (v1 — conservé en parallèle, à débrancher au lot bascule franche) ── */}
-      <PdfModal
-        open={pdfModalOpen}
-        onClose={() => setPdfModalOpen(false)}
-        sections={pdfSections}
-        setSections={setPdfSections}
-        onPrint={buildAndPrintPdf}
-        title="Rapport patrimonial"
-        sectionLabels={[
-          { key:"cabinet", label:"Présentation cabinet & démarche" },
-          { key:"famille", label:"Composition familiale" },
-          { key:"travail", label:"Situation professionnelle" },
-          { key:"bilan", label:"Bilan patrimonial" },
-          { key:"ir", label:"Impôt sur le Revenu (IR)" },
-          { key:"ifi", label:`IFI${ifi.ifi <= 0 ? " (non assujetti — désactivé)" : ""}`, always: ifi.ifi <= 0 ? false : false },
-          { key:"succession", label:"Succession" },
-          { key:"hypos", label:"Scénarios d'optimisation" },
-          { key:"mentions", label:"Notes & Mentions légales" },
-        ]}
-      />
       {/* ── Modal PDF Mission ── */}
       <PdfModal
         open={pdfMissionModalOpen}
