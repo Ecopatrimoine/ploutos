@@ -452,8 +452,6 @@ type ClientManagerProps = {
   onInstall?: () => void;
   // Nouveaux props
   onSignOut?: () => void;
-  onAdmin?: () => void;
-  isAdmin?: boolean;
   licence?: { type: string | null; status: string; isValid: boolean } | null;
   userId?: string;
 };
@@ -476,8 +474,6 @@ export function ClientManager({
   isInstallable = false,
   onInstall,
   onSignOut,
-  onAdmin,
-  isAdmin = false,
   licence,
   userId = "",
 }: ClientManagerProps) {
@@ -590,13 +586,6 @@ export function ClientManager({
           </div>
           <div className="flex items-center gap-3">
             <SyncIndicator />
-            {isAdmin && onAdmin && (
-              <button onClick={onAdmin}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                style={{ background: "rgba(227,175,100,0.25)", border: "1px solid rgba(227,175,100,0.6)", color: "#E3AF64" }}>
-                ⚙ Admin
-              </button>
-            )}
             {licence?.type === "paid" && licence?.status === "active" && userId && (
               <button
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"

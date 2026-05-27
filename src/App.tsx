@@ -16,14 +16,13 @@ import { useClients, ClientManager } from "./useClients";
 import type { ClientRecord, ClientPayload } from "./useClients";
 import { useAuth } from "./hooks/useAuth";
 import { useLicense } from "./hooks/useLicense";
-import { useAdmin } from "./hooks/useAdmin";
-import { AdminDashboard } from "./components/AdminDashboard";
 import  LicenceGate  from "./components/LicenceGate";
 import { LicenceBanner } from "./components/LicenceBanner";
 import { AuthGate } from "./components/AuthGate";
 import { LoginTransition } from "./components/LoginTransition";
 import { LoanModal } from "./components/LoanModal";
 import { HelpMenu } from "./components/HelpMenu";
+import { AppHeader } from "./components/AppHeader";
 import { HelpTooltip, Field, MoneyField, MetricCard, BracketFillChart, SectionTitle, DifferenceBadge } from "./components/shared";
 import { supabase } from "./lib/supabase";
 // Lot 8b — Document d'Entrée en Relation : document standardisé du cabinet,
@@ -248,8 +247,6 @@ const DEFAULT_CABINET = {
 
 function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string; userEmail: string; authState: string; onSignOut: () => void }) {
   const { licence } = useLicense(userId || null);
-  const { isAdmin } = useAdmin(userEmail || null);
-  const [showAdmin, setShowAdmin] = useState(false);
   // ── Logo cabinet : initialisé synchroniquement pour éviter le flash du logo Ploutos
   const [logoSrc, setLogoSrc] = useState(() => {
     migrateCabinetForUser(userId);
@@ -346,6 +343,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const { clients, syncStatus, syncNow, createClient, saveClient, deleteClient, duplicateClient, renameClient } = useClients(userId, authState)
   const [activeClient, setActiveClient] = useState<ClientRecord | null>(null)
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   // Couleurs dynamiques tirées des paramètres cabinet
   const CAB = {
     navy: cabinet.colorNavy,
@@ -485,6 +483,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       const displayName = clientName || activeClient.displayName;
       saveClient(activeClient.id, payload as ClientPayload, displayName);
       setAutoSaveStatus("saved");
+      setLastSavedAt(new Date());
       setTimeout(() => setAutoSaveStatus("idle"), 2500);
     }, 1500);
     return () => clearTimeout(timer);
@@ -1135,7 +1134,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
         const writable = await handle.createWritable();
         await writable.write(blob);
         await writable.close();
-        setAutoSaveStatus("saved"); setTimeout(() => setAutoSaveStatus("idle"), 2500);
+        setAutoSaveStatus("saved"); setLastSavedAt(new Date()); setTimeout(() => setAutoSaveStatus("idle"), 2500);
         return;
       }
       const url = window.URL.createObjectURL(blob);
@@ -1143,7 +1142,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       anchor.href = url; anchor.download = fileName; anchor.rel = "noopener noreferrer"; anchor.style.display = "none";
       document.body.appendChild(anchor); anchor.click();
       window.setTimeout(() => { anchor.parentNode?.removeChild(anchor); window.URL.revokeObjectURL(url); }, 500);
-      setAutoSaveStatus("saved"); setTimeout(() => setAutoSaveStatus("idle"), 2500);
+      setAutoSaveStatus("saved"); setLastSavedAt(new Date()); setTimeout(() => setAutoSaveStatus("idle"), 2500);
     } catch (error) {
       console.error("Export impossible", error);
       const payload = { version: 2, exportedAt: new Date().toISOString(), clientName, notes, data, successionData, irOptions, hypotheses, baseSnapshot };
@@ -1184,19 +1183,6 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
 
   // ─── RENDER ───────────────────────────────────────────────────────────────
 
-  // ── Dashboard admin ──────────────────────────────────────────────────────
-  if (showAdmin && isAdmin) {
-    return (
-      <AdminDashboard
-        colorNavy={cabinet.colorNavy || "#101B3B"}
-        colorSky={cabinet.colorSky || "#26428B"}
-        colorGold={cabinet.colorGold || "#E3AF64"}
-        colorCream={cabinet.colorCream || "#FBECD7"}
-        onClose={() => setShowAdmin(false)}
-      />
-    );
-  }
-
   // ── Vérification licence ─────────────────────────────────────────────────
   if (!licence.loading && !licence.isValid && authState === "authenticated") {
     return (
@@ -1230,8 +1216,6 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
         isInstallable={isInstallable}
         onInstall={handleInstallClick}
         onSignOut={onSignOut}
-        onAdmin={() => setShowAdmin(true)}
-        isAdmin={isAdmin}
         licence={licence}
         userId={userId}
       />
@@ -1248,88 +1232,22 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       />
       <div className="mx-auto max-w-7xl p-6 space-y-6">
 
-        {/* ── Header ── */}
-        <Card className="overflow-hidden rounded-[28px] border-0 shadow-2xl shadow-slate-300/40">
-          <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${CAB.gold} 0%, ${CAB.cream} 55%, #fff7ea 100%)` }} />
-          <CardContent className="px-6 py-5 md:px-10 md:py-6" style={{ background: `linear-gradient(135deg, ${CAB.navy} 0%, ${CAB.sky} 38%, ${CAB.blue} 68%, ${CAB.gold} 100%)` }}>
-            <div className="flex items-center">
-              {/* ── Gauche : navigation ── */}
-              <div className="flex flex-1 items-center gap-3">
-                <button onClick={handleSaveAndClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "10px", padding: "6px 14px", color: "#fff", fontSize: "13px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-                  ← Dossiers
-                </button>
-                {isAdmin && (
-                  <button onClick={() => setShowAdmin(true)} style={{ background: "rgba(227,175,100,0.25)", border: "1px solid rgba(227,175,100,0.5)", borderRadius: "10px", padding: "6px 14px", color: "#E3AF64", fontSize: "12px", cursor: "pointer", whiteSpace: "nowrap" }}>
-                    ⚙ Admin
-                  </button>
-                )}
-                <button onClick={() => { handleSaveAndClose(); onSignOut(); }} style={{ background: "rgba(255,255,255,0.10)", border: "none", borderRadius: "10px", padding: "6px 14px", color: "rgba(255,255,255,0.7)", fontSize: "12px", cursor: "pointer", whiteSpace: "nowrap" }}>
-                  Déconnexion
-                </button>
-              </div>
-
-              {/* ── Centre : logo cabinet (ou Ploutos par défaut) ── */}
-              <div className="flex flex-1 justify-center">
-                <img
-                  src={logoSrc || DEFAULT_LOGO_SRC}
-                  alt="Logo cabinet"
-                  className="h-16 w-auto object-contain drop-shadow-md"
-                  onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_LOGO_SRC; }}
-                />
-              </div>
-
-              {/* ── Droite : client + actions ── */}
-              <div className="flex flex-1 items-center justify-end gap-3">
-                <HelpMenu
-                  colorNavy={CAB.navy}
-                  colorGold={CAB.gold}
-                  colorSky={CAB.sky}
-                  cabinetName={cabinet.cabinetName || "Conseiller"}
-                  appVersion="web"
-                />
-                <Input
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  className="h-9 w-48 rounded-xl border-0 bg-white/95 text-sm shadow-md shadow-slate-950/10"
-                  placeholder="Dossier"
-                />
-
-                {/* Bouton Sauvegarder — icône seule avec indicateur superposé */}
-                <div className="relative" title="Sauvegarder">
-                  <button
-                    onClick={() => { void exportDataFile(); }}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl border-0 bg-white/90 shadow-sm hover:bg-white transition-colors"
-                    style={{ color: BRAND.navy }}
-                  >
-                    {autoSaveStatus === "saving" ? (
-                      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                      </svg>
-                    ) : autoSaveStatus === "saved" ? (
-                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
-                      </svg>
-                    ) : (
-                      <Download className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-
-                {/* Bouton Charger — icône seule */}
-                <label className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border-0 bg-white/90 shadow-sm hover:bg-white transition-colors" title="Charger" style={{ color: BRAND.navy }}>
-                  <Upload className="h-4 w-4" />
-                  <input type="file" accept="application/json" className="hidden" onChange={importDataFile} />
-                </label>
-
-                <Button className="h-9 rounded-xl px-4 text-sm font-medium shadow-md" style={{ background: BRAND.gold, color: BRAND.navy }} onClick={() => setPopcardOpen(true)}>
-                  <Download className="mr-1.5 h-3.5 w-3.5" />Pack PDF
-                </Button>
-              </div>
-            </div>
-            {exportStatus && <div className="mt-2 text-xs text-white/70">{exportStatus}</div>}
-          </CardContent>
-        </Card>
+        {/* ── Header v2 (Option B : crème + accent navy, agence haut de gamme) ── */}
+        <AppHeader
+          cabinet={cabinet}
+          cabColors={CAB}
+          logoSrc={logoSrc}
+          defaultLogoSrc={DEFAULT_LOGO_SRC}
+          clientName={clientName}
+          setClientName={setClientName}
+          autoSaveStatus={autoSaveStatus}
+          lastSavedAt={lastSavedAt}
+          onSave={() => { void exportDataFile(); }}
+          onLoad={importDataFile}
+          onBackToDossiers={handleSaveAndClose}
+          onSignOut={() => { handleSaveAndClose(); onSignOut(); }}
+        />
+        {exportStatus && <div className="mt-2 text-xs text-slate-500">{exportStatus}</div>}
 
         {/* ── Dialog détail charges professionnelles ── */}
         <Dialog open={chargesDialogOpen !== null} onOpenChange={(o) => { if (!o) setChargesDialogOpen(null); }}>
