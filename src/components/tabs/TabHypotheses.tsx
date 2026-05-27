@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { CardAccentTop } from "../CardAccentTop";
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload } from "lucide-react";
 import { BRAND, SURFACE } from "../../constants";
@@ -60,7 +61,8 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
       <div className="space-y-4">
 
         {/* Base de référence */}
-        <Card className="border-0 shadow-md" style={{ borderRadius: 14, background: SURFACE.cardSoft }}>
+        <Card className="border-0 shadow-md relative overflow-hidden" style={{ borderRadius: 14, background: SURFACE.cardSoft }}>
+          <CardAccentTop />
           <CardContent className="px-5 py-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4 flex-wrap">

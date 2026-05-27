@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardAccentTop } from "../CardAccentTop";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Settings, FileText, Database } from "lucide-react";
@@ -64,7 +65,8 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
 
   return (
 <TabsContent value="succession" className="space-y-4">
-  <Card className="rounded-3xl border-0 shadow-xl shadow-slate-200/60">
+  <Card className="rounded-3xl border-0 shadow-xl shadow-slate-200/60 relative overflow-hidden">
+    <CardAccentTop />
     <CardHeader><SectionTitle icon={FileText} title="Succession" subtitle="Actif successoral, assurance-vie et droits par héritier." /></CardHeader>
     <CardContent className="space-y-4">
 

@@ -23,6 +23,7 @@ import { LoginTransition } from "./components/LoginTransition";
 import { LoanModal } from "./components/LoanModal";
 import { HelpMenu } from "./components/HelpMenu";
 import { AppHeader } from "./components/AppHeader";
+import { CardAccentTop } from "./components/CardAccentTop";
 import { HelpTooltip, Field, MoneyField, MetricCard, BracketFillChart, SectionTitle, DifferenceBadge } from "./components/shared";
 import { supabase } from "./lib/supabase";
 // Lot 8b — Document d'Entrée en Relation : document standardisé du cabinet,
@@ -352,6 +353,15 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     gold: cabinet.colorGold,
     cream: cabinet.colorCream,
   };
+  // Injection des CSS vars cabinet au document.documentElement —
+  // consommées par CardAccentTop et tout autre composant qui veut
+  // utiliser les couleurs cabinet sans avoir à les recevoir en prop.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--cab-navy", CAB.navy || BRAND.navy);
+    root.style.setProperty("--cab-sky",  CAB.sky  || BRAND.sky);
+    root.style.setProperty("--cab-gold", CAB.gold || BRAND.gold);
+  }, [CAB.navy, CAB.sky, CAB.gold]);
   const [signatureSrc, setSignatureSrc] = useState<string>("");
   const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1467,7 +1477,8 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
 
           {/* ════ COLLECTE ════ */}
           <TabsContent value="collecte" className="space-y-6">
-            <Card className="border-0" style={{ borderRadius: 20 }}>
+            <Card className="border-0 relative overflow-hidden">
+              <CardAccentTop />
               <CardHeader><SectionTitle icon={Database} title="Collecte patrimoniale" subtitle="Données familiales, travail, revenus, immobilier et placements." /></CardHeader>
               <CardContent>
                 <Tabs defaultValue="famille" className="space-y-6">
@@ -1531,7 +1542,8 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
 
           {/* ════ RAPPORT ════ */}
           <TabsContent value="rapport">
-            <Card className="border-0" style={{ borderRadius: 20 }}>
+            <Card className="border-0 relative overflow-hidden">
+              <CardAccentTop />
               <CardHeader><SectionTitle icon={FileText} title="Rapport client" subtitle="Synthèse exportable en PDF." /></CardHeader>
               <CardContent className="space-y-6">
                 <Field label="Notes de synthèse">

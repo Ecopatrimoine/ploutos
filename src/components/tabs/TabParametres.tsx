@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { CardAccentTop } from "../CardAccentTop";
 import { TabsContent } from "@/components/ui/tabs";
 import { Upload, Settings } from "lucide-react";
 import { BRAND } from "../../constants";
@@ -146,7 +147,8 @@ const TabParametres = React.memo(function TabParametres(props: any) {
 
   return (
     <TabsContent value="parametres" className="space-y-6">
-      <Card className="rounded-3xl border-0 shadow-xl shadow-slate-200/60">
+      <Card className="rounded-3xl border-0 shadow-xl shadow-slate-200/60 relative overflow-hidden">
+        <CardAccentTop />
         <CardHeader>
           <SectionTitle
             icon={Settings}

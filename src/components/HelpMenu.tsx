@@ -7,11 +7,13 @@ interface HelpMenuProps {
   colorSky: string;
   cabinetName?: string;
   appVersion?: string;
+  /** "dark" (défaut, fond foncé : bouton blanc translucide) ou "light" (fond clair : bouton or). */
+  theme?: "dark" | "light";
 }
 
 type ModalType = "bug" | "suggestion" | null;
 
-export function HelpMenu({ colorNavy, colorGold, colorSky, cabinetName = "Utilisateur", appVersion = "web" }: HelpMenuProps) {
+export function HelpMenu({ colorNavy, colorGold, colorSky, cabinetName = "Utilisateur", appVersion = "web", theme = "dark" }: HelpMenuProps) {
   const [open, setOpen] = useState(false);
   const [modal, setModal] = useState<ModalType>(null);
   const [dropPos, setDropPos] = useState({ top: 90, left: 0 });
@@ -39,15 +41,29 @@ export function HelpMenu({ colorNavy, colorGold, colorSky, cabinetName = "Utilis
           onClick={handleOpen}
           title="Aide"
           style={{
-            background: "rgba(255,255,255,0.12)",
-            border: "1px solid rgba(255,255,255,0.25)",
-            borderRadius: "10px",
-            padding: "6px 12px",
-            color: "#fff",
-            fontSize: "14px",
+            background: theme === "light" ? `${colorGold}22` : "rgba(255,255,255,0.12)",
+            border: theme === "light" ? `2px solid ${colorGold}` : "1px solid rgba(255,255,255,0.25)",
+            borderRadius: "12px",
+            width: 44, height: 44,
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            color: theme === "light" ? colorGold : "#fff",
+            fontSize: "20px",
             fontWeight: 700,
             cursor: "pointer",
             fontFamily: "'Lato', sans-serif",
+            transition: "background 0.15s ease, border-color 0.15s ease",
+          }}
+          onMouseEnter={e => {
+            if (theme === "light") {
+              e.currentTarget.style.background = `${colorGold}33`;
+              e.currentTarget.style.borderColor = colorGold;
+            }
+          }}
+          onMouseLeave={e => {
+            if (theme === "light") {
+              e.currentTarget.style.background = `${colorGold}22`;
+              e.currentTarget.style.borderColor = `${colorGold}66`;
+            }
           }}
         >
           ?

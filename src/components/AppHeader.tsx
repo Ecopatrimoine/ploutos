@@ -1,23 +1,29 @@
-// ─── AppHeader v2 — "Agence haut de gamme" ─────────────────────────
+// ─── AppHeader v4 — "Agence haut de gamme" itéré ──────────────────
 //
-// Refonte de l'en-tête de l'application (remplace le header inline d'App.tsx).
-// Direction Option B : fond crème palette cabinet + accent navy 4px à gauche
-// + nom client en titre serif + sous-ligne statut sauvegarde + 5 icônes
-// navy à droite. Aligné sur la palette "Encre & Or" des PDFs.
+// Direction validée Option B, itération 4 (retours user) :
+//   - Liseré ÉPAIS sur TOUT le pourtour du bandeau (gradient des 4 couleurs
+//     cabinet en cadre complet, pas juste en haut/bas).
+//   - Boutons agrandis (44px, icônes 20px) pour bonne visibilité.
+//   - Logo généreux (110px) avec halo or radial.
+//   - Couleur centrale = SURFACE.cardSoft (charte logiciel).
+//   - Couleurs cabinet réparties : cadre complet + halo logo + séparateurs
+//     + icône édit + hover + HelpMenu + statut.
 //
-// Plus de bouton Pack PDF dans le header (redondant avec TabMission).
-// Plus de bouton Admin (admin retiré du produit).
+// Pas de bouton Pack PDF (redondant avec TabMission).
+// Pas d'admin (retiré du produit).
 
 import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Download, Upload, ArrowLeft, LogOut, Pencil, Check } from "lucide-react";
 import { HelpMenu } from "./HelpMenu";
+import { SURFACE } from "../constants";
 
 type CabinetColors = {
   navy: string;
   gold: string;
   sky: string;
   cream: string;
+  blue?: string;
 };
 
 export type AppHeaderProps = {
@@ -38,15 +44,13 @@ export type AppHeaderProps = {
 export function AppHeader(p: AppHeaderProps) {
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(p.clientName);
-  const [tick, setTick] = useState(0);   // ré-render toutes les 30s pour rafraîchir "il y a X"
+  const [tick, setTick] = useState(0);   // ré-render toutes les 30 s pour rafraîchir "il y a X"
 
-  // Tick pour rafraîchir le "il y a X" sans recharger le composant
   useEffect(() => {
     const id = setInterval(() => setTick(t => t + 1), 30_000);
     return () => clearInterval(id);
   }, []);
 
-  // Sync draftName si clientName change depuis l'extérieur
   useEffect(() => { setDraftName(p.clientName); }, [p.clientName]);
 
   const commitName = () => {
@@ -57,10 +61,20 @@ export function AppHeader(p: AppHeaderProps) {
   };
 
   const statutSauvegarde = composeStatutSauvegarde(p.autoSaveStatus, p.lastSavedAt, tick);
+  const statutCouleur = p.autoSaveStatus === "saved" ? "#2F7D5B" : p.cabColors.sky;
 
-  // Icône-bouton générique (style cohérent + tooltip)
-  const IconBtn = ({ onClick, label, children, accent }: {
-    onClick?: () => void; label: string; children: React.ReactNode; accent?: boolean;
+  // Couleur de fallback pour blue (certains cabinets n'ont pas colorBlue)
+  const cabBlue = p.cabColors.blue || p.cabColors.sky;
+
+  // Liseré épais sur tout le pourtour : gradient à 4 couleurs cabinet.
+  // Réalisé via un wrapper avec le gradient en background + padding =
+  // épaisseur du liseré, puis un inner avec le fond clair.
+  const LISERE_EPAISSEUR = 8; // px — itéré : 6 → 12 → 8 selon retours user
+
+  // Icône-bouton générique (style cohérent + tooltip) — agrandi à 44px
+  const BORDER_REPOS = `${p.cabColors.navy}40`;   // navy 25 % opacité — visible au repos
+  const IconBtn = ({ onClick, label, children }: {
+    onClick?: () => void; label: string; children: React.ReactNode;
   }) => (
     <button
       onClick={onClick}
@@ -68,41 +82,66 @@ export function AppHeader(p: AppHeaderProps) {
       aria-label={label}
       style={{
         display: "inline-flex", alignItems: "center", justifyContent: "center",
-        width: 36, height: 36, borderRadius: 10, border: "none",
-        background: accent ? `${p.cabColors.navy}0F` : "transparent",
+        width: 44, height: 44, borderRadius: 12,
+        border: `2px solid ${BORDER_REPOS}`,
+        background: "transparent",
         color: p.cabColors.navy, cursor: "pointer",
-        transition: "background 0.15s ease",
+        transition: "background 0.15s ease, border-color 0.15s ease, transform 0.1s ease",
       }}
-      onMouseEnter={e => (e.currentTarget.style.background = `${p.cabColors.navy}18`)}
-      onMouseLeave={e => (e.currentTarget.style.background = accent ? `${p.cabColors.navy}0F` : "transparent")}
+      onMouseEnter={e => {
+        e.currentTarget.style.background = `${p.cabColors.gold}26`;
+        e.currentTarget.style.borderColor = p.cabColors.gold;
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.background = "transparent";
+        e.currentTarget.style.borderColor = BORDER_REPOS;
+      }}
     >
       {children}
     </button>
   );
 
+  // Séparateur vertical or
+  const Sep = () => (
+    <div style={{ width: 1, height: 28, background: `${p.cabColors.gold}66`, margin: "0 8px" }} />
+  );
+
   return (
     <div style={{
-      position: "relative",
-      background: p.cabColors.cream || "#FBF8F1",
-      borderRadius: 18,
-      boxShadow: "0 1px 3px rgba(15,23,42,0.04), 0 4px 24px rgba(15,23,42,0.05)",
-      overflow: "hidden",
+      // Wrapper : c'est CE fond qui devient le liseré tout autour
+      background: `linear-gradient(135deg, ${p.cabColors.navy} 0%, ${p.cabColors.sky} 33%, ${cabBlue} 66%, ${p.cabColors.gold} 100%)`,
+      padding: LISERE_EPAISSEUR,
+      borderRadius: 22,
+      boxShadow: "0 2px 6px rgba(15,23,42,0.06), 0 10px 32px rgba(15,23,42,0.08)",
     }}>
-      {/* Accent navy 4px à gauche (signature visuelle) */}
       <div style={{
-        position: "absolute", left: 0, top: 0, bottom: 0, width: 4,
-        background: p.cabColors.navy,
-      }} />
-
-      <div style={{ padding: "18px 22px 18px 28px", display: "flex", alignItems: "center", gap: 20 }}>
+        background: SURFACE.cardSoft,
+        borderRadius: 22 - LISERE_EPAISSEUR,
+        padding: "22px 26px",
+        display: "flex", alignItems: "center", gap: 28,
+      }}>
         {/* ─── Logo + identité dossier ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16, flex: 1, minWidth: 0 }}>
-          <img
-            src={p.logoSrc || p.defaultLogoSrc}
-            alt="Logo cabinet"
-            style={{ height: 48, width: "auto", objectFit: "contain", flexShrink: 0 }}
-            onError={(e) => { (e.target as HTMLImageElement).src = p.defaultLogoSrc; }}
-          />
+        <div style={{ display: "flex", alignItems: "center", gap: 22, flex: 1, minWidth: 0 }}>
+          {/* Logo dans un halo or radial */}
+          <div style={{
+            position: "relative",
+            width: 130, height: 110,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <div style={{
+              position: "absolute", inset: 0,
+              background: `radial-gradient(ellipse at center, ${p.cabColors.gold}1F 0%, ${p.cabColors.gold}00 65%)`,
+              pointerEvents: "none",
+            }} />
+            <img
+              src={p.logoSrc || p.defaultLogoSrc}
+              alt="Logo cabinet"
+              style={{ position: "relative", height: 110, width: "auto", maxWidth: 130, objectFit: "contain" }}
+              onError={(e) => { (e.target as HTMLImageElement).src = p.defaultLogoSrc; }}
+            />
+          </div>
+
           <div style={{ minWidth: 0, flex: 1 }}>
             {editingName ? (
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -112,12 +151,12 @@ export function AppHeader(p: AppHeaderProps) {
                   onBlur={commitName}
                   onKeyDown={e => { if (e.key === "Enter") commitName(); if (e.key === "Escape") { setDraftName(p.clientName); setEditingName(false); } }}
                   autoFocus
-                  className="h-9 text-base font-semibold"
-                  style={{ background: "#fff", color: p.cabColors.navy, fontFamily: "'Fraunces', Georgia, serif" }}
+                  className="h-11"
+                  style={{ background: "#fff", color: p.cabColors.navy, fontFamily: "'Lato', system-ui, sans-serif", fontSize: 26, fontWeight: 700, letterSpacing: "-0.015em" }}
                 />
                 <button onClick={commitName} aria-label="Valider"
-                  style={{ background: p.cabColors.navy, color: "#fff", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                  <Check className="h-4 w-4" />
+                  style={{ background: p.cabColors.navy, color: "#fff", border: "none", borderRadius: 10, width: 40, height: 40, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <Check className="h-5 w-5" />
                 </button>
               </div>
             ) : (
@@ -125,76 +164,90 @@ export function AppHeader(p: AppHeaderProps) {
                 onClick={() => setEditingName(true)}
                 title="Renommer le dossier"
                 style={{
-                  display: "inline-flex", alignItems: "center", gap: 8,
+                  display: "inline-flex", alignItems: "center", gap: 12,
                   background: "transparent", border: "none", padding: 0,
                   cursor: "pointer", textAlign: "left", maxWidth: "100%",
                 }}
               >
                 <span style={{
-                  fontFamily: "'Fraunces', Georgia, serif",
-                  fontSize: 22, fontWeight: 600, color: p.cabColors.navy,
-                  letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                  fontFamily: "'Lato', system-ui, sans-serif",
+                  fontSize: 28, fontWeight: 700,
+                  color: p.cabColors.navy,
+                  letterSpacing: "-0.015em",
+                  lineHeight: 1.15,
+                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                 }}>
                   {p.clientName || "Dossier sans nom"}
                 </span>
-                <Pencil className="h-3.5 w-3.5" style={{ color: `${p.cabColors.navy}66`, flexShrink: 0 }} />
+                <Pencil className="h-5 w-5" style={{ color: `${p.cabColors.gold}CC`, flexShrink: 0 }} />
               </button>
             )}
-            {statutSauvegarde && (
-              <div style={{
-                fontSize: 11, color: `${p.cabColors.navy}99`,
-                marginTop: 2, fontFamily: "Lato, system-ui, sans-serif",
-              }}>
-                Dossier patrimonial · {statutSauvegarde}
-              </div>
-            )}
+            <div style={{
+              fontSize: 13, color: p.cabColors.sky,
+              marginTop: 6, fontFamily: "'Lato', system-ui, sans-serif",
+              fontWeight: 500, letterSpacing: "0.01em",
+            }}>
+              Dossier patrimonial{statutSauvegarde && (
+                <>
+                  {" · "}
+                  <span style={{ color: statutCouleur, fontWeight: 600 }}>{statutSauvegarde}</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
         {/* ─── Actions à droite ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
           <IconBtn onClick={p.onBackToDossiers} label="Retour à la liste des dossiers">
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
           </IconBtn>
 
-          <div style={{ width: 1, height: 24, background: `${p.cabColors.navy}1F`, margin: "0 4px" }} />
+          <Sep />
 
-          <IconBtn onClick={p.onSave} label="Sauvegarder" accent={p.autoSaveStatus === "saved"}>
+          <IconBtn onClick={p.onSave} label="Sauvegarder le dossier">
             {p.autoSaveStatus === "saving" ? (
-              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+              <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
               </svg>
             ) : p.autoSaveStatus === "saved" ? (
-              <Check className="h-4 w-4" style={{ color: "#2F7D5B" }} />
+              <Check className="h-5 w-5" style={{ color: "#2F7D5B" }} />
             ) : (
-              <Download className="h-4 w-4" />
+              <Download className="h-5 w-5" />
             )}
           </IconBtn>
 
           <label title="Charger un dossier" style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center",
-            width: 36, height: 36, borderRadius: 10, cursor: "pointer",
-            color: p.cabColors.navy, transition: "background 0.15s ease",
+            width: 44, height: 44, borderRadius: 12,
+            border: `2px solid ${BORDER_REPOS}`,
+            cursor: "pointer",
+            color: p.cabColors.navy,
+            transition: "background 0.15s ease, border-color 0.15s ease",
           }}
-            onMouseEnter={e => (e.currentTarget.style.background = `${p.cabColors.navy}18`)}
-            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-            <Upload className="h-4 w-4" />
+            onMouseEnter={e => { e.currentTarget.style.background = `${p.cabColors.gold}26`; e.currentTarget.style.borderColor = p.cabColors.gold; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = BORDER_REPOS; }}>
+            <Upload className="h-5 w-5" />
             <input type="file" accept="application/json" className="hidden" onChange={p.onLoad} />
           </label>
 
+          <Sep />
+
+          {/* HelpMenu light : cercle or 44px (synchro avec autres boutons) */}
           <HelpMenu
             colorNavy={p.cabColors.navy}
             colorGold={p.cabColors.gold}
             colorSky={p.cabColors.sky}
             cabinetName={p.cabinet.cabinetName || "Conseiller"}
             appVersion="web"
+            theme="light"
           />
 
-          <div style={{ width: 1, height: 24, background: `${p.cabColors.navy}1F`, margin: "0 4px" }} />
+          <Sep />
 
           <IconBtn onClick={p.onSignOut} label="Déconnexion">
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-5 w-5" />
           </IconBtn>
         </div>
       </div>
