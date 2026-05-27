@@ -145,6 +145,7 @@ export function buildAdequationData(p: BuildAdequationDataParams): DeclarationAd
     suiviActiveHtml,
     periodiciteSuiviHtml,
     recommandationsGroupees,
+    questionnaireSigne: buildQuestionnaireSigne(mission),
     mentionNonContractuelle:
       "Document d'aide à la conformité remis à titre indicatif. Ne constitue ni une attestation de conformité, ni un conseil juridique. À valider au regard des textes en vigueur, du contrôle de l'association agréée et, le cas échéant, d'un avocat." +
       (cabinet.cabinetName ? ` ${cabinet.cabinetName}` : "") +
@@ -200,4 +201,59 @@ function esgPrefReponse(e: any): string {
   if (e === "oui")     return "Une poche d'investissements durables répond à votre souhait exprimé en matière d'ESG.";
   if (e === "partiel") return "Une part d'investissements durables est intégrée à l'allocation.";
   return "Les préférences ESG seront actualisées au prochain entretien.";
+}
+
+// ─── Questionnaire MIF II signé par le client (6 réponses Q&A) ─────────
+// Réutilise la même logique de libellés que buildProfilData (cohérence
+// entre la page Profil et la déclaration d'adéquation).
+function buildQuestionnaireSigne(m: any): { question: string; reponse: string }[] {
+  return [
+    { question: "Attitude face au risque",       reponse: labelAttitude(m.attitude) },
+    { question: "Réaction à une baisse de 20 %", reponse: labelReactionBaisse(m.reactionBaisse) },
+    { question: "Connaissances & expérience",    reponse: summaryConnaissances(m) },
+    { question: "Pertes / gains déjà subis",     reponse: labelPertesGains(m) },
+    { question: "Mode de gestion",               reponse: labelModeGestion(m.modeGestion) },
+    { question: "Préférences de durabilité (ESG)", reponse: labelEsg(m.esgPref) },
+  ];
+}
+function labelAttitude(v: any): string {
+  if (v === 0)  return "Portefeuille A — Sécurisé";
+  if (v === 8)  return "Portefeuille B — Prudent";
+  if (v === 12) return "Portefeuille C — Équilibré";
+  if (v === 18) return "Portefeuille D — Dynamique";
+  return "Non renseigné";
+}
+function labelReactionBaisse(v: any): string {
+  if (v === 0)  return "Récupération immédiate";
+  if (v === 6)  return "Attente puis arbitrage";
+  if (v === 12) return "Maintien des positions";
+  if (v === 18) return "Renforcement opportuniste";
+  return "Non renseigné";
+}
+function summaryConnaissances(m: any): string {
+  const supports: string[] = [];
+  if (m.investiFondsEuros || m.connaitFondsEuros) supports.push("Fonds €");
+  if (m.investiActions || m.connaitActions) supports.push("actions");
+  if (m.investiOPCVM || m.connaitOPCVM) supports.push("OPCVM");
+  if (m.investiImmo || m.connaitImmo) supports.push("immobilier");
+  if (m.investiTrackers || m.connaitTrackers) supports.push("ETF");
+  if (m.investiStructures || m.connaitStructures) supports.push("structurés");
+  return supports.length > 0 ? supports.join(", ") : "Aucun support connu";
+}
+function labelPertesGains(m: any): string {
+  if (m.aSubiPertes && m.aRealiseGains) return "Pertes et gains déjà vécus";
+  if (m.aSubiPertes) return "Oui, sans modifier sa stratégie";
+  if (m.aRealiseGains) return "Gains réalisés (pas de pertes)";
+  return "Aucune expérience marchés volatils";
+}
+function labelModeGestion(v: any): string {
+  if (v === "pilote") return "Pilotée";
+  if (v === "libre")  return "Libre";
+  return "Conseillée (par défaut)";
+}
+function labelEsg(v: any): string {
+  if (v === "oui")     return "Souhaitées — part significative";
+  if (v === "partiel") return "Souhaitées partiellement";
+  if (v === "non")     return "Non exprimées";
+  return "À préciser";
 }

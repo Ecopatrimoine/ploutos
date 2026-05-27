@@ -89,6 +89,11 @@ export type DeclarationAdequationPageData = {
    *  et le libellé de besoin associé. Si absent ou tableau vide, l'encadré
    *  matrice n'est pas rendu. */
   recommandationsGroupees?: GroupeRecommandationsParDimension[];
+  // ── Questionnaire MIF II signé par le client (Lot Dossier) ───────────
+  /** 6 lignes Q&A à afficher en bas de la page 2 (avant signature) pour
+   *  que le client signe ses réponses, pas seulement le résultat de profil.
+   *  Si absent, encart non rendu. */
+  questionnaireSigne?: { question: string; reponse: string }[];
   // ── Mentions ──────────────────────────────────────────────────────────
   mentionNonContractuelle: string;
 };
@@ -212,9 +217,31 @@ export function pageDeclarationAdequation(t: Tokens, d: DeclarationAdequationPag
     ? encadreDocReg(t, { titre: "Recommandations issues du diagnostic", marginTop: "12px", contenuHtml: matriceRecosContenu })
     : "";
 
+  // ── Encart « Vos réponses au questionnaire MIF II » (page 2) ──────
+  // Affichage des 6 lignes Q&A pour que le client signe ses réponses,
+  // pas seulement le résultat de profil calculé. Rendu uniquement si
+  // l'adapter passe `questionnaireSigne` (sinon section omise).
+  const questionnaireSigneContenu = (d.questionnaireSigne && d.questionnaireSigne.length > 0)
+    ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px">
+        ${d.questionnaireSigne.map(qr => `
+          <div style="padding:5px 0;border-bottom:1px solid ${t.bordureClaire}">
+            <div style="font-family:'Lato',sans-serif;font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;color:${t.texteFaibleClair}">${qr.question}</div>
+            <div class="lt" style="font-size:10.5px;color:${t.texte};line-height:1.4;margin-top:2px;font-weight:700">${qr.reponse}</div>
+          </div>
+        `).join("")}
+      </div>
+      <div class="lt" style="font-size:9.5px;color:${t.texteFaible};line-height:1.5;margin-top:8px;font-style:italic">
+        En signant ce document, vous attestez de l'exactitude de ces réponses qui ont servi de base à la détermination de votre profil et au conseil donné.
+      </div>`
+    : "";
+  const questionnaireSigne = questionnaireSigneContenu
+    ? encadreDocReg(t, { titre: "Vos réponses au questionnaire MIF II", marginTop: "12px", contenuHtml: questionnaireSigneContenu })
+    : "";
+
   const page2Contenu = `
     ${encadreDocReg(t, { titre: "En quoi ce conseil vous correspond", marginTop: "0",    contenuHtml: miseEnRegardContenu })}
     ${matriceRecos}
+    ${questionnaireSigne}
     ${encadreDocReg(t, { titre: "Coûts & frais",                       marginTop: "12px", contenuHtml: coutsContenu })}
     ${encadreDocReg(t, { titre: "Suivi de l'adéquation",               marginTop: "12px", contenuHtml: suiviContenu })}
   `;

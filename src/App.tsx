@@ -243,6 +243,9 @@ const DEFAULT_CABINET = {
   mediateurAmf: "",                  // médiateur AMF / association — visible si statutCif (DER page 2)
   remunerationCif: "",               // mode rémunération CIF — visible si statutCif (DER)
   remunerationIas: "",               // mode rémunération IAS — visible si statutCoa/Mia (DER)
+  // ─── Lot Dossier client — modèle de mission par défaut (Lettre M3) ──
+  dureeMission: "",                  // ex: "ponctuelle / annuelle reconductible"
+  delaiPreavis: "",                  // ex: "30 jours" — délai de résiliation
   // Catégories d'assurance distribuées (toggles, remplacent categorieAssurance texte legacy)
   categAssVie: false as boolean,         // Vie & capitalisation
   categAssPrev: false as boolean,        // Prévoyance & santé
@@ -435,6 +438,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     person1FirstName: "", person1LastName: "", person1BirthDate: "", person1JobTitle: "", person1Csp: "", person1PcsGroupe: "5",
     person2FirstName: "", person2LastName: "", person2BirthDate: "", person2JobTitle: "", person2Csp: "", person2PcsGroupe: "5",
     coupleStatus: "married", matrimonialRegime: "communaute_legale", singleParent: false,
+    adresse: "", codePostal: "", ville: "",
     person1Handicap: false, person2Handicap: false,
     childrenData: [], salary1: "", salary2: "", pensions: "", pensions1: "", pensions2: "", csgDeductibleFoncier: "",
     perDeduction: "", pensionDeductible: "", otherDeductible: "", perRentes: [],

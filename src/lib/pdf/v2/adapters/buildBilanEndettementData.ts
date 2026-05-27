@@ -5,11 +5,10 @@
 // les calculs sont locaux (pas de moteur dédié dans l'app actuelle).
 
 import type { BilanEndettementPageData } from "../pages/pageBilanEndettement";
+import { isAV, isPERType } from "../../../calculs/utils";
+import { resolveLoanValuesMulti } from "../../../calculs/credit";
 
-const isAvOrPer = (type: any): boolean => {
-  const t = String(type || "").toLowerCase();
-  return t.includes("assurance") || t.includes("av") || t.includes("per");
-};
+const isAvOrPer = (type: any): boolean => isAV(type) || isPERType(type);
 
 export type BuildBilanEndettementDataParams = {
   data: Record<string, any>;
@@ -37,31 +36,38 @@ export function buildBilanEndettementData(p: BuildBilanEndettementDataParams): B
   const otherLoans: any[] = Array.isArray(data.otherLoans) ? data.otherLoans : [];
 
   const immobilier = properties.reduce((s, p) => s + num(p.value), 0);
-  const creditImmobilier = properties.reduce((s, p) => s + num(p.loanCapitalRemaining), 0);
   const autresCredits = otherLoans.reduce((s, l) => s + num(l.capitalRemaining ?? l.capitalRestant), 0);
 
   const avEtPER = placements.filter(pl => isAvOrPer(pl.type)).reduce((s, pl) => s + num(pl.value), 0);
   const placementsFinanciers = placements.filter(pl => !isAvOrPer(pl.type)).reduce((s, pl) => s + num(pl.value), 0);
 
+  // ─── Crédits immobiliers via resolveLoanValuesMulti ──────────────
+  // Gère le nouveau système multi-crédits (property.loans[]) ET l'ancien
+  // (property.loan*). Auto-calcul depuis loanAmount/Rate/Duration si
+  // loanCapitalRemaining est vide. Retourne aussi insurancePremiumAnnual.
+  let monthlyCreditImmo = 0;
+  let annualInsuranceImmo = 0;
+  let creditImmobilier = 0;
+  for (const p of properties) {
+    const r = resolveLoanValuesMulti(p as any);
+    monthlyCreditImmo += r.monthlyPayment || 0;
+    annualInsuranceImmo += r.insurancePremiumAnnual || 0;
+    creditImmobilier += r.capital || 0;
+  }
+  const monthlyCreditAutre = otherLoans.reduce((s, l) => s + num(l.monthlyPayment), 0);
+  const chargesCreditAnnuelles = Math.round((monthlyCreditImmo + monthlyCreditAutre) * 12);
+  const assuranceCreditAnnuelle = Math.round(annualInsuranceImmo);
+
+  // ─── Bilan agrégé ─────────────────────────────────────────────────
   const actifBrut = immobilier + placementsFinanciers + avEtPER;
   const passifTotal = creditImmobilier + autresCredits;
   const patrimoineNet = actifBrut - passifTotal;
 
-  // ─── Calcul taux endettement méthode bancaire ──────────────────────
-  // Sommes mensuelles → annuelles. Quotité loyers HCSF = 70 %.
-  const monthlyCredit = properties.reduce((s, p) => s + num(p.loanMonthlyPayment), 0)
-                      + otherLoans.reduce((s, l) => s + num(l.monthlyPayment ?? l.mensualite), 0);
-  const monthlyInsurance = properties.reduce((s, p) => {
-    if (!p.loanInsurance) return s;
-    return s + num(p.loanMonthlyInsurance);
-  }, 0);
-  const chargesCreditAnnuelles = Math.round(monthlyCredit * 12);
-  const assuranceCreditAnnuelle = Math.round(monthlyInsurance * 12);
-
+  // Revenus : salaires + loyers (clé réelle = rentGrossAnnual, déjà annuel)
   const salairesNetsAnnuels = num(data.salary1) + num(data.salary2 || 0);
-  const loyersBrutsAnnuels = properties.reduce((s, p) => s + (num(p.monthlyRent) * 12), 0);
+  const loyersBrutsAnnuels = properties.reduce((s, p) => s + num(p.rentGrossAnnual), 0);
   const quotitLoyers = 0.70;
-  const autresRevenusRetenus = num(data.pensions || 0);
+  const autresRevenusRetenus = num(data.pensions || 0) + num(data.pensions1 || 0) + num(data.pensions2 || 0);
 
   const totalCharges = chargesCreditAnnuelles + assuranceCreditAnnuelle;
   const totalRevenus = salairesNetsAnnuels + Math.round(loyersBrutsAnnuels * quotitLoyers) + autresRevenusRetenus;

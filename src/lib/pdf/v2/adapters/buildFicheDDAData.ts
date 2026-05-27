@@ -118,6 +118,8 @@ export function buildFicheDDAData(p: BuildFicheDDADataParams): FicheDDAPageData 
   const p1Nom = [dataDossier.person1FirstName, dataDossier.person1LastName].filter(Boolean).join(" ");
   const p2Nom = [dataDossier.person2FirstName, dataDossier.person2LastName].filter(Boolean).join(" ");
   const isCouple = dataDossier.coupleStatus === "married" || dataDossier.coupleStatus === "pacs" || dataDossier.coupleStatus === "cohab";
+  // Adresse client : maintenant saisie dans TabFamiliale → data.adresse/codePostal/ville
+  // Fallbacks pour les anciens dossiers sans adresse (le champ peut être vide).
   const adresse = [dataDossier.adresse, dataDossier.codePostal, dataDossier.ville].filter(Boolean).join(", ") || undefined;
   const client = p1Nom
     ? {

@@ -80,10 +80,10 @@ export function buildLettreMissionData(p: BuildLettreMissionDataParams): LettreM
     // — convertis en libellé humain ; sentinel explicite si vide.
     remunerationMode: libelleRemuneration(cabinet.remunerationType),
     natureConseil:    libelleNatureConseil(cabinet.natureConseil),
-    // Durée / résiliation : pas de source dans l'app aujourd'hui
-    // (à venir au Lot Paramètres v2 #76). Sentinel explicite.
-    dureeMission: "à confirmer dans Paramètres",
-    delaiPreavis: "à confirmer dans Paramètres",
+    // Durée / résiliation : modèle par défaut saisi dans Paramètres Cabinet
+    // (card « Conseil & rémunération »). Sentinel si vide.
+    dureeMission: cabinet.dureeMission || "à confirmer dans Paramètres",
+    delaiPreavis: cabinet.delaiPreavis || "à confirmer dans Paramètres",
     villeSignature: mission.lieuSignature || cabinet.ville || undefined,
     mentionNonContractuelle:
       "Document d'aide à la conformité remis à titre indicatif. Ne constitue ni une attestation de conformité, ni un conseil juridique. À valider au regard des textes en vigueur, du contrôle de l'association agréée et, le cas échéant, d'un avocat." +

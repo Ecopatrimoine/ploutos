@@ -385,6 +385,15 @@ const TabParametres = React.memo(function TabParametres(props: any) {
                     Déplacé depuis Coordonnées→Réglementation pour cohérence avec la transparence des conflits d'intérêts.
                   </div>
                 </div>
+
+                {/* ─── Lot Dossier client — modèle de mission par défaut ─── */}
+                <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-[#E8E3D9]">
+                  <Field ckKey="dureeMission" label="Durée de la mission par défaut" badge="new" placeholder="ex: ponctuelle / annuelle reconductible" />
+                  <Field ckKey="delaiPreavis" label="Délai de préavis de résiliation" badge="new" placeholder="ex: 30 jours" />
+                </div>
+                <div className="text-[10px] text-slate-500 mt-1">
+                  Modèle par défaut appliqué à toutes les lettres de mission générées. Override per-dossier prévu plus tard (pop-card d'impression).
+                </div>
               </SubCard>
 
               {/* Card 6 — Médiation cabinet (toujours pleine largeur) */}

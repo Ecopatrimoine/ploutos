@@ -25,6 +25,20 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
   <Card className="border-0" style={{ borderRadius: 20 }}>
     <CardHeader><SectionTitle icon={Users} title="Données familiales" subtitle="Identité, situation du couple et enfants à charge" /></CardHeader>
     <CardContent className="space-y-6">
+  {/* ─── Lot Dossier client — Coordonnées du foyer (adresse postale) ──
+       Utilisée par la fiche conseil DDA (bandeau identité client) et par
+       les pages de contact des documents réglementaires. ─── */}
+  <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+    <div className="text-xs font-black uppercase tracking-widest" style={{ color: BRAND.navy }}>Coordonnées du foyer</div>
+    <div className="grid gap-3 grid-cols-4">
+      <div className="col-span-2">
+        <Field label="Adresse"><Input value={data.adresse || ""} onChange={(e) => setField("adresse", e.target.value)} placeholder="ex : 12 rue des Lilas" className="rounded-xl" /></Field>
+      </div>
+      <Field label="Code postal"><Input value={data.codePostal || ""} onChange={(e) => setField("codePostal", e.target.value)} placeholder="66000" className="rounded-xl" /></Field>
+      <Field label="Ville"><Input value={data.ville || ""} onChange={(e) => setField("ville", e.target.value)} placeholder="Perpignan" className="rounded-xl" /></Field>
+    </div>
+  </div>
+
   {/* Deux personnes côte à côte */}
   <div className="grid gap-4 md:grid-cols-2">
     {/* Personne 1 */}
