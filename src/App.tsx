@@ -1825,6 +1825,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
         ir={ir}
         ifi={ifi}
         succession={succession}
+        irOptions={irOptions}
         hypothesisResults={hypothesisResults}
         clientName={clientName}
       />

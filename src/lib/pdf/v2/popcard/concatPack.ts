@@ -40,6 +40,12 @@ import { pageProfil } from "../pages/pageProfil";
 import { pageBilanEndettement } from "../pages/pageBilanEndettement";
 import { pagePrevoyanceInd } from "../pages/pagePrevoyanceInd";
 import { pagePrevoyanceColl } from "../pages/pagePrevoyanceColl";
+import { pageCabinet } from "../pages/pageCabinet";
+import { pageFamille } from "../pages/pageFamille";
+import { pageTravail } from "../pages/pageTravail";
+import { pageHypos } from "../pages/pageHypos";
+import { pageRecommandations } from "../pages/pageRecommandations";
+import { pageMentions } from "../pages/pageMentions";
 
 // ─── Adapters ─────────────────────────────────────────────────────────
 import { buildDerData } from "../adapters/buildDerData";
@@ -55,6 +61,12 @@ import { buildProfilData } from "../adapters/buildProfilData";
 import { buildBilanEndettementData } from "../adapters/buildBilanEndettementData";
 import { buildPrevoyanceIndData } from "../adapters/buildPrevoyanceIndData";
 import { buildPrevoyanceCollData } from "../adapters/buildPrevoyanceCollData";
+import { buildCabinetData } from "../adapters/buildCabinetData";
+import { buildFamilleData } from "../adapters/buildFamilleData";
+import { buildTravailData } from "../adapters/buildTravailData";
+import { buildHyposData } from "../adapters/buildHyposData";
+import { buildRecommandationsData } from "../adapters/buildRecommandationsData";
+import { buildMentionsData } from "../adapters/buildMentionsData";
 
 export type PackOverrides = {
   /** Override palette PDF (vide = défaut cabinet via mapCabinetToThemeV2). */
@@ -74,6 +86,8 @@ export type PackPayload = {
   ifi?: any;
   succession?: any;
   hypothesisResults?: any;
+  /** Optionnel : mode frais (réel/standard) pour libellé Travail. */
+  irOptions?: { expenseMode1?: string; expenseMode2?: string };
   clientName?: string;
 };
 
@@ -159,17 +173,36 @@ function renderItemBody(
       return pagePrevoyanceColl(t, d);
     }
 
-    // ─── Sections v1-only (pas encore refaites en v2) ───────────────
-    case "cabinet":
-    case "famille":
-    case "travail":
-    case "hypos":
-    case "recommandations":
-    case "mentions":
-      // Hybride v1 : nécessite un refacto de pdfReport.ts pour exposer le
-      // body de chaque section sans la coquille html complète. Hors
-      // périmètre de cette itération de la pop-card.
-      return placeholderSection(t, item);
+    // ─── Sections v2 (anciennement v1-only, refondues) ──────────────
+    case "cabinet": {
+      const d = buildCabinetData({ cabinet, data, clientName: payload.clientName, dateLettre });
+      return pageCabinet(t, d);
+    }
+    case "famille": {
+      const d = buildFamilleData({ data, cabinet, ir: payload.ir, clientName: payload.clientName, dateLettre });
+      return pageFamille(t, d);
+    }
+    case "travail": {
+      const d = buildTravailData({ data, cabinet, ir: payload.ir, irOptions: payload.irOptions, clientName: payload.clientName, dateLettre });
+      return pageTravail(t, d);
+    }
+    case "hypos": {
+      const d = buildHyposData({
+        data, cabinet,
+        ir: payload.ir, ifi: payload.ifi, succession: payload.succession,
+        hypothesisResults: payload.hypothesisResults,
+        clientName: payload.clientName, dateLettre,
+      });
+      return pageHypos(t, d);
+    }
+    case "recommandations": {
+      const d = buildRecommandationsData({ recommandations, cabinet, data, clientName: payload.clientName, dateLettre });
+      return pageRecommandations(t, d);
+    }
+    case "mentions": {
+      const d = buildMentionsData({ cabinet, mission, data, clientName: payload.clientName, dateLettre });
+      return pageMentions(t, d);
+    }
   }
 }
 

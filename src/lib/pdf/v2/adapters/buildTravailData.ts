@@ -1,0 +1,120 @@
+// ─── Lot Dossier client — Adapter Travail v2 ────────────────────────
+//
+// Mappe data + ir vers TravailPageData : revenus pros par personne +
+// déductions. Tous les calculs sont déjà faits dans computeIR().
+
+import type { TravailPageData, PersonneTravail, LigneRevenu, LigneDeduction } from "../pages/pageTravail";
+
+export type BuildTravailDataParams = {
+  data: Record<string, any>;
+  cabinet: Record<string, any>;
+  ir?: any;
+  irOptions?: { expenseMode1?: string; expenseMode2?: string };
+  clientName?: string;
+  dateLettre?: string;
+  pagePosition?: string;
+};
+
+export function buildTravailData(p: BuildTravailDataParams): TravailPageData {
+  const data = p.data || {};
+  const cabinet = p.cabinet || {};
+  const ir = p.ir || {};
+  const dateStr = p.dateLettre || formatDateFr(new Date());
+
+  const p1Prenom = data.person1FirstName || "";
+  const p1Nom    = data.person1LastName  || "";
+  const p2Prenom = data.person2FirstName || "";
+  const p2Nom    = data.person2LastName  || "";
+  const isCouple = data.coupleStatus === "married" || data.coupleStatus === "pacs";
+  const clientName = p.clientName || (isCouple && p2Nom ? `${p1Prenom} ${p1Nom} & ${p2Prenom} ${p2Nom}` : `${p1Prenom} ${p1Nom}`).trim() || "Client";
+
+  const salary1 = num(data.salary1);
+  const salary2 = num(data.salary2);
+  const ca1     = num(data.ca1);
+  const ca2     = num(data.ca2);
+  // Pensions : migration legacy ↔ par-personne (cf. src/lib/calculs/ir.ts ligne 80)
+  // Si pensions1/2 renseignés → on les utilise ; sinon fallback sur pensions (champ foyer legacy).
+  const pensionP1 = num(data.pensions1);
+  const pensionP2 = num(data.pensions2);
+  const pensionsLegacy = num(data.pensions);
+  const pensionsFoyer = (pensionP1 + pensionP2) > 0 ? (pensionP1 + pensionP2) : pensionsLegacy;
+
+  const revenusP1: LigneRevenu[] = [];
+  if (salary1   > 0) revenusP1.push({ label: "Salaires nets annuels", valeur: salary1 });
+  if (ca1       > 0) revenusP1.push({ label: "Chiffre d'affaires (BIC/BNC/BA)", valeur: ca1 });
+  if (pensionP1 > 0) revenusP1.push({ label: "Pensions / retraites", valeur: pensionP1 });
+
+  const revenusP2: LigneRevenu[] = [];
+  if (salary2   > 0) revenusP2.push({ label: "Salaires nets annuels", valeur: salary2 });
+  if (ca2       > 0) revenusP2.push({ label: "Chiffre d'affaires (BIC/BNC/BA)", valeur: ca2 });
+  if (pensionP2 > 0) revenusP2.push({ label: "Pensions / retraites", valeur: pensionP2 });
+
+  // Cas legacy : pensions saisies au foyer (sans répartition P1/P2) — rattachées à P1 par défaut.
+  if (pensionP1 === 0 && pensionP2 === 0 && pensionsLegacy > 0) {
+    revenusP1.push({ label: "Pensions / retraites (foyer)", valeur: pensionsLegacy });
+  }
+
+  const personne1: PersonneTravail = {
+    prenom: p1Prenom,
+    profession: data.person1JobTitle || undefined,
+    revenus: revenusP1,
+  };
+
+  // Cond stricte : couple + revenus saisis (aligne sur v1, évite card vide)
+  const personne2: PersonneTravail | undefined = (isCouple && (salary2 > 0 || ca2 > 0 || pensionP2 > 0))
+    ? {
+        prenom: p2Prenom,
+        profession: data.person2JobTitle || undefined,
+        revenus: revenusP2,
+      }
+    : undefined;
+
+  // KPI agrégés — formule v1 : salaires + foncier + placements (HORS pensions, déjà comptées via salaries dans certains cas).
+  const revenusBruts = num(ir.salaries) + num(ir.foncierBrut) + num(ir.taxablePlacements);
+  const revenuNetImposable = num(ir.revenuNetGlobal);
+  const irEstime = num(ir.finalIR);
+
+  // Déductions — formule v1 : "Autres déductions = max(0, deductibleCharges − perDeductionCalc)" pour éviter le double comptage.
+  const deductions: LigneDeduction[] = [];
+  const retainedExpenses = num(ir.retainedExpenses);
+  const deductibleCharges = num(ir.deductibleCharges);
+  const perDeduction = num(ir.perDeductionCalc);
+  const autresDeductions = Math.max(0, deductibleCharges - perDeduction);
+  if (retainedExpenses > 0) {
+    const label = composeFraisLabel(p.irOptions);
+    deductions.push({ label, valeur: retainedExpenses });
+  }
+  if (perDeduction     > 0) deductions.push({ label: "PER déductible", valeur: perDeduction });
+  if (autresDeductions > 0) deductions.push({ label: "Autres déductions", valeur: autresDeductions });
+
+  return {
+    clientName,
+    dateStr,
+    revenusBruts,
+    revenuNetImposable,
+    irEstime,
+    noteKpi: "Revenus bruts = salaires + foncier + placements taxables + pensions. IR estimé selon barème en vigueur, après abattements et déductions.",
+    personne1,
+    personne2,
+    deductions,
+    pagePosition: p.pagePosition || "— / —",
+    cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Revenus — confidentiel`,
+  };
+}
+
+function num(v: any): number {
+  const n = typeof v === "string" ? parseFloat(v.replace(/\s/g, "").replace(",", ".")) : (v || 0);
+  return Number.isFinite(n) ? Math.round(n) : 0;
+}
+
+function formatDateFr(d: Date): string {
+  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+}
+
+function composeFraisLabel(irOptions?: { expenseMode1?: string; expenseMode2?: string }): string {
+  // Aligne sur v1 : si l'un des modes est "actual" → "Frais réels" ; sinon → "Abattement 10%".
+  // Si irOptions n'est pas fourni → label neutre.
+  if (!irOptions) return "Frais professionnels retenus";
+  const isActual = irOptions.expenseMode1 === "actual" || irOptions.expenseMode2 === "actual";
+  return isActual ? "Frais réels" : "Abattement forfaitaire 10%";
+}
