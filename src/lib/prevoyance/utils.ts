@@ -19,6 +19,7 @@ import type {
   PayloadTravail,
   StatutPro,
 } from "../../types/patrimoine";
+import ccnReferentiel from "../../data/prevoyance/ccn-2026.json";
 
 const API_RECHERCHE_ENTREPRISES =
   "https://recherche-entreprises.api.gouv.fr/search";
@@ -28,11 +29,14 @@ export function validateSiret(siret: string | null | undefined): boolean {
   return /^\d{14}$/.test(siret);
 }
 
-export function lookupCCNName(_idcc: string | null | undefined): string | null {
-  // Lot 2 : stub. Le Lot 3 ajoutera le fichier ccn-2026.json et un
-  // lookup réel. Pour l'instant on ne renvoie que null afin de NE PAS
-  // afficher de libellé non vérifié.
-  return null;
+export function lookupCCNName(idcc: string | null | undefined): string | null {
+  // Lot 3 : lookup réel sur ccn-2026.json. Retourne null si l'IDCC
+  // n'est pas dans le référentiel (au lieu d'un libellé inventé).
+  if (!idcc) return null;
+  const conventions = (ccnReferentiel as { conventions?: Record<string, { nom?: string }> })
+    .conventions;
+  if (!conventions) return null;
+  return conventions[idcc]?.nom ?? null;
 }
 
 export type ResolveSiretResult =

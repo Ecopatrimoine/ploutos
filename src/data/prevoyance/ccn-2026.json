@@ -1,0 +1,139 @@
+{
+  "millesime": 2026,
+  "dateVerification": "2026-05-27",
+  "sources": [
+    "Légifrance — base KALI (https://www.legifrance.gouv.fr/liste/idcc)",
+    "service-public.fr — Maintien légal de salaire L.1226-1 C. trav.",
+    "Décret 2021-1002 — catégories objectives",
+    "Spec module Prévoyance Ploutos (SPEC_MODULE_PREVOYANCE.md §5.5)"
+  ],
+  "_notes": "Les libellés officiels des 10 CCN ci-dessous sont stables (référencés sur Légifrance/base KALI). Le maintien légal L.1226-1 et ses paliers sont issus de la loi Mensualisation (D.1226-1 et s. C. trav.) et donc publics. En revanche, les paliers de maintien employeur par CCN, les minima de prévoyance (tauxT1, garanties capital DC, rente conjoint…) et les régimes de santé spécifiques sont marqués TO_VERIFY / TO_FILL et doivent être renseignés par lecture directe de chaque texte de CCN sur Légifrance avant utilisation en production.",
+  "maintienLegal": {
+    "description": "Loi Mensualisation, L.1226-1 et D.1226-1 et s. C. trav.",
+    "carenceJours": 7,
+    "anciennetePivot": {
+      "min": 1,
+      "max": 30
+    },
+    "paliers": [
+      { "ancienneteMois": 12,  "joursA90Pct": 30,  "joursA6666Pct": 30 },
+      { "ancienneteMois": 72,  "joursA90Pct": 40,  "joursA6666Pct": 40 },
+      { "ancienneteMois": 132, "joursA90Pct": 50,  "joursA6666Pct": 50 },
+      { "ancienneteMois": 192, "joursA90Pct": 60,  "joursA6666Pct": 60 },
+      { "ancienneteMois": 252, "joursA90Pct": 70,  "joursA6666Pct": 70 },
+      { "ancienneteMois": 312, "joursA90Pct": 80,  "joursA6666Pct": 80 },
+      { "ancienneteMois": 372, "joursA90Pct": 90,  "joursA6666Pct": 90 }
+    ],
+    "note": "Maintien LÉGAL minimal — toute CCN qui fixe mieux s'applique en priorité."
+  },
+  "conventions": {
+    "1486": {
+      "idcc": "1486",
+      "nom": "Bureaux d'études techniques, cabinets d'ingénieurs-conseils et sociétés de conseils (Syntec)",
+      "datesVerification": "2026-05-27",
+      "maintienEmployeur": {
+        "carenceJours": "TO_VERIFY",
+        "subrogation": "TO_VERIFY",
+        "paliers": "TO_VERIFY",
+        "note": "TO_VERIFY — paliers Syntec à reprendre intégralement depuis le texte CCN à jour"
+      },
+      "prevoyanceCadres": {
+        "tauxT1Minimum": 1.50,
+        "garantiesMinimum": {
+          "capitalDC": "TO_VERIFY",
+          "renteConjoint": "TO_VERIFY",
+          "renteEducation": "TO_VERIFY",
+          "ij": "TO_VERIFY",
+          "invalidite": "TO_VERIFY"
+        }
+      },
+      "prevoyanceNonCadres": null,
+      "santeMinimum": {
+        "panier": "ANI",
+        "participationEmployeur": "TO_VERIFY"
+      },
+      "retraiteSupplementaire": null
+    },
+    "3248": {
+      "idcc": "3248",
+      "nom": "Métallurgie (CCN unifiée 2024)",
+      "datesVerification": "2026-05-27",
+      "maintienEmployeur": { "TO_FILL": true, "note": "CCN unifiée 2024, barèmes par classes A à I" },
+      "prevoyanceCadres": { "TO_FILL": true },
+      "prevoyanceNonCadres": { "TO_FILL": true },
+      "santeMinimum": { "TO_FILL": true }
+    },
+    "1979": {
+      "idcc": "1979",
+      "nom": "Hôtels, cafés, restaurants (HCR)",
+      "datesVerification": "2026-05-27",
+      "maintienEmployeur": { "TO_FILL": true },
+      "prevoyanceCadres": null,
+      "prevoyanceNonCadres": { "TO_FILL": true },
+      "santeMinimum": { "TO_FILL": true }
+    },
+    "1597": {
+      "idcc": "1597",
+      "nom": "Bâtiment — ouvriers (entreprises occupant plus de 10 salariés)",
+      "datesVerification": "2026-05-27",
+      "maintienEmployeur": { "TO_FILL": true },
+      "prevoyanceCadres": null,
+      "prevoyanceNonCadres": { "TO_FILL": true },
+      "santeMinimum": { "TO_FILL": true }
+    },
+    "1596": {
+      "idcc": "1596",
+      "nom": "Bâtiment — ouvriers (entreprises occupant jusqu'à 10 salariés)",
+      "datesVerification": "2026-05-27",
+      "maintienEmployeur": { "TO_FILL": true },
+      "prevoyanceCadres": null,
+      "prevoyanceNonCadres": { "TO_FILL": true },
+      "santeMinimum": { "TO_FILL": true }
+    },
+    "2609": {
+      "idcc": "2609",
+      "nom": "Bâtiment — ETAM (employés, techniciens et agents de maîtrise)",
+      "datesVerification": "2026-05-27",
+      "maintienEmployeur": { "TO_FILL": true },
+      "prevoyanceCadres": null,
+      "prevoyanceNonCadres": { "TO_FILL": true },
+      "santeMinimum": { "TO_FILL": true }
+    },
+    "2420": {
+      "idcc": "2420",
+      "nom": "Bâtiment — cadres",
+      "datesVerification": "2026-05-27",
+      "maintienEmployeur": { "TO_FILL": true },
+      "prevoyanceCadres": { "TO_FILL": true },
+      "prevoyanceNonCadres": null,
+      "santeMinimum": { "TO_FILL": true }
+    },
+    "1996": {
+      "idcc": "1996",
+      "nom": "Pharmacie d'officine",
+      "datesVerification": "2026-05-27",
+      "maintienEmployeur": { "TO_FILL": true },
+      "prevoyanceCadres": { "TO_FILL": true },
+      "prevoyanceNonCadres": { "TO_FILL": true },
+      "santeMinimum": { "TO_FILL": true }
+    },
+    "2216": {
+      "idcc": "2216",
+      "nom": "Commerce de détail et de gros à prédominance alimentaire",
+      "datesVerification": "2026-05-27",
+      "maintienEmployeur": { "TO_FILL": true },
+      "prevoyanceCadres": { "TO_FILL": true },
+      "prevoyanceNonCadres": { "TO_FILL": true },
+      "santeMinimum": { "TO_FILL": true }
+    },
+    "16": {
+      "idcc": "16",
+      "nom": "Transports routiers et activités auxiliaires du transport",
+      "datesVerification": "2026-05-27",
+      "maintienEmployeur": { "TO_FILL": true },
+      "prevoyanceCadres": { "TO_FILL": true },
+      "prevoyanceNonCadres": { "TO_FILL": true },
+      "santeMinimum": { "TO_FILL": true }
+    }
+  }
+}

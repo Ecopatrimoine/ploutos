@@ -1,0 +1,42 @@
+{
+  "millesime": 2026,
+  "dateVerification": "2026-05-27",
+  "sources": [
+    "URSSAF — Plafond de la Sécurité sociale 2026 (à reconfirmer en ligne)",
+    "BOSS — chapitre 'Assiette générale' (à reconfirmer en ligne)",
+    "Spec module Prévoyance Ploutos (SPEC_MODULE_PREVOYANCE.md §5.3)"
+  ],
+  "_notes": "Les montants PASS / IJSS / forfait social ci-dessous sont repris textuellement de la spec rédigée le 2026-05-27. Toute mise en production doit reconfirmer chaque valeur à la source officielle (URSSAF / BOSS / boss.gouv.fr) avant utilisation.",
+  "pass": {
+    "annuel": 48060,
+    "mensuel": 4005,
+    "journalier": 222,
+    "horaire": 30
+  },
+  "tranches": {
+    "T1": { "min": 0, "max": 48060 },
+    "T2": { "min": 48060, "max": 384480 }
+  },
+  "ijss": {
+    "plafondSalaireBrutMensuel": 12015,
+    "tauxIJ": 0.5,
+    "carenceJours": 3,
+    "plafondJournalier": "TO_VERIFY",
+    "majorationApres30JoursAvecEnfants": "TO_VERIFY"
+  },
+  "exonerationsSociales": {
+    "prevoyanceSante": {
+      "formule": "6% PASS + 1.5% rémunération",
+      "plafondAnnuel": "calcule_par_personne"
+    },
+    "retraiteSupplementaire": {
+      "formule": "8% rémunération dans la limite de 8 PASS",
+      "plafondAnnuel": "calcule_par_personne"
+    }
+  },
+  "forfaitSocial": {
+    "tauxStandard": 0.20,
+    "tauxReduitMoinsDe11Salaries": 0,
+    "tauxReduitEpargneSalariale": 0.16
+  }
+}

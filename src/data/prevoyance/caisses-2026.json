@@ -1,0 +1,218 @@
+{
+  "millesime": 2026,
+  "dateVerification": "2026-05-27",
+  "sources": [
+    "ameli.fr (IJSS CPAM)",
+    "carmf.fr",
+    "cipav-retraite.fr",
+    "carpimko.com",
+    "carcdsf.fr",
+    "carpv.fr",
+    "cnbf.fr",
+    "cavom.fr",
+    "cavec.fr",
+    "cavamac.fr",
+    "secu-independants.fr (SSI)",
+    "msa.fr",
+    "Spec module Prévoyance Ploutos (SPEC_MODULE_PREVOYANCE.md §5.4)"
+  ],
+  "_notes": "STATUT DES VALEURS — La structure de ce fichier reprend le schéma §5.4 de la spec. Toutes les valeurs numériques (IJ journalières, plafonds, taux invalidité, montants capital décès) sont marquées TO_VERIFY ou TO_FILL et DOIVENT être renseignées par David à partir des sources officielles citées avant mise en production. Le moteur Lot 4 tolère TO_VERIFY/TO_FILL (renvoie une projection partielle + RuptureCle 'Données régime obligatoire non disponibles').",
+  "caisses": {
+    "CPAM": {
+      "nom": "Caisse primaire d'assurance maladie (régime général)",
+      "publicConcerne": "Salariés du privé",
+      "ij": {
+        "regle": "tranche_revenu",
+        "carenceJours": 3,
+        "tauxBrut": 0.5,
+        "formule": "0.5 * salaire_journalier_base (moyenne 3 derniers mois)",
+        "plafondJournalier": "TO_VERIFY",
+        "plafondDureeJours": 1095,
+        "majorationFamilleApresJ31": {
+          "active": true,
+          "tauxMajore": 0.6633,
+          "conditions": "À partir du 31e jour si 3 enfants à charge ou plus"
+        }
+      },
+      "invalidite": {
+        "calculBase": "SAM_10_meilleures_annees",
+        "categories": {
+          "cat1": {
+            "definition": "Capable d'exercer une activité réduite",
+            "tauxBase": 0.30,
+            "plafondMensuel": "TO_VERIFY"
+          },
+          "cat2": {
+            "definition": "Incapable d'exercer une activité",
+            "tauxBase": 0.50,
+            "plafondMensuel": "TO_VERIFY"
+          },
+          "cat3": {
+            "definition": "Incapable + besoin d'une tierce personne",
+            "tauxBase": 0.50,
+            "majorationTiercePersonneMensuelle": "TO_VERIFY",
+            "plafondMensuel": "TO_VERIFY"
+          }
+        },
+        "ageBascule": 62
+      },
+      "capitalDeces": {
+        "type": "montant_fixe",
+        "montant": "TO_VERIFY",
+        "conditions": "Versé aux ayants droit, sous conditions d'ouverture des droits"
+      }
+    },
+    "SSI": {
+      "nom": "Sécurité sociale des indépendants (ex-RSI, intégré au régime général depuis 2020)",
+      "publicConcerne": "TNS commerçants, artisans, auto-entrepreneurs",
+      "ij": {
+        "regle": "tranche_revenu",
+        "carenceJours": 3,
+        "carenceJoursAccidentTravail": 0,
+        "carenceJoursHospitalisation": 0,
+        "formule": "1/730 du revenu annuel moyen des 3 dernières années",
+        "plafondJournalier": "TO_VERIFY",
+        "plancherJournalier": "TO_VERIFY",
+        "conditionsEligibilite": "1 an d'affiliation minimum",
+        "plafondDureeJours": 360
+      },
+      "invalidite": {
+        "categories": {
+          "totale_definitive": { "tauxBase": "TO_VERIFY" },
+          "partielle_metier": { "tauxBase": "TO_VERIFY" }
+        }
+      },
+      "capitalDeces": {
+        "type": "forfaitaire",
+        "montantActif": "TO_VERIFY",
+        "montantRetraite": "TO_VERIFY"
+      }
+    },
+    "CARMF": {
+      "nom": "Caisse autonome de retraite des médecins de France",
+      "publicConcerne": "Médecins libéraux",
+      "ij": {
+        "regle": "uniforme_par_classe",
+        "carenceJours": 90,
+        "carenceReductibleConventionMedicale": {
+          "active": true,
+          "carenceReduiteSecteur1": "TO_VERIFY",
+          "conditions": "Médecins conventionnés secteur 1 ou secteur 2 OPTAM"
+        },
+        "classes": {
+          "A": { "ijJournaliere": "TO_VERIFY" },
+          "B": { "ijJournaliere": "TO_VERIFY" },
+          "C": { "ijJournaliere": "TO_VERIFY" }
+        },
+        "plafondDureeJours": 1095
+      },
+      "invalidite": {
+        "categories": {
+          "totale": { "tauxBase": "TO_VERIFY" },
+          "partielle": { "tauxBase": "TO_VERIFY" }
+        }
+      },
+      "capitalDeces": {
+        "type": "forfaitaire_par_classe",
+        "montants": "TO_VERIFY"
+      },
+      "notes": "La couverture CARMF de base est notoirement insuffisante. Le contrat Madelin individuel est quasi systématiquement requis."
+    },
+    "CIPAV": {
+      "nom": "Caisse interprofessionnelle de prévoyance et d'assurance vieillesse",
+      "publicConcerne": "Architectes, géomètres, ingénieurs-conseils, professions libérales non réglementées (jusqu'à 2018 puis nouveaux statuts vers SSI)",
+      "ij": {
+        "regle": "introduit_en_2021",
+        "carenceJours": 3,
+        "formule": "1/730 du revenu annuel moyen des 3 dernières années",
+        "plafondJournalier": "TO_VERIFY",
+        "plafondDureeJours": 87
+      },
+      "invalidite": {
+        "categories": {
+          "totale_definitive": { "tauxBase": "TO_VERIFY" }
+        }
+      },
+      "capitalDeces": {
+        "type": "forfaitaire",
+        "montant": "TO_VERIFY"
+      },
+      "notes": "IJ très récentes (2021) et de durée limitée. Contrat individuel quasi indispensable."
+    },
+    "CARPIMKO": {
+      "nom": "Caisse autonome de retraite et de prévoyance des infirmiers, masseurs-kinés, pédicures, orthophonistes et orthoptistes",
+      "publicConcerne": "Infirmiers libéraux, kinés, pédicures-podologues, orthophonistes, orthoptistes",
+      "ij": {
+        "regle": "uniforme",
+        "carenceJours": 90,
+        "ijJournaliere": "TO_VERIFY",
+        "plafondDureeJours": 1095
+      },
+      "invalidite": {
+        "categories": {
+          "totale": { "tauxBase": "TO_VERIFY" }
+        }
+      },
+      "capitalDeces": {
+        "type": "forfaitaire",
+        "montant": "TO_VERIFY"
+      }
+    },
+    "MSA": {
+      "nom": "Mutualité sociale agricole",
+      "publicConcerne": "Exploitants et salariés agricoles",
+      "ij": { "TO_FILL": true },
+      "invalidite": { "TO_FILL": true },
+      "capitalDeces": { "TO_FILL": true }
+    },
+    "CARCDSF": {
+      "nom": "Caisse autonome de retraite des chirurgiens-dentistes et sages-femmes",
+      "publicConcerne": "Chirurgiens-dentistes, sages-femmes",
+      "ij": { "TO_FILL": true },
+      "invalidite": { "TO_FILL": true },
+      "capitalDeces": { "TO_FILL": true }
+    },
+    "CARPV": {
+      "nom": "Caisse autonome de retraite et de prévoyance des vétérinaires",
+      "publicConcerne": "Vétérinaires libéraux",
+      "ij": { "TO_FILL": true },
+      "invalidite": { "TO_FILL": true },
+      "capitalDeces": { "TO_FILL": true }
+    },
+    "CNBF": {
+      "nom": "Caisse nationale des barreaux français",
+      "publicConcerne": "Avocats",
+      "ij": { "TO_FILL": true },
+      "invalidite": { "TO_FILL": true },
+      "capitalDeces": { "TO_FILL": true }
+    },
+    "CAVOM": {
+      "nom": "Caisse d'assurance vieillesse des officiers ministériels",
+      "publicConcerne": "Huissiers, commissaires-priseurs, etc.",
+      "ij": { "TO_FILL": true },
+      "invalidite": { "TO_FILL": true },
+      "capitalDeces": { "TO_FILL": true }
+    },
+    "CAVEC": {
+      "nom": "Caisse d'assurance vieillesse des experts-comptables et commissaires aux comptes",
+      "publicConcerne": "Experts-comptables, commissaires aux comptes",
+      "ij": { "TO_FILL": true },
+      "invalidite": { "TO_FILL": true },
+      "capitalDeces": { "TO_FILL": true }
+    },
+    "CAVAMAC": {
+      "nom": "Caisse d'allocation vieillesse des agents généraux d'assurance",
+      "publicConcerne": "Agents généraux d'assurance",
+      "ij": { "TO_FILL": true },
+      "invalidite": { "TO_FILL": true },
+      "capitalDeces": { "TO_FILL": true }
+    },
+    "CRN": {
+      "nom": "Caisse de retraite des notaires",
+      "publicConcerne": "Notaires (en complément du régime de base et CARCDSF)",
+      "ij": { "TO_FILL": true },
+      "invalidite": { "TO_FILL": true },
+      "capitalDeces": { "TO_FILL": true }
+    }
+  }
+}

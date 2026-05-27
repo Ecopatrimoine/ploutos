@@ -34,10 +34,26 @@ describe("validateSiret", () => {
   });
 });
 
-describe("lookupCCNName (stub Lot 2)", () => {
-  it("retourne null tant que le Lot 3 n'a pas livré le référentiel ccn-2026.json", () => {
-    expect(lookupCCNName("1486")).toBeNull();
+describe("lookupCCNName (câblé sur ccn-2026.json — Lot 3)", () => {
+  it("retourne le libellé officiel pour Syntec (IDCC 1486)", () => {
+    expect(lookupCCNName("1486")).toContain("Syntec");
+  });
+
+  it("retourne le libellé officiel pour Métallurgie (IDCC 3248)", () => {
+    expect(lookupCCNName("3248")).toContain("Métallurgie");
+  });
+
+  it("retourne le libellé pour HCR (IDCC 1979)", () => {
+    expect(lookupCCNName("1979")).toContain("Hôtels");
+  });
+
+  it("retourne null pour un IDCC absent du référentiel", () => {
+    expect(lookupCCNName("999999")).toBeNull();
+  });
+
+  it("retourne null pour null / undefined / vide", () => {
     expect(lookupCCNName(null)).toBeNull();
+    expect(lookupCCNName(undefined)).toBeNull();
     expect(lookupCCNName("")).toBeNull();
   });
 });
