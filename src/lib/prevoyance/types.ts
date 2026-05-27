@@ -106,6 +106,46 @@ export type AxePoint = {
   phase: "am" | "invalidite";
 };
 
+// ─── Moteur de règles & constats (Lot 6) ────────────────────────────────
+
+export type ConstatSeverite = "info" | "attention" | "alerte" | "non_conformite";
+export type ConstatAxe =
+  | "deces"
+  | "incapacite"
+  | "invalidite"
+  | "retraite"
+  | "sante"
+  | "dependance"
+  | "conformite";
+export type ConstatCible = "p1" | "p2" | "entreprise";
+
+export type Constat = {
+  id: string;                       // identifiant stable pour les tests
+  severite: ConstatSeverite;
+  axe: ConstatAxe;
+  cible: ConstatCible;
+  titre: string;                    // court — affiché en gras
+  detail: string;                   // explication argumentée — 1 à 3 phrases
+  reference?: string;               // "art. L.911-7 CSS" ou "CCN Syntec art. 11"
+  action: string;                   // proposition CGP — JAMAIS d'assureur ni de produit nommé (DDA)
+  impactChiffre?: {
+    montant: number;
+    libelle: string;                // "Trou de revenu mensuel à J180"
+  };
+};
+
+// Données utilisées par les règles. Construit par buildContexteRegle()
+// (cf. contexte.ts) à partir du payload Ploutos + ProjectionResult.
+export type ContexteRegle = {
+  entree: EntreePerso;
+  projection: ProjectionResult;
+  dettesImmobilieres: number;       // somme des capitaux restants dûs
+  conjointACharge: boolean;
+  enfantsMineurs: number;           // nb d'enfants < 18 ans rattachés au foyer
+};
+
+export type Regle = (ctx: ContexteRegle, cible: "p1" | "p2") => Constat | null;
+
 export type ProjectionResult = {
   axe: AxePoint[];
   series: SerieEmpilee;
