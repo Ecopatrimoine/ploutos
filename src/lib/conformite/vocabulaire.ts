@@ -3,10 +3,7 @@
 // Renvoie le vocabulaire réglementaire à employer dans les LIBELLÉS ÉCRAN
 // selon les statuts ORIAS actifs du cabinet.
 //
-// 🔴 ÉCRAN UNIQUEMENT. Ne pas utiliser dans pdfReport.ts / pdfMission.ts :
-// les snapshots PDF sont gelés et la refonte du vocabulaire PDF est reportée
-// au Lot 8 (cf. règle critique 8 du prompt-claude-code-ploutos-lot5.md).
-//
+// Source unique du vocabulaire réglementaire écran ET PDF v2.
 // Exemple : un cabinet COA seul n'exerce pas le conseil en investissements
 // financiers et ne cite donc pas « MIF II ». Le terme « MIF II » affiché à
 // l'écran (profil, adéquation) doit être remplacé par « assurance-vie / DDA ».

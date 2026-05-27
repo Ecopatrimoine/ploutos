@@ -5,9 +5,7 @@
 //            Horizon — saisi à l'écran avec un barème 0/4/8/16 — était
 //            historiquement non comptabilisé, bug latent corrigé ici).
 //
-// 🔴 Périmètre partagé écran + PDF depuis le Lot 6bis : pdfMission.ts a aussi
-// été aligné (formule, max=96, '/96 pts'). Le mapping 5→niveaux du PDF reste
-// inchangé jusqu'au Lot 8 (refonte PDF dédiée).
+// Source unique partagée écran + PDF v2 (pageProfil + buildProfilData).
 //
 // Invariants :
 // - À réponses identiques (risque + horizon), l'ESG ne déplace PAS le profil
@@ -114,7 +112,7 @@ export function profilFromScore(scoreRisque: number): Profil {
   return "offensif";
 }
 
-/** Source unique consommée par l'écran (TabMission) et alignée avec pdfMission. */
+/** Source unique consommée par l'écran (TabMission) et le PDF v2 (buildProfilData). */
 export function computeProfilRisque(mission: any): ScoreProfil {
   const scoreRisque  = computeScoreRisque(mission);
   const sousScoreESG = computeSousScoreESG(mission?.esgPref);

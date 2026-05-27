@@ -41,7 +41,6 @@ import { PopcardImpression } from "./components/popcard/PopcardImpression";
 // (data + mission + recommandations) ; consomme les helpers Lot 5 + 7.
 // Lot 8d — Déclaration d'adéquation : justifie le conseil, relie reco↔KYC,
 // règle de validité dégradée si aucune reco complète. Date+heure paramétrable.
-import type { Recipient } from "./lib/pdf/pdfCore";
 
 // ── Imports modules refactorisés ──────────────────────────────────────────────
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "./constants";
@@ -1125,13 +1124,6 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       setInstallPrompt(null);
     }
   };
-
-  // Si recipient="person2", recalcule succession pour deceasedPerson="person2".
-  // Sinon, réutilise la succession déjà calculée (memoisée).
-  const successionForRecipient = (recipient?: Recipient) =>
-    (recipient === "person2" && successionData.deceasedPerson !== "person2")
-      ? computeSuccession({ ...successionData, deceasedPerson: "person2" }, data)
-      : succession;
 
   // ─── Aperçu PDF v2 (preview individuelle avant intégration au pack) ───
   const buildAndPrintDerV2 = () => {
