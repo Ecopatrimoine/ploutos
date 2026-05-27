@@ -14,6 +14,7 @@ import {
   sousTitreSection,
   echelleSegments,
   encartAdequation,
+  encartNotreLecture,
   encartSignature,
   piedPage,
   coquillePage,
@@ -40,6 +41,8 @@ export type ProfilPageData = {
   // détail opposable vit dans la Déclaration d'adéquation (mention de renvoi
   // affichée en tête de l'encadré).
   questionnaire: QAItem[];
+  // Notre lecture (masque interprétatif — cadrage + composition + leviers)
+  notreLecture?: string;          // HTML supporté (paragraphes, listes)
   // Adéquation
   adequationTitre: string;        // "Adéquation MIF II"
   adequationTexte: string;
@@ -114,6 +117,8 @@ export function pageProfil(t: Tokens, d: ProfilPageData): string {
       ${sousTitreSection(t, "Synthèse du questionnaire MIF II")}
       ${syntheseHtml}
     </div>
+
+    ${d.notreLecture ? encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) : ""}
 
     ${encartAdequation(t, {
       titre: d.adequationTitre,

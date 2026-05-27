@@ -66,6 +66,56 @@ export function buildProfilData(p: BuildProfilDataParams): ProfilPageData {
     },
   ];
 
+  // ─── Analyse "masque" structurée — cadrage + composition + leviers ────
+  // Cohérence profil ↔ capacité (alerte si dissonance forte)
+  const ordreNiveaux: Record<string, number> = { "prudent": 1, "équilibré": 2, "dynamique": 3, "offensif": 4 };
+  const ordreCapacite: Record<string, number> = { "faible": 1, "modérée": 2, "élevée": 3 };
+  const niveauScore = ordreNiveaux[niveauActif] || 2;
+  const capaciteScore = ordreCapacite[capacite.niveau as string] || 2;
+  const dissonance = Math.abs(niveauScore - capaciteScore) >= 2;
+
+  // Allocation cible indicative selon profil — vocabulaire assurance-vie (COA).
+  // Ne mentionne PAS de produit, d'assureur ni d'instruments financiers en direct
+  // (qui relèverait du conseil CIF — hors périmètre Ecopatrimoine actuel).
+  // 1 répartition unique par profil ("environ"), à répartir sur l'ensemble des
+  // placements financiers du foyer (AV, PER, contrat de capitalisation).
+  const allocationCible: Record<string, string> = {
+    "prudent":   "environ 80 % support en euros + 20 % unités de compte (peu volatiles)",
+    "équilibré": "environ 50 % support en euros + 50 % unités de compte diversifiées",
+    "dynamique": "environ 30 % support en euros + 70 % unités de compte diversifiées",
+    "offensif":  "environ 10 % support en euros + 90 % unités de compte (forte diversification)",
+  };
+  const allocationTexte = `${allocationCible[niveauActif] || "à définir selon profil"} — répartition indicative, à appliquer sur l'ensemble de vos placements financiers (assurance-vie, PER, contrat de capitalisation) et à affiner avec votre conseiller selon les supports détenus`;
+
+  // Leviers contextuels
+  const leviers: string[] = [];
+  if (dissonance) {
+    leviers.push(`<span style="color:#B0413E;font-weight:600">⚠ Dissonance profil ↔ capacité</span> : profil ${niveauActif} vs capacité ${capacite.niveau}. À arbitrer avec le client (capacité financière = contrainte, profil = préférence).`);
+  }
+  if (mission.esgPref === "oui") {
+    leviers.push("Préférences ESG marquées — privilégier supports labellisés ISR / Greenfin / Finansol, et l'art. 9 SFDR pour les UC");
+  } else if (mission.esgPref === "non" || !mission.esgPref) {
+    leviers.push("Préférences ESG non exprimées — possibilité de cocher au prochain rendez-vous (obligation RG AMF de réinterroger périodiquement)");
+  }
+  if (mission.horizon === "0-4") {
+    leviers.push("Horizon court (< 5 ans) — privilégier la liquidité et la sécurité du capital ; éviter les UC volatiles");
+  } else if (mission.horizon === "15+") {
+    leviers.push("Horizon long (> 15 ans) — capacité à supporter la volatilité ; intérêt actions et diversifiants long terme");
+  }
+  if (leviers.length === 0) {
+    leviers.push("Profil cohérent et bien renseigné — réviser au moins une fois par an et à chaque évolution patrimoniale ou familiale");
+  }
+
+  const notreLecture = `
+    <p style="margin:0 0 10px 0">Votre profil MIF II est <strong>${niveauActif}</strong> (score ${score.scoreRisque}/${MAX_RISQUE}), associé à un horizon de placement <strong>${horizonPlacement}</strong> et à une capacité de subir des pertes <strong>${capacite.niveau}</strong>. Le profil reflète votre <strong>tolérance au risque</strong> ; la capacité de perte est mesurée sur votre situation financière objective.</p>
+    <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
+      <li><strong>Allocation cible indicative</strong> — ${allocationTexte}.</li>
+      <li><strong>Mode de gestion choisi</strong> — ${modeGestionLabel(mission.modeGestion)} ${mission.modeGestion === "pilote" ? "(décisions déléguées au gestionnaire)" : mission.modeGestion === "libre" ? "(autonomie totale, sans accompagnement individualisé)" : "(conseil personnalisé, vous décidez)"}.</li>
+      <li><strong>Préférences ESG</strong> — ${esgLabel(mission.esgPref)}.</li>
+    </ul>
+    <p style="margin:0;font-style:italic;color:#6B6353"><strong>Points d'attention :</strong> ${leviers.join(" ; ")}.</p>
+  `.trim();
+
   return {
     clientName,
     dateStr,
@@ -76,6 +126,7 @@ export function buildProfilData(p: BuildProfilDataParams): ProfilPageData {
     noteKpi: "Capacité à subir des pertes appréciée d'après la situation financière (patrimoine, revenus, épargne disponible) — distincte de la tolérance au risque.",
     niveauActif,
     questionnaire,
+    notreLecture,
     adequationTitre: "Adéquation MIF II",
     adequationTexte: `L'allocation recommandée est cohérente avec un profil ${niveauActif}, un horizon de ${horizonPlacement}, une capacité de perte ${capacite.niveau}${mission.esgPref === "oui" ? " et une préférence marquée pour les investissements durables" : ""}. Profil établi le ${dateStr} — à actualiser en cas d'évolution de votre situation.`,
     nomClientSignature,
