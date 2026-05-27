@@ -35,6 +35,7 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
     saveBaseSnapshot, restoreBaseSnapshot,
     saveHypothesis, loadHypothesis, clearHypothesis,
     addDonation, removeDonation,
+    notes, setNotes,
     person1, person2,
   } = props;
 
@@ -341,6 +342,22 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
             </Card>
           ))}
         </div>
+
+        {/* Notes de synthèse — relogées ici depuis l'onglet Rapport client supprimé */}
+        <Card className="border-0 shadow-md relative overflow-hidden" style={{ borderRadius: 14, background: SURFACE.cardSoft }}>
+          <CardAccentTop />
+          <CardContent className="px-5 py-4 space-y-3">
+            <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Notes de synthèse</div>
+            <Field label="Commentaires libres (repris dans le Pack PDF — page Mentions)">
+              <Textarea
+                value={notes ?? ""}
+                onChange={(e) => setNotes?.(e.target.value)}
+                className="rounded-xl min-h-[140px]"
+                placeholder="Saisissez ici les notes de synthèse du dossier (contexte client, points d'attention, prochaines étapes…)"
+              />
+            </Field>
+          </CardContent>
+        </Card>
 
         {/* ── Modal Donation ── */}
         {donationModal && (

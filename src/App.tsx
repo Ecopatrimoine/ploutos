@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Upload, Plus, Trash2, Database, FileText, Settings } from "lucide-react";
+import { Download, Upload, Plus, Trash2, Database, Settings } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, CartesianGrid
@@ -24,7 +24,7 @@ import { LoanModal } from "./components/LoanModal";
 import { HelpMenu } from "./components/HelpMenu";
 import { AppHeader } from "./components/AppHeader";
 import { CardAccentTop } from "./components/CardAccentTop";
-import { HelpTooltip, Field, MoneyField, MetricCard, BracketFillChart, SectionTitle, DifferenceBadge } from "./components/shared";
+import { HelpTooltip, Field, MoneyField, BracketFillChart, SectionTitle, DifferenceBadge } from "./components/shared";
 import { supabase } from "./lib/supabase";
 // Lot 8b — Document d'Entrée en Relation : document standardisé du cabinet,
 // indépendant du dossier client, piloté par les statuts du Lot 5.
@@ -1458,9 +1458,9 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
         {/* ── Navigation ── */}
         <Tabs defaultValue="collecte" className="space-y-6">
           <div className="flex gap-2" style={{ alignItems: "stretch" }}>
-            <TabsList className="flex-1 grid grid-cols-6 p-1.5" style={{ background: SURFACE.card, border: `2px solid ${SURFACE.border}`, borderRadius: 14, height: "52px", boxShadow: SURFACE.cardShadow }}>
-              {(["collecte", "ir", "ifi", "succession", "hypotheses", "rapport"] as const).map((tab) => {
-                const labels: Record<string, string> = { collecte: "Collecte patrimoniale", ir: "Impôt sur le revenu", ifi: "IFI", succession: "Succession", hypotheses: "Hypothèses", rapport: "Rapport client" };
+            <TabsList className="flex-1 grid grid-cols-5 p-1.5" style={{ background: SURFACE.card, border: `2px solid ${SURFACE.border}`, borderRadius: 14, height: "52px", boxShadow: SURFACE.cardShadow }}>
+              {(["collecte", "ir", "ifi", "succession", "hypotheses"] as const).map((tab) => {
+                const labels: Record<string, string> = { collecte: "Collecte patrimoniale", ir: "Impôt sur le revenu", ifi: "IFI", succession: "Succession", hypotheses: "Hypothèses" };
                 return (
                   <TabsTrigger key={tab} value={tab} className="flex items-center justify-center px-4 text-center font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.muted, fontSize: 12 }}>
                     {labels[tab]}
@@ -1542,27 +1542,9 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
             saveBaseSnapshot={saveBaseSnapshot} restoreBaseSnapshot={restoreBaseSnapshot}
             saveHypothesis={saveHypothesis} loadHypothesis={loadHypothesis} clearHypothesis={clearHypothesis}
             addDonation={addDonation} updateDonation={updateDonation} removeDonation={removeDonation}
+            notes={notes} setNotes={setNotes}
             person1={person1} person2={person2}
           />
-
-          {/* ════ RAPPORT ════ */}
-          <TabsContent value="rapport">
-            <Card className="border-0 relative overflow-hidden">
-              <CardAccentTop />
-              <CardHeader><SectionTitle icon={FileText} title="Rapport client" subtitle="Synthèse exportable en PDF." /></CardHeader>
-              <CardContent className="space-y-6">
-                <Field label="Notes de synthèse">
-                  <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="rounded-xl min-h-[160px]" />
-                </Field>
-                <div className="grid gap-4 md:grid-cols-4">
-                  <MetricCard label="IR estimé" value={euro(ir.finalIR)} />
-                  <MetricCard label="IFI estimé" value={euro(ifi.ifi)} />
-                  <MetricCard label="Droits succession" value={euro(succession.totalRights)} />
-                  <MetricCard label="Actif successoral net" value={euro(succession.activeNet)} />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           {/* ════ LETTRE DE MISSION ════ */}
           <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} person1={person1} person2={person2} recommandations={recommandations} setRecommandations={setRecommandations} piecesJointes={piecesJointes} setPiecesJointes={setPiecesJointes} onOpenPopcardImpression={() => setPopcardOpen(true)} />
