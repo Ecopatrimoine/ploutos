@@ -10,6 +10,7 @@ import {
   header,
   sousTitreSection,
   tableauTitresDores,
+  encartNotreLecture,
   piedPage,
   coquillePage,
   type Col,
@@ -44,6 +45,7 @@ export type FamillePageData = {
   parts: number;                 // ex: 3 (2 + 0.5 + 0.5)
   nbEnfants: number;
   enfants: EnfantLigne[];        // peut être vide
+  notreLecture?: string;
   pagePosition: string;
   cabinetLibellePied: string;
 };
@@ -114,6 +116,8 @@ export function pageFamille(t: Tokens, d: FamillePageData): string {
         ${tableauTitresDores(t, { cols, rows })}
       </div>
     ` : ""}
+
+    ${d.notreLecture ? encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) : ""}
   `;
 
   const pied = piedPage(t, {

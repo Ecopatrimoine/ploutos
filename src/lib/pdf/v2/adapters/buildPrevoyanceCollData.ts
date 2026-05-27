@@ -50,8 +50,19 @@ export function buildPrevoyanceCollData(p: BuildPrevoyanceCollDataParams): Prevo
       { titre: "Catégories objectives",         reference: "décret 2021-1002 · applicable depuis 2025",   statut: "info", pillLabel: "À vérifier" },
     ],
     conseilDirigeantHtml: isDirigeant
-      ? "<strong>Assimilé salarié</strong> : vous bénéficiez du régime collectif santé et prévoyance de l'entreprise. Une retraite supplémentaire reste mobilisable via un PERO."
-      : "Cette page concerne les dirigeants assimilés salariés (SAS, SASU, SARL gérant minoritaire). Profil non détecté dans ce dossier — section incluse pour information.",
+      ? `
+        <p style="margin:0 0 8px 0"><strong>Statut détecté : assimilé salarié</strong>. Votre rémunération relève du régime général de la Sécurité sociale (pas de TNS), avec accès aux régimes collectifs santé et prévoyance de votre entreprise.</p>
+        <ul style="margin:0 0 8px 0;padding-left:18px;line-height:1.7;font-size:11px">
+          <li><strong>Santé collective</strong> — Bénéficiaire obligatoire du contrat groupe (ANI 2013, panier minimum + cotisation employeur ≥ 50 %).</li>
+          <li><strong>Prévoyance décès cadres</strong> — Cotisation obligatoire de 1,50 % sur la tranche T1 (≤ PASS) à la charge exclusive de l'employeur (CCN cadres 1947).</li>
+          <li><strong>Retraite supplémentaire</strong> — PERO (Plan d'Épargne Retraite Obligatoire) mobilisable, abondement employeur déductible du résultat de l'entreprise.</li>
+        </ul>
+        <p style="margin:0;font-style:italic"><strong>Points d'attention :</strong> vérifier l'application de la convention collective (à résoudre via le SIRET) ; auditer les catégories objectives (décret 2021-1002, sanctions URSSAF si non-respect) ; arbitrer entre dividende et rémunération selon le ratio TNS/assimilé.</p>
+      `.trim()
+      : `
+        <p style="margin:0 0 6px 0">Cette page concerne les <strong>dirigeants assimilés salariés</strong> (président de SAS/SASU, gérant minoritaire de SARL). Profil non détecté automatiquement dans ce dossier.</p>
+        <p style="margin:0;font-style:italic;font-size:11px">Section incluse pour information — à compléter manuellement si applicable, ou à retirer du pack PDF si non pertinent pour ce client.</p>
+      `.trim(),
     mentionNonContractuelle:
       "Analyse non contractuelle, à valider au regard de la convention collective applicable et de la situation réelle de l'entreprise. Ne constitue pas un conseil juridique, fiscal ou en investissement.",
     pagePosition: p.pagePosition || "— / —",

@@ -60,6 +60,40 @@ export function buildHyposData(p: BuildHyposDataParams): HyposPageData {
     };
   });
 
+  // ─── Analyse "masque" : synthèse + scénario gagnant + perspective ────
+  const baseTotal = baseIR + baseIFI + baseSuccession;
+  let notreLecture: string | undefined;
+  if (scenarios.length > 0) {
+    // Scénario avec le delta TOTAL le plus négatif = meilleur gain
+    const sorted = [...scenarios].sort((a, b) => (a.kpis[3]?.delta || 0) - (b.kpis[3]?.delta || 0));
+    const gagnant = sorted[0];
+    const deltaGagnant = gagnant.kpis[3]?.delta || 0;
+    const totalGagnant = gagnant.kpis[3]?.valeur || 0;
+    const gainPct = baseTotal > 0 ? Math.abs(deltaGagnant) / baseTotal * 100 : 0;
+
+    const points: string[] = [];
+    if (deltaGagnant < 0) {
+      points.push(`<strong>${gagnant.titre}</strong> apporte le meilleur gain global : ${formatEuroH(Math.abs(deltaGagnant))} économisés (soit ${gainPct.toFixed(1).replace(".", ",")} % de la pression fiscale actuelle)`);
+    } else {
+      points.push("Aucun scénario n'apporte de gain global net — les arbitrages testés produisent un coût équivalent ou supérieur");
+    }
+    if (scenarios.length >= 2) {
+      const ecartMax = (sorted[sorted.length - 1].kpis[3]?.valeur || 0) - (sorted[0].kpis[3]?.valeur || 0);
+      points.push(`écart entre le scénario le moins / le plus coûteux : ${formatEuroH(ecartMax)}`);
+    }
+    points.push("simulations indicatives non opposables — à actualiser selon évolutions législatives et patrimoniales");
+
+    notreLecture = `
+      <p style="margin:0 0 10px 0">Les scénarios simulent l'impact de stratégies alternatives sur votre <strong>pression fiscale globale</strong> (IR + IFI + succession). La base de comparaison est votre situation actuelle.</p>
+      <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
+        <li><strong>Base actuelle</strong> — Total fiscal annuel + transmission : ${formatEuroH(baseTotal)}.</li>
+        <li><strong>Scénarios étudiés</strong> — ${scenarios.length} scénario${scenarios.length > 1 ? "s" : ""} complet${scenarios.length > 1 ? "s" : ""}.</li>
+        <li><strong>Scénario gagnant</strong> — ${gagnant.titre} : ${formatEuroH(totalGagnant)} (${deltaGagnant < 0 ? `<span style="color:#2F7D5B">− ${formatEuroH(Math.abs(deltaGagnant))}</span>` : `<span style="color:#B0413E">+ ${formatEuroH(deltaGagnant)}</span>`} vs base).</li>
+      </ul>
+      <p style="margin:0;font-style:italic;color:#6B6353"><strong>Points d'attention :</strong> ${points.join(" ; ")}.</p>
+    `.trim();
+  }
+
   return {
     clientName,
     dateStr,
@@ -67,9 +101,14 @@ export function buildHyposData(p: BuildHyposDataParams): HyposPageData {
     baseIFI,
     baseSuccession,
     scenarios,
+    notreLecture,
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Hypothèses — confidentiel`,
   };
+}
+
+function formatEuroH(n: number): string {
+  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Math.round(n)) + " €";
 }
 
 function num(v: any): number {

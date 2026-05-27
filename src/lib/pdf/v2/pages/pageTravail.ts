@@ -8,6 +8,7 @@ import {
   header,
   bandeKPI,
   sousTitreSection,
+  encartNotreLecture,
   piedPage,
   coquillePage,
   euro,
@@ -45,6 +46,7 @@ export type TravailPageData = {
   revenusFoyer: LigneRevenu[];
   // Déductions
   deductions: LigneDeduction[];   // peut être vide
+  notreLecture?: string;
   pagePosition: string;
   cabinetLibellePied: string;
 };
@@ -117,6 +119,8 @@ export function pageTravail(t: Tokens, d: TravailPageData): string {
 
     ${cardFoyer}
     ${cardDeductions}
+
+    ${d.notreLecture ? encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) : ""}
   `;
 
   const pied = piedPage(t, {

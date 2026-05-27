@@ -60,6 +60,46 @@ export function buildFamilleData(p: BuildFamilleDataParams): FamillePageData {
 
   const parts = typeof ir.parts === "number" ? ir.parts : 0;
 
+  // ─── Analyse "masque" : composition + statut + points d'attention ──
+  const nbHandicapEnfant = enfants.filter(e => e.handicap).length;
+  const nbAlternee = enfants.filter(e => e.garde === "Alternée").length;
+  const nbRattaches = enfants.filter(e => e.rattache).length;
+  const isCohab = data.coupleStatus === "cohab";
+  const handicapAdulte = !!data.person1Handicap || !!data.person2Handicap;
+
+  const points: string[] = [];
+  if (isCohab) {
+    points.push("concubinage : pas d'héritier légal entre concubins, pas d'avantage fiscal couple — transmission via testament ou assurance-vie indispensable pour protéger l'autre");
+  }
+  if (data.singleParent) {
+    points.push("statut parent isolé (case T) : demi-part fiscale supplémentaire pour le 1ʳᵉ enfant à charge");
+  }
+  if (nbHandicapEnfant > 0) {
+    points.push(`${nbHandicapEnfant} enfant${nbHandicapEnfant > 1 ? "s" : ""} en situation de handicap : abattement succession majoré de 159 325 € cumulable (CGI art. 779 II) + demi-part fiscale supplémentaire (case G/H)`);
+  }
+  if (handicapAdulte) {
+    points.push("personne en situation de handicap dans le foyer : demi-part fiscale supplémentaire + abattement IR (case P)");
+  }
+  if (nbAlternee > 0) {
+    points.push(`${nbAlternee} enfant${nbAlternee > 1 ? "s" : ""} en garde alternée : 0,25 part fiscale par enfant (vs 0,5 en garde classique)`);
+  }
+  if (nbRattaches > 0 && enfants.length > 0) {
+    points.push(`${nbRattaches} enfant${nbRattaches > 1 ? "s" : ""} rattaché${nbRattaches > 1 ? "s" : ""} fiscalement — réduction d'impôt scolarité (collège 61 € / lycée 153 € / supérieur 183 € par enfant)`);
+  }
+  if (points.length === 0) {
+    points.push("Composition familiale standard — pas de cas particulier détecté");
+  }
+
+  const notreLecture = `
+    <p style="margin:0 0 10px 0">La composition familiale détermine vos <strong>parts fiscales</strong> et conditionne vos choix patrimoniaux (réserve héréditaire des enfants, protection du conjoint, donations).</p>
+    <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
+      <li><strong>Statut du couple</strong> — ${statutCouple}.</li>
+      <li><strong>Quotient familial</strong> — ${parts} part${parts > 1 ? "s" : ""} fiscale${parts > 1 ? "s" : ""}.</li>
+      <li><strong>Enfants</strong> — ${enfants.length} enregistré${enfants.length > 1 ? "s" : ""}${enfants.length > 0 ? ` (${nbRattaches} rattaché${nbRattaches > 1 ? "s" : ""}, ${nbAlternee} en garde alternée, ${nbHandicapEnfant} en situation de handicap)` : ""}.</li>
+    </ul>
+    <p style="margin:0;font-style:italic;color:#6B6353"><strong>Points d'attention :</strong> ${points.join(" ; ")}.</p>
+  `.trim();
+
   return {
     clientName,
     dateStr,
@@ -69,6 +109,7 @@ export function buildFamilleData(p: BuildFamilleDataParams): FamillePageData {
     parts,
     nbEnfants: enfants.length,
     enfants,
+    notreLecture,
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Famille — confidentiel`,
   };

@@ -10,6 +10,7 @@ import {
   header,
   bandeKPI,
   sousTitreSection,
+  encartNotreLecture,
   piedPage,
   coquillePage,
   euro,
@@ -36,6 +37,7 @@ export type HyposPageData = {
   baseIFI: number;
   baseSuccession: number;
   scenarios: HypoScenario[];   // si vide, page rend un fallback
+  notreLecture?: string;
   pagePosition: string;
   cabinetLibellePied: string;
 };
@@ -100,6 +102,8 @@ export function pageHypos(t: Tokens, d: HyposPageData): string {
       ${sousTitreSection(t, `Scénarios étudiés — ${d.scenarios.length}`)}
       ${corpsScenarios}
     </div>
+
+    ${d.notreLecture ? encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) : ""}
   `;
 
   const pied = piedPage(t, {

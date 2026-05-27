@@ -104,9 +104,66 @@ export function buildTravailData(p: BuildTravailDataParams): TravailPageData {
     personne2,
     revenusFoyer,
     deductions,
+    notreLecture: composeNotreLectureTravail({
+      revenusBruts, revenusActifs: salairesActifs(salary1, salary2, ca1, ca2, pensionP1, pensionP2, pensionsLegacy),
+      revenusPassifs: foncierBrut + taxablePlacements,
+      salaries: salary1 + salary2, ca: ca1 + ca2,
+      foncierBrut, taxablePlacements, perDeduction,
+      irEstime,
+    }),
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Revenus — confidentiel`,
   };
+}
+
+function salairesActifs(s1: number, s2: number, c1: number, c2: number, p1: number, p2: number, pLegacy: number): number {
+  return s1 + s2 + c1 + c2 + p1 + p2 + (p1 === 0 && p2 === 0 ? pLegacy : 0);
+}
+
+function composeNotreLectureTravail(o: {
+  revenusBruts: number; revenusActifs: number; revenusPassifs: number;
+  salaries: number; ca: number; foncierBrut: number; taxablePlacements: number;
+  perDeduction: number; irEstime: number;
+}): string {
+  const totalRefer = o.revenusBruts > 0 ? o.revenusBruts : 1;
+  const partPassif = Math.round((o.revenusPassifs / totalRefer) * 100);
+  const partSalaires = Math.round((o.salaries / totalRefer) * 100);
+
+  const points: string[] = [];
+  if (o.ca > 30_000 && o.foncierBrut > 0) {
+    points.push("revenus mixtes (indépendant + foncier) — vérifier l'arbitrage micro vs réel selon les charges réelles déductibles");
+  }
+  if (o.foncierBrut > 15_000) {
+    points.push(`revenus fonciers > 15 000 € : régime réel obligatoire (le micro-foncier 30 % d'abattement n'est plus accessible)`);
+  } else if (o.foncierBrut > 0) {
+    points.push("revenus fonciers < 15 000 € : micro-foncier (30 % d'abattement) ou réel — à arbitrer selon vos charges");
+  }
+  if (o.taxablePlacements > 0) {
+    points.push("revenus mobiliers présents : option PFU 30 % vs barème — à arbitrer chaque année selon votre TMI");
+  }
+  if (o.perDeduction === 0 && o.irEstime > 5_000) {
+    points.push("PER non utilisé alors qu'un impôt est dû — levier d'épargne défiscalisée à étudier (plafond annuel ~10 % des revenus pro nets)");
+  }
+  if (partPassif > 30) {
+    points.push(`revenus passifs (foncier + mobiliers) > 30 % des revenus bruts (${partPassif} %) : structure de revenus solide pour préparer la retraite`);
+  }
+  if (points.length === 0) {
+    points.push("Structure de revenus simple — à revoir lors d'un changement professionnel ou patrimonial majeur");
+  }
+
+  return `
+    <p style="margin:0 0 10px 0">La structure de vos revenus conditionne votre <strong>capacité d'épargne</strong>, vos <strong>marges d'optimisation fiscale</strong> et vos choix d'enveloppes patrimoniales.</p>
+    <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
+      <li><strong>Revenus actifs (salaires, CA, pensions)</strong> — ${formatEuroT(o.revenusActifs)}, soit ${Math.round((o.revenusActifs / totalRefer) * 100)} % des revenus bruts.</li>
+      <li><strong>Revenus passifs (foncier + mobiliers)</strong> — ${formatEuroT(o.revenusPassifs)}, soit ${partPassif} %.</li>
+      <li><strong>Pression fiscale</strong> — IR ${formatEuroT(o.irEstime)} sur ${formatEuroT(o.revenusBruts)} bruts (${o.revenusBruts > 0 ? ((o.irEstime / o.revenusBruts) * 100).toFixed(1).replace(".", ",") : "0,0"} % en taux moyen).</li>
+    </ul>
+    <p style="margin:0;font-style:italic;color:#6B6353"><strong>Points d'attention :</strong> ${points.join(" ; ")}.</p>
+  `.trim();
+}
+
+function formatEuroT(n: number): string {
+  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Math.round(n)) + " €";
 }
 
 function num(v: any): number {
