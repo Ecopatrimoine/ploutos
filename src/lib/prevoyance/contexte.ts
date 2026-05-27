@@ -51,18 +51,55 @@ export function calcEnfantsMineurs(data: PatrimonialData): number {
   }).length;
 }
 
+/**
+ * Détermine si P2 est "à charge" de P1 au sens du conseil
+ * patrimonial (besoin de protection en cas de décès de P1).
+ *
+ * RÈGLE : conjoint = personne en couple (marié/PACS/cohab) ET
+ * dont les revenus propres sont inférieurs à 50 % de ceux de P1.
+ *
+ * POURQUOI 50 % : seuil choisi pour éviter les effets binaires
+ * absurdes (un conjoint à 200 €/mois ne serait plus "à charge"
+ * sur un seuil strict à zéro alors qu'il l'est de facto).
+ * 50 % traduit l'idée qu'en cas de décès de P1, P2 ne pourrait
+ * pas maintenir son niveau de vie avec ses seuls revenus.
+ *
+ * REVENUS PRIS EN COMPTE : salaire + pensions + CA TNS +
+ * revenus fonciers/agricoles. Revenus financiers passifs
+ * (placements) volontairement exclus — ils restent disponibles
+ * pour P2 après décès, ils n'ont pas à entrer dans le calcul.
+ *
+ * LIMITES CONNUES : seuil unique, pas de modulation selon nombre
+ * d'enfants ni selon le coût de la vie locale. À affiner si
+ * besoin pratique remonté (cf. docs/ROADMAP_PREVOYANCE.md).
+ */
 export function calcConjointACharge(data: PatrimonialData): boolean {
   const couple =
     data.coupleStatus === "married" ||
     data.coupleStatus === "pacs" ||
     data.coupleStatus === "cohab";
   if (!couple) return false;
-  const salary2 = n(data.salary2);
-  const pensions2 = n(data.pensions2 ?? "0");
-  const tnsP2 = n(data.ca2);
-  const baP2 = n(data.baRevenue2);
-  // Conjoint à charge = P2 sans aucun revenu professionnel ou pension.
-  return salary2 === 0 && pensions2 === 0 && tnsP2 === 0 && baP2 === 0;
+  const revenuP1 = calcRevenuMensuel(data, "p1");
+  const revenuP2 = calcRevenuMensuel(data, "p2");
+  if (revenuP1 <= 0) return false; // pas de référence pour comparer
+  return revenuP2 < 0.5 * revenuP1;
+}
+
+// Calcule le revenu mensuel d'une personne pour le test "conjoint
+// à charge" : salaire + pensions + CA TNS + revenus agricoles,
+// divisé par 12. Les revenus financiers passifs (placements) sont
+// volontairement exclus — ils restent disponibles après décès.
+export function calcRevenuMensuel(
+  data: PatrimonialData,
+  which: "p1" | "p2"
+): number {
+  const salary = which === "p1" ? data.salary1 : data.salary2;
+  const pensions =
+    which === "p1" ? (data.pensions1 ?? data.pensions ?? "0") : (data.pensions2 ?? "0");
+  const ca = which === "p1" ? data.ca1 : data.ca2;
+  const ba = which === "p1" ? data.baRevenue1 : data.baRevenue2;
+  const total = n(salary) + n(pensions) + n(ca) + n(ba);
+  return total / 12;
 }
 
 export function buildContexteRegle(
@@ -76,5 +113,7 @@ export function buildContexteRegle(
     dettesImmobilieres: calcDettesImmobilieres(data),
     conjointACharge: calcConjointACharge(data),
     enfantsMineurs: calcEnfantsMineurs(data),
+    revenuP1Mensuel: calcRevenuMensuel(data, "p1"),
+    revenuP2Mensuel: calcRevenuMensuel(data, "p2"),
   };
 }

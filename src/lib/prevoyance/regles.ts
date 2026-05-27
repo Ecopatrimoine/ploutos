@@ -77,6 +77,22 @@ function libelleCible(cible: "p1" | "p2"): string {
   return cible === "p1" ? "la personne 1" : "la personne 2";
 }
 
+// Phrase explicative en italique à ajouter au détail des constats qui
+// s'appuient sur conjointACharge. Convention : balise HTML <em>…</em>
+// pour l'italique — le UI BlocConstats du LOT 7 décidera du rendu
+// (rendu HTML direct ou parseur dédié).
+function phraseExplicativeConjoint(ctx: ContexteRegle): string {
+  const p1 = `${Math.round(ctx.revenuP1Mensuel).toLocaleString("fr-FR")} €`;
+  const p2 = `${Math.round(ctx.revenuP2Mensuel).toLocaleString("fr-FR")} €`;
+  return (
+    ` <em>Cette analyse considère votre conjoint comme dépendant ` +
+    `financièrement car ses revenus propres (${p2}/mois) sont ` +
+    `inférieurs à 50 % des vôtres (${p1}/mois). Si la situation ` +
+    `diffère (patrimoine personnel important, revenus à venir ` +
+    `prochainement), affinez le conseil.</em>`
+  );
+}
+
 // ────────────────────────────────────────────────────────────────────
 // Axe DC — 3 règles
 // ────────────────────────────────────────────────────────────────────
@@ -94,16 +110,20 @@ export const regleDcTnsSansCapital: Regle = (ctx, cible) => {
   if (ctx.enfantsMineurs > 0)
     motifs.push(`${ctx.enfantsMineurs} enfant${ctx.enfantsMineurs > 1 ? "s" : ""} mineur${ctx.enfantsMineurs > 1 ? "s" : ""}`);
 
+  const detailBase =
+    `En tant que TNS, ${libelleCible(cible)} ne dispose d'aucun capital décès souscrit à titre individuel. ` +
+    `Le capital décès du régime obligatoire est généralement forfaitaire et insuffisant au regard ` +
+    `de la situation du foyer (${motifs.join(" et ")}).`;
+  // Phrase explicative ajoutée seulement si la règle s'est déclenchée
+  // grâce au critère "conjoint à charge".
+  const detail = ctx.conjointACharge ? detailBase + phraseExplicativeConjoint(ctx) : detailBase;
   return {
     id: `dc_tns_sans_capital_${cible}`,
     severite: "alerte",
     axe: "deces",
     cible,
     titre: "TNS sans capital décès individuel — situation à risque",
-    detail:
-      `En tant que TNS, ${libelleCible(cible)} ne dispose d'aucun capital décès souscrit à titre individuel. ` +
-      `Le capital décès du régime obligatoire est généralement forfaitaire et insuffisant au regard ` +
-      `de la situation du foyer (${motifs.join(" et ")}).`,
+    detail,
     reference: "Art. L.911-1 et s. CSS",
     action:
       "Évaluer la mise en place d'une couverture décès individuelle, dimensionnée selon les revenus à remplacer " +
@@ -144,16 +164,18 @@ export const regleDcPasDeRenteConjointEnfantsJeunes: Regle = (ctx, cible) => {
   const renteConj = sumContratsParType(ctx.entree.contratsIndividuels, "deces_rente_conj");
   if (renteConj > 0) return null;
 
+  const detailBase =
+    `Le foyer compte ${ctx.enfantsMineurs} enfant${ctx.enfantsMineurs > 1 ? "s" : ""} mineur${ctx.enfantsMineurs > 1 ? "s" : ""} ` +
+    `et un conjoint dont les revenus propres sont insuffisants pour maintenir le train de vie du foyer. ` +
+    `En cas de décès de ${libelleCible(cible)}, le conjoint survivant et les enfants se retrouveraient sans ` +
+    `revenu de remplacement régulier au-delà du seul capital décès.`;
   return {
     id: `dc_pas_de_rente_conjoint_enfants_jeunes_${cible}`,
     severite: "alerte",
     axe: "deces",
     cible,
-    titre: "Pas de rente conjoint malgré un conjoint sans revenu et des enfants mineurs",
-    detail:
-      `Le foyer compte ${ctx.enfantsMineurs} enfant${ctx.enfantsMineurs > 1 ? "s" : ""} mineur${ctx.enfantsMineurs > 1 ? "s" : ""} ` +
-      `et un conjoint sans revenu professionnel. En cas de décès de ${libelleCible(cible)}, le conjoint survivant ` +
-      `et les enfants se retrouveraient sans revenu de remplacement régulier au-delà du seul capital décès.`,
+    titre: "Pas de rente conjoint malgré un conjoint sans revenu suffisant et des enfants mineurs",
+    detail: detailBase + phraseExplicativeConjoint(ctx),
     action:
       "Évaluer la mise en place d'une rente conjoint (rente viagère ou temporaire) " +
       "dimensionnée pour maintenir le train de vie du foyer pendant la période de vulnérabilité.",
@@ -218,27 +240,36 @@ export const regleIjPlafondInsuffisant: Regle = (ctx, cible) => {
   };
 };
 
-export const regleIjPasDeSubrogation: Regle = (ctx, cible) => {
-  // Critère : IDCC saisi mais on tombe sur le maintien légal (= la CCN
-  // n'est pas documentée OU ses paliers sont TO_VERIFY). Le maintien
-  // légal Mensualisation n'impose PAS la subrogation employeur.
-  if (!ctx.projection.useLegalDefault) return null;
+// Règle renommée (anciennement ij_pas_de_subrogation, cf. revue
+// Lot 6 du 2026-05-27). La vraie règle "absence de subrogation"
+// arrivera quand le référentiel CCN aura le champ subrogation:boolean
+// rempli (cf. docs/ROADMAP_PREVOYANCE.md).
+export const regleIjCcnNonDocumentee: Regle = (ctx, cible) => {
+  // Critère : IDCC saisi MAIS useLegalDefault=true (la CCN n'est pas
+  // documentée OU ses paliers restent TO_VERIFY). On ne déclenche pas
+  // pour un TNS (qui n'a pas d'IDCC). Le constat informe que le
+  // calcul présenté est un PLANCHER (maintien légal Mensualisation).
   if (!ctx.entree.idccCCN) return null;
+  if (!ctx.projection.useLegalDefault) return null;
 
+  const idcc = ctx.entree.idccCCN;
   return {
-    id: `ij_pas_de_subrogation_${cible}`,
+    id: `ij_ccn_non_documentee_${cible}`,
     severite: "info",
     axe: "incapacite",
     cible,
-    titre: "Maintien employeur basé sur le minimum légal (subrogation non garantie)",
+    titre: "Convention collective non documentée",
     detail:
-      `La CCN n° ${ctx.entree.idccCCN} applicable à ${libelleCible(cible)} n'est pas encore documentée dans ` +
-      `le référentiel. La projection s'appuie donc sur le maintien légal Mensualisation, qui n'impose pas la ` +
-      `subrogation. Le salarié peut donc devoir avancer la trésorerie le temps que la CPAM verse ses IJ.`,
+      `L'IDCC saisi (${idcc}) n'est pas encore dans le référentiel Ploutos. Le calcul de maintien ` +
+      `employeur repose sur la loi Mensualisation (L.1226-1 C. trav., 7 jours de carence puis 30 j à ` +
+      `90 % à partir d'un an d'ancienneté, paliers évoluant ensuite). La CCN applicable peut prévoir ` +
+      `des dispositions plus favorables (carence supprimée, maintien plus long, taux plus élevés). ` +
+      `Le calcul présenté est donc un PLANCHER, non la situation réelle.`,
     reference: "L.1226-1 et D.1226-1 et s. C. trav.",
     action:
-      "Vérifier dans le texte de la CCN applicable si une subrogation employeur est prévue, et le cas échéant " +
-      "rappeler à l'employeur ses obligations conventionnelles.",
+      `Vérifier sur Légifrance / KALI les dispositions de maintien de salaire prévues par la CCN ${idcc}, ` +
+      `puis signaler à l'équipe Ploutos pour enrichissement du référentiel. ` +
+      `Le module sera enrichi à mesure des situations rencontrées.`,
   };
 };
 
@@ -308,7 +339,7 @@ const REGLES_INDIVIDUELLES: Regle[] = [
   regleDcPasDeRenteConjointEnfantsJeunes,
   regleIjCarenceCaisseSansMadelin,
   regleIjPlafondInsuffisant,
-  regleIjPasDeSubrogation,
+  regleIjCcnNonDocumentee,
   regleInvCat2AucuneCouvertureCompl,
   regleInvTnsMadelinAbsent,
 ];

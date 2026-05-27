@@ -11,7 +11,7 @@ import {
   regleDcPasDeRenteConjointEnfantsJeunes,
   regleIjCarenceCaisseSansMadelin,
   regleIjPlafondInsuffisant,
-  regleIjPasDeSubrogation,
+  regleIjCcnNonDocumentee,
   regleInvCat2AucuneCouvertureCompl,
   regleInvTnsMadelinAbsent,
 } from "../lib/prevoyance/regles";
@@ -20,6 +20,7 @@ import {
   calcDettesImmobilieres,
   calcEnfantsMineurs,
   calcConjointACharge,
+  calcRevenuMensuel,
 } from "../lib/prevoyance/contexte";
 import type { PatrimonialData } from "../types/patrimoine";
 
@@ -66,6 +67,8 @@ function makeCtx(
     dettesImmobilieres: 0,
     conjointACharge: false,
     enfantsMineurs: 0,
+    revenuP1Mensuel: 4583,    // valeur par défaut indicative (55k/12)
+    revenuP2Mensuel: 0,
     ...over,
   };
 }
@@ -215,14 +218,44 @@ describe("buildContexteRegle — helpers", () => {
 
   it("calcConjointACharge : couple avec P2 sans revenu → true", () => {
     expect(
-      calcConjointACharge(minimalPatrimonialData({ coupleStatus: "married", salary2: "0", ca2: "0", baRevenue2: "0" }))
+      calcConjointACharge(minimalPatrimonialData({
+        coupleStatus: "married", salary1: "55000", salary2: "0", ca2: "0", baRevenue2: "0",
+      }))
     ).toBe(true);
   });
 
-  it("calcConjointACharge : couple avec P2 salarié → false", () => {
+  it("calcConjointACharge : P2 à 30 % du revenu P1 → à charge (< 50 %)", () => {
+    // P1 = 55 000 / 12 ≈ 4583 € ; P2 à 30 % = 16 500 / 12 ≈ 1375 €
     expect(
-      calcConjointACharge(minimalPatrimonialData({ coupleStatus: "married", salary2: "30000" }))
+      calcConjointACharge(minimalPatrimonialData({
+        coupleStatus: "married", salary1: "55000", salary2: "16500",
+      }))
+    ).toBe(true);
+  });
+
+  it("calcConjointACharge : P2 à 60 % du revenu P1 → PAS à charge (≥ 50 %)", () => {
+    // P1 = 55 000 / 12 ≈ 4583 € ; P2 à 60 % = 33 000 / 12 ≈ 2750 €
+    expect(
+      calcConjointACharge(minimalPatrimonialData({
+        coupleStatus: "married", salary1: "55000", salary2: "33000",
+      }))
     ).toBe(false);
+  });
+
+  it("calcConjointACharge : revenu P1 = 0 (cas dégénéré) → false (pas de référence)", () => {
+    expect(
+      calcConjointACharge(minimalPatrimonialData({
+        coupleStatus: "married", salary1: "0", salary2: "0",
+      }))
+    ).toBe(false);
+  });
+
+  it("calcRevenuMensuel : somme salaire + pensions + CA + BA, /12", () => {
+    const data = minimalPatrimonialData({
+      salary1: "24000", pensions1: "6000", ca1: "12000", baRevenue1: "0",
+    });
+    // 42 000 / 12 = 3500
+    expect(calcRevenuMensuel(data, "p1")).toBeCloseTo(3500, 2);
   });
 });
 
@@ -263,6 +296,33 @@ describe("regleDcTnsSansCapital", () => {
     const c = regleDcTnsSansCapital(ctx, "p1");
     expect(c?.action.toLowerCase()).not.toMatch(/axa|generali|apicil|allianz|cnp|swisslife|aviva/);
     expect(c?.action.toLowerCase()).not.toMatch(/contrat\s+\w+\s+pro/); // pas de nom de produit
+  });
+
+  it("le détail contient la phrase italique explicative quand conjointACharge=true", () => {
+    const ctx = makeCtx(entreeTNSLiberal, {
+      conjointACharge: true,
+      revenuP1Mensuel: 7917,
+      revenuP2Mensuel: 1500,
+    });
+    const c = regleDcTnsSansCapital(ctx, "p1");
+    // Normaliser les espaces insécables produits par toLocaleString("fr-FR")
+    // (U+00A0 / U+202F) vers un espace simple, pour des assertions stables.
+    const detail = (c?.detail ?? "").replace(/[  ]/g, " ");
+    expect(detail).toContain("<em>");
+    expect(detail).toContain("inférieurs à 50 %");
+    expect(detail).toContain("affinez le conseil");
+    // Les revenus formatés apparaissent
+    expect(detail).toContain("7 917");
+    expect(detail).toContain("1 500");
+  });
+
+  it("le détail NE contient PAS la phrase italique quand conjointACharge=false (déclenché par enfants seuls)", () => {
+    const ctx = makeCtx(entreeTNSLiberal, {
+      conjointACharge: false,
+      enfantsMineurs: 2,
+    });
+    const c = regleDcTnsSansCapital(ctx, "p1");
+    expect(c?.detail).not.toContain("<em>");
   });
 });
 
@@ -308,9 +368,20 @@ describe("regleDcPasDeRenteConjointEnfantsJeunes", () => {
   });
 
   it("déclenche alerte avec conjoint à charge + enfants mineurs + pas de rente", () => {
-    const ctx = makeCtx(entreeSalarie, { conjointACharge: true, enfantsMineurs: 2 });
+    const ctx = makeCtx(entreeSalarie, {
+      conjointACharge: true,
+      enfantsMineurs: 2,
+      revenuP1Mensuel: 4583,
+      revenuP2Mensuel: 1200,
+    });
     const c = regleDcPasDeRenteConjointEnfantsJeunes(ctx, "p1");
     expect(c?.severite).toBe("alerte");
+    // Phrase italique systématique pour cette règle (toujours liée
+    // à conjointACharge=true par construction)
+    const detail = (c?.detail ?? "").replace(/[  ]/g, " ");
+    expect(detail).toContain("<em>");
+    expect(detail).toContain("4 583");
+    expect(detail).toContain("1 200");
   });
 });
 
@@ -363,18 +434,42 @@ describe("regleIjPlafondInsuffisant", () => {
   });
 });
 
-describe("regleIjPasDeSubrogation", () => {
+describe("regleIjCcnNonDocumentee", () => {
   it("ne déclenche pas si pas d'IDCC saisi", () => {
     const ctx = makeCtx({ ...entreeSalarie, idccCCN: null });
-    expect(regleIjPasDeSubrogation(ctx, "p1")).toBeNull();
+    expect(regleIjCcnNonDocumentee(ctx, "p1")).toBeNull();
+  });
+
+  it("ne déclenche PAS pour un TNS (qui n'a pas d'IDCC par construction)", () => {
+    const ctx = makeCtx(entreeTNSLiberal);
+    expect(regleIjCcnNonDocumentee(ctx, "p1")).toBeNull();
   });
 
   it("déclenche en info pour IDCC saisi avec fallback maintien légal", () => {
     // Syntec encore TO_VERIFY → useLegalDefault = true → info levée.
     const ctx = makeCtx(entreeSalarie);
-    const c = regleIjPasDeSubrogation(ctx, "p1");
+    const c = regleIjCcnNonDocumentee(ctx, "p1");
+    expect(c?.id).toBe("ij_ccn_non_documentee_p1");
     expect(c?.severite).toBe("info");
+    expect(c?.titre).toBe("Convention collective non documentée");
     expect(c?.reference).toContain("L.1226-1");
+  });
+
+  it("le détail mentionne l'IDCC saisi + Mensualisation + plancher", () => {
+    const ctx = makeCtx({ ...entreeSalarie, idccCCN: "9999" });
+    const c = regleIjCcnNonDocumentee(ctx, "p1");
+    expect(c?.detail).toContain("9999");
+    expect(c?.detail).toContain("Mensualisation");
+    expect(c?.detail).toContain("PLANCHER");
+  });
+
+  it("l'action pointe vers Légifrance / KALI + signalement équipe Ploutos", () => {
+    const ctx = makeCtx({ ...entreeSalarie, idccCCN: "1486" });
+    const c = regleIjCcnNonDocumentee(ctx, "p1");
+    expect(c?.action).toContain("Légifrance");
+    expect(c?.action).toContain("KALI");
+    expect(c?.action).toContain("1486");
+    expect(c?.action).toContain("équipe Ploutos");
   });
 });
 
@@ -496,6 +591,7 @@ describe("buildContexteRegle — intégration", () => {
   it("compose un ContexteRegle complet depuis payload + projection", () => {
     const data = minimalPatrimonialData({
       coupleStatus: "married",
+      salary1: "55000",
       salary2: "0",
       childrenData: [
         { firstName: "Enf", lastName: "", birthDate: `${new Date().getFullYear() - 10}-01-01`,
@@ -509,5 +605,7 @@ describe("buildContexteRegle — intégration", () => {
     expect(ctx.dettesImmobilieres).toBe(0);
     expect(ctx.conjointACharge).toBe(true);
     expect(ctx.enfantsMineurs).toBe(1);
+    expect(ctx.revenuP1Mensuel).toBeCloseTo(55000 / 12, 0);
+    expect(ctx.revenuP2Mensuel).toBe(0);
   });
 });

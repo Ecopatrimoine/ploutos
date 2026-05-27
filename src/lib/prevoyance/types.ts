@@ -142,6 +142,12 @@ export type ContexteRegle = {
   dettesImmobilieres: number;       // somme des capitaux restants dûs
   conjointACharge: boolean;
   enfantsMineurs: number;           // nb d'enfants < 18 ans rattachés au foyer
+  // Revenus mensuels pondérés (salaire + pensions + CA TNS + revenus
+  // fonciers/agricoles). Utilisés par les règles qui s'appuient sur
+  // conjointACharge pour formuler la phrase explicative (cf. spec
+  // Lot 6 ajustement 2 du 2026-05-27).
+  revenuP1Mensuel: number;
+  revenuP2Mensuel: number;
 };
 
 export type Regle = (ctx: ContexteRegle, cible: "p1" | "p2") => Constat | null;
