@@ -520,11 +520,16 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       value: `child_${i}`,
       label: `${c.firstName || ""} ${c.lastName || ""}`.trim() || `Enfant ${i + 1}`,
     }));
+  // "Communauté" = régime matrimonial → masqué pour les concubins (pas de
+  // communauté de biens sans mariage/PACS) et pour les célibataires.
+  // Les concubins peuvent toujours détenir un bien à 2 via "Indivision".
+  const isMarriedOrPacs = data.coupleStatus === "married" || data.coupleStatus === "pacs";
+  const hasSecondPerson = data.coupleStatus !== "single";
   const ownerOptions = [
     { value: "person1", label: person1 },
-    { value: "person2", label: person2 },
-    { value: "common", label: "Communauté" },
-    { value: "indivision", label: "Indivision" },
+    ...(hasSecondPerson ? [{ value: "person2", label: person2 }] : []),
+    ...(isMarriedOrPacs ? [{ value: "common", label: "Communauté" }] : []),
+    ...(hasSecondPerson ? [{ value: "indivision", label: "Indivision" }] : []),
     ...childOwnerOptions,
   ];
 

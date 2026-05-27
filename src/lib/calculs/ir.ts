@@ -436,9 +436,19 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       else { perRentes1 += imposable; perRentesPS1 += ps; }
     }
 
-    // ── Charges déductibles non ventilables ──
-    // Simplification : réparti 50/50 faute de champ nominatif — à ventiler quand le champ payeur existera
-    const nonVentilableDeductible = n(data.pensionDeductible) + n(data.otherDeductible) + n(data.csgDeductibleFoncier);
+    // ── Charges déductibles ventilées par personne ──
+    // CSG déductible foncier : ventilée au prorata du foncier net imposable
+    // de chaque personne (cohérent avec qui paye réellement la CSG).
+    // Fallback 50/50 si aucun foncier (champ saisi par erreur).
+    const csgFoncier = n(data.csgDeductibleFoncier);
+    const foncierTaxableP1 = Math.max(0, foncier1.taxable);
+    const foncierTaxableP2 = Math.max(0, foncier2.taxable);
+    const totalFoncierNet = foncierTaxableP1 + foncierTaxableP2;
+    const csgFoncierP1 = totalFoncierNet > 0 ? (csgFoncier * foncierTaxableP1 / totalFoncierNet) : csgFoncier / 2;
+    const csgFoncierP2 = csgFoncier - csgFoncierP1;
+    // Pension déductible + autres charges : pas de champ nominatif → 50/50
+    // (à ventiler quand des champs payeur dédiés existeront)
+    const autresNonVentilable = n(data.pensionDeductible) + n(data.otherDeductible);
 
     // ── Abattement handicap par personne ──
     const hAbatt1 = data.person1Handicap ? getHandicapAbattement(n(data.salary1) + n(data.ca1) + n(data.baRevenue1)) : 0;
@@ -447,10 +457,10 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     // ── Revenus nets par personne ──
     const rev1 = Math.max(0, (isIndep1 ? benefice1 : salary1) + pensionP1 - retained1
       + foncier1.taxable + taxablePlac1 + perCapital1 + perRentes1
-      - perDeduction1 - nonVentilableDeductible / 2 - hAbatt1);
+      - perDeduction1 - csgFoncierP1 - autresNonVentilable / 2 - hAbatt1);
     const rev2 = Math.max(0, (isIndep2 ? benefice2 : salary2) + pensionP2 - retained2
       + foncier2.taxable + taxablePlac2 + perCapital2 + perRentes2
-      - perDeduction2 - nonVentilableDeductible / 2 - hAbatt2);
+      - perDeduction2 - csgFoncierP2 - autresNonVentilable / 2 - hAbatt2);
 
     const r1 = computeIRConcubin(rev1, parts1);
     const r2 = computeIRConcubin(rev2, parts2);
@@ -494,6 +504,23 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       perDeductionCalc: perDeduction1 + perDeduction2, perP1Deductible, perP2Deductible,
       deficitFoncierImpute: foncier1.impute + foncier2.impute,
       deficitFoncierReportable: foncier1.reportable + foncier2.reportable,
+      // ── Détail par personne (audit IR concubins #3 : affichage TabIR) ──
+      foncierBrut1, foncierBrut2,
+      foncierCharges1, foncierCharges2,
+      foncierInterests1, foncierInterests2,
+      foncierTaxable1: foncier1.taxable, foncierTaxable2: foncier2.taxable,
+      foncierPS1, foncierPS2,
+      taxablePlac1, taxablePlac2,
+      pfuBase1, pfuBase2,
+      perInteretsPFU1, perInteretsPFU2,
+      // PFU total par foyer (placements barème PFU + PER intérêts) × 31,4 %
+      totalPFU1: (pfuBase1 + perInteretsPFU1) * 0.314,
+      totalPFU2: (pfuBase2 + perInteretsPFU2) * 0.314,
+      csgFoncierP1, csgFoncierP2,
+      // IR total des 2 foyers (ir.finalIR est filtré sur la personne active dans
+      // certaines vues, mais ici le total réel = bareme1 + bareme2 + PS + PFU)
+      finalIR1: bareme1 + foncierPS1 + (pfuBase1 * 0.314) + (perInteretsPFU1 * 0.314) + perRentesPS1,
+      finalIR2: bareme2 + foncierPS2 + (pfuBase2 * 0.314) + (perInteretsPFU2 * 0.314) + perRentesPS2,
     };
   }
 

@@ -564,6 +564,72 @@ describe("computeIR — concubinage (2 foyers)", () => {
     expect(ir.rev1).toBeCloseTo(31200, 0)
     expect(ir.rev2).toBeCloseTo(34000, 0)
   })
+
+  // ─── Sentinelle CSG foncier ventilée par personne (audit IR concubins) ──
+  it("concubinage : csgDeductibleFoncier ventilée 100 % sur le propriétaire seul du bien", () => {
+    // Person2 possède SEUL un locatif → toute la CSG déductible doit lui être imputée.
+    const prop = {
+      name: "Loc", type: "Location nue", ownership: "person2", propertyRight: "full",
+      usufructAge: "", value: "200000", propertyTaxAnnual: "0", rentGrossAnnual: "12000",
+      insuranceAnnual: "0", worksAnnual: "0", otherChargesAnnual: "0",
+      loanEnabled: false, loanType: "amortissable", loanAmount: "0", loanRate: "0",
+      loanDuration: "0", loanStartDate: "", loanCapitalRemaining: "0", loanInterestAnnual: "0",
+      loanPledgedPlacementIndex: "-1", loanInsurance: false, loanInsuranceGuarantees: "dc",
+      loanInsuranceRate: "0", loanInsuranceRate1: "0", loanInsuranceRate2: "0",
+      loanInsurancePremium: "0", loanInsuranceCoverage: "banque",
+      indivisionShare1: "", indivisionShare2: "",
+    }
+    const irAvecCsg = computeIR({
+      ...BASE_DATA, coupleStatus: "cohab",
+      salary1: "30000", salary2: "20000",
+      person2FirstName: "Conj", person2LastName: "Test",
+      properties: [prop],
+      csgDeductibleFoncier: "600",   // CSG 6,8 % sur 8 400 € ≈ 571 €, on prend 600 pour test
+    }, { ...STD_OPTIONS, foncierRegime: "micro" })
+    const irSansCsg = computeIR({
+      ...BASE_DATA, coupleStatus: "cohab",
+      salary1: "30000", salary2: "20000",
+      person2FirstName: "Conj", person2LastName: "Test",
+      properties: [prop],
+    }, { ...STD_OPTIONS, foncierRegime: "micro" })
+    // P1 ne doit PAS être impactée par la CSG (elle n'a pas de foncier)
+    expect(irAvecCsg.rev1).toBeCloseTo(irSansCsg.rev1, 0)
+    // P2 doit avoir un revenu réduit de 600 € (la CSG totale)
+    expect(irAvecCsg.rev2).toBeCloseTo(irSansCsg.rev2 - 600, 0)
+  })
+
+  it("concubinage : csgDeductibleFoncier ventilée au prorata si 2 biens (P1 30 % / P2 70 %)", () => {
+    const propP1 = {
+      name: "Loc P1", type: "Location nue", ownership: "person1", propertyRight: "full",
+      usufructAge: "", value: "100000", propertyTaxAnnual: "0", rentGrossAnnual: "6000",
+      insuranceAnnual: "0", worksAnnual: "0", otherChargesAnnual: "0",
+      loanEnabled: false, loanType: "amortissable", loanAmount: "0", loanRate: "0",
+      loanDuration: "0", loanStartDate: "", loanCapitalRemaining: "0", loanInterestAnnual: "0",
+      loanPledgedPlacementIndex: "-1", loanInsurance: false, loanInsuranceGuarantees: "dc",
+      loanInsuranceRate: "0", loanInsuranceRate1: "0", loanInsuranceRate2: "0",
+      loanInsurancePremium: "0", loanInsuranceCoverage: "banque",
+      indivisionShare1: "", indivisionShare2: "",
+    }
+    const propP2 = { ...propP1, name: "Loc P2", ownership: "person2", rentGrossAnnual: "14000" }
+    // Foncier micro : P1 = 6000×0.7 = 4200, P2 = 14000×0.7 = 9800, total = 14000
+    // Ratio P1 = 4200/14000 = 30 %, P2 = 70 %
+    // CSG 1000 € → P1 doit recevoir 300 €, P2 doit recevoir 700 €
+    const irAvec = computeIR({
+      ...BASE_DATA, coupleStatus: "cohab",
+      salary1: "30000", salary2: "30000",
+      person2FirstName: "Conj", person2LastName: "Test",
+      properties: [propP1, propP2],
+      csgDeductibleFoncier: "1000",
+    }, { ...STD_OPTIONS, foncierRegime: "micro" })
+    const irSans = computeIR({
+      ...BASE_DATA, coupleStatus: "cohab",
+      salary1: "30000", salary2: "30000",
+      person2FirstName: "Conj", person2LastName: "Test",
+      properties: [propP1, propP2],
+    }, { ...STD_OPTIONS, foncierRegime: "micro" })
+    expect(irAvec.rev1).toBeCloseTo(irSans.rev1 - 300, 0)
+    expect(irAvec.rev2).toBeCloseTo(irSans.rev2 - 700, 0)
+  })
 })
 
 // ─── PFU ──────────────────────────────────────────────────────────────────────

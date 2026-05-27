@@ -397,11 +397,95 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
           <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(145px,1fr))]">
           {property.ownership === "indivision" && (
             <>
-              <MoneyField label={`% ${person1}`} tooltip={`Quote-part de propriété de ${person1} dans l'indivision. La somme des deux parts doit égaler 100%.`} value={property.indivisionShare1} onChange={(e) => updateProperty(index, "indivisionShare1", e.target.value)} compact />
-              <MoneyField label={`% ${person2}`} tooltip={`Quote-part de propriété de ${person2} dans l'indivision. La somme des deux parts doit égaler 100%.`} value={property.indivisionShare2} onChange={(e) => updateProperty(index, "indivisionShare2", e.target.value)} compact />
+              <MoneyField label={`% ${person1}`} tooltip={`Quote-part de propriété de ${person1} dans l'indivision. La somme des deux parts (foyer + co-indivisaires extérieurs s'il y en a) doit égaler 100%.`} value={property.indivisionShare1} onChange={(e) => updateProperty(index, "indivisionShare1", e.target.value)} compact />
+              <MoneyField label={`% ${person2}`} tooltip={`Quote-part de propriété de ${person2} dans l'indivision. La somme des deux parts (foyer + co-indivisaires extérieurs s'il y en a) doit égaler 100%.`} value={property.indivisionShare2} onChange={(e) => updateProperty(index, "indivisionShare2", e.target.value)} compact />
             </>
           )}
         </div>
+
+        {/* ─── Co-propriétaires / co-associés extérieurs au foyer ────────
+             Pertinent pour : indivision (partagée avec tiers) ou SCI
+             familiale étendue / SCI avec amis / SCI avec associés. */}
+        {(property.ownership === "indivision" || property.type === "SCI IR" || property.type === "SCI IS") && (() => {
+          const externals = property.externalShares || [];
+          const s1 = n(property.indivisionShare1);
+          const s2 = n(property.indivisionShare2);
+          const sExt = externals.reduce((sum, e) => sum + n(e.sharePercent), 0);
+          const totalSomme = s1 + s2 + sExt;
+          const ecartSomme = 100 - totalSomme;
+          const addExternal = () => {
+            const next = [...externals, { id: `ext-${Date.now()}`, name: "", relation: "Associé", sharePercent: "0" }];
+            updateProperty(index, "externalShares", next);
+          };
+          const updateExternal = (extIdx: number, field: "name" | "relation" | "sharePercent", value: string) => {
+            const next = externals.map((e, i) => i === extIdx ? { ...e, [field]: value } : e);
+            updateProperty(index, "externalShares", next);
+          };
+          const removeExternal = (extIdx: number) => {
+            const next = externals.filter((_, i) => i !== extIdx);
+            updateProperty(index, "externalShares", next);
+          };
+          return (
+            <div className="mt-3 rounded-xl p-3" style={{ background: "rgba(81,106,199,0.04)", border: `1px solid rgba(81,106,199,0.15)` }}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.sky }}>
+                  Co-propriétaires extérieurs au foyer
+                </div>
+                <Button onClick={addExternal} variant="outline" className="h-7 rounded-lg px-2 text-xs">
+                  <Plus className="mr-1 h-3 w-3" />Ajouter
+                </Button>
+              </div>
+              {externals.length === 0 ? (
+                <div className="text-xs italic" style={{ color: BRAND.mutedLight }}>
+                  Ajoutez des co-indivisaires ou co-associés de SCI extérieurs à votre foyer (frère, ami, partenaire d'affaires…). Leurs parts sont déclarées par eux, pas par votre foyer.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {externals.map((ext, extIdx) => (
+                    <div key={ext.id} className="grid gap-2 items-end" style={{ gridTemplateColumns: "2fr 1.4fr 80px 32px" }}>
+                      <Field label={extIdx === 0 ? "Nom complet" : undefined}>
+                        <Input value={ext.name} onChange={(e) => updateExternal(extIdx, "name", e.target.value)} placeholder="ex: Jean Martin" className="h-8 text-sm rounded-lg" />
+                      </Field>
+                      <Field label={extIdx === 0 ? "Relation" : undefined}>
+                        <Select value={ext.relation} onValueChange={(v) => updateExternal(extIdx, "relation", v)}>
+                          <SelectTrigger className="h-8 text-sm rounded-lg"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Associé">Associé / Partenaire d'affaires</SelectItem>
+                            <SelectItem value="Frère/Sœur">Frère / Sœur</SelectItem>
+                            <SelectItem value="Parent">Parent (père / mère)</SelectItem>
+                            <SelectItem value="Cousin">Cousin / Cousine</SelectItem>
+                            <SelectItem value="Oncle/Tante">Oncle / Tante</SelectItem>
+                            <SelectItem value="Neveu/Nièce">Neveu / Nièce</SelectItem>
+                            <SelectItem value="Ami">Ami</SelectItem>
+                            <SelectItem value="Ex-conjoint">Ex-conjoint</SelectItem>
+                            <SelectItem value="Autre">Autre</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label={extIdx === 0 ? "% parts" : undefined}>
+                        <Input type="number" value={ext.sharePercent} onChange={(e) => updateExternal(extIdx, "sharePercent", e.target.value)} placeholder="0" className="h-8 text-sm rounded-lg text-right" />
+                      </Field>
+                      <Button onClick={() => removeExternal(extIdx)} variant="outline" className="h-8 w-8 rounded-lg p-0" title="Supprimer">
+                        <Trash2 className="h-3.5 w-3.5" style={{ color: BRAND.danger }} />
+                      </Button>
+                    </div>
+                  ))}
+                  {/* Synthèse somme */}
+                  <div className="flex items-center justify-between pt-2 mt-2 border-t" style={{ borderColor: "rgba(81,106,199,0.15)" }}>
+                    <span className="text-xs" style={{ color: BRAND.muted }}>
+                      Somme : <strong style={{ color: BRAND.navy }}>{(s1 + s2).toFixed(0)} % foyer + {sExt.toFixed(0)} % extérieurs = {totalSomme.toFixed(0)} %</strong>
+                    </span>
+                    {Math.abs(ecartSomme) > 0.5 && (
+                      <span className="text-xs font-bold" style={{ color: ecartSomme > 0 ? BRAND.warning : BRAND.danger }}>
+                        {ecartSomme > 0 ? `⚠ Manque ${ecartSomme.toFixed(0)} %` : `⚠ Dépasse de ${(-ecartSomme).toFixed(0)} %`}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </CardContent>
     </Card>
     );

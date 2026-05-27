@@ -101,18 +101,60 @@ const TabIR = React.memo(function TabIR(props: any) {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="rounded-xl p-3" style={{ background: concubinPerson === 1 ? "rgba(81,106,199,0.12)" : "rgba(0,0,0,0.03)", border: `1px solid ${concubinPerson === 1 ? "rgba(81,106,199,0.3)" : "transparent"}` }}>
-              <div className="font-semibold mb-1" style={{ color: BRAND.navy }}>{person1}</div>
-              <div className="text-slate-500">Revenu net : <strong>{euro((ir as any).rev1 || 0)}</strong></div>
-              <div className="text-slate-500">Parts : <strong>{((ir as any).parts1 || 1).toFixed(2)}</strong></div>
-              <div style={{ color: BRAND.sky }}>IR barème : <strong>{euro((ir as any).ir1 || 0)}</strong></div>
-            </div>
-            <div className="rounded-xl p-3" style={{ background: concubinPerson === 2 ? "rgba(81,106,199,0.12)" : "rgba(0,0,0,0.03)", border: `1px solid ${concubinPerson === 2 ? "rgba(81,106,199,0.3)" : "transparent"}` }}>
-              <div className="font-semibold mb-1" style={{ color: BRAND.navy }}>{person2 || "Personne 2"}</div>
-              <div className="text-slate-500">Revenu net : <strong>{euro((ir as any).rev2 || 0)}</strong></div>
-              <div className="text-slate-500">Parts : <strong>{((ir as any).parts2 || 1).toFixed(2)}</strong></div>
-              <div style={{ color: BRAND.sky }}>IR barème : <strong>{euro((ir as any).ir2 || 0)}</strong></div>
-            </div>
+            {([1, 2] as const).map(p => {
+              const irAny = ir as any;
+              const isActive = concubinPerson === p;
+              const name = p === 1 ? person1 : (person2 || "Personne 2");
+              const rev = irAny[`rev${p}`] || 0;
+              const parts = irAny[`parts${p}`] || 1;
+              const baremeIR = irAny[`ir${p}`] || 0;
+              const fonBrut = irAny[`foncierBrut${p}`] || 0;
+              const fonTax = irAny[`foncierTaxable${p}`] || 0;
+              const plac = irAny[`taxablePlac${p}`] || 0;
+              const pfu = irAny[`pfuBase${p}`] || 0;
+              const csgFon = irAny[`csgFoncierP${p}`] || 0;
+              const finalIR = irAny[`finalIR${p}`] || 0;
+              return (
+                <div key={p} className="rounded-xl p-3" style={{ background: isActive ? "rgba(81,106,199,0.12)" : "rgba(0,0,0,0.03)", border: `1px solid ${isActive ? "rgba(81,106,199,0.3)" : "transparent"}` }}>
+                  <div className="font-semibold mb-2" style={{ color: BRAND.navy }}>{name}</div>
+                  {/* Bloc revenus */}
+                  <div className="space-y-0.5 mb-2">
+                    <div className="text-slate-500">Revenu net : <strong>{euro(rev)}</strong></div>
+                    <div className="text-slate-500">Parts : <strong>{parts.toFixed(2)}</strong></div>
+                  </div>
+                  {/* Bloc foncier (si présent) */}
+                  {fonBrut > 0 && (() => {
+                    const fonPS = irAny[`foncierPS${p}`] || 0;
+                    return (
+                      <div className="space-y-0.5 mb-2 pt-2 border-t" style={{ borderColor: "rgba(81,106,199,0.15)" }}>
+                        <div className="text-slate-500" style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: BRAND.muted }}>Foncier</div>
+                        <div className="text-slate-500">Brut : <strong>{euro(fonBrut)}</strong></div>
+                        <div className="text-slate-500">Taxable : <strong>{euro(fonTax)}</strong></div>
+                        {csgFon > 0 && <div className="text-slate-500">CSG déduc. : <strong>− {euro(csgFon)}</strong></div>}
+                        {fonPS > 0 && <div className="text-slate-500">PS 17,2 % : <strong style={{ color: BRAND.danger }}>{euro(fonPS)}</strong></div>}
+                      </div>
+                    );
+                  })()}
+                  {/* Bloc placements (si présent) */}
+                  {(plac > 0 || pfu > 0) && (() => {
+                    const pfuFoyer = irAny[`totalPFU${p}`] || 0;
+                    return (
+                      <div className="space-y-0.5 mb-2 pt-2 border-t" style={{ borderColor: "rgba(81,106,199,0.15)" }}>
+                        <div className="text-slate-500" style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: BRAND.muted }}>Placements</div>
+                        {plac > 0 && <div className="text-slate-500">Barème : <strong>{euro(plac)}</strong></div>}
+                        {pfu > 0 && <div className="text-slate-500">Base PFU : <strong>{euro(pfu)}</strong></div>}
+                        {pfuFoyer > 0 && <div className="text-slate-500">PFU 31,4 % : <strong style={{ color: BRAND.danger }}>{euro(pfuFoyer)}</strong></div>}
+                      </div>
+                    );
+                  })()}
+                  {/* Total IR foyer */}
+                  <div className="pt-2 border-t" style={{ borderColor: "rgba(81,106,199,0.25)" }}>
+                    <div style={{ color: BRAND.sky }}>IR barème : <strong>{euro(baremeIR)}</strong></div>
+                    <div style={{ color: BRAND.danger, fontWeight: 700, marginTop: 2 }}>IR foyer total : {euro(finalIR)}</div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
           <div className="text-xs text-slate-500 pt-1">
             Les détails ci-dessous correspondent à la déclaration de <strong>{concubinPerson === 1 ? person1 : (person2 || "Personne 2")}</strong>. Basculez pour voir l'autre foyer.
@@ -132,10 +174,38 @@ const TabIR = React.memo(function TabIR(props: any) {
         </div>
       )}
       <div className="grid gap-3 md:grid-cols-4">
-        <MetricCard label="IR total" value={euro(ir.finalIR)} hint="Barème progressif + PFU + prélèvements sociaux fonciers" accent="red" />
-        <MetricCard label="Revenu net global" value={euro(ir.revenuNetGlobal)} hint="Salaires + revenus fonciers + pensions, après déductions" accent="navy" />
-        <MetricCard label="TMI" value={`${Math.round(ir.marginalRate * 100)} %`} hint="Taux Marginal d'Imposition : taux de la dernière tranche atteinte" accent="gold" />
-        <MetricCard label="Taux moyen" value={`${Math.round(ir.averageRate * 1000) / 10} %`} hint="IR total / revenu net imposable. Taux effectif réellement supporté" accent="blue" />
+        <MetricCard
+          label={ir.isConcubin ? "IR cumulé 2 foyers" : "IR total"}
+          value={euro(ir.finalIR)}
+          hint={ir.isConcubin
+            ? "Somme des 2 foyers fiscaux (concubinage). Voir détail par foyer ci-dessus."
+            : "Barème progressif + PFU + prélèvements sociaux fonciers"}
+          accent="red"
+        />
+        <MetricCard
+          label={ir.isConcubin ? `Revenu net du foyer ${concubinPerson === 1 ? person1 : (person2 || "Personne 2")}` : "Revenu net global"}
+          value={euro(ir.revenuNetGlobal)}
+          hint={ir.isConcubin
+            ? "Revenu net imposable du foyer fiscal sélectionné. Bascule via le switch ci-dessus."
+            : "Salaires + revenus fonciers + pensions, après déductions"}
+          accent="navy"
+        />
+        <MetricCard
+          label={ir.isConcubin ? `TMI ${concubinPerson === 1 ? person1 : (person2 || "Personne 2")}` : "TMI"}
+          value={`${Math.round(ir.marginalRate * 100)} %`}
+          hint={ir.isConcubin
+            ? "TMI du foyer sélectionné. Chaque concubin a son propre quotient et son propre TMI."
+            : "Taux Marginal d'Imposition : taux de la dernière tranche atteinte"}
+          accent="gold"
+        />
+        <MetricCard
+          label={ir.isConcubin ? `Taux moyen ${concubinPerson === 1 ? person1 : (person2 || "Personne 2")}` : "Taux moyen"}
+          value={`${Math.round(ir.averageRate * 1000) / 10} %`}
+          hint={ir.isConcubin
+            ? "Taux moyen du foyer sélectionné (IR foyer / revenu net foyer)."
+            : "IR total / revenu net imposable. Taux effectif réellement supporté"}
+          accent="blue"
+        />
       </div>
 
       {/* Gauge TMI — position dans les 5 tranches */}
@@ -160,13 +230,46 @@ const TabIR = React.memo(function TabIR(props: any) {
         </div>
       </div>
 
-      {/* Détail horizontal */}
-      <div className="grid gap-3 md:grid-cols-4">
-        <MetricCard label="Barème progressif" value={euro(ir.bareme)} hint="IR calculé par tranches sur le quotient familial, avant PFU et réductions" accent="gold" />
-        <MetricCard label="PFU" value={euro(ir.totalPFU)} hint="Prélèvement Forfaitaire Unique de 31,4 % depuis 2026 (12,8 % IR + 18,6 % PS) sur les revenus de capitaux mobiliers et plus-values" accent="gold" />
-        <MetricCard label="Quotient familial" value={euro(ir.quotient)} hint={`${ir.parts} part(s) — Revenu net divisé par le nombre de parts`} accent="navy" />
-        <MetricCard label="Plafonnement QF" value={euro(ir.quotientFamilialCapAdjustment)} hint={`Avantage retenu : ${euro(Math.min(ir.qfBenefit, ir.qfCap))} — L'avantage fiscal par demi-part supplémentaire est plafonné à 1 759 € (2024)`} accent="blue" />
-      </div>
+      {/* Détail horizontal — en concubin, PFU et PS foncier reflètent le foyer sélectionné */}
+      {(() => {
+        const irAny = ir as any;
+        const foyerLabel = ir.isConcubin ? ` ${concubinPerson === 1 ? person1 : (person2 || "Personne 2")}` : "";
+        // PFU
+        const pfuValue = ir.isConcubin
+          ? (concubinPerson === 1 ? irAny.totalPFU1 : irAny.totalPFU2) || 0
+          : (ir.totalPFU || 0);
+        const pfuHintBase = "Prélèvement Forfaitaire Unique de 31,4 % depuis 2026 (12,8 % IR + 18,6 % PS) sur les revenus de capitaux mobiliers et plus-values.";
+        const pfuHint = ir.isConcubin
+          ? `${pfuHintBase} Foyer sélectionné uniquement. Total des 2 foyers : ${euro((irAny.totalPFU1 || 0) + (irAny.totalPFU2 || 0))}.`
+          : pfuHintBase;
+        // PS foncier
+        const psValue = ir.isConcubin
+          ? (concubinPerson === 1 ? irAny.foncierPS1 : irAny.foncierPS2) || 0
+          : (ir.foncierSocialLevy || 0);
+        const psHintBase = "Prélèvements sociaux 17,2 % sur les revenus fonciers nets imposables (CSG 9,2 % + CRDS 0,5 % + PSOL 7,5 %). Ne s'applique pas en cas de déficit foncier.";
+        const psHint = ir.isConcubin
+          ? `${psHintBase} Foyer sélectionné uniquement. Total des 2 foyers : ${euro((irAny.foncierPS1 || 0) + (irAny.foncierPS2 || 0))}.`
+          : psHintBase;
+        return (
+          <div className="grid gap-3 md:grid-cols-4">
+            <MetricCard label="Barème progressif" value={euro(ir.bareme)} hint="IR calculé par tranches sur le quotient familial, avant PFU et réductions" accent="gold" />
+            <MetricCard label={`PFU${foyerLabel}`} value={euro(pfuValue)} hint={pfuHint} accent="gold" />
+            <MetricCard label={`PS foncier${foyerLabel}`} value={euro(psValue)} hint={psHint} accent="blue" />
+            <MetricCard
+              label={`Quotient familial${foyerLabel}`}
+              value={euro(ir.quotient)}
+              hint={(() => {
+                const base = `${ir.parts} part(s) — Revenu net divisé par le nombre de parts.`;
+                const plaf = ir.quotientFamilialCapAdjustment > 0
+                  ? ` Plafonnement QF actif : +${euro(ir.quotientFamilialCapAdjustment)} d'IR (avantage retenu ${euro(Math.min(ir.qfBenefit, ir.qfCap))} sur ${euro(ir.qfCap)} maximum par demi-part supplémentaire).`
+                  : "";
+                return base + plaf;
+              })()}
+              accent="navy"
+            />
+          </div>
+        );
+      })()}
 
       {/* Options frais + régime foncier — 2 personnes + 1 col régime côte à côte */}
       <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>

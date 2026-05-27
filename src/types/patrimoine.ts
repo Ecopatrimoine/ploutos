@@ -89,9 +89,23 @@ export type Property = {
   loanInsuranceCoverage: string;    // "banque"|"delegation"
   indivisionShare1: string;
   indivisionShare2: string;
+  // ── Co-propriétaires / co-associés extérieurs au foyer ──────────────────
+  // Pour les biens en indivision avec des tiers (ex: SCI familiale étendue,
+  // SCI avec amis/associés, indivision successorale partagée avec d'autres).
+  // Les revenus du foyer = (indivisionShare1 + indivisionShare2) × revenus
+  // bruts. Les parts externes ne sont pas comptabilisées dans la déclaration
+  // du foyer (chaque externe déclare sa propre quote-part).
+  externalShares?: ExternalShareholder[];
   // ── Multi-crédits (nouveau) ───────────────────────────────────────────────
   // Priorité sur les anciens champs loan* si présent et non vide
   loans?: Loan[];
+};
+
+export type ExternalShareholder = {
+  id: string;
+  name: string;         // nom complet de la personne tierce
+  relation: string;     // ex: "Associé", "Frère/Sœur", "Ami", "Cousin", "Autre"
+  sharePercent: string; // "0" à "100"
 };
 
 export type Beneficiary = {
