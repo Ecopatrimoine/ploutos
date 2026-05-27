@@ -676,40 +676,6 @@ const TabMission = React.memo(function TabMission(props: any) {
         </div>
       )}
 
-      <div className="text-xs font-bold mb-2" style={{ color: BRAND.muted, letterSpacing: ".05em", textTransform: "uppercase" }}>
-        Aperçus individuels — preview avant pack
-      </div>
-      <div className="flex flex-wrap gap-3">
-        {props.onPreviewLettreMissionV2 && (
-          <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md"
-                  style={{ background: "#fff", color: BRAND.navy, border: `1.5px dashed ${BRAND.navy}` }}
-                  onClick={props.onPreviewLettreMissionV2}>
-            <Download className="mr-2 h-4 w-4" />Aperçu Lettre de mission
-          </Button>
-        )}
-        {props.onPreviewDerV2 && (
-          <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md"
-                  style={{ background: "#fff", color: BRAND.sky, border: `1.5px dashed ${BRAND.sky}` }}
-                  onClick={props.onPreviewDerV2}>
-            <Download className="mr-2 h-4 w-4" />Aperçu DER
-          </Button>
-        )}
-        {props.onPreviewFicheDDAV2 && (
-          <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md"
-                  style={{ background: "#fff", color: BRAND.gold, border: `1.5px dashed ${BRAND.gold}` }}
-                  onClick={props.onPreviewFicheDDAV2}>
-            <Download className="mr-2 h-4 w-4" />Aperçu Fiche DDA
-          </Button>
-        )}
-        {props.onPreviewAdequationV2 && (
-          <Button className="rounded-xl px-5 py-2 text-sm font-medium shadow-md"
-                  style={{ background: "#fff", color: BRAND.success, border: `1.5px dashed ${BRAND.success}` }}
-                  onClick={props.onPreviewAdequationV2}>
-            <Download className="mr-2 h-4 w-4" />Aperçu Déclaration d'adéquation
-          </Button>
-        )}
-      </div>
-
     </CardContent>
   </Card>
 </TabsContent>

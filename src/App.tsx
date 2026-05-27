@@ -31,10 +31,6 @@ import { supabase } from "./lib/supabase";
 // ─── Lot 9 bascule — runners v2 (Aperçu v2 temporaire pour validation
 // sur dossier réel, avant la bascule franche). Les boutons v1 restent
 // actifs en parallèle. ──────────────────────────────────────────────────
-import { runDerV2 } from "./lib/pdf/v2/runners/runDerV2";
-import { runLettreMissionV2 } from "./lib/pdf/v2/runners/runLettreMissionV2";
-import { runFicheDDAV2 } from "./lib/pdf/v2/runners/runFicheDDAV2";
-import { runDeclarationAdequationV2 } from "./lib/pdf/v2/runners/runDeclarationAdequationV2";
 // ─── Lot Dossier client — pop-card d'impression universelle ──────────
 import { PopcardImpression } from "./components/popcard/PopcardImpression";
 // Lot 8c — Fiche d'information et de conseil DDA : dépend du dossier client
@@ -1125,42 +1121,6 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     }
   };
 
-  // ─── Aperçu PDF v2 (preview individuelle avant intégration au pack) ───
-  const buildAndPrintDerV2 = () => {
-    runDerV2({ cabinet: cabinet as Record<string, any> });
-  };
-
-  // Lot 9 bascule — Aperçu Lettre de mission v2 (idem, temporaire).
-  const buildAndPrintLettreMissionV2 = () => {
-    runLettreMissionV2({
-      cabinet: cabinet as Record<string, any>,
-      mission: mission as Record<string, any>,
-      data: data as Record<string, any>,
-      clientName,
-    });
-  };
-
-  // Lot 9 bascule — Aperçu Fiche conseil DDA v2 (idem, temporaire).
-  const buildAndPrintFicheDDAV2 = () => {
-    runFicheDDAV2({
-      cabinet: cabinet as Record<string, any>,
-      mission: mission as Record<string, any>,
-      data: data as Record<string, any>,
-      recommandations,
-      piecesJointes,
-    });
-  };
-
-  // Lot 9 bascule — Aperçu Déclaration d'adéquation v2 (idem, temporaire).
-  const buildAndPrintAdequationV2 = () => {
-    runDeclarationAdequationV2({
-      cabinet: cabinet as Record<string, any>,
-      data,
-      mission: mission as Record<string, any>,
-      recommandations,
-    });
-  };
-
   // ── Export JSON ──
   const exportDataFile = async () => {
     try {
@@ -1670,7 +1630,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
           </TabsContent>
 
           {/* ════ LETTRE DE MISSION ════ */}
-          <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} person1={person1} person2={person2} recommandations={recommandations} setRecommandations={setRecommandations} piecesJointes={piecesJointes} setPiecesJointes={setPiecesJointes} onPreviewDerV2={buildAndPrintDerV2} onPreviewLettreMissionV2={buildAndPrintLettreMissionV2} onPreviewFicheDDAV2={buildAndPrintFicheDDAV2} onPreviewAdequationV2={buildAndPrintAdequationV2} onOpenPopcardImpression={() => setPopcardOpen(true)} />
+          <TabMission data={data} mission={mission} updateMission={updateMission} cabinet={cabinet} logoSrc={logoSrc} signatureSrc={signatureSrc} person1={person1} person2={person2} recommandations={recommandations} setRecommandations={setRecommandations} piecesJointes={piecesJointes} setPiecesJointes={setPiecesJointes} onOpenPopcardImpression={() => setPopcardOpen(true)} />
 
           {/* ════ PARAMÈTRES CABINET ════ */}
           <TabParametres

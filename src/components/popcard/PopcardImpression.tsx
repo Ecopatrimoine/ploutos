@@ -43,15 +43,14 @@ type PackItemDef = {
   subgroup?: string;
   bar: string;       // couleur barre verticale gauche
   toggle: string;    // couleur toggle ON
-  badgeV1?: boolean; // section pas encore refaite en v2
 };
 
 const PACK_ITEMS: PackItemDef[] = [
   // ─── Bilan patrimonial — toggles GOLD (couleur logiciel) ──────────
   { key: "couverture", label: "Page de couverture", desc: "v2", group: "bilan", subgroup: "Préambule", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
-  { key: "cabinet", label: "Présentation cabinet", desc: "v1 — pas encore refait v2", group: "bilan", subgroup: "Préambule", bar: "var(--cab-gold)", toggle: "var(--cab-gold)", badgeV1: true },
-  { key: "famille", label: "Composition familiale", desc: "v1 — pas encore refait v2", group: "bilan", subgroup: "Préambule", bar: "var(--cab-gold)", toggle: "var(--cab-gold)", badgeV1: true },
-  { key: "travail", label: "Situation professionnelle", desc: "v1 — pas encore refait v2", group: "bilan", subgroup: "Préambule", bar: "var(--cab-gold)", toggle: "var(--cab-gold)", badgeV1: true },
+  { key: "cabinet", label: "Présentation cabinet", desc: "À propos + démarche en 5 étapes", group: "bilan", subgroup: "Préambule", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
+  { key: "famille", label: "Composition familiale", desc: "Personnes, statut, régime, enfants à charge", group: "bilan", subgroup: "Préambule", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
+  { key: "travail", label: "Situation professionnelle", desc: "Revenus actifs + revenus du foyer (foncier, mobiliers)", group: "bilan", subgroup: "Préambule", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   { key: "bilanEndettement", label: "Bilan & endettement", desc: "v2", group: "bilan", subgroup: "Synthèse fiscale", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   { key: "ir", label: "Impôt sur le revenu (IR)", desc: "v2", group: "bilan", subgroup: "Synthèse fiscale", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   { key: "ifi", label: "IFI", desc: "v2", group: "bilan", subgroup: "Synthèse fiscale", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
@@ -60,9 +59,9 @@ const PACK_ITEMS: PackItemDef[] = [
   { key: "profil", label: "Profil & adéquation MIF II", desc: "v2", group: "bilan", subgroup: "Profil & protection", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   { key: "prevoyanceInd", label: "Prévoyance individuelle", desc: "v2", group: "bilan", subgroup: "Profil & protection", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   { key: "prevoyanceColl", label: "Prévoyance collective", desc: "v2 — si dirigeant", group: "bilan", subgroup: "Profil & protection", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
-  { key: "hypos", label: "Hypothèses et conséquences", desc: "v1 — scénarios d'optimisation (PER, donation, AV…) + impacts IR/IFI/Succession", group: "bilan", subgroup: "Plan d'action & mentions", bar: "var(--cab-gold)", toggle: "var(--cab-gold)", badgeV1: true },
-  { key: "recommandations", label: "Recommandations & plan d'action", desc: "v1 — pas encore refait v2", group: "bilan", subgroup: "Plan d'action & mentions", bar: "var(--cab-gold)", toggle: "var(--cab-gold)", badgeV1: true },
-  { key: "mentions", label: "Mentions légales", desc: "v1 — pas encore refait v2", group: "bilan", subgroup: "Plan d'action & mentions", bar: "var(--cab-gold)", toggle: "var(--cab-gold)", badgeV1: true },
+  { key: "hypos", label: "Hypothèses et conséquences", desc: "Bar chart comparatif + scénarios d'optimisation (PER, donation, AV…)", group: "bilan", subgroup: "Plan d'action & mentions", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
+  { key: "recommandations", label: "Recommandations & plan d'action", desc: "Recos groupées par dimension du profil", group: "bilan", subgroup: "Plan d'action & mentions", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
+  { key: "mentions", label: "Mentions légales", desc: "Notes + portée, limites, RGPD, médiation, confidentialité", group: "bilan", subgroup: "Plan d'action & mentions", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   // ─── Documents réglementaires — toggles couleurs propres ─────────
   { key: "lettre", label: "Lettre de mission", desc: "Contrat préalable à la mission", group: "regl", bar: "#0F172A", toggle: "#0F172A" },
   { key: "der", label: "DER", desc: "Document d'entrée en relation", group: "regl", bar: "#26428B", toggle: "#26428B" },
@@ -483,7 +482,7 @@ function PackToggle({ item, checked, onToggle }: { item: PackItemDef; checked: b
       <span style={{ width: 3, height: 28, borderRadius: 1.5, flex: "none", opacity: checked ? 1 : 0.7, background: item.bar }} />
       <span style={{ flex: 1, lineHeight: 1.3, minWidth: 0 }}>
         <strong style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#0F172A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.label}</strong>
-        <span style={{ display: "block", fontSize: 9.5, color: item.badgeV1 ? "#7A3608" : "#637896", marginTop: 1, fontWeight: item.badgeV1 ? 600 : 400 }}>{item.desc}</span>
+        <span style={{ display: "block", fontSize: 9.5, color: "#637896", marginTop: 1 }}>{item.desc}</span>
       </span>
     </label>
   );
