@@ -83,6 +83,8 @@ export function PopcardImpression(p: PopcardImpressionProps) {
   const [lieuOverride, setLieuOverride] = useState("");
   const [checkOpen, setCheckOpen] = useState(false);
   const [missing, setMissing] = useState<CompletudeManque[]>([]);
+  // Destinataire — pertinent uniquement en concubinage (foyers fiscaux séparés).
+  const [recipientChoice, setRecipientChoice] = useState<"couple" | "person1" | "person2">(p.recipient || "couple");
 
   // ─── Reset à chaque ouverture ─────────────────────────────────────
   React.useEffect(() => {
@@ -91,8 +93,9 @@ export function PopcardImpression(p: PopcardImpressionProps) {
       setLieuOverride("");
       setCheckOpen(false);
       setPaletteOverride((p.mission?.pdfPaletteOverride as any) || "");
+      setRecipientChoice(p.recipient || "couple");
     }
-  }, [p.open, p.mission?.pdfPaletteOverride]);
+  }, [p.open, p.mission?.pdfPaletteOverride, p.recipient]);
 
   if (!p.open) return null;
 
@@ -121,6 +124,11 @@ export function PopcardImpression(p: PopcardImpressionProps) {
   const showRemu = pack.has("lettre");
   const showLcbft = pack.has("lettre");
   const showIpid = pack.has("dda");
+  // Destinataire — pertinent uniquement en concubinage (foyers fiscaux séparés).
+  const isCohab = p.data?.coupleStatus === "cohab";
+  const showDestinataire = isCohab && pack.has("couverture");
+  const p1Label = [p.data?.person1FirstName, p.data?.person1LastName].filter(Boolean).join(" ") || "Personne 1";
+  const p2Label = [p.data?.person2FirstName, p.data?.person2LastName].filter(Boolean).join(" ") || "Personne 2";
 
   // ─── Récap pack ────────────────────────────────────────────────────
   const packArr = Array.from(pack);
@@ -165,7 +173,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
       ifi: p.ifi,
       succession: p.succession,
       irOptions: p.irOptions,
-      recipient: p.recipient,
+      recipient: isCohab ? recipientChoice : "couple",
       hypothesisResults: p.hypothesisResults,
       clientName: p.clientName,
     });
@@ -254,6 +262,36 @@ export function PopcardImpression(p: PopcardImpressionProps) {
                       placeholder="ex: Lyon — laisser vide pour utiliser le défaut"
                       style={{ width: "100%", fontFamily: "inherit", fontSize: 12.5, color: "#0F172A", padding: "8px 12px", border: "1px solid #E8E3D9", borderRadius: 10, background: "#fff" }}
                     />
+                  </OverrideSection>
+                )}
+
+                {showDestinataire && (
+                  <OverrideSection title="Destinataire (concubinage)">
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {([
+                        ["couple",  `Couple — ${p1Label} & ${p2Label}`],
+                        ["person1", p1Label],
+                        ["person2", p2Label],
+                      ] as ["couple" | "person1" | "person2", string][]).map(([v, l]) => (
+                        <label
+                          key={v}
+                          onClick={() => setRecipientChoice(v)}
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 11px",
+                            borderRadius: 9, fontSize: 11.5, color: "#0F172A",
+                            background: recipientChoice === v ? "rgba(196,151,61,.10)" : "#F4F2EC",
+                            cursor: "pointer", border: recipientChoice === v ? `1.5px solid ${CAB_GOLD}` : "1.5px solid transparent",
+                            fontWeight: recipientChoice === v ? 700 : 400,
+                          }}
+                        >
+                          <input type="radio" checked={recipientChoice === v} onChange={() => {}} style={{ accentColor: CAB_GOLD, width: 13, height: 13 }} />
+                          {l}
+                        </label>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: "#7E8F9F", marginTop: 6, fontStyle: "italic" }}>
+                      En concubinage, chaque personne a son propre foyer fiscal. Le destinataire détermine le nom affiché sur la couverture (et, à terme, le routage par section).
+                    </div>
                   </OverrideSection>
                 )}
 
