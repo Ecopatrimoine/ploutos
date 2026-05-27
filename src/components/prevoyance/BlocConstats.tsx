@@ -1,14 +1,46 @@
 // ─── BlocConstats — affichage des constats triés par sévérité ──────────
 //
-// Le `detail` peut contenir des balises HTML <em>…</em> (phrase
-// explicative italique injectée par le moteur de règles pour les
-// constats liés à conjointACharge — cf. spec Lot 6 ajustement 2).
-// On rend en `dangerouslySetInnerHTML` car la source est notre propre
-// code (regles.ts), pas une saisie utilisateur.
+// Le `detail` peut contenir des balises <em>…</em> (phrase explicative
+// italique injectée par le moteur de règles pour les constats liés à
+// conjointACharge — cf. spec Lot 6 ajustement 2). On rend en React
+// natif via le helper renderDetail() — pas de dangerouslySetInnerHTML,
+// donc aucun risque d'injection même si une source future devenait
+// moins fiable.
 
 import React from "react";
 import type { Constat, ConstatSeverite } from "../../lib/prevoyance/types";
 import { BRAND, SURFACE } from "../../constants";
+
+// Convention : <em>…</em> uniquement, pas de nesting, pas d'autres
+// balises. Helper qui split la string en alternance texte / <em>
+// et rend en React.Fragment + <em>. Robuste aux balises mal fermées
+// (rendu en texte brut dans ce cas).
+function renderDetail(detail: string): React.ReactNode {
+  if (!detail.includes("<em>")) return detail;
+  const parts: React.ReactNode[] = [];
+  let remaining = detail;
+  let key = 0;
+  while (remaining.length > 0) {
+    const openIdx = remaining.indexOf("<em>");
+    if (openIdx === -1) {
+      parts.push(<React.Fragment key={key++}>{remaining}</React.Fragment>);
+      break;
+    }
+    if (openIdx > 0) {
+      parts.push(<React.Fragment key={key++}>{remaining.slice(0, openIdx)}</React.Fragment>);
+    }
+    const afterOpen = remaining.slice(openIdx + 4);
+    const closeIdx = afterOpen.indexOf("</em>");
+    if (closeIdx === -1) {
+      // Balise <em> non fermée → on rend le reste en texte brut.
+      parts.push(<React.Fragment key={key++}>{afterOpen}</React.Fragment>);
+      break;
+    }
+    parts.push(<em key={key++}>{afterOpen.slice(0, closeIdx)}</em>);
+    remaining = afterOpen.slice(closeIdx + 5);
+  }
+  return parts;
+}
 
 type Props = {
   constats: Constat[];
@@ -78,8 +110,9 @@ export const BlocConstats = React.memo(function BlocConstats({ constats }: Props
             <div
               className="text-sm leading-relaxed mb-2"
               style={{ color: BRAND.navy }}
-              dangerouslySetInnerHTML={{ __html: c.detail }}
-            />
+            >
+              {renderDetail(c.detail)}
+            </div>
             <div className="text-sm" style={{ color: BRAND.sky, fontWeight: 600 }}>
               → {c.action}
             </div>

@@ -63,6 +63,7 @@ type Props = {
   setField: <K extends keyof PatrimonialData>(key: K, value: PatrimonialData[K]) => void;
   person1: string;
   person2: string;
+  onGoToTravail?: () => void;
 };
 
 const TabPrevoyancePerso = React.memo(function TabPrevoyancePerso({
@@ -70,6 +71,7 @@ const TabPrevoyancePerso = React.memo(function TabPrevoyancePerso({
   setField,
   person1,
   person2,
+  onGoToTravail,
 }: Props) {
   const entreeP1Base = React.useMemo(() => buildEntreePerso(data, "p1"), [data]);
   const entreeP2Base = React.useMemo(() => buildEntreePerso(data, "p2"), [data]);
@@ -106,7 +108,7 @@ const TabPrevoyancePerso = React.memo(function TabPrevoyancePerso({
         </CardHeader>
         <CardContent>
           {!entreeP1Base ? (
-            <EtatVide />
+            <EtatVide onGoToTravail={onGoToTravail} />
           ) : (
             <div className={hasP2 ? "grid gap-6 xl:grid-cols-2" : "max-w-3xl mx-auto"}>
               <ColonnePerso
@@ -142,7 +144,7 @@ export { TabPrevoyancePerso };
 // État vide : aucun travail saisi
 // ────────────────────────────────────────────────────────────────────
 
-function EtatVide() {
+function EtatVide({ onGoToTravail }: { onGoToTravail?: () => void }) {
   return (
     <div
       className="rounded-xl p-6 text-sm"
@@ -155,13 +157,28 @@ function EtatVide() {
       <div className="font-bold mb-2" style={{ color: BRAND.navy }}>
         Aucune situation professionnelle saisie
       </div>
-      <p>
+      <p className="mb-3">
         Pour activer le module Prévoyance, renseignez d'abord la situation
         professionnelle dans l'onglet <strong>Collecte patrimoniale → Travail</strong> :
         statut, caisse d'affiliation, date d'embauche, salaire brut et
         (éventuellement) employeur avec SIRET. La projection s'actualisera
         automatiquement.
       </p>
+      {onGoToTravail && (
+        <button
+          type="button"
+          onClick={onGoToTravail}
+          className="rounded-xl px-4 py-2 text-sm font-bold transition-all"
+          style={{
+            background: BRAND.navy,
+            color: "#fff",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          → Compléter l'onglet Travail
+        </button>
+      )}
     </div>
   );
 }

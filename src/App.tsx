@@ -1463,7 +1463,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
               {(["collecte", "ir", "ifi", "succession", "prevoyance", "hypotheses"] as const).map((tab) => {
                 const labels: Record<string, string> = { collecte: "Collecte patrimoniale", ir: "Impôt sur le revenu", ifi: "IFI", succession: "Succession", prevoyance: "Prévoyance", hypotheses: "Hypothèses" };
                 return (
-                  <TabsTrigger key={tab} value={tab} className="flex items-center justify-center px-4 text-center font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.muted, fontSize: 12 }}>
+                  <TabsTrigger key={tab} value={tab} id={`main-tab-${tab}`} className="flex items-center justify-center px-4 text-center font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.muted, fontSize: 12 }}>
                     {labels[tab]}
                   </TabsTrigger>
                 );
@@ -1491,7 +1491,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
                   <TabsList className="grid w-full grid-cols-6 p-1" style={{ background: SURFACE.border, borderRadius: 12 }}>
                     {["famille", "travail", "revenus", "immobilier", "placements", "credits"].map((tab) => {
                       const labels: Record<string, string> = { famille: "Données familiales", travail: "Travail", revenus: "Revenus", immobilier: "Immobilier", placements: "Placements", credits: "Crédits" };
-                      return <TabsTrigger key={tab} value={tab} className="px-3 py-2 font-bold transition-all data-[state=active]:shadow-md" style={{ borderRadius: 8, color: BRAND.muted, fontSize: 12 }}>{labels[tab]}</TabsTrigger>;
+                      return <TabsTrigger key={tab} value={tab} id={`sub-tab-${tab}`} className="px-3 py-2 font-bold transition-all data-[state=active]:shadow-md" style={{ borderRadius: 8, color: BRAND.muted, fontSize: 12 }}>{labels[tab]}</TabsTrigger>;
                     })}
                   </TabsList>
                   <TabFamiliale data={data} setField={setField} addChild={addChild} updateChild={updateChild} removeChild={removeChild} person1={person1} person2={person2} />
@@ -1539,6 +1539,13 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
             setField={setField}
             person1={person1}
             person2={person2}
+            onGoToTravail={() => {
+              // Active l'onglet principal "Collecte" puis le sous-onglet "Travail".
+              document.getElementById("main-tab-collecte")?.click();
+              requestAnimationFrame(() => {
+                document.getElementById("sub-tab-travail")?.click();
+              });
+            }}
           />
 
           {/* ════ HYPOTHÈSES ════ */}
