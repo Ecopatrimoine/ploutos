@@ -1,24 +1,46 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
-import { Plus, Trash2, Download, Upload, Settings, Briefcase } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
-import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
-import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
-import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
-import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
-import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
+import { Briefcase, ShieldCheck } from "lucide-react";
+import { BRAND, SURFACE, PCS_GROUPES, PCS_CATEGORIES } from "../../constants";
+import type { PayloadTravail, PayloadTravailPair } from "../../types/patrimoine";
+import { isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, isIndependant } from "../../lib/calculs/utils";
+import { Field, SectionTitle } from "../shared";
+import { BlocStatutEmployeur } from "../travail/BlocStatutEmployeur";
+import { createEmptyTravail } from "../../lib/prevoyance/utils";
 
 
 // ── TabTravail ─────────────────────────────────────────────────────────────────────
 const TabTravail = React.memo(function TabTravail(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
-  const { data, setField, setChargesDetailField, chargesDialogOpen, setChargesDialogOpen, irOptions, setIrOptions, ir, person1, person2 } = props;
+  const { data, setField, person1, person2 } = props;
+
+  const isCouple =
+    data.coupleStatus === "married" ||
+    data.coupleStatus === "pacs" ||
+    data.coupleStatus === "cohab";
+
+  function getTravail(which: 1 | 2): PayloadTravail {
+    if (which === 1) return data.travail?.p1 ?? createEmptyTravail();
+    return data.travail?.p2 ?? createEmptyTravail();
+  }
+
+  function patchTravail(which: 1 | 2, patch: Partial<PayloadTravail>) {
+    const currentPair: PayloadTravailPair = data.travail ?? {
+      p1: createEmptyTravail(),
+      p2: isCouple ? createEmptyTravail() : null,
+    };
+    const nextPair: PayloadTravailPair =
+      which === 1
+        ? { ...currentPair, p1: { ...currentPair.p1, ...patch } }
+        : {
+            ...currentPair,
+            p2: { ...(currentPair.p2 ?? createEmptyTravail()), ...patch },
+          };
+    setField("travail", nextPair);
+  }
 
   return (
 <TabsContent value="travail" className="space-y-4">
@@ -106,6 +128,33 @@ const TabTravail = React.memo(function TabTravail(props: any) {
       );
     })}
   </div>
+    </CardContent>
+  </Card>
+
+  {/* ── Statut professionnel détaillé + Employeur (module Prévoyance) ── */}
+  <Card className="border-0" style={{ borderRadius: 20 }}>
+    <CardHeader>
+      <SectionTitle
+        icon={ShieldCheck}
+        title="Statut professionnel & employeur"
+        subtitle="Saisie utilisée par le module Prévoyance : caisse d'affiliation, employeur, IDCC, salaire brut."
+      />
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <BlocStatutEmployeur
+          personLabel={person1}
+          value={getTravail(1)}
+          onChange={(patch) => patchTravail(1, patch)}
+        />
+        {isCouple && (
+          <BlocStatutEmployeur
+            personLabel={person2}
+            value={getTravail(2)}
+            onChange={(patch) => patchTravail(2, patch)}
+          />
+        )}
+      </div>
     </CardContent>
   </Card>
 </TabsContent>

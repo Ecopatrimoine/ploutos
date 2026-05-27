@@ -227,6 +227,76 @@ export type PatrimonialData = {
   placements: Placement[];
   perRentes: PERRente[];    // rentes PER en phase de rente
   otherLoans: OtherLoan[];  // autres crédits (conso, personnel, LOA…)
+  // ── Lot module Prévoyance v1.4.0 — situation professionnelle détaillée
+  //    par personne (statut + caisse + employeur). Optionnel : les
+  //    anciens dossiers sans `travail` continuent de fonctionner.
+  travail?: PayloadTravailPair;
+};
+
+// ─── Module Prévoyance (v1.4.0) — types partagés ────────────────────────────
+
+export type StatutPro =
+  | "salarie_non_cadre"
+  | "salarie_cadre"
+  | "tns_liberal"
+  | "tns_commercant"
+  | "tns_artisan"
+  | "gerant_majoritaire"   // SARL / EURL gérant majoritaire (TNS)
+  | "president_sas"        // SAS / SASU président (assimilé salarié)
+  | "eurl_unique"          // EURL gérant non majoritaire (assimilé salarié)
+  | "fonctionnaire"
+  | "retraite"
+  | "sans_activite";
+
+export type CodeCaisse =
+  | "CPAM"
+  | "SSI"
+  | "MSA"
+  | "CARMF"
+  | "CARCDSF"
+  | "CARPV"
+  | "CARPIMKO"
+  | "CIPAV"
+  | "CNBF"
+  | "CAVOM"
+  | "CAVEC"
+  | "CAVAMAC"
+  | "CRN";
+
+export type EmployeurInfo = {
+  siret: string | null;
+  siren: string | null;
+  nom: string | null;
+  formeJuridique: string | null;
+  codeNAF: string | null;
+  idccCCN: string | null;
+  nomCCN: string | null;
+  sourceCCN: "auto" | "manuel" | "non_defini";
+  effectif: number | null;
+  adresseEtablissement: string | null;
+  dateCreation: string | null;       // ISO date
+};
+
+export type PayloadTravail = {
+  statutPro: StatutPro | "";
+  caisseAffiliation: CodeCaisse | null;
+  employeur: EmployeurInfo | null;
+  dateEmbauche: string | null;       // ISO date
+  tempsTravail: {
+    type: "plein" | "partiel";
+    pourcentage?: number;            // 0-100, utilisé si type=partiel
+  };
+  salaireBrutAnnuel: number;         // distinct de salary1/salary2 (qui sont nets imposables)
+  primeAnnuelle: number | null;
+  // Spécifique TNS
+  revenuBNC: number | null;
+  revenuBIC: number | null;
+  optionMadelin: boolean;
+};
+
+export type PayloadTravailPair = {
+  p1: PayloadTravail;
+  p2: PayloadTravail | null;
 };
 
 // ── Rente PER (sortie en rente — onglet Revenus) ─────────────────────────
