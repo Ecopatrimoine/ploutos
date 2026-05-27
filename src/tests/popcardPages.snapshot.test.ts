@@ -60,6 +60,36 @@ describe("Pop-card pages v2 — sentinelles non-vide + structuration", () => {
     expect(html).toContain("IR (base)");
   });
 
+  it("pageHypos : rend le bar chart SVG comparatif quand des scénarios sont fournis", () => {
+    // Fixture inline minimal : 2 scénarios complets pour activer le graphique.
+    const hyposInline = [
+      { hypothesis: { name: "Optimisation PER", objective: "Réduire IR", notes: "" },
+        ir: { finalIR: 12_000 }, ifi: { ifi: 0 }, succession: { totalRights: 80_000 } },
+      { hypothesis: { name: "Donation", objective: "Anticiper transmission", notes: "" },
+        ir: { finalIR: 18_000 }, ifi: { ifi: 0 }, succession: { totalRights: 40_000 } },
+    ];
+    const html = pageHypos(t, buildHyposData({
+      data: fixtureData, cabinet: fixtureCabinet,
+      ir, ifi, succession,
+      hypothesisResults: hyposInline,
+      dateLettre,
+    }));
+    expect(html).toContain("<svg");
+    expect(html).toContain("Comparatif visuel");
+    expect(html).toContain("Base actuelle");
+    expect(html).toContain("Optimisation PER");
+  });
+
+  it("pageHypos : pas de bar chart si aucun scénario", () => {
+    const html = pageHypos(t, buildHyposData({
+      data: fixtureData, cabinet: fixtureCabinet,
+      ir, ifi, succession,
+      hypothesisResults: [],
+      dateLettre,
+    }));
+    expect(html).not.toContain("Comparatif visuel");
+  });
+
   it("pageHypos : fallback propre si aucune hypothèse active", () => {
     const html = pageHypos(t, buildHyposData({
       data: fixtureData, cabinet: fixtureCabinet,
