@@ -121,36 +121,39 @@ describe("G1 — Cohérence socle ↔ calcul IJ (plafondFormule)", () => {
 // À activer quand David aura ajouté/confirmé la valeur sourcée.
 // ────────────────────────────────────────────────────────────────────
 
-describe("G1 — Paramètres à confirmer (it.skip, non figés dans le référentiel)", () => {
-  // majorationApres30JoursAvecEnfants = "TO_VERIFY" dans pass-2026.json
-  it.skip("IJSS maladie : majoration familiale après J30 (≥ 3 enfants) — TO_VERIFY", () => {
-    // Source présumée : ameli.fr (majoration à compter du 31e jour).
+describe("G1 — Paramètres confirmés à la source et figés (vérifiés 2026-05-28)", () => {
+  it("Sanction non-respect 1,50 % cadres = 3 PASS = 144 180 € (ANI 17 nov 2017)", () => {
+    expect(pass.prevoyanceCadres1_50.sanctionMontant).toBe(144180);
+    expect(pass.prevoyanceCadres1_50.sanctionMontant).toBe(pass.pass.annuel * 3);
+    expect(pass.prevoyanceCadres1_50.tauxT1Minimum).toBe(0.015);
+  });
+
+  it("Exonération prévoyance/santé : part fixe 6 % PASS = 2 883,60 € (BOSS)", () => {
+    expect(pass.exonerationsSociales.prevoyanceSante.partFixeMontant).toBe(2883.6);
+    expect(pass.exonerationsSociales.prevoyanceSante.partFixeMontant).toBeCloseTo(pass.pass.annuel * 0.06, 2);
+    expect(pass.exonerationsSociales.prevoyanceSante.partRemuneration).toBe(0.015);
+  });
+
+  it("Exonération prévoyance/santé : plafond 12 % PASS = 5 767,20 € (BOSS)", () => {
+    expect(pass.exonerationsSociales.prevoyanceSante.plafondMontant).toBe(5767.2);
+    expect(pass.exonerationsSociales.prevoyanceSante.plafondMontant).toBeCloseTo(pass.pass.annuel * 0.12, 2);
+  });
+
+  it("Forfait social 8 % sur la prévoyance (≥ 11 salariés, art. D.242-1 CSS)", () => {
+    expect(pass.forfaitSocial.tauxPrevoyance).toBe(0.08);
+  });
+});
+
+describe("G1 — Paramètre encore en suspens (it.skip, contradiction de sources)", () => {
+  // ⚠️ CONTRADICTION DÉTECTÉE — NE PAS FIGER.
+  // Majoration familiale IJ à compter du 31e jour (≥ 3 enfants, taux
+  // ~66,66 %) : des sources 2026 la décrivent encore en vigueur, MAIS
+  // un fil ameli à réponse certifiée indique que l'article 85 d'une
+  // LFSS a modifié l'art. L.323-4 CSS et SUPPRIMÉ cette majoration
+  // (date d'entrée en vigueur non confirmée de façon fiable).
+  // → David vérifiera la version en vigueur de L.323-4 sur Légifrance
+  //   avant de trancher. Impact marginal (3 enfants + arrêt > 30 j).
+  it.skip("IJSS maladie : majoration familiale après J30 (≥ 3 enfants) — TO_VERIFY (suppression L.323-4 art. 85 LFSS à confirmer)", () => {
     expect(pass.ijss.maladieOrdinaire.majorationApres30JoursAvecEnfants).toBeTypeOf("number");
-  });
-
-  // Sanction 1,50 % cadres = 3 PASS — ABSENT du référentiel (règle métier).
-  it.skip("Sanction non-respect 1,50 % cadres = 3 PASS = 144 180 € — à ajouter au référentiel", () => {
-    // Source : ANI 17 nov 2017. 3 × 48060 = 144 180.
-    // À ajouter comme champ ferme avant activation.
-    expect(pass.pass.annuel * 3).toBe(144180); // formule vérifiable, mais pas exposée comme paramètre
-  });
-
-  // Exonération sociale prévoyance/santé — formule texte, pas de montant ferme.
-  it.skip("Exonération prévoyance/santé : 6 % PASS = 2 883,60 € — montant non figé (formule seule)", () => {
-    // Source : BOSS. 6 % × 48060 = 2 883,60. Le JSON ne stocke que la formule.
-    expect(pass.pass.annuel * 0.06).toBeCloseTo(2883.6, 2);
-  });
-  it.skip("Exonération prévoyance/santé : plafond 12 % PASS = 5 767,20 € — montant non figé", () => {
-    // Source : BOSS. 12 % × 48060 = 5 767,20.
-    expect(pass.pass.annuel * 0.12).toBeCloseTo(5767.2, 2);
-  });
-
-  // Forfait social 8 % prévoyance (≥ 11 salariés) — ABSENT (le JSON a 20 % standard).
-  it.skip("Forfait social 8 % sur la prévoyance (≥ 11 salariés) — à ajouter (divergence avec 20 % standard)", () => {
-    // Source : BOSS / URSSAF. Le forfait social sur les contributions
-    // patronales de prévoyance complémentaire est de 8 % (≥ 11 sal.),
-    // distinct du taux standard 20 %. À ajouter au référentiel comme
-    // champ dédié (ex. forfaitSocial.tauxPrevoyance).
-    expect((pass.forfaitSocial as any).tauxPrevoyance).toBe(0.08);
   });
 });

@@ -50,17 +50,30 @@
   },
   "exonerationsSociales": {
     "prevoyanceSante": {
-      "formule": "6% PASS + 1.5% rémunération",
-      "plafondAnnuel": "calcule_par_personne"
+      "formule": "6% PASS + 1.5% rémunération annuelle brute, plafonné à 12% PASS",
+      "partFixePASS": 0.06,
+      "partFixeMontant": 2883.60,
+      "partRemuneration": 0.015,
+      "plafondPASS": 0.12,
+      "plafondMontant": 5767.20,
+      "source": "BOSS — exonération sociale prévoyance/santé (vérifié 2026, 6% × 48060 = 2883,60 ; 12% × 48060 = 5767,20)"
     },
     "retraiteSupplementaire": {
       "formule": "8% rémunération dans la limite de 8 PASS",
       "plafondAnnuel": "calcule_par_personne"
     }
   },
+  "prevoyanceCadres1_50": {
+    "tauxT1Minimum": 0.015,
+    "sanctionMontant": 144180,
+    "_sanctionFormule": "3 × PASS annuel = 3 × 48060 = 144180",
+    "source": "ANI 17 novembre 2017 (reprise des dispositions cadres post-AGIRC)"
+  },
   "forfaitSocial": {
     "tauxStandard": 0.20,
     "tauxReduitMoinsDe11Salaries": 0,
-    "tauxReduitEpargneSalariale": 0.16
+    "tauxReduitEpargneSalariale": 0.16,
+    "tauxPrevoyance": 0.08,
+    "_tauxPrevoyanceNote": "Forfait social 8% sur les contributions patronales de prévoyance complémentaire (entreprises ≥ 11 salariés), distinct du taux standard 20%. Source : art. D.242-1 CSS."
   }
 }
