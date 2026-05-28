@@ -254,20 +254,17 @@ function isCaisseToFill(c: any): boolean {
   return !c || c.TO_FILL === true || !c.ij;
 }
 
-function computeIJObligatoireMensuel(
+// Valeur JOURNALIÈRE brute de l'IJ obligatoire (avant conversion ×30).
+// Exportée pour les tests d'exactitude juridique (famille G) : on
+// valide le journalier réglementaire, pas le mensuel d'affichage.
+// Retourne null si la caisse n'est pas documentée ou si une donnée
+// critique manque (le moteur n'invente jamais).
+export function computeIJObligatoireJournaliere(
   t: number,
   caisseRef: any,
   entree: EntreePerso,
-  revenuMensuelTNS: number,
-  salaireBrutMensuel: number,
   vars: PlafondVariables
 ): number | null {
-  // CONVENTION ×30 : les IJ sont stockées/calculées en valeur
-  // JOURNALIÈRE, converties en mensuel pour l'AFFICHAGE par × 30
-  // (« mois-type 30 jours »), convention de lisibilité distincte du
-  // calcul réglementaire en jours calendaires. Les tests d'exactitude
-  // juridique (famille G/T4) porteront sur la valeur journalière (avant
-  // × 30) — à exposer via un helper si besoin (cf. ROADMAP).
   if (isCaisseToFill(caisseRef)) return null;
   const ij = caisseRef.ij;
   if (ij?.TO_FILL) return null;
@@ -283,16 +280,12 @@ function computeIJObligatoireMensuel(
   if (ij.regle === "uniforme_par_classe" && ij.classes) {
     const classe = entree.classeCotisationCaisse ?? null;
     const cl = classe ? ij.classes[classe] : null;
-    const ijj = safeNum(cl?.ijJournaliere);
-    if (ijj === null) return null;
-    return ijj * 30;
+    return safeNum(cl?.ijJournaliere);
   }
 
   // 2) Règle uniforme (CARPIMKO…)
   if (ij.regle === "uniforme") {
-    const ijj = safeNum(ij.ijJournaliere);
-    if (ijj === null) return null;
-    return ijj * 30;
+    return safeNum(ij.ijJournaliere);
   }
 
   // 3) Règle tranche revenu (CPAM, SSI, CIPAV)
@@ -300,21 +293,17 @@ function computeIJObligatoireMensuel(
   if (taux === null) return null;
 
   // Revenu journalier de base — approximation : salaire brut/360 (jours
-  // calendaires) ou revenu TNS/360. Affinage possible Lot 4.1 via la
-  // règle CPAM 91,25 jours documentée dans pass-2026.json.
+  // calendaires) ou revenu TNS/360. Affinage possible via la règle CPAM
+  // 91,25 jours documentée dans pass-2026.json.
   const baseAnnuelle = entree.salaireBrutAnnuel > 0
     ? entree.salaireBrutAnnuel
     : (entree.revenuTNSAnnuel ?? 0);
-  if (baseAnnuelle <= 0) {
-    // pas de revenu connu, on ne peut pas calculer
-    return null;
-  }
+  if (baseAnnuelle <= 0) return null;
   const revenuJournalier = baseAnnuelle / 360;
   let ijj = revenuJournalier * taux;
 
-  // Plafond journalier : formule paramétrique en priorité (qui suit
-  // les revalorisations du SMIC/PASS via les variables), puis valeur
-  // figée plafondJournalier si la formule absente ou échoue.
+  // Plafond journalier : formule paramétrique en priorité (suit les
+  // revalorisations SMIC/PASS), puis valeur figée plafondJournalier.
   let plafondJ: number | null = null;
   if (typeof ij.plafondFormule === "string") {
     plafondJ = evalFormulaPlafond(ij.plafondFormule, vars);
@@ -333,13 +322,24 @@ function computeIJObligatoireMensuel(
     }
   }
 
-  // Note : `salaireBrutMensuel` et `revenuMensuelTNS` sont reçus pour
-  // future amélioration (calcul par tranche de revenu). Pour cette
-  // version, on reste sur la formule journalière simple.
+  return ijj;
+}
+
+// Wrapper MENSUEL pour l'affichage : journalière × 30 (« mois-type
+// 30 jours », convention de lisibilité distincte du calcul
+// réglementaire en jours calendaires).
+function computeIJObligatoireMensuel(
+  t: number,
+  caisseRef: any,
+  entree: EntreePerso,
+  revenuMensuelTNS: number,
+  salaireBrutMensuel: number,
+  vars: PlafondVariables
+): number | null {
   void salaireBrutMensuel;
   void revenuMensuelTNS;
-
-  return ijj * 30;
+  const journaliere = computeIJObligatoireJournaliere(t, caisseRef, entree, vars);
+  return journaliere === null ? null : journaliere * 30;
 }
 
 // ────────────────────────────────────────────────────────────────────
