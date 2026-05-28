@@ -333,6 +333,48 @@ export const regleInvTnsMadelinAbsent: Regle = (ctx, cible) => {
 };
 
 // ────────────────────────────────────────────────────────────────────
+// Constats de cohérence de saisie (décisions H7 / H11)
+// ────────────────────────────────────────────────────────────────────
+
+export const regleSurCouvertureBornee: Regle = (ctx, cible) => {
+  if (!ctx.projection.surCouvertureBornee) return null;
+  return {
+    id: `couverture_bornee_100_${cible}`,
+    severite: "info",
+    axe: "incapacite",
+    cible,
+    titre: "Couverture supérieure à 100 % du revenu — plafonnée",
+    detail:
+      "La couverture saisie dépasse 100 % du revenu ; elle est plafonnée à 100 % " +
+      "(principe indemnitaire — pas de sur-indemnisation possible : un revenu de " +
+      "remplacement ne peut excéder le revenu d'activité).",
+    reference: "Principe indemnitaire — droit des assurances",
+    action:
+      "Vérifier la cohérence des taux de couverture saisis : aucun contrat ne peut " +
+      "garantir plus de 100 % du revenu d'activité.",
+  };
+};
+
+export const regleCollectiveTnsIgnoree: Regle = (ctx, cible) => {
+  if (!ctx.projection.couvertureCollectiveIgnoreeTNS) return null;
+  return {
+    id: `collective_tns_ignoree_${cible}`,
+    severite: "attention",
+    axe: "incapacite",
+    cible,
+    titre: "Couverture collective non accessible (statut TNS)",
+    detail:
+      "Statut TNS : la couverture collective d'entreprise n'est pas accessible " +
+      "(vous n'êtes pas salarié au sens social). Une couverture passe par un contrat " +
+      "individuel (type Madelin). Vérifiez la nature des contrats saisis.",
+    reference: "Art. L.911-1 et s. CSS",
+    action:
+      "Vérifier la nature des contrats saisis : la protection d'un dirigeant TNS " +
+      "passe par un contrat individuel, non par le contrat collectif de l'entreprise.",
+  };
+};
+
+// ────────────────────────────────────────────────────────────────────
 // Orchestrateur + tri par sévérité
 // ────────────────────────────────────────────────────────────────────
 
@@ -345,6 +387,8 @@ const REGLES_INDIVIDUELLES: Regle[] = [
   regleIjCcnNonDocumentee,
   regleInvCat2AucuneCouvertureCompl,
   regleInvTnsMadelinAbsent,
+  regleSurCouvertureBornee,
+  regleCollectiveTnsIgnoree,
 ];
 
 const ORDRE_SEVERITE: Record<ConstatSeverite, number> = {

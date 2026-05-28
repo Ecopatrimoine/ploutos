@@ -9,11 +9,22 @@ import { describe, it, expect } from "vitest";
 import { projeterArretMaladie, computeIJObligatoireJournaliere } from "../lib/prevoyance/projection";
 import { buildEntreePerso } from "../lib/prevoyance/mapping";
 import { calcConjointACharge, calcEnfantsMineurs } from "../lib/prevoyance/contexte";
+import { evaluerToutesLesRegles } from "../lib/prevoyance/regles";
 import { createEmptyTravail } from "../lib/prevoyance/utils";
 import { buildPlafondVariables } from "../lib/prevoyance/formula";
 import { referentiels } from "../data/prevoyance";
-import type { EntreePerso } from "../lib/prevoyance/types";
+import type { ContexteRegle, EntreePerso, ProjectionResult } from "../lib/prevoyance/types";
 import type { PatrimonialData } from "../types/patrimoine";
+
+// ContexteRegle minimal pour vérifier la présence d'un constat lié à
+// un flag de la projection (sur-couverture, collective TNS ignorée).
+function ctxFromProjection(e: EntreePerso, projection: ProjectionResult): ContexteRegle {
+  return {
+    entree: e, projection,
+    dettesImmobilieres: 0, conjointACharge: false, enfantsMineurs: 0,
+    revenuP1Mensuel: 0, revenuP2Mensuel: 0,
+  };
+}
 
 function entree(over: Partial<EntreePerso> = {}): EntreePerso {
   return {
@@ -100,17 +111,28 @@ describe("Famille H — Cas limites & pièges métier", () => {
 
   // H7 — Dirigeant TNS (gérant majoritaire) avec couverture collective
   // saisie : un TNS pur n'a PAS accès au collectif de son entreprise.
-  // ⚠️ ÉCART : le moteur applique actuellement la couverture collective
-  // quel que soit le statut. À trancher (récap T6) : exclusion moteur
-  // pour les statuts TNS purs, OU contrôle en amont dans l'UI de saisie.
-  it.skip("H7 — gérant majoritaire (TNS) → couverture collective ignorée [ÉCART à trancher]", () => {
-    const r = projeterArretMaladie(
-      entree({ statutPro: "gerant_majoritaire", caisse: "SSI", salaireBrutAnnuel: 0, revenuTNSAnnuel: 60000,
-        couvertureCollective: { ij: { pctSalaire: 0.8, franchise: 30, plafondJours: 1095, baseCalcul: "T1_T2" } } }),
-      "cat2", referentiels
-    );
-    // Attendu (après décision) : un TNS pur n'a pas de collectif.
+  // Décision H7 appliquée : le moteur IGNORE la couverture collective
+  // pour les statuts TNS purs (étages collectifs = 0) + constat attention.
+  it("H7 — gérant majoritaire (TNS) → couverture collective ignorée + flag + constat", () => {
+    const e = entree({ statutPro: "gerant_majoritaire", caisse: "SSI", salaireBrutAnnuel: 0, revenuTNSAnnuel: 60000,
+      couvertureCollective: { ij: { pctSalaire: 0.8, franchise: 30, plafondJours: 1095, baseCalcul: "T1_T2" },
+        invalidite: { cat1: { pctSalaire: 0.4 }, cat2: { pctSalaire: 0.8 }, cat3: { pctSalaire: 1.0 } } } });
+    const r = projeterArretMaladie(e, "cat2", referentiels);
+    // Un TNS pur n'a pas de collectif → étages collectifs nuls.
     for (const v of r.series.ijComplementaireCollective) expect(v).toBe(0);
+    for (const v of r.series.renteInvalCollective) expect(v).toBe(0);
+    expect(r.couvertureCollectiveIgnoreeTNS).toBe(true);
+    // Constat attention présent
+    const constats = evaluerToutesLesRegles(ctxFromProjection(e, r), "p1");
+    expect(constats.some((c) => c.id.startsWith("collective_tns_ignoree"))).toBe(true);
+  });
+
+  it("H7 — président SAS (assimilé salarié) → couverture collective CONSERVÉE", () => {
+    const e = entree({ statutPro: "president_sas", caisse: "CPAM", salaireBrutAnnuel: 60000, ancienneteMois: 0,
+      couvertureCollective: { ij: { pctSalaire: 0.8, franchise: 0, plafondJours: 1095, baseCalcul: "T1_T2" } } });
+    const r = projeterArretMaladie(e, "cat2", referentiels);
+    expect(r.couvertureCollectiveIgnoreeTNS).toBe(false);
+    expect(Math.max(...r.series.ijComplementaireCollective)).toBeGreaterThan(0);
   });
 
   // H8 — Président SAS (assimilé salarié) → accès au collectif + maintien
@@ -150,22 +172,33 @@ describe("Famille H — Cas limites & pièges métier", () => {
     expect(r3.series.pensionInvalObligatoire[idxInval(r3)]).toBe(r2.series.pensionInvalObligatoire[idxInval(r2)]);
   });
 
-  // H11 — couverture collective > 100 % du brut : devrait être bornée.
-  // ⚠️ ÉCART : le moteur applique pctSalaire tel quel (cible = brut ×
-  // pctSalaire), même > 1 → revenu de remplacement > revenu d'activité.
-  // À trancher (récap T6) : borner pctSalaire à 1 (règle assurance =
-  // pas de sur-indemnisation), dans le moteur OU à la saisie UI.
-  it.skip("H11 — couverture collective pctSalaire 1,5 → bornée à 100 % du brut [ÉCART à trancher]", () => {
+  // H11 — couverture collective > 100 % du brut : bornée (principe
+  // indemnitaire). Décision H11 appliquée : clamp pctSalaire à 1.0.
+  it("H11 — couverture collective pctSalaire 1,5 → bornée à 100 % du brut + flag + constat", () => {
     const brutMensuel = 60000 / 12;
-    const r = projeterArretMaladie(
-      entree({ statutPro: "salarie_non_cadre", caisse: "CPAM", salaireBrutAnnuel: 60000, ancienneteMois: 0,
-        couvertureCollective: { ij: { pctSalaire: 1.5, franchise: 0, plafondJours: 1095, baseCalcul: "T1_T2" } } }),
-      "cat2", referentiels
-    );
+    const e = entree({ statutPro: "salarie_non_cadre", caisse: "CPAM", salaireBrutAnnuel: 60000, ancienneteMois: 0,
+      couvertureCollective: { ij: { pctSalaire: 1.5, franchise: 0, plafondJours: 1095, baseCalcul: "T1_T2" } } });
+    const r = projeterArretMaladie(e, "cat2", referentiels);
     const j180 = r.axe.findIndex((p) => p.jour === 180);
     const total = r.series.ijObligatoire[j180] + r.series.ijComplementaireCollective[j180];
-    // Attendu (après décision) : total borné à 100 % du brut.
+    // Total borné à 100 % du brut (pctSalaire 1.5 traité comme 1.0).
     expect(total).toBeLessThanOrEqual(brutMensuel + 1);
+    expect(total).toBeCloseTo(brutMensuel, 0);
+    expect(r.surCouvertureBornee).toBe(true);
+    // Constat info présent
+    const constats = evaluerToutesLesRegles(ctxFromProjection(e, r), "p1");
+    expect(constats.some((c) => c.id.startsWith("couverture_bornee_100"))).toBe(true);
+  });
+
+  it("H11 — contrat individuel invalidité baseInvalidite 1,2 → borné à 100 %", () => {
+    const e = entree({ statutPro: "tns_liberal", caisse: "CARMF", salaireBrutAnnuel: 0, revenuTNSAnnuel: 80000,
+      contratsIndividuels: [{ id: "inv", type: "invalidite", capitalOuMontant: 0, baseInvalidite: 1.2 }] });
+    const r = projeterArretMaladie(e, "cat2", referentiels);
+    const j1095 = r.axe.findIndex((p) => p.jour >= 1095);
+    const baseMensuelle = 80000 / 12;
+    // baseInvalidite 1.2 clampé à 1.0 → rente = 100 % de la base.
+    expect(r.series.renteInvalIndividuelle[j1095]).toBeCloseTo(baseMensuelle, 0);
+    expect(r.surCouvertureBornee).toBe(true);
   });
 
   // H12 — très haut revenu TNS : pas d'overflow

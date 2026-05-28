@@ -346,6 +346,33 @@ function computeIJObligatoireMensuel(
 // IJ complémentaire collective et individuelle
 // ────────────────────────────────────────────────────────────────────
 
+// Borne un pourcentage de remplacement à 1.0 (principe indemnitaire :
+// pas de revenu de remplacement > revenu d'activité — décision H11).
+function clampPct(pct: number): number {
+  return Math.min(Math.max(0, pct), 1);
+}
+
+// Détecte si une couverture (collective ou individuelle) vise plus de
+// 100 % du revenu → bornée par clampPct (décision H11). Sert à lever
+// un constat info.
+function detecteSurCouverture(
+  cov: CouvertureCollective | null,
+  contrats: ContratIndividuel[]
+): boolean {
+  if (cov?.ij && cov.ij.pctSalaire > 1) return true;
+  if (cov?.invalidite) {
+    if (
+      cov.invalidite.cat1.pctSalaire > 1 ||
+      cov.invalidite.cat2.pctSalaire > 1 ||
+      cov.invalidite.cat3.pctSalaire > 1
+    ) {
+      return true;
+    }
+  }
+  if (contrats.some((c) => c.type === "invalidite" && (c.baseInvalidite ?? 0) > 1)) return true;
+  return false;
+}
+
 function computeIJCollective(
   t: number,
   cov: CouvertureCollective | null,
@@ -357,7 +384,7 @@ function computeIJCollective(
   const plafond = cov.ij.plafondJours;
   if (t < f) return 0;
   if (t > f + plafond) return 0;
-  const cible = salaireBrutMensuel * cov.ij.pctSalaire;
+  const cible = salaireBrutMensuel * clampPct(cov.ij.pctSalaire);
   return Math.max(0, cible - dejaCouvertMensuel);
 }
 
@@ -434,7 +461,7 @@ function computeRenteInvalCollective(
   if (!cov?.invalidite) return 0;
   const c = cov.invalidite[categorie];
   if (!c) return 0;
-  const cible = salaireBrutMensuel * c.pctSalaire;
+  const cible = salaireBrutMensuel * clampPct(c.pctSalaire);
   return Math.max(0, cible - pensionOblig);
 }
 
@@ -445,7 +472,7 @@ function computeRenteInvalIndividuelle(
   let total = 0;
   for (const c of contrats) {
     if (c.type !== "invalidite") continue;
-    const base = c.baseInvalidite ?? 0.5;
+    const base = clampPct(c.baseInvalidite ?? 0.5);
     total += baseMensuelle * base;
   }
   return total;
@@ -561,6 +588,23 @@ export function projeterArretMaladie(
   const baseMensuelleInvalidite = isSalarie ? salaireBrutMensuel : revenuMensuelTNS;
   const plafondVars = buildPlafondVariables(ref);
 
+  // Décision H7 : un TNS pur (tns_*, gérant majoritaire) n'a PAS accès
+  // au contrat collectif de son entreprise (L.911-1 CSS — il n'est pas
+  // salarié au sens social). Sa couverture passe par un contrat
+  // individuel (Madelin). Le moteur ignore donc la couverture collective
+  // saisie pour ces statuts. Les assimilés salariés (président SAS, EURL
+  // unique) conservent l'accès (isSalarie=true pour eux).
+  const couvertureCollectiveIgnoreeTNS = isTns && entree.couvertureCollective !== null;
+  const couvertureEffective: CouvertureCollective | null = isTns
+    ? null
+    : entree.couvertureCollective;
+
+  // Décision H11 : sur-couverture (pctSalaire ou baseInvalidite > 1)
+  // détectée sur la couverture EFFECTIVE + les contrats individuels.
+  // Le clamp est appliqué dans les fonctions de calcul ; ce flag sert
+  // à lever un constat info.
+  const surCouvertureBornee = detecteSurCouverture(couvertureEffective, entree.contratsIndividuels);
+
   // Revenu de référence (manque à gagner, ligne pointillée).
   // Priorité à la valeur calculée en amont par le mapping
   // (buildEntreePerso : gère micro-TNS=CA, réel-TNS=bénéfice, salarié
@@ -623,7 +667,7 @@ export function projeterArretMaladie(
 
       series.ijComplementaireCollective[i] = computeIJCollective(
         t,
-        entree.couvertureCollective,
+        couvertureEffective,
         salaireBrutMensuel,
         series.maintienEmployeur[i] + series.ijObligatoire[i]
       );
@@ -648,7 +692,7 @@ export function projeterArretMaladie(
       }
 
       series.renteInvalCollective[i] = computeRenteInvalCollective(
-        entree.couvertureCollective,
+        couvertureEffective,
         categorie,
         salaireBrutMensuel,
         series.pensionInvalObligatoire[i]
@@ -695,5 +739,7 @@ export function projeterArretMaladie(
     useLegalDefault,
     donneesCaisseIndisponibles: donneesIndisponibles,
     revenuReferenceMicroTNS: entree.revenuReferenceMicroTNS === true,
+    surCouvertureBornee,
+    couvertureCollectiveIgnoreeTNS,
   };
 }

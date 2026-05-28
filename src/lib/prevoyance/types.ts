@@ -203,4 +203,10 @@ export type ProjectionResult = {
   // true si le revenu de référence d'un micro-TNS est calé sur le CA
   // encaissé → l'UI et le PDF affichent un avertissement explicatif.
   revenuReferenceMicroTNS: boolean;
+  // true si une couverture (collective ou individuelle) visant > 100 %
+  // du revenu a été bornée à 100 % (principe indemnitaire — décision H11).
+  surCouvertureBornee: boolean;
+  // true si la couverture collective a été ignorée car le statut est un
+  // TNS pur (pas d'accès au contrat collectif d'entreprise — décision H7).
+  couvertureCollectiveIgnoreeTNS: boolean;
 };
