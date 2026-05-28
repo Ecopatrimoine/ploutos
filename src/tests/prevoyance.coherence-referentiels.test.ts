@@ -53,6 +53,12 @@ describe("G4 — Cohérence inter-référentiels", () => {
 
   // G4c — pas de sur-indemnisation : maintien employeur + IJSS <= 100 %
   // du revenu de référence (le maintien complète, il ne sur-couvre pas).
+  //
+  // ⚠️ REMPLISSAGE CCN : certaines conventions (ex. Syntec) maintiennent
+  // à 100 % du net pendant une période — dans ce cas l'égalité
+  // maintien + IJ == revenu de référence est LÉGITIME, ce n'est PAS une
+  // sur-indemnisation. La borne du test est donc <= (et NON <) : quand
+  // une CCN à maintien 100 % sera saisie, le test tolère l'égalité.
   it("G4c — maintien employeur + IJ obligatoire <= revenu de référence (200 profils)", () => {
     for (const { entree, categorie } of PROFILS) {
       const r = projeterArretMaladie(entree, categorie, referentiels);
