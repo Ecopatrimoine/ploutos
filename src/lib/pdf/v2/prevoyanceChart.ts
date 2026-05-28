@@ -80,7 +80,7 @@ export function renderProjectionSVG(projection: ProjectionResult, t: Tokens): st
   const barW = Math.min(46, slot * 0.62);
 
   const couleurs = {
-    salaire: "#4E8C6A",
+    salaire: "#E3AF64",
     maintien: t.navy,
     obligatoire: t.sectionGrisBleu,
     collective: t.kpiOrPale,

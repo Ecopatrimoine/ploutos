@@ -1,12 +1,18 @@
-// ─── ProjectionChart — graphique aires empilées (Lot 7) ──────────────
+// ─── ProjectionChart — graphique aires empilées (Lot 7 + LOT UI-GRAPH) ──
 //
 // Affiche un ProjectionResult sous forme d'AreaChart Recharts :
 //   - séries empilées (maintien, IJ obl/coll/ind, pension inval
-//     obl/coll/ind) + salaire d'activité affiché uniquement en phase
-//     mi-temps thérapeutique / guérison (sinon nul)
-//   - ligne référence revenu (pointillés)
-//   - ligne verticale "bascule invalidité" à J1095
-//   - palette cabinet via CSS vars --cab-*
+//     obl/coll/ind) + salaire d'activité (mi-temps thérapeutique /
+//     guérison ; sinon nul, masqué)
+//   - ligne référence revenu (pointillés gris)
+//   - ligne verticale pointillée gold « bascule invalidité » à J1095
+//   - vue par défaut J0→J1095 (3 ans) avec bouton de dépliage jusqu'à la
+//     retraite (ne change QUE la fenêtre affichée, pas les données)
+//   - tooltip filtré : seuls les étages présents (> 0) + référence + total
+//   - palette charte Ploutos (navy / gold / navy clair / bleu-gris / gris)
+//
+// Lot purement présentation : aucune dépendance au moteur au-delà du
+// ProjectionResult reçu.
 
 import React from "react";
 import {
@@ -27,6 +33,18 @@ type Props = {
   projection: ProjectionResult;
 };
 
+// Palette charte (SPEC_PREVOYANCE_UI_GRAPHIQUE §5). Navy et gold restent
+// surchargeables par le thème cabinet ; les teintes intermédiaires sont
+// fixes (validées sur maquette). Les couvertures collective/individuelle
+// partagent le bleu-gris et sont distinguées par l'opacité.
+const COL = {
+  salaire: "var(--cab-gold, #E3AF64)",
+  maintien: "#5B7FB0",
+  obligatoire: "var(--cab-navy, #101B3B)",
+  complementaire: "#A9B8D4",
+  reference: "#888780",
+};
+
 function formatLabelX(jour: number, phase: "am" | "invalidite"): string {
   if (phase === "am") {
     if (jour === 0) return "J0";
@@ -42,9 +60,64 @@ function formatEuro(v: number): string {
   return `${Math.round(v).toLocaleString("fr-FR")} €`;
 }
 
+// Tooltip filtré (SPEC §4) : n'affiche que les étages > 0 au point survolé,
+// puis toujours le revenu de référence et le total avec son pourcentage.
+function TooltipContenu({
+  active,
+  payload,
+  label,
+  refMensuel,
+}: {
+  active?: boolean;
+  payload?: Array<{ name?: string; value?: number; color?: string; dataKey?: string }>;
+  label?: string;
+  refMensuel: number;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const total = payload.reduce((s, p) => s + (Number(p.value) || 0), 0);
+  const pct = refMensuel > 0 ? Math.round((total / refMensuel) * 100) : 0;
+  const visibles = payload.filter((p) => (Number(p.value) || 0) > 0);
+  return (
+    <div
+      style={{
+        background: "#fff",
+        border: `1px solid ${BRAND.muted}`,
+        borderRadius: 12,
+        padding: "8px 10px",
+        fontSize: 12,
+        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+      }}
+    >
+      <div style={{ fontWeight: 700, color: BRAND.navy, marginBottom: 4 }}>{`Échéance : ${label}`}</div>
+      {visibles.map((p) => (
+        <div key={p.dataKey} style={{ color: BRAND.navy, display: "flex", justifyContent: "space-between", gap: 12 }}>
+          <span>
+            <span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 2, background: p.color, marginRight: 5 }} />
+            {p.name}
+          </span>
+          <span>{formatEuro(Number(p.value))}</span>
+        </div>
+      ))}
+      <div style={{ color: COL.reference, display: "flex", justifyContent: "space-between", gap: 12, marginTop: 4 }}>
+        <span>Revenu de référence</span>
+        <span>{formatEuro(refMensuel)}</span>
+      </div>
+      <div style={{ fontWeight: 700, color: BRAND.navy, display: "flex", justifyContent: "space-between", gap: 12, borderTop: `1px solid ${BRAND.muted}`, marginTop: 4, paddingTop: 4 }}>
+        <span>Total</span>
+        <span>{`${formatEuro(total)} (${pct} %)`}</span>
+      </div>
+    </div>
+  );
+}
+
 export const ProjectionChart = React.memo(function ProjectionChart({ projection }: Props) {
+  const [vueComplete, setVueComplete] = React.useState(false);
+
   const hasSalaire = projection.series.salaire.some((v) => v > 0);
-  const data = projection.axe.map((point, idx) => ({
+  const bascule = projection.basculeInvaliditeJour;
+  const hasInvalidite = projection.finProjectionJour > bascule;
+
+  const dataComplete = projection.axe.map((point, idx) => ({
     jour: point.jour,
     labelX: formatLabelX(point.jour, point.phase),
     salaire: Math.round(projection.series.salaire[idx]),
@@ -57,63 +130,86 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection 
     renteInvalInd: Math.round(projection.series.renteInvalIndividuelle[idx]),
   }));
 
-  const labelBascule = formatLabelX(projection.basculeInvaliditeJour, "am");
+  // Fenêtrage (SPEC §2) : la vue 3 ans ne montre que J0→J1095 (bascule
+  // incluse). Le dépliage révèle la phase invalidité jusqu'à la retraite.
+  // On filtre les points affichés — les données calculées sont intactes.
+  const data = vueComplete ? dataComplete : dataComplete.filter((d) => d.jour <= bascule);
+
+  const labelBascule = dataComplete.find((d) => d.jour === bascule)?.labelX;
 
   return (
-    <div style={{ width: "100%", height: 360 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-          <XAxis dataKey="labelX" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-          <YAxis
-            tick={{ fontSize: 10 }}
-            tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)} k€` : `${v} €`)}
-          />
-          <Tooltip
-            formatter={(value: number) => formatEuro(value)}
-            labelFormatter={(label: string) => `Échéance : ${label}`}
-            contentStyle={{ borderRadius: 12, fontSize: 12 }}
-          />
-          <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} />
+    <div style={{ width: "100%" }}>
+      {hasInvalidite && (
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div className="text-xs" style={{ color: BRAND.muted, fontStyle: "italic" }}>
+            {vueComplete ? "Projection complète jusqu'à la retraite" : "Arrêt 0 → 3 ans + bascule invalidité"}
+          </div>
+          <button
+            type="button"
+            onClick={() => setVueComplete((v) => !v)}
+            className="rounded-xl px-3 py-1.5 text-xs font-semibold transition-all"
+            style={{ background: BRAND.navy, color: "#fff", border: "none", cursor: "pointer" }}
+          >
+            {vueComplete ? "Revenir à la vue 3 ans" : "Voir l'invalidité jusqu'à la retraite"}
+          </button>
+        </div>
+      )}
 
-          <ReferenceLine
-            y={projection.revenuReferenceMensuel}
-            stroke="var(--cab-navy, #101B3B)"
-            strokeDasharray="4 4"
-            strokeWidth={1.5}
-            label={{
-              value: `Revenu de réf. (${formatEuro(projection.revenuReferenceMensuel)})`,
-              fontSize: 10,
-              position: "insideTopRight",
-              fill: "var(--cab-navy, #101B3B)",
-            }}
-          />
+      <div style={{ width: "100%", height: 360 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
+            <XAxis dataKey="labelX" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+            <YAxis
+              tick={{ fontSize: 10 }}
+              tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)} k€` : `${v} €`)}
+            />
+            <Tooltip content={<TooltipContenu refMensuel={projection.revenuReferenceMensuel} />} />
+            <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} />
 
-          <ReferenceLine
-            x={labelBascule}
-            stroke="var(--cab-gold, #E3AF64)"
-            strokeWidth={2}
-            label={{
-              value: "Bascule invalidité",
-              fontSize: 10,
-              angle: -90,
-              position: "insideTopLeft",
-              fill: "var(--cab-gold, #E3AF64)",
-            }}
-          />
+            <ReferenceLine
+              y={projection.revenuReferenceMensuel}
+              stroke={COL.reference}
+              strokeDasharray="4 4"
+              strokeWidth={1.5}
+              label={{
+                value: `Revenu de réf. (${formatEuro(projection.revenuReferenceMensuel)})`,
+                fontSize: 10,
+                position: "insideTopRight",
+                fill: COL.reference,
+              }}
+            />
 
-          {hasSalaire && (
-            <Area type="stepAfter" dataKey="salaire"       stackId="1" name="Salaire (activité partielle)" fill="#4E8C6A" fillOpacity={0.85} stroke="none" />
-          )}
-          <Area type="stepAfter" dataKey="maintien"        stackId="1" name="Maintien employeur"           fill="var(--cab-navy, #101B3B)" fillOpacity={0.85} stroke="none" />
-          <Area type="stepAfter" dataKey="ijObl"           stackId="1" name="IJ régime obligatoire"        fill="var(--cab-sky, #26428B)"  fillOpacity={0.75} stroke="none" />
-          <Area type="stepAfter" dataKey="ijColl"          stackId="1" name="IJ prévoyance collective"     fill="#A98551" fillOpacity={0.8} stroke="none" />
-          <Area type="stepAfter" dataKey="ijInd"           stackId="1" name="IJ prévoyance individuelle"   fill="var(--cab-gold, #E3AF64)" fillOpacity={0.9} stroke="none" />
-          <Area type="stepAfter" dataKey="pensionInvalObl" stackId="1" name="Pension inval. obligatoire"   fill="var(--cab-sky, #26428B)"  fillOpacity={0.55} stroke="none" />
-          <Area type="stepAfter" dataKey="renteInvalColl"  stackId="1" name="Rente inval. collective"      fill="#A98551" fillOpacity={0.6} stroke="none" />
-          <Area type="stepAfter" dataKey="renteInvalInd"   stackId="1" name="Rente inval. individuelle"    fill="var(--cab-gold, #E3AF64)" fillOpacity={0.7} stroke="none" />
-        </AreaChart>
-      </ResponsiveContainer>
+            {labelBascule && (
+              <ReferenceLine
+                x={labelBascule}
+                stroke="var(--cab-gold, #E3AF64)"
+                strokeDasharray="5 4"
+                strokeWidth={1.5}
+                label={{
+                  value: "bascule invalidité",
+                  fontSize: 10,
+                  angle: -90,
+                  position: "insideTopLeft",
+                  fill: "var(--cab-gold, #E3AF64)",
+                }}
+              />
+            )}
+
+            {hasSalaire && (
+              <Area type="stepAfter" dataKey="salaire"       stackId="1" name="Salaire (activité)"          fill={COL.salaire}       fillOpacity={0.9} stroke="none" />
+            )}
+            <Area type="stepAfter" dataKey="maintien"        stackId="1" name="Maintien employeur"          fill={COL.maintien}      fillOpacity={0.9} stroke="none" />
+            <Area type="stepAfter" dataKey="ijObl"           stackId="1" name="IJ régime obligatoire"       fill={COL.obligatoire}   fillOpacity={0.9} stroke="none" />
+            <Area type="stepAfter" dataKey="ijColl"          stackId="1" name="IJ prévoyance collective"    fill={COL.complementaire} fillOpacity={0.95} stroke="none" />
+            <Area type="stepAfter" dataKey="ijInd"           stackId="1" name="IJ prévoyance individuelle"  fill={COL.complementaire} fillOpacity={0.65} stroke="none" />
+            <Area type="stepAfter" dataKey="pensionInvalObl" stackId="1" name="Pension inval. obligatoire"  fill={COL.obligatoire}   fillOpacity={0.7} stroke="none" />
+            <Area type="stepAfter" dataKey="renteInvalColl"  stackId="1" name="Rente inval. collective"     fill={COL.complementaire} fillOpacity={0.95} stroke="none" />
+            <Area type="stepAfter" dataKey="renteInvalInd"   stackId="1" name="Rente inval. individuelle"   fill={COL.complementaire} fillOpacity={0.65} stroke="none" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
       {projection.donneesCaisseIndisponibles && (
         <div className="text-xs mt-1" style={{ color: BRAND.muted, fontStyle: "italic" }}>
           ⚠ Données du régime obligatoire incomplètes : la courbe affiche
