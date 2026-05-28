@@ -23,6 +23,7 @@ import type {
   PayloadPrevoyance,
   PayloadPrevoyancePerso,
   CategorieInvalidite,
+  ScenarioArret,
 } from "../../types/patrimoine";
 import type {
   ContratIndividuel as MoteurContratIndividuel,
@@ -49,6 +50,7 @@ function defaultPrevoyancePerso(): PayloadPrevoyancePerso {
     contratsIndividuels: [],
     couvertureCollective: null,
     categorieInvaliditeProjetee: "cat2",
+    scenarioArret: "ald",
   };
 }
 
@@ -218,10 +220,11 @@ function ColonnePerso({
   );
 
   const categorie = prevoyancePerso.categorieInvaliditeProjetee;
+  const scenarioArret: ScenarioArret = prevoyancePerso.scenarioArret ?? "ald";
 
   const projection = React.useMemo(
-    () => projeterArretMaladie(entree, categorie, referentiels),
-    [entree, categorie]
+    () => projeterArretMaladie(entree, categorie, referentiels, scenarioArret),
+    [entree, categorie, scenarioArret]
   );
 
   const constats = React.useMemo(() => {
@@ -268,6 +271,27 @@ function ColonnePerso({
             {Math.round(projection.revenuReferenceMensuel).toLocaleString("fr-FR")} €/mois
           </span>
         </div>
+      </div>
+
+      {/* Sélecteur scénario d'arrêt */}
+      <div
+        className="rounded-xl p-3 flex flex-wrap items-center gap-4"
+        style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}
+      >
+        <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>
+          Scénario d'arrêt
+        </div>
+        {(["maladie_ordinaire", "ald"] as const).map((sc) => (
+          <label key={sc} className="flex items-center gap-1.5 text-sm cursor-pointer" style={{ color: BRAND.navy }}>
+            <input
+              type="radio"
+              name={`scenario-${cible}`}
+              checked={scenarioArret === sc}
+              onChange={() => onChangePrevoyance({ scenarioArret: sc })}
+            />
+            <span>{libelleScenario(sc)}</span>
+          </label>
+        ))}
       </div>
 
       {/* Sélecteur catégorie invalidité */}
@@ -369,5 +393,14 @@ function libelleCategorie(c: CategorieInvalidite): string {
       return "Cat 2 — incapable";
     case "cat3":
       return "Cat 3 — + tierce personne";
+  }
+}
+
+function libelleScenario(s: ScenarioArret): string {
+  switch (s) {
+    case "maladie_ordinaire":
+      return "Maladie ordinaire (max 360 j)";
+    case "ald":
+      return "Affection longue durée (jusqu'à 3 ans)";
   }
 }

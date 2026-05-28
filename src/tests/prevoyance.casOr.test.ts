@@ -21,7 +21,11 @@
 // elles restent en `toBeGreaterThan` ou `toBeCloseTo` avec tolérance.
 
 import { describe, expect, it } from "vitest";
-import { projeterArretMaladie } from "../lib/prevoyance/projection";
+import {
+  projeterArretMaladie,
+  computeIJObligatoireJournaliere,
+} from "../lib/prevoyance/projection";
+import { buildPlafondVariables } from "../lib/prevoyance/formula";
 import { referentiels } from "../data/prevoyance";
 import type { EntreePerso } from "../lib/prevoyance/types";
 
@@ -376,6 +380,72 @@ describe("Cas d'or D — Pierre, gérant majoritaire SSI (TNS, Madelin)", () => 
 // ────────────────────────────────────────────────────────────────────
 // Tests de robustesse complémentaires (au-delà de projection.test.ts)
 // ────────────────────────────────────────────────────────────────────
+
+// ────────────────────────────────────────────────────────────────────
+// LOT ALD — scénario maladie ordinaire vs affection longue durée
+// ────────────────────────────────────────────────────────────────────
+
+describe("LOT ALD — Léa (cas C, CPAM sans complémentaire) : trou J361-J1095 en ordinaire, comblé en ALD", () => {
+  const vars = buildPlafondVariables(referentiels);
+  const cpam = (referentiels.caisses as any).caisses.CPAM;
+
+  // Léa = casC déjà défini plus haut (brut 28 000, non-cadre, sans coll.).
+  const rOrd = projeterArretMaladie(casC, "cat2", referentiels, "maladie_ordinaire");
+  const rAld = projeterArretMaladie(casC, "cat2", referentiels, "ald");
+
+  it("boundary J360/J361 (fonction réglementaire) : ordinaire coupe à 360, ALD maintient", () => {
+    // IJ journalière Léa = SJB 76,71 → 38,36 €/j (sous plafond).
+    expect(computeIJObligatoireJournaliere(360, cpam, casC, vars, "maladie_ordinaire")).toBeCloseTo(38.36, 1);
+    expect(computeIJObligatoireJournaliere(361, cpam, casC, vars, "maladie_ordinaire")).toBe(0);
+    expect(computeIJObligatoireJournaliere(361, cpam, casC, vars, "ald")).toBeCloseTo(38.36, 1);
+    expect(computeIJObligatoireJournaliere(1095, cpam, casC, vars, "ald")).toBeCloseTo(38.36, 1);
+    expect(computeIJObligatoireJournaliere(1096, cpam, casC, vars, "ald")).toBe(0);
+  });
+
+  it("J90 identique dans les deux scénarios (≈ 1150,7 €/mois, IJSS seules)", () => {
+    const j90 = idxJour(rOrd.axe, 90);
+    expect(rOrd.series.ijObligatoire[j90]).toBeCloseTo(38.356 * 30, 0);
+    expect(rAld.series.ijObligatoire[idxJour(rAld.axe, 90)]).toBeCloseTo(38.356 * 30, 0);
+  });
+
+  it("au-delà de J360 (axe J365/J730/J912) : ordinaire = 0 (trou), ALD = IJSS maintenues", () => {
+    for (const j of [365, 730, 912]) {
+      const iOrd = idxJour(rOrd.axe, j);
+      const iAld = idxJour(rAld.axe, j);
+      expect(rOrd.series.ijObligatoire[iOrd]).toBe(0);
+      // Léa n'a aucune complémentaire → en ordinaire, revenu total nul.
+      expect(totalAtIdx(rOrd.series, iOrd)).toBe(0);
+      expect(rAld.series.ijObligatoire[iAld]).toBeCloseTo(38.356 * 30, 0);
+      expect(totalAtIdx(rAld.series, iAld)).toBeCloseTo(38.356 * 30, 0);
+    }
+  });
+
+  it("J1095 (bascule invalidité cat2) : pension 1166,67 € identique dans les deux scénarios", () => {
+    const pOrd = rOrd.series.pensionInvalObligatoire[idxJour(rOrd.axe, 1095)];
+    const pAld = rAld.series.pensionInvalObligatoire[idxJour(rAld.axe, 1095)];
+    expect(pOrd).toBeCloseTo(1166.67, 1);
+    expect(pAld).toBeCloseTo(1166.67, 1);
+  });
+});
+
+describe("LOT ALD — Mathieu (cas A, collective Syntec jusqu'à 1095) : total inchangé, recomposition interne", () => {
+  const rOrd = projeterArretMaladie(casA, "cat2", referentiels, "maladie_ordinaire");
+  const rAld = projeterArretMaladie(casA, "cat2", referentiels, "ald");
+  const brutMensuel = 55000 / 12;
+
+  it("au-delà de J360, le total reste à 80 % du brut (la collective absorbe l'écart d'IJ obl.)", () => {
+    for (const j of [365, 730, 912]) {
+      const iOrd = idxJour(rOrd.axe, j);
+      const iAld = idxJour(rAld.axe, j);
+      // IJ obligatoire : 0 en ordinaire (>360), maintenue en ALD.
+      expect(rOrd.series.ijObligatoire[iOrd]).toBe(0);
+      expect(rAld.series.ijObligatoire[iAld]).toBeGreaterThan(0);
+      // Total identique : la complémentaire Syntec complète jusqu'à 80 %.
+      expect(totalAtIdx(rOrd.series, iOrd)).toBeCloseTo(brutMensuel * 0.8, 0);
+      expect(totalAtIdx(rAld.series, iAld)).toBeCloseTo(brutMensuel * 0.8, 0);
+    }
+  });
+});
 
 describe("Robustesse — variations sur cas A", () => {
   it("cat3 : rente coll cat3 = COMPLÉMENT à 100 % du brut (au-dessus de la pension obligatoire)", () => {

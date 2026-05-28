@@ -314,6 +314,11 @@ export type PayloadTravailPair = {
 
 export type CategorieInvalidite = "cat1" | "cat2" | "cat3";
 
+// Scénario d'arrêt projeté : une maladie ordinaire plafonne les IJ
+// obligatoires à 360 jours, une affection longue durée (ALD) les
+// maintient jusqu'à 1095 jours. Défaut = "ald" (cf. SPEC_ALD_TPT §1).
+export type ScenarioArret = "maladie_ordinaire" | "ald";
+
 export type PayloadContratIndividuel = {
   id: string;
   type:
@@ -354,6 +359,10 @@ export type PayloadPrevoyancePerso = {
   contratsIndividuels: PayloadContratIndividuel[];
   couvertureCollective: PayloadCouvertureCollective | null;
   categorieInvaliditeProjetee: CategorieInvalidite;
+  // Scénario d'arrêt retenu pour la projection (défaut "ald"). Optionnel
+  // pour les dossiers antérieurs à l'extension ALD → le lecteur applique
+  // "ald" par défaut.
+  scenarioArret?: ScenarioArret;
 };
 
 // ─── Lot 8 — Prévoyance collective d'entreprise (audit conformité) ────

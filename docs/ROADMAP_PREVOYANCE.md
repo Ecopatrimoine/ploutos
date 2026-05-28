@@ -61,6 +61,17 @@ ultérieurement.
   `"plafondFormule": "1.4 * SMIC_mensuel * 3 / 91.25 * 0.5"` aux
   caisses concernées dans `caisses-2026.json`.
 
+## Fiscalité (hors périmètre moteur de projection)
+
+- **Exonération fiscale des IJ ALD** : les indemnités journalières
+  versées au titre d'une affection longue durée (ALD, art. L.324-1 CSS)
+  sont **exonérées d'impôt sur le revenu** (CGI art. 80 quinquies),
+  contrairement aux IJ maladie ordinaire qui sont imposables. Le moteur
+  de projection raisonne en revenu BRUT de remplacement (€/mois) et
+  n'applique aucun traitement fiscal — cette nuance est donc hors
+  périmètre. À prendre en compte le jour où l'on calculera un net
+  fiscal / un reste-à-vivre après impôt (s'appuyer sur `lib/calculs/ir.ts`).
+
 ## Pack PDF
 
 - **Nettoyage anciens fichiers prévoyance génériques** : `pagePrevoyanceInd.ts`,

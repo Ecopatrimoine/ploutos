@@ -64,8 +64,17 @@ describe("G2 — CPAM 2026 (valeurs vérifiées à la source ameli/service-publi
     expect(ij).toBeCloseTo(32.88, 1);
     expect(ij!).toBeLessThan(41.95);
   });
-  it("IJ obligatoire = 0 après J360 (maladie ordinaire, hors ALD)", () => {
-    expect(computeIJObligatoireJournaliere(361, cpam, entreeSalarie(40000), vars)).toBe(0);
+  it("scénario maladie ordinaire : IJ obligatoire = 0 après J360", () => {
+    expect(
+      computeIJObligatoireJournaliere(361, cpam, entreeSalarie(40000), vars, "maladie_ordinaire")
+    ).toBe(0);
+  });
+  it("scénario ALD : IJ obligatoire maintenue à J361 (durée 1095 j)", () => {
+    const ij = computeIJObligatoireJournaliere(361, cpam, entreeSalarie(40000), vars, "ald");
+    expect(ij!).toBeGreaterThan(0);
+    // À J1095 encore servie, à J1096 terminée (borne ALD).
+    expect(computeIJObligatoireJournaliere(1095, cpam, entreeSalarie(40000), vars, "ald")!).toBeGreaterThan(0);
+    expect(computeIJObligatoireJournaliere(1096, cpam, entreeSalarie(40000), vars, "ald")).toBe(0);
   });
   it("invalidité cat1 = 30 % SAM, bornée [338,31 ; 1201,50]", () => {
     expect(cpam.invalidite.categories.cat1.taux).toBe(0.30);

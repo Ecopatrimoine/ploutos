@@ -19,6 +19,7 @@ import type {
   EntreePerso,
   ProjectionResult,
   RuptureCle,
+  ScenarioArret,
   SerieEmpilee,
 } from "./types";
 import type { Referentiels } from "../../data/prevoyance";
@@ -254,6 +255,23 @@ function isCaisseToFill(c: any): boolean {
   return !c || c.TO_FILL === true || !c.ij;
 }
 
+// Résout la durée d'indemnisation des IJ obligatoires selon le scénario.
+//   - "maladie_ordinaire" → plafondDureeJours (360 j CPAM/SSI)
+//   - "ald"               → plafondDureeJoursALD (1095 j) si présent,
+//                           sinon fallback sur plafondDureeJours +
+//                           signal `aldManquant` (donnée non documentée).
+function resolvePlafondDuree(
+  ij: any,
+  scenarioArret: ScenarioArret
+): { duree: number | null; aldManquant: boolean } {
+  if (scenarioArret === "ald") {
+    const ald = safeNum(ij?.plafondDureeJoursALD);
+    if (ald !== null) return { duree: ald, aldManquant: false };
+    return { duree: safeNum(ij?.plafondDureeJours), aldManquant: true };
+  }
+  return { duree: safeNum(ij?.plafondDureeJours), aldManquant: false };
+}
+
 // Valeur JOURNALIÈRE brute de l'IJ obligatoire (avant conversion ×30).
 // Exportée pour les tests d'exactitude juridique (famille G) : on
 // valide le journalier réglementaire, pas le mensuel d'affichage.
@@ -263,7 +281,8 @@ export function computeIJObligatoireJournaliere(
   t: number,
   caisseRef: any,
   entree: EntreePerso,
-  vars: PlafondVariables
+  vars: PlafondVariables,
+  scenarioArret: ScenarioArret = "ald"
 ): number | null {
   if (isCaisseToFill(caisseRef)) return null;
   const ij = caisseRef.ij;
@@ -273,7 +292,8 @@ export function computeIJObligatoireJournaliere(
   if (carence === null) return null;
   if (t < carence) return 0;
 
-  const plafondDuree = safeNum(ij.plafondDureeJours);
+  // Durée d'IJ selon le scénario (360 ordinaire / 1095 ALD).
+  const { duree: plafondDuree } = resolvePlafondDuree(ij, scenarioArret);
   if (plafondDuree !== null && t > plafondDuree) return 0;
 
   // 1) Règle uniforme par classe (CARMF…)
@@ -350,11 +370,12 @@ function computeIJObligatoireMensuel(
   entree: EntreePerso,
   revenuMensuelTNS: number,
   salaireBrutMensuel: number,
-  vars: PlafondVariables
+  vars: PlafondVariables,
+  scenarioArret: ScenarioArret = "ald"
 ): number | null {
   void salaireBrutMensuel;
   void revenuMensuelTNS;
-  const journaliere = computeIJObligatoireJournaliere(t, caisseRef, entree, vars);
+  const journaliere = computeIJObligatoireJournaliere(t, caisseRef, entree, vars, scenarioArret);
   return journaliere === null ? null : journaliere * 30;
 }
 
@@ -586,7 +607,8 @@ function detectRuptures(
 export function projeterArretMaladie(
   entree: EntreePerso,
   categorie: CategorieInvalidite = "cat2",
-  ref: Referentiels
+  ref: Referentiels,
+  scenarioArret: ScenarioArret = "ald"
 ): ProjectionResult {
   const today = new Date();
   const finJour = Math.max(0, (entree.ageRetraite - entree.age) * 365);
@@ -659,7 +681,15 @@ export function projeterArretMaladie(
     renteInvalIndividuelle: axe.map(() => 0),
   };
 
-  let donneesIndisponibles = false;
+  // Scénario ALD demandé sur une caisse documentée dépourvue de durée
+  // ALD → on retombe sur 360 j et on signale la donnée manquante
+  // (cohérent avec la tolérance TO_VERIFY). Aucune caisse documentée
+  // actuelle (CPAM, SSI) n'est concernée : elles portent les deux durées.
+  let donneesIndisponibles =
+    scenarioArret === "ald" &&
+    !isCaisseToFill(caisseRef) &&
+    caisseRef.ij?.TO_FILL !== true &&
+    resolvePlafondDuree(caisseRef.ij, scenarioArret).aldManquant;
 
   for (let i = 0; i < axe.length; i++) {
     const t = axe[i].jour;
@@ -672,7 +702,8 @@ export function projeterArretMaladie(
         entree,
         revenuMensuelTNS,
         salaireBrutMensuel,
-        plafondVars
+        plafondVars,
+        scenarioArret
       );
       if (ijObl === null) {
         donneesIndisponibles = true;
@@ -766,5 +797,6 @@ export function projeterArretMaladie(
     revenuReferenceMicroTNS: entree.revenuReferenceMicroTNS === true,
     surCouvertureBornee,
     couvertureCollectiveIgnoreeTNS,
+    scenarioArret,
   };
 }

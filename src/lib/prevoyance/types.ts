@@ -12,6 +12,11 @@ import type { CodeCaisse, StatutPro } from "../../types/patrimoine";
 //   cat3 : incapable + besoin d'une tierce personne (taux ~50 % + MTP)
 export type CategorieInvalidite = "cat1" | "cat2" | "cat3";
 
+// Scénario d'arrêt : maladie ordinaire (IJ plafonnées à plafondDureeJours,
+// 360 j) ou affection longue durée (plafondDureeJoursALD, 1095 j).
+// Défaut moteur = "ald" (cf. SPEC_ALD_TPT §1).
+export type ScenarioArret = "maladie_ordinaire" | "ald";
+
 // Contrat individuel souscrit par la personne (Madelin TNS, contrat
 // santé/prévoyance perso, GAV…). Pour cette projection, on s'intéresse
 // aux types qui produisent des revenus de remplacement.
@@ -209,4 +214,6 @@ export type ProjectionResult = {
   // true si la couverture collective a été ignorée car le statut est un
   // TNS pur (pas d'accès au contrat collectif d'entreprise — décision H7).
   couvertureCollectiveIgnoreeTNS: boolean;
+  // Scénario d'arrêt ayant produit cette projection (durée IJ 360 vs 1095).
+  scenarioArret: ScenarioArret;
 };

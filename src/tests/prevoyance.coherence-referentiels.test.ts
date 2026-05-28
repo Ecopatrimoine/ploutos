@@ -9,7 +9,7 @@ import { describe, it, expect } from "vitest";
 import { projeterArretMaladie } from "../lib/prevoyance/projection";
 import { referentiels } from "../data/prevoyance";
 import { generateProfilsCoherents } from "./__fixtures__/prevoyanceFuzzing";
-import type { EntreePerso } from "../lib/prevoyance/types";
+import type { EntreePerso, ScenarioArret } from "../lib/prevoyance/types";
 
 const EPS = 1; // tolérance €/mois pour les arrondis
 
@@ -18,6 +18,12 @@ function safeNumOr0(x: unknown): number {
 }
 
 const PROFILS = generateProfilsCoherents(200, 7777);
+
+// Les invariants anti-sur-indemnisation doivent tenir QUEL QUE SOIT le
+// scénario d'arrêt : l'ALD ne fait qu'allonger la durée des IJ (1095 j),
+// pas leur montant journalier → la borne ≤ revenu de référence est la
+// même chaque jour servi.
+const SCENARIOS: ScenarioArret[] = ["maladie_ordinaire", "ald"];
 
 describe("G4 — Cohérence inter-référentiels", () => {
   // G4a — plancher légal : une CCN non documentée retombe sur le
@@ -44,13 +50,15 @@ describe("G4 — Cohérence inter-référentiels", () => {
 
   // G4b — aucune IJ obligatoire ne dépasse le revenu de référence
   // (on ne gagne pas plus en arrêt qu'en activité).
-  it("G4b — IJ obligatoire <= revenu de référence sur 200 profils cohérents", () => {
-    for (const { entree, categorie } of PROFILS) {
-      const r = projeterArretMaladie(entree, categorie, referentiels);
-      const ref = r.revenuReferenceMensuel;
-      if (ref <= 0) continue;
-      for (const v of r.series.ijObligatoire) {
-        expect(v).toBeLessThanOrEqual(ref + EPS);
+  it("G4b — IJ obligatoire <= revenu de référence sur 200 profils cohérents (2 scénarios)", () => {
+    for (const scenario of SCENARIOS) {
+      for (const { entree, categorie } of PROFILS) {
+        const r = projeterArretMaladie(entree, categorie, referentiels, scenario);
+        const ref = r.revenuReferenceMensuel;
+        if (ref <= 0) continue;
+        for (const v of r.series.ijObligatoire) {
+          expect(v).toBeLessThanOrEqual(ref + EPS);
+        }
       }
     }
   });
@@ -63,14 +71,16 @@ describe("G4 — Cohérence inter-référentiels", () => {
   // maintien + IJ == revenu de référence est LÉGITIME, ce n'est PAS une
   // sur-indemnisation. La borne du test est donc <= (et NON <) : quand
   // une CCN à maintien 100 % sera saisie, le test tolère l'égalité.
-  it("G4c — maintien employeur + IJ obligatoire <= revenu de référence (200 profils)", () => {
-    for (const { entree, categorie } of PROFILS) {
-      const r = projeterArretMaladie(entree, categorie, referentiels);
-      const ref = r.revenuReferenceMensuel;
-      if (ref <= 0) continue;
-      for (let i = 0; i < r.axe.length; i++) {
-        const cumul = r.series.maintienEmployeur[i] + r.series.ijObligatoire[i];
-        expect(cumul).toBeLessThanOrEqual(ref + EPS);
+  it("G4c — maintien employeur + IJ obligatoire <= revenu de référence (200 profils, 2 scénarios)", () => {
+    for (const scenario of SCENARIOS) {
+      for (const { entree, categorie } of PROFILS) {
+        const r = projeterArretMaladie(entree, categorie, referentiels, scenario);
+        const ref = r.revenuReferenceMensuel;
+        if (ref <= 0) continue;
+        for (let i = 0; i < r.axe.length; i++) {
+          const cumul = r.series.maintienEmployeur[i] + r.series.ijObligatoire[i];
+          expect(cumul).toBeLessThanOrEqual(ref + EPS);
+        }
       }
     }
   });
@@ -82,21 +92,23 @@ describe("G4 — Cohérence inter-référentiels", () => {
   // prestation de COMPENSATION du handicap, pas un revenu de
   // remplacement : elle peut légitimement porter le total au-dessus du
   // revenu d'activité. On la retranche donc avant de comparer.
-  it("G4c-bis — pension invalidité obligatoire (hors MTP) <= revenu de référence (200 profils)", () => {
+  it("G4c-bis — pension invalidité obligatoire (hors MTP) <= revenu de référence (200 profils, 2 scénarios)", () => {
     const caisses = (referentiels.caisses as any).caisses;
-    for (const { entree, categorie } of PROFILS) {
-      const r = projeterArretMaladie(entree, categorie, referentiels);
-      const ref = r.revenuReferenceMensuel;
-      if (ref <= 0) continue;
-      const mtp =
-        categorie === "cat3"
-          ? safeNumOr0(
-              caisses[entree.caisse as string]?.invalidite?.categories?.cat3
-                ?.majorationTiercePersonneMensuelle
-            )
-          : 0;
-      for (const v of r.series.pensionInvalObligatoire) {
-        expect(v - mtp).toBeLessThanOrEqual(ref + EPS);
+    for (const scenario of SCENARIOS) {
+      for (const { entree, categorie } of PROFILS) {
+        const r = projeterArretMaladie(entree, categorie, referentiels, scenario);
+        const ref = r.revenuReferenceMensuel;
+        if (ref <= 0) continue;
+        const mtp =
+          categorie === "cat3"
+            ? safeNumOr0(
+                caisses[entree.caisse as string]?.invalidite?.categories?.cat3
+                  ?.majorationTiercePersonneMensuelle
+              )
+            : 0;
+        for (const v of r.series.pensionInvalObligatoire) {
+          expect(v - mtp).toBeLessThanOrEqual(ref + EPS);
+        }
       }
     }
   });

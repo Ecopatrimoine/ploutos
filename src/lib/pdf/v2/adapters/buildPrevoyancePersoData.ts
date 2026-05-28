@@ -12,6 +12,7 @@ import type {
   CouvertureCollective,
   EntreePerso,
   ProjectionResult,
+  ScenarioArret,
 } from "../../../prevoyance/types";
 import { buildEntreePerso } from "../../../prevoyance/mapping";
 import { projeterArretMaladie } from "../../../prevoyance/projection";
@@ -203,13 +204,14 @@ export function buildPrevoyancePersoData(p: BuildPrevoyancePersoDataParams): Pre
   // Enrichissement avec les saisies UI (data.prevoyance.{p1|p2}).
   const prevoyancePerso = data.prevoyance?.[which] ?? null;
   const categorie: CategorieInvalidite = prevoyancePerso?.categorieInvaliditeProjetee ?? "cat2";
+  const scenarioArret: ScenarioArret = prevoyancePerso?.scenarioArret ?? "ald";
   const entree: EntreePerso = {
     ...entreeBase,
     contratsIndividuels: (prevoyancePerso?.contratsIndividuels ?? []) as ContratIndividuel[],
     couvertureCollective: (prevoyancePerso?.couvertureCollective ?? null) as CouvertureCollective | null,
   };
 
-  const projection = projeterArretMaladie(entree, categorie, referentiels);
+  const projection = projeterArretMaladie(entree, categorie, referentiels, scenarioArret);
   const ctx = buildContexteRegle(data as any, entree, projection);
   const constats = evaluerToutesLesRegles(ctx, which);
 
