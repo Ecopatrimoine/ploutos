@@ -108,3 +108,53 @@ export function generateProfils(n: number, seed = 1234): Array<{ entree: EntreeP
   const rng = mulberry32(seed);
   return Array.from({ length: n }, () => generateRandomEntree(rng));
 }
+
+// Profils COHÉRENTS statut ↔ revenu (pour les invariants G4 où l'on
+// compare l'IJ au revenu de référence) :
+//   - salarié / assimilé : brut > 0, pas de revenu TNS, caisse CPAM/MSA
+//   - TNS : revenu TNS > 0, brut = 0, caisse libérale/SSI
+// Évite les incohérences du fuzzing brut (salarié avec revenuTNS, etc.)
+// qui produiraient des faux positifs.
+const STATUTS_SALARIE_FUZZ: StatutPro[] = ["salarie_non_cadre", "salarie_cadre", "fonctionnaire", "president_sas", "eurl_unique"];
+const STATUTS_TNS_FUZZ: StatutPro[] = ["tns_liberal", "tns_commercant", "tns_artisan", "gerant_majoritaire"];
+
+export function generateProfilsCoherents(
+  n: number,
+  seed = 7777
+): Array<{ entree: EntreePerso; categorie: CategorieInvalidite }> {
+  const rng = mulberry32(seed);
+  return Array.from({ length: n }, (_, i) => {
+    const estSalarie = rng() < 0.6;
+    const age = intBetween(rng, 18, 63);
+    const nbContrats = intBetween(rng, 0, 3);
+    const contratsIndividuels = Array.from({ length: nbContrats }, (_, k) => randomContrat(rng, k));
+    if (estSalarie) {
+      const brut = intBetween(rng, 18000, 200000);
+      const statutPro = pick(rng, STATUTS_SALARIE_FUZZ);
+      const entree: EntreePerso = {
+        age, ageRetraite: 64, statutPro,
+        caisse: pick(rng, ["CPAM", "MSA"] as CodeCaisse[]),
+        idccCCN: rng() < 0.5 ? pick(rng, ["1486", "3248", "9999"]) : null,
+        ancienneteMois: intBetween(rng, 0, 480),
+        salaireBrutAnnuel: brut, salaireNetMensuel: 0,
+        nbEnfantsACharge: intBetween(rng, 0, 4),
+        contratsIndividuels, couvertureCollective: randomCouverture(rng),
+      };
+      return { entree, categorie: pick(rng, CATEGORIES) };
+    }
+    const revenuTNS = intBetween(rng, 12000, 250000);
+    const statutPro = pick(rng, STATUTS_TNS_FUZZ);
+    const entree: EntreePerso = {
+      age, ageRetraite: 64, statutPro,
+      caisse: pick(rng, ["CARMF", "SSI", "CIPAV", "CARPIMKO"] as CodeCaisse[]),
+      idccCCN: null, ancienneteMois: 0,
+      salaireBrutAnnuel: 0, salaireNetMensuel: 0,
+      revenuTNSAnnuel: revenuTNS,
+      classeCotisationCaisse: rng() < 0.5 ? pick(rng, ["A", "B", "C"]) : undefined,
+      nbEnfantsACharge: intBetween(rng, 0, 4),
+      contratsIndividuels, couvertureCollective: null,
+    };
+    void i;
+    return { entree, categorie: pick(rng, CATEGORIES) };
+  });
+}
