@@ -63,9 +63,18 @@ export type EntreePerso = {
   ancienneteMois: number;
   salaireBrutAnnuel: number;                // salarié
   salaireNetMensuel: number;                // approximé brut × 0.78 / 12 (affichage)
-  revenuTNSAnnuel?: number;                 // TNS
+  revenuTNSAnnuel?: number;                 // TNS — assiette pro (bénéfice), sert au calcul des IJ caisse
   classeCotisationCaisse?: string;          // CARMF : "A" | "B" | "C"
   nbEnfantsACharge?: number;                // pour majoration CPAM J31
+  // Revenu de référence mensuel calculé en amont par le mapping
+  // (buildEntreePerso). Si fourni, le moteur l'utilise tel quel ;
+  // sinon il applique son fallback interne. C'est le « manque à
+  // gagner » (ligne pointillée), distinct de l'IJ versée par la caisse.
+  revenuReferenceMensuel?: number;
+  // true si le revenu de référence d'un micro-entrepreneur a été calé
+  // sur le CA encaissé (et non le bénéfice après abattement) → warning
+  // UI/PDF (cf. décision A du 2026-05-28).
+  revenuReferenceMicroTNS?: boolean;
   contratsIndividuels: ContratIndividuel[];
   couvertureCollective: CouvertureCollective | null;
 };
@@ -191,4 +200,7 @@ export type ProjectionResult = {
   // que la projection s'appuie sur des défauts ou des trous.
   useLegalDefault: boolean;                // IDCC inconnu → maintien légal
   donneesCaisseIndisponibles: boolean;     // caisse TO_FILL ou TO_VERIFY critique
+  // true si le revenu de référence d'un micro-TNS est calé sur le CA
+  // encaissé → l'UI et le PDF affichent un avertissement explicatif.
+  revenuReferenceMicroTNS: boolean;
 };

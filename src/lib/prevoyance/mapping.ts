@@ -12,9 +12,9 @@
 // LOT 7 (et seront persistés dans data.prevoyance.{p1|p2} —
 // cf. spec §2.2).
 
-import type { PatrimonialData } from "../../types/patrimoine";
+import type { PatrimonialData, StatutPro } from "../../types/patrimoine";
 import type { EntreePerso } from "./types";
-import { coefBrutNet } from "./constants";
+import { coefBrutNet, STATUTS_TNS, STATUTS_SALARIE } from "./constants";
 import { computeBeneficeImposable } from "../calculs/ir";
 import { n, isProfessionLiberale } from "../calculs/utils";
 
@@ -85,10 +85,9 @@ export function buildEntreePerso(
   const age = calcAgeFromBirth(birthDate);
 
   const salaryAnnuel = asNumber(which === "p1" ? data.salary1 : data.salary2);
-  // Le salaire net mensuel sert au calcul de la cible de maintien
-  // employeur. On le dérive du net imposable (salary*) saisi dans
-  // l'onglet Revenus. Fallback : brut × coef(statut) / 12 (table de
-  // coefficients indicative par statut — cf. constants.ts).
+  // Salaire net mensuel conservé pour rétrocompat / affichage. La cible
+  // de maintien employeur s'appuie désormais sur revenuReferenceMensuel
+  // (calculé ci-dessous).
   const salaireNetMensuel =
     salaryAnnuel > 0
       ? salaryAnnuel / 12
@@ -98,9 +97,9 @@ export function buildEntreePerso(
 
   /**
    * Revenu de référence TNS = BÉNÉFICE professionnel (assiette IR :
-   * CA − charges), soit ce que le client cesse de percevoir s'il
-   * s'arrête. On se branche sur computeBeneficeImposable (la fonction
-   * exacte utilisée par computeIR), on ne recalcule pas la formule.
+   * CA − charges) pour le RÉEL. Sert au calcul des IJ caisse (assiette
+   * pro). On se branche sur computeBeneficeImposable (fonction exacte
+   * de computeIR), on ne recalcule pas la formule.
    *
    * À NE PAS confondre avec l'assiette de cotisation des caisses TNS
    * (revenu pro moyen 3 ans), qui sert au calcul des IJ VERSÉES — ça,
@@ -110,6 +109,35 @@ export function buildEntreePerso(
   const benefTNS = computeBeneficeTNS(data, which);
   const revenuTNSAnnuel = benefTNS > 0 ? benefTNS : undefined;
 
+  const statut = travail.statutPro;
+  const isTNSstatut = STATUTS_TNS.includes(statut as StatutPro);
+  const isSalarieStatut = STATUTS_SALARIE.includes(statut as StatutPro);
+  const microRegime = which === "p1" ? data.microRegime1 : data.microRegime2;
+  const caAnnuel = asNumber(which === "p1" ? data.ca1 : data.ca2);
+
+  // ── Revenu de référence (manque à gagner / ligne pointillée) ──
+  let revenuReferenceMensuel = 0;
+  let revenuReferenceMicroTNS = false;
+  if (isSalarieStatut) {
+    // Décision B : brut prioritaire (coef appliqué au brut). À défaut de
+    // brut, on prend le net SAISI tel quel (jamais re-coefficienté).
+    if (travail.salaireBrutAnnuel > 0) {
+      revenuReferenceMensuel = (travail.salaireBrutAnnuel * coefBrutNet(statut)) / 12;
+    } else if (salaryAnnuel > 0) {
+      revenuReferenceMensuel = salaryAnnuel / 12;
+    }
+  } else if (isTNSstatut) {
+    // Décision A : micro → CA encaissé (abattement forfaitaire fictif) ;
+    // réel → bénéfice (CA − charges).
+    if (microRegime) {
+      revenuReferenceMensuel = caAnnuel > 0 ? caAnnuel / 12 : 0;
+      revenuReferenceMicroTNS = caAnnuel > 0;
+    } else {
+      revenuReferenceMensuel = benefTNS > 0 ? benefTNS / 12 : 0;
+    }
+  }
+  // retraité / sans activité → 0
+
   return {
     age,
     ageRetraite: AGE_RETRAITE_DEFAUT,
@@ -117,6 +145,8 @@ export function buildEntreePerso(
     caisse: travail.caisseAffiliation,
     idccCCN: travail.employeur?.idccCCN ?? null,
     ancienneteMois: calcAncienneteMois(travail.dateEmbauche),
+    revenuReferenceMensuel,
+    revenuReferenceMicroTNS,
     salaireBrutAnnuel: travail.salaireBrutAnnuel,
     salaireNetMensuel,
     revenuTNSAnnuel,

@@ -561,17 +561,22 @@ export function projeterArretMaladie(
   const baseMensuelleInvalidite = isSalarie ? salaireBrutMensuel : revenuMensuelTNS;
   const plafondVars = buildPlafondVariables(ref);
 
-  // Revenu de référence (manque à gagner, ligne pointillée) :
-  //  - salarié / assimilé : net mensuel saisi, sinon brut × coef(statut)
-  //  - TNS : bénéfice mensuel (revenuMensuelTNS), SANS coefficient
+  // Revenu de référence (manque à gagner, ligne pointillée).
+  // Priorité à la valeur calculée en amont par le mapping
+  // (buildEntreePerso : gère micro-TNS=CA, réel-TNS=bénéfice, salarié
+  // brut prioritaire). Fallback interne pour les EntreePerso construits
+  // à la main (tests/fuzzing) — Décision B : brut prioritaire, le net
+  // saisi n'est jamais re-coefficienté.
   // ⚠️ NE PAS confondre avec l'IJ versée par la caisse (étage
   // ijObligatoire), calculée selon la formule propre de la caisse sur
   // SON assiette — ce sont deux grandeurs distinctes.
   const revenuReferenceMensuel =
-    entree.salaireNetMensuel > 0
-      ? entree.salaireNetMensuel
+    entree.revenuReferenceMensuel !== undefined
+      ? entree.revenuReferenceMensuel
       : isSalarie
-      ? salaireBrutMensuel * coefBrutNet(entree.statutPro)
+      ? salaireBrutMensuel > 0
+        ? salaireBrutMensuel * coefBrutNet(entree.statutPro)
+        : entree.salaireNetMensuel
       : revenuMensuelTNS;
 
   const series: SerieEmpilee = {
@@ -689,5 +694,6 @@ export function projeterArretMaladie(
     categorieInvaliditeProjetee: categorie,
     useLegalDefault,
     donneesCaisseIndisponibles: donneesIndisponibles,
+    revenuReferenceMicroTNS: entree.revenuReferenceMicroTNS === true,
   };
 }

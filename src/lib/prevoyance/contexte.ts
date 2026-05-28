@@ -58,11 +58,17 @@ export function calcEnfantsMineurs(data: PatrimonialData): number {
  * RÈGLE : conjoint = personne en couple (marié/PACS/cohab) ET
  * dont les revenus propres sont inférieurs à 50 % de ceux de P1.
  *
- * POURQUOI 50 % : seuil choisi pour éviter les effets binaires
- * absurdes (un conjoint à 200 €/mois ne serait plus "à charge"
- * sur un seuil strict à zéro alors qu'il l'est de facto).
- * 50 % traduit l'idée qu'en cas de décès de P1, P2 ne pourrait
- * pas maintenir son niveau de vie avec ses seuls revenus.
+ * ⚠️ CHOIX DE MODÉLISATION PATRIMONIALE (EcoPatrimoine), PAS une
+ * définition légale. Aucune définition réglementaire de « conjoint
+ * à charge » ne correspond à la dépendance économique en cas de
+ * décès : la notion Sécurité sociale a disparu avec la PUMa (2016,
+ * tout majeur affilié à titre personnel), et les définitions
+ * fiscales / mutuelle visent d'autres usages (rattachement au foyer,
+ * remboursement de frais de santé). Le seul seuil chiffré officiel
+ * (revenus < 10 % PASS) concerne les ENFANTS, pas les conjoints.
+ * Ce seuil de 50 % traduit l'idée qu'un conjoint disposant de moins
+ * de la moitié des revenus de l'autre ne pourrait pas maintenir son
+ * niveau de vie sans lui. NON OPPOSABLE, à dire d'expert.
  *
  * REVENUS PRIS EN COMPTE : salaire + pensions + CA TNS +
  * revenus fonciers/agricoles. Revenus financiers passifs

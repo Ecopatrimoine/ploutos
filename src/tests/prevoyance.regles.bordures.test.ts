@@ -145,18 +145,21 @@ describe("Famille C — Bordures des règles", () => {
     expect(regleDcPasDeRenteConjointEnfantsJeunes(sansEnfant, "p1")).toBeNull();
   });
 
-  // C5 bordure — trou exactement 30 % → ne déclenche pas (seuil ratio >= 0.7)
-  it("C5 — trou = 30 % pile (ratio 0.70) → ne déclenche pas ; 31 % → déclenche", () => {
+  // C5 bordure — Décision D : alerte dès que le trou atteint 30 % (ratio ≤ 0.70).
+  it("C5 — trou = 30 % pile (ratio 0.70) → DÉCLENCHE ; 29 % (ratio 0.71) → ne déclenche pas", () => {
     const ref = 1000;
-    // ratio 0.70 exactement : total = 700
+    // ratio 0.70 exactement (trou 30 % pile) → alerte (Décision D : ≥ 30 % inclus)
     const ctx70 = ctxWith(fakeProjection({ revenuRef: ref, totalJ180: 700 }));
-    expect(regleIjPlafondInsuffisant(ctx70, "p1")).toBeNull();
-    // ratio 0.69 (trou 31 %) : total = 690 → déclenche
+    const c70 = regleIjPlafondInsuffisant(ctx70, "p1");
+    expect(c70).not.toBeNull();
+    expect(c70?.severite).toBe("attention");
+    expect(c70?.impactChiffre?.montant).toBeCloseTo(300, 0);
+    // ratio 0.71 (trou 29 %) → pas d'alerte
+    const ctx71 = ctxWith(fakeProjection({ revenuRef: ref, totalJ180: 710 }));
+    expect(regleIjPlafondInsuffisant(ctx71, "p1")).toBeNull();
+    // ratio 0.69 (trou 31 %) → alerte
     const ctx69 = ctxWith(fakeProjection({ revenuRef: ref, totalJ180: 690 }));
-    const c = regleIjPlafondInsuffisant(ctx69, "p1");
-    expect(c).not.toBeNull();
-    expect(c?.severite).toBe("attention");
-    expect(c?.impactChiffre?.montant).toBeCloseTo(310, 0);
+    expect(regleIjPlafondInsuffisant(ctx69, "p1")).not.toBeNull();
   });
 
   // C7 bordure — pension cat2 = 60 % pile → ne déclenche pas

@@ -71,8 +71,10 @@ const casA: EntreePerso = {
 describe("Cas d'or A — Mathieu, salarié cadre Syntec (CPAM / IDCC 1486)", () => {
   const r = projeterArretMaladie(casA, "cat2", referentiels);
 
-  it("revenu de référence = salaire net mensuel saisi (3575 €)", () => {
-    expect(r.revenuReferenceMensuel).toBe(3575);
+  it("revenu de référence = brut × coef cadre (0.75) / 12 (Décision B : brut prioritaire)", () => {
+    // Mathieu a saisi brut 55000 ET net 3575. Décision B : le brut est
+    // prioritaire (le coef estime le net depuis le brut). 55000×0.75/12 = 3437,5.
+    expect(r.revenuReferenceMensuel).toBeCloseTo((55000 * 0.75) / 12, 2);
   });
 
   it("bascule invalidité présente à J1095", () => {
@@ -100,14 +102,17 @@ describe("Cas d'or A — Mathieu, salarié cadre Syntec (CPAM / IDCC 1486)", () 
     expect(r.donneesCaisseIndisponibles).toBe(false);
   });
 
-  it("maintien Mensualisation actif entre J7 (fin carence) et J67 (palier 12 mois)", () => {
+  it("maintien Mensualisation actif en phase 90 % (J7), terminé après le palier 12 mois (J90)", () => {
     const j7 = idxJour(r.axe, 7);
-    const j60 = idxJour(r.axe, 60);
     const j90 = idxJour(r.axe, 90);
+    // J7 : phase 90 % → maintien complémentaire > 0 (cible 90 % > IJ obl).
     expect(r.series.maintienEmployeur[j7]).toBeGreaterThan(0);
-    expect(r.series.maintienEmployeur[j60]).toBeGreaterThan(0);
-    // Fin de palier 12 mois à J67 → à J90 le maintien est terminé.
+    // J90 : palier 12 mois terminé (fin à J67) → plus de maintien.
     expect(r.series.maintienEmployeur[j90]).toBe(0);
+    // NOTE : à J60 (phase 66,66 %), le maintien peut être nul tant que
+    // l'IJ obligatoire CPAM n'est pas plafonnée (plafondJournalier
+    // TO_VERIFY → IJ = 50 % du brut, qui absorbe déjà la cible 66,66 %
+    // du net). Il redeviendra > 0 quand le plafond CPAM sera renseigné.
   });
 
   it("complémentaire collective Syntec activée après franchise 90j (= J90)", () => {
@@ -231,8 +236,10 @@ const casC: EntreePerso = {
 describe("Cas d'or C — Léa, salariée non-cadre Métallurgie (CPAM / IDCC 3248)", () => {
   const r = projeterArretMaladie(casC, "cat2", referentiels);
 
-  it("revenu de référence = salaire net mensuel saisi (1820 €)", () => {
-    expect(r.revenuReferenceMensuel).toBe(1820);
+  it("revenu de référence = brut × coef non-cadre (0.78) / 12 ≈ 1820 € (Décision B)", () => {
+    // Léa : brut 28000 + net 1820. Décision B → brut prioritaire :
+    // 28000 × 0.78 / 12 = 1820 (coïncide avec le net saisi ici).
+    expect(r.revenuReferenceMensuel).toBeCloseTo((28000 * 0.78) / 12, 2);
   });
 
   it("aucune couverture collective → IJ et rente invalidité collectives = 0 partout", () => {

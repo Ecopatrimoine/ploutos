@@ -34,6 +34,7 @@ import { CardAccentTop } from "../CardAccentTop";
 import { SectionTitle } from "../shared";
 import { buildEntreePerso } from "../../lib/prevoyance/mapping";
 import { projeterArretMaladie } from "../../lib/prevoyance/projection";
+import { WARNING_MICRO_TNS } from "../../lib/prevoyance/constants";
 import { referentiels } from "../../data/prevoyance";
 import { buildContexteRegle } from "../../lib/prevoyance/contexte";
 import { evaluerToutesLesRegles } from "../../lib/prevoyance/regles";
@@ -289,6 +290,16 @@ function ColonnePerso({
           </label>
         ))}
       </div>
+
+      {/* Warning micro-TNS : revenu de référence calé sur le CA */}
+      {projection.revenuReferenceMicroTNS && (
+        <div
+          className="rounded-xl p-3 text-sm"
+          style={{ background: "rgba(245,158,11,0.08)", border: "1px solid #F59E0B", color: "#7C4A04" }}
+        >
+          {WARNING_MICRO_TNS}
+        </div>
+      )}
 
       {/* Graphique */}
       <div

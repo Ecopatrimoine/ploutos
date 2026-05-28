@@ -44,6 +44,7 @@ export type PrevoyancePersoPageData = {
   constats: Constat[];
   notreLecture: string;
   mentionDDA: string;
+  warningMicroTNS: string | null;
   pagePosition: string;
   cabinetLibellePied: string;
 };
@@ -132,6 +133,10 @@ export function pagePrevoyancePerso(t: Tokens, d: PrevoyancePersoPageData): stri
     })}
 
     ${bandeKPI(t, kpis)}
+
+    ${d.warningMicroTNS
+      ? `<div style="margin-top:12px;border:1px solid #F59E0B;border-radius:8px;background:#FBF3E3;padding:10px 12px;font-size:10px;line-height:1.45;color:#7C4A04">${d.warningMicroTNS}</div>`
+      : ""}
 
     <div style="margin-top:16px">
       ${sousTitreSection(t, "Projection des revenus de remplacement (arrêt maladie puis invalidité)")}

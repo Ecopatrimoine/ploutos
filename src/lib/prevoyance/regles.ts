@@ -222,7 +222,9 @@ export const regleIjPlafondInsuffisant: Regle = (ctx, cible) => {
   const ref = ctx.projection.revenuReferenceMensuel;
   if (ref <= 0) return null;
   const ratio = total / ref;
-  if (ratio >= 0.7) return null; // trou < 30 % → pas d'alerte
+  // Décision D : alerte dès que le trou atteint 30 % (ratio ≤ 0,70).
+  // 30 % pile → alerte ; 29 % → pas d'alerte.
+  if (ratio > 0.7) return null;
   const trou = Math.max(0, ref - total);
 
   return {

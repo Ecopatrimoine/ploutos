@@ -5,8 +5,11 @@
 
 import { describe, it, expect } from "vitest";
 import { projeterArretMaladie } from "../lib/prevoyance/projection";
+import { buildEntreePerso } from "../lib/prevoyance/mapping";
+import { createEmptyTravail } from "../lib/prevoyance/utils";
 import { referentiels } from "../data/prevoyance";
 import type { EntreePerso, ProjectionResult, SerieEmpilee } from "../lib/prevoyance/types";
+import type { PatrimonialData } from "../types/patrimoine";
 
 const SERIES_KEYS: Array<keyof SerieEmpilee> = [
   "salaire", "maintienEmployeur", "ijObligatoire",
@@ -31,6 +34,47 @@ function baseTNS(over: Partial<EntreePerso> = {}): EntreePerso {
     revenuTNSAnnuel: 90000, contratsIndividuels: [], couvertureCollective: null,
     ...over,
   };
+}
+
+function minimalData(over: Partial<PatrimonialData> = {}): PatrimonialData {
+  return {
+    person1FirstName: "", person1LastName: "", person1BirthDate: "1985-01-01",
+    person1JobTitle: "", person1Csp: "", person1PcsGroupe: "",
+    person2FirstName: "", person2LastName: "", person2BirthDate: "",
+    person2JobTitle: "", person2Csp: "", person2PcsGroupe: "",
+    coupleStatus: "single", matrimonialRegime: "", singleParent: false,
+    person1Handicap: false, person2Handicap: false, childrenData: [],
+    salary1: "0", salary2: "0", pensions: "0", perDeduction: "0",
+    pensionDeductible: "0", otherDeductible: "0",
+    ca1: "0", bicType1: "", microRegime1: true, chargesReelles1: "0", baRevenue1: "0",
+    chargesDetail1: { loyer: "0", materiel: "0", deplacements: "0", repas: "0", tns: "0", bancaires: "0", comptable: "0", autres: "0" },
+    ca2: "0", bicType2: "", microRegime2: true, chargesReelles2: "0", baRevenue2: "0",
+    chargesDetail2: { loyer: "0", materiel: "0", deplacements: "0", repas: "0", tns: "0", bancaires: "0", comptable: "0", autres: "0" },
+    properties: [], placements: [], perRentes: [], otherLoans: [],
+    ...over,
+  };
+}
+
+function makeDataMicroTNS(ca: number): PatrimonialData {
+  const t = createEmptyTravail();
+  t.statutPro = "tns_liberal";
+  t.caisseAffiliation = "CARMF";
+  return minimalData({
+    person1PcsGroupe: "3", person1Csp: "31",  // profession libérale → BNC
+    ca1: String(ca), microRegime1: true,
+    travail: { p1: t, p2: null },
+  });
+}
+
+function makeDataReelTNS(ca: number, charges: number): PatrimonialData {
+  const t = createEmptyTravail();
+  t.statutPro = "tns_liberal";
+  t.caisseAffiliation = "CARMF";
+  return minimalData({
+    person1PcsGroupe: "3", person1Csp: "31",
+    ca1: String(ca), microRegime1: false, chargesReelles1: String(charges),
+    travail: { p1: t, p2: null },
+  });
 }
 
 function idx(r: ProjectionResult, jour: number): number {
@@ -222,5 +266,53 @@ describe("Famille B — Cohérence mathématique interne", () => {
       "cat2", referentiels
     );
     expect(r.revenuReferenceMensuel).toBeCloseTo(90000 / 12, 2);
+  });
+
+  // ── Décision B : priorité brut / net non re-coefficienté (fallback moteur) ──
+
+  it("DB1 — brut seul (net 0) → revenuRef = brut × coef / 12", () => {
+    const r = projeterArretMaladie(
+      baseSalarie({ statutPro: "salarie_cadre", salaireBrutAnnuel: 60000, salaireNetMensuel: 0 }),
+      "cat2", referentiels
+    );
+    expect(r.revenuReferenceMensuel).toBeCloseTo((60000 * 0.75) / 12, 2);
+  });
+
+  it("DB2 — net seul (brut 0) → revenuRef = net mensuel, JAMAIS re-coefficienté", () => {
+    const r = projeterArretMaladie(
+      baseSalarie({ statutPro: "salarie_cadre", salaireBrutAnnuel: 0, salaireNetMensuel: 3000 }),
+      "cat2", referentiels
+    );
+    expect(r.revenuReferenceMensuel).toBe(3000); // pas 3000 × 0.75
+  });
+
+  it("DB3 — brut ET net présents → PRIORITÉ au brut (choix documenté)", () => {
+    const r = projeterArretMaladie(
+      baseSalarie({ statutPro: "salarie_cadre", salaireBrutAnnuel: 60000, salaireNetMensuel: 3575 }),
+      "cat2", referentiels
+    );
+    // Priorité brut : 60000 × 0.75 / 12 = 3750 (et non 3575)
+    expect(r.revenuReferenceMensuel).toBeCloseTo((60000 * 0.75) / 12, 2);
+  });
+
+  // ── Décision A : micro-TNS revenu de référence = CA (via mapping) ──
+  // Le moteur seul ne connaît pas micro/réel ; c'est le mapping qui
+  // calcule revenuReferenceMensuel. On teste donc via buildEntreePerso.
+  it("DA1 — micro-TNS : revenuRef = CA / 12 + flag warning (via mapping)", () => {
+    const data = makeDataMicroTNS(77000);
+    const entree = buildEntreePerso(data, "p1")!;
+    expect(entree.revenuReferenceMensuel).toBeCloseTo(77000 / 12, 2);
+    expect(entree.revenuReferenceMicroTNS).toBe(true);
+    const r = projeterArretMaladie(entree, "cat2", referentiels);
+    expect(r.revenuReferenceMensuel).toBeCloseTo(77000 / 12, 2);
+    expect(r.revenuReferenceMicroTNS).toBe(true);
+  });
+
+  it("DA2 — TNS au réel : revenuRef = bénéfice / 12, pas de flag micro", () => {
+    const data = makeDataReelTNS(95000, 20000);
+    const entree = buildEntreePerso(data, "p1")!;
+    // Bénéfice = 95000 - 20000 = 75000
+    expect(entree.revenuReferenceMensuel).toBeCloseTo(75000 / 12, 2);
+    expect(entree.revenuReferenceMicroTNS).toBe(false);
   });
 });

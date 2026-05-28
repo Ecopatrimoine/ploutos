@@ -17,6 +17,7 @@ import { buildEntreePerso } from "../../../prevoyance/mapping";
 import { projeterArretMaladie } from "../../../prevoyance/projection";
 import { buildContexteRegle } from "../../../prevoyance/contexte";
 import { evaluerToutesLesRegles } from "../../../prevoyance/regles";
+import { WARNING_MICRO_TNS } from "../../../prevoyance/constants";
 import { referentiels } from "../../../../data/prevoyance";
 
 export type BuildPrevoyancePersoDataParams = {
@@ -193,6 +194,7 @@ export function buildPrevoyancePersoData(p: BuildPrevoyancePersoDataParams): Pre
       constats: [],
       notreLecture: "",
       mentionDDA,
+      warningMicroTNS: null,
       pagePosition: p.pagePosition || "— / —",
       cabinetLibellePied,
     };
@@ -230,6 +232,7 @@ export function buildPrevoyancePersoData(p: BuildPrevoyancePersoDataParams): Pre
     constats,
     notreLecture: redigerNotreLecture(projection, personneLibelle),
     mentionDDA,
+    warningMicroTNS: projection.revenuReferenceMicroTNS ? WARNING_MICRO_TNS : null,
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied,
   };

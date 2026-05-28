@@ -27,3 +27,15 @@ const COEF_DEFAUT = 0.78;
 export function coefBrutNet(statut: StatutPro | ""): number {
   return COEF_BRUT_NET[statut as StatutPro] ?? COEF_DEFAUT;
 }
+
+export const STATUTS_TNS: StatutPro[] = [
+  "tns_liberal", "tns_commercant", "tns_artisan", "gerant_majoritaire",
+];
+export const STATUTS_SALARIE: StatutPro[] = [
+  "salarie_non_cadre", "salarie_cadre", "president_sas", "eurl_unique", "fonctionnaire",
+];
+
+// Avertissement affiché (UI + PDF) quand le revenu de référence d'un
+// micro-entrepreneur est calé sur le CA encaissé (cf. décision A).
+export const WARNING_MICRO_TNS =
+  "⚠ Micro-entreprise : la projection utilise votre chiffre d'affaires encaissé comme revenu de référence (et non le bénéfice après abattement forfaitaire), car l'abattement ne reflète pas vos charges réelles. Vérifiez que ce montant correspond bien à votre revenu d'activité réel avant de présenter la simulation.";
