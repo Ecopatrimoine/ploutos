@@ -224,11 +224,14 @@ describe("projeterArretMaladie — couverture collective", () => {
 });
 
 describe("projeterArretMaladie — contrats individuels", () => {
+  // Contrats forfaitaires : ces tests vérifient les mécaniques (franchise,
+  // plafond, % invalidité) avec des valeurs pleines. Le bornage
+  // indemnitaire est couvert par la suite SURCOUV.
   it("contrat IJ individuel verse après franchise et avant plafond", () => {
     const r = projeterArretMaladie(
       baseEntree({
         contratsIndividuels: [
-          { id: "m1", type: "ij", capitalOuMontant: 100, franchiseJours: 30, plafondJoursIJ: 1095 },
+          { id: "m1", type: "ij", nature: "forfaitaire", capitalOuMontant: 100, franchiseJours: 30, plafondJoursIJ: 1095 },
         ],
       }),
       "cat2",
@@ -244,7 +247,7 @@ describe("projeterArretMaladie — contrats individuels", () => {
     const r = projeterArretMaladie(
       baseEntree({
         contratsIndividuels: [
-          { id: "i1", type: "invalidite", capitalOuMontant: 0, baseInvalidite: 0.6 },
+          { id: "i1", type: "invalidite", nature: "forfaitaire", capitalOuMontant: 0, baseInvalidite: 0.6 },
         ],
       }),
       "cat2",
@@ -258,7 +261,7 @@ describe("projeterArretMaladie — contrats individuels", () => {
   it("baseInvalidite non précisée → 50 % par défaut", () => {
     const r = projeterArretMaladie(
       baseEntree({
-        contratsIndividuels: [{ id: "i1", type: "invalidite", capitalOuMontant: 0 }],
+        contratsIndividuels: [{ id: "i1", type: "invalidite", nature: "forfaitaire", capitalOuMontant: 0 }],
       }),
       "cat2",
       referentiels

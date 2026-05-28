@@ -4,7 +4,7 @@
 // et les adapters Pack PDF v2 (Lot 9). Toutes les valeurs monétaires
 // sont en EUROS / MOIS (sauf indication contraire dans les commentaires).
 
-import type { CodeCaisse, StatutPro } from "../../types/patrimoine";
+import type { CodeCaisse, NatureContrat, StatutPro } from "../../types/patrimoine";
 
 // Catégorie d'invalidité retenue pour la projection.
 //   cat1 : capable d'exercer une activité réduite (taux base ~30 %)
@@ -35,6 +35,11 @@ export type ContratIndividuel = {
   franchiseJours?: number;   // IJ : franchise contrat (en jours)
   plafondJoursIJ?: number;   // IJ : plafond de durée du versement
   baseInvalidite?: number;   // invalidité : % de revenu remplacé (0-1)
+  // Nature du contrat (IJ / invalidité) : indemnitaire = prestation
+  // bornée au complément jusqu'à 100 % du revenu de référence (défaut) ;
+  // forfaitaire = montant souscrit versé en plein (cumul > 100 % possible).
+  // Absent → traité comme indemnitaire (cf. SPEC_PREVOYANCE_SURCOUVERTURE §1).
+  nature?: NatureContrat;
   conditions?: string;       // texte libre (affichage seulement)
 };
 
@@ -211,6 +216,14 @@ export type ProjectionResult = {
   // true si une couverture (collective ou individuelle) visant > 100 %
   // du revenu a été bornée à 100 % (principe indemnitaire — décision H11).
   surCouvertureBornee: boolean;
+  // true si un contrat individuel INDEMNITAIRE a été borné : sa prestation
+  // souhaitée dépassait la marge restante jusqu'à 100 % du revenu de
+  // référence (garantie sur-dimensionnée — cf. SURCOUV §3, cas indemnitaire).
+  surCouvertureIndemnitaireBornee: boolean;
+  // true si un contrat individuel FORFAITAIRE pousse le cumul au-delà de
+  // 100 % du revenu de référence (sur-couverture réelle — cf. SURCOUV §3,
+  // cas forfaitaire). Tolérance d'arrondi ×30 : seuil revenuRef × 1.001.
+  surCouvertureForfaitaire: boolean;
   // true si la couverture collective a été ignorée car le statut est un
   // TNS pur (pas d'accès au contrat collectif d'entreprise — décision H7).
   couvertureCollectiveIgnoreeTNS: boolean;

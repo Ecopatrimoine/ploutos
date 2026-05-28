@@ -319,6 +319,13 @@ export type CategorieInvalidite = "cat1" | "cat2" | "cat3";
 // maintient jusqu'à 1095 jours. Défaut = "ald" (cf. SPEC_ALD_TPT §1).
 export type ScenarioArret = "maladie_ordinaire" | "ald";
 
+// Nature d'un contrat individuel de revenu de remplacement (IJ /
+// invalidité). Indemnitaire = prestation plafonnée au complément jusqu'à
+// 100 % du revenu de référence (cas le plus fréquent). Forfaitaire =
+// montant souscrit versé en plein (le cumul peut dépasser 100 %).
+// Défaut = "indemnitaire" (cf. SPEC_PREVOYANCE_SURCOUVERTURE §1).
+export type NatureContrat = "indemnitaire" | "forfaitaire";
+
 export type PayloadContratIndividuel = {
   id: string;
   type:
@@ -334,6 +341,9 @@ export type PayloadContratIndividuel = {
   franchiseJours?: number;
   plafondJoursIJ?: number;
   baseInvalidite?: number;
+  // Nature du contrat (IJ / invalidité) : indemnitaire (borné, défaut)
+  // ou forfaitaire (versé en plein). Optionnel → rétrocompatible.
+  nature?: NatureContrat;
   conditions?: string;
 };
 

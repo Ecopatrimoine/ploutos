@@ -323,9 +323,13 @@ const casD: EntreePerso = {
   salaireBrutAnnuel: 0,
   salaireNetMensuel: 0,
   revenuTNSAnnuel: 60000,
+  // Madelin IJ + invalidité en FORFAITAIRE (décision David, 2026-05-28) :
+  // garde Pierre comme démonstration de sur-couverture (IJ 111 % à J30,
+  // invalidité 110 % à J1095). En indemnitaire, ces étages seraient bornés
+  // à 100 %. Cf. SPEC_PREVOYANCE_SURCOUVERTURE §2.3.
   contratsIndividuels: [
-    { id: "madelin_ij",  type: "ij",             capitalOuMontant: 120, franchiseJours: 30, plafondJoursIJ: 1095 },
-    { id: "madelin_inv", type: "invalidite",     capitalOuMontant: 0,   baseInvalidite: 0.6 },
+    { id: "madelin_ij",  type: "ij",             nature: "forfaitaire", capitalOuMontant: 120, franchiseJours: 30, plafondJoursIJ: 1095 },
+    { id: "madelin_inv", type: "invalidite",     nature: "forfaitaire", capitalOuMontant: 0,   baseInvalidite: 0.6 },
     { id: "madelin_dc",  type: "deces_capital",  capitalOuMontant: 300000 },
     { id: "madelin_rc",  type: "deces_rente_conj", capitalOuMontant: 1500 },
   ],
@@ -488,8 +492,8 @@ describe("Robustesse — variations sur cas A", () => {
       {
         ...casA,
         contratsIndividuels: [
-          { id: "ij1", type: "ij", capitalOuMontant: 50,  franchiseJours: 30, plafondJoursIJ: 1095 },
-          { id: "ij2", type: "ij", capitalOuMontant: 100, franchiseJours: 30, plafondJoursIJ: 1095 },
+          { id: "ij1", type: "ij", nature: "forfaitaire", capitalOuMontant: 50,  franchiseJours: 30, plafondJoursIJ: 1095 },
+          { id: "ij2", type: "ij", nature: "forfaitaire", capitalOuMontant: 100, franchiseJours: 30, plafondJoursIJ: 1095 },
         ],
       },
       "cat2",
@@ -520,7 +524,7 @@ describe("Robustesse — variations sur cas A", () => {
       {
         ...casA,
         contratsIndividuels: [
-          { id: "ij1", type: "ij", capitalOuMontant: 50, franchiseJours: 30, plafondJoursIJ: 60 },
+          { id: "ij1", type: "ij", nature: "forfaitaire", capitalOuMontant: 50, franchiseJours: 30, plafondJoursIJ: 60 },
         ],
       },
       "cat2",

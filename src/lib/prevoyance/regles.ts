@@ -374,6 +374,56 @@ export const regleCollectiveTnsIgnoree: Regle = (ctx, cible) => {
   };
 };
 
+// Constat de sur-couverture (SURCOUV §3). Distinct de
+// regleSurCouvertureBornee (H11, base d'UN contrat > 100 %) : ici on
+// constate le CUMUL des contrats individuels au regard du revenu de
+// référence. Deux formulations selon la nature du contrat en cause.
+// Priorité au cas forfaitaire (sur-couverture RÉELLE, enjeu fiscal/social)
+// sur le cas indemnitaire (garantie sur-dimensionnée mais bornée).
+export const regleSurCouvertureContrat: Regle = (ctx, cible) => {
+  if (ctx.projection.revenuReferenceMensuel <= 0) return null;
+
+  if (ctx.projection.surCouvertureForfaitaire) {
+    return {
+      id: `sur_couverture_forfaitaire_${cible}`,
+      severite: "attention",
+      axe: "incapacite",
+      cible,
+      titre: "Sur-couverture : couverture totale au-delà de 100 % du revenu",
+      detail:
+        "Votre couverture totale dépasse 100 % de votre revenu d'activité (sur-couverture). " +
+        "Un contrat forfaitaire verse l'intégralité du montant souscrit, mais percevoir en arrêt " +
+        "davantage qu'en activité peut soulever des questions fiscales et sociales, et représente " +
+        "une cotisation potentiellement surdimensionnée.",
+      reference: "Principe indemnitaire — droit des assurances",
+      action:
+        "Vérifier l'adéquation des montants souscrits au revenu d'activité ; un réajustement de la " +
+        "cotisation pourrait être étudié pour éviter une sur-couverture.",
+    };
+  }
+
+  if (ctx.projection.surCouvertureIndemnitaireBornee) {
+    return {
+      id: `sur_couverture_indemnitaire_${cible}`,
+      severite: "info",
+      axe: "incapacite",
+      cible,
+      titre: "Couverture indemnités journalières dimensionnée au-delà du revenu",
+      detail:
+        "Votre couverture indemnités journalières est dimensionnée au-delà de votre revenu d'activité. " +
+        "Comme votre contrat est indemnitaire, il ne versera que le complément jusqu'à 100 % de votre " +
+        "revenu : une partie de la garantie souscrite ne sera pas utilisée. Un réajustement de la " +
+        "cotisation pourrait être étudié.",
+      reference: "Principe indemnitaire — droit des assurances",
+      action:
+        "Vérifier le dimensionnement de la garantie au regard du revenu d'activité : la fraction " +
+        "au-delà de 100 % ne sera pas indemnisée.",
+    };
+  }
+
+  return null;
+};
+
 // ────────────────────────────────────────────────────────────────────
 // Orchestrateur + tri par sévérité
 // ────────────────────────────────────────────────────────────────────
@@ -388,6 +438,7 @@ const REGLES_INDIVIDUELLES: Regle[] = [
   regleInvCat2AucuneCouvertureCompl,
   regleInvTnsMadelinAbsent,
   regleSurCouvertureBornee,
+  regleSurCouvertureContrat,
   regleCollectiveTnsIgnoree,
 ];
 

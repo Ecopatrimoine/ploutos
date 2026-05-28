@@ -23,7 +23,7 @@ import type {
   SerieEmpilee,
 } from "./types";
 import type { Referentiels } from "../../data/prevoyance";
-import type { StatutPro } from "../../types/patrimoine";
+import type { NatureContrat, StatutPro } from "../../types/patrimoine";
 import {
   buildPlafondVariables,
   evalFormulaPlafond,
@@ -453,17 +453,58 @@ function computeIJCollective(
   return Math.max(0, cible - dejaCouvertMensuel);
 }
 
-function computeIJIndividuelle(t: number, contrats: ContratIndividuel[]): number {
-  let total = 0;
+// Résultat d'un étage individuel borné (IJ ou invalidité).
+//   total      : montant mensuel effectivement versé (forfaitaire + indemnitaire borné)
+//   forfaitaire: part des contrats forfaitaires (versée en plein)
+//   bornee     : true si un contrat indemnitaire a été réduit (souhait > marge)
+type EtageIndividuel = { total: number; forfaitaire: number; bornee: boolean };
+
+// Répartit les contrats indemnitaires dans la marge restante jusqu'à 100 %
+// du revenu de référence, après prise en compte du déjà-perçu (obligatoire
+// + collective + maintien) et des forfaitaires versés en plein
+// (SPEC_PREVOYANCE_SURCOUVERTURE §2.2). Un contrat sans `nature` est
+// indemnitaire (rétrocompatible).
+function repartirIndividuels(
+  montants: Array<{ montant: number; nature: NatureContrat }>,
+  revenuRef: number,
+  dejaPercuMensuel: number
+): EtageIndividuel {
+  let forfaitaire = 0;
+  const indemnitaires: number[] = [];
+  for (const m of montants) {
+    if (m.nature === "forfaitaire") forfaitaire += m.montant;
+    else indemnitaires.push(m.montant);
+  }
+  // Les forfaitaires se servent d'abord (en plein) ; les indemnitaires
+  // comblent ensuite la marge jusqu'à 100 % du revenu de référence.
+  let marge = Math.max(0, revenuRef - dejaPercuMensuel - forfaitaire);
+  let indemnitaireVerse = 0;
+  let bornee = false;
+  for (const souhait of indemnitaires) {
+    const effectif = Math.min(souhait, marge);
+    if (effectif < souhait - 1e-6) bornee = true;
+    indemnitaireVerse += effectif;
+    marge -= effectif;
+  }
+  return { total: forfaitaire + indemnitaireVerse, forfaitaire, bornee };
+}
+
+function computeIJIndividuelle(
+  t: number,
+  contrats: ContratIndividuel[],
+  revenuRef: number,
+  dejaPercuMensuel: number
+): EtageIndividuel {
+  const montants: Array<{ montant: number; nature: NatureContrat }> = [];
   for (const c of contrats) {
     if (c.type !== "ij") continue;
     const franchise = c.franchiseJours ?? 0;
     if (t < franchise) continue;
     if (c.plafondJoursIJ !== undefined && t > franchise + c.plafondJoursIJ) continue;
     // capitalOuMontant = IJ journalière complémentaire
-    total += c.capitalOuMontant * 30;
+    montants.push({ montant: c.capitalOuMontant * 30, nature: c.nature ?? "indemnitaire" });
   }
-  return total;
+  return repartirIndividuels(montants, revenuRef, dejaPercuMensuel);
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -541,15 +582,17 @@ function computeRenteInvalCollective(
 
 function computeRenteInvalIndividuelle(
   contrats: ContratIndividuel[],
-  baseMensuelle: number
-): number {
-  let total = 0;
+  baseMensuelle: number,
+  revenuRef: number,
+  dejaPercuMensuel: number
+): EtageIndividuel {
+  const montants: Array<{ montant: number; nature: NatureContrat }> = [];
   for (const c of contrats) {
     if (c.type !== "invalidite") continue;
     const base = clampPct(c.baseInvalidite ?? 0.5);
-    total += baseMensuelle * base;
+    montants.push({ montant: baseMensuelle * base, nature: c.nature ?? "indemnitaire" });
   }
-  return total;
+  return repartirIndividuels(montants, revenuRef, dejaPercuMensuel);
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -680,6 +723,15 @@ export function projeterArretMaladie(
   // à lever un constat info.
   const surCouvertureBornee = detecteSurCouverture(couvertureEffective, entree.contratsIndividuels);
 
+  // Constat de sur-couverture (SURCOUV §3). Levés pendant la boucle :
+  //   - indemnitaireBornee : un contrat indemnitaire a vu sa prestation
+  //     réduite (garantie sur-dimensionnée, fraction non indemnisée) ;
+  //   - forfaitaire        : un contrat forfaitaire pousse le cumul d'un
+  //     palier au-delà de 100 % du revenu de référence (sur-couverture réelle).
+  let surCouvertureIndemnitaireBornee = false;
+  let surCouvertureForfaitaire = false;
+  const SEUIL_SURCOUVERTURE = 1.001; // tolérance d'arrondi ×30
+
   // Revenu de référence (manque à gagner, ligne pointillée).
   // Priorité à la valeur calculée en amont par le mapping
   // (buildEntreePerso : gère micro-TNS=CA, réel-TNS=bénéfice, salarié
@@ -756,10 +808,25 @@ export function projeterArretMaladie(
         series.maintienEmployeur[i] + series.ijObligatoire[i]
       );
 
-      series.ijComplementaireIndividuelle[i] = computeIJIndividuelle(
+      const dejaPercuIJ =
+        series.maintienEmployeur[i] +
+        series.ijObligatoire[i] +
+        series.ijComplementaireCollective[i];
+      const etageIJ = computeIJIndividuelle(
         t,
-        entree.contratsIndividuels
+        entree.contratsIndividuels,
+        revenuReferenceMensuel,
+        dejaPercuIJ
       );
+      series.ijComplementaireIndividuelle[i] = etageIJ.total;
+      if (etageIJ.bornee) surCouvertureIndemnitaireBornee = true;
+      // Salaire = 0 en arrêt → le cumul du palier est déjà-perçu + individuel.
+      if (
+        etageIJ.forfaitaire > 0 &&
+        dejaPercuIJ + etageIJ.total > revenuReferenceMensuel * SEUIL_SURCOUVERTURE
+      ) {
+        surCouvertureForfaitaire = true;
+      }
     } else {
       // Phase invalidité
       const inv = computeInvalObligatoireMensuel(
@@ -782,10 +849,22 @@ export function projeterArretMaladie(
         series.pensionInvalObligatoire[i]
       );
 
-      series.renteInvalIndividuelle[i] = computeRenteInvalIndividuelle(
+      const dejaPercuInval =
+        series.pensionInvalObligatoire[i] + series.renteInvalCollective[i];
+      const etageInval = computeRenteInvalIndividuelle(
         entree.contratsIndividuels,
-        baseMensuelleInvalidite
+        baseMensuelleInvalidite,
+        revenuReferenceMensuel,
+        dejaPercuInval
       );
+      series.renteInvalIndividuelle[i] = etageInval.total;
+      if (etageInval.bornee) surCouvertureIndemnitaireBornee = true;
+      if (
+        etageInval.forfaitaire > 0 &&
+        dejaPercuInval + etageInval.total > revenuReferenceMensuel * SEUIL_SURCOUVERTURE
+      ) {
+        surCouvertureForfaitaire = true;
+      }
     }
   }
 
@@ -824,6 +903,8 @@ export function projeterArretMaladie(
     donneesCaisseIndisponibles: donneesIndisponibles,
     revenuReferenceMicroTNS: entree.revenuReferenceMicroTNS === true,
     surCouvertureBornee,
+    surCouvertureIndemnitaireBornee,
+    surCouvertureForfaitaire,
     couvertureCollectiveIgnoreeTNS,
     scenarioArret,
   };

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2 } from "lucide-react";
 import { BRAND, SURFACE } from "../../constants";
 import { Field } from "../shared";
-import type { PayloadContratIndividuel } from "../../types/patrimoine";
+import type { NatureContrat, PayloadContratIndividuel } from "../../types/patrimoine";
 
 type Props = {
   contrats: PayloadContratIndividuel[];
@@ -157,6 +157,28 @@ export const BlocContratsIndividuels = React.memo(function BlocContratsIndividue
                 </Button>
               </div>
             </div>
+            {(isIJ || isInvalidite) && (
+              <div className="grid gap-3 md:grid-cols-12 items-end">
+                <div className="md:col-span-4">
+                  <Field label="Nature">
+                    <Select
+                      value={c.nature ?? "indemnitaire"}
+                      onValueChange={(v) => updateAt(idx, { nature: v as NatureContrat })}
+                    >
+                      <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="indemnitaire">Indemnitaire (plafonnée au revenu)</SelectItem>
+                        <SelectItem value="forfaitaire">Forfaitaire (versée en plein)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+                <div className="md:col-span-8 text-xs" style={{ color: BRAND.muted, fontStyle: "italic" }}>
+                  Indemnitaire : la prestation est plafonnée à votre revenu réel (cas le plus fréquent).
+                  Forfaitaire : le montant souscrit est versé intégralement. Vérifiez vos conditions générales.
+                </div>
+              </div>
+            )}
             <div className="text-xs" style={{ color: BRAND.muted }}>
               {meta.hint}
             </div>

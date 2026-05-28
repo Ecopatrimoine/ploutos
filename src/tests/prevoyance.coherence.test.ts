@@ -122,9 +122,12 @@ describe("Famille B — Cohérence mathématique interne", () => {
   });
 
   // B4 — effet franchise contrat IJ
+  // Contrat forfaitaire : ces tests B4/B5/B6 vérifient la MÉCANIQUE
+  // (franchise, plafond, additivité), pas le bornage indemnitaire. Le
+  // forfaitaire est versé en plein → valeurs déterministes (cf. SURCOUV).
   it("B4 — contrat IJ franchise 30j : 0 sur [J0,J29], valeur à partir de J30", () => {
     const r = projeterArretMaladie(
-      baseSalarie({ contratsIndividuels: [{ id: "ij", type: "ij", capitalOuMontant: 100, franchiseJours: 30, plafondJoursIJ: 1095 }] }),
+      baseSalarie({ contratsIndividuels: [{ id: "ij", type: "ij", nature: "forfaitaire", capitalOuMontant: 100, franchiseJours: 30, plafondJoursIJ: 1095 }] }),
       "cat2", referentiels
     );
     expect(r.series.ijComplementaireIndividuelle[idx(r, 14)]).toBe(0);
@@ -134,7 +137,7 @@ describe("Famille B — Cohérence mathématique interne", () => {
   // B5 — effet plafond contrat IJ
   it("B5 — au-delà du plafondJoursIJ, l'étage individuel retombe à 0", () => {
     const r = projeterArretMaladie(
-      baseSalarie({ contratsIndividuels: [{ id: "ij", type: "ij", capitalOuMontant: 100, franchiseJours: 30, plafondJoursIJ: 60 }] }),
+      baseSalarie({ contratsIndividuels: [{ id: "ij", type: "ij", nature: "forfaitaire", capitalOuMontant: 100, franchiseJours: 30, plafondJoursIJ: 60 }] }),
       "cat2", referentiels
     );
     // Fenêtre active [30, 90], au-delà = 0.
@@ -146,8 +149,8 @@ describe("Famille B — Cohérence mathématique interne", () => {
   it("B6 — 2 contrats IJ 100 €/j (même franchise) → étage individuel = 200 €/j", () => {
     const r = projeterArretMaladie(
       baseSalarie({ contratsIndividuels: [
-        { id: "ij1", type: "ij", capitalOuMontant: 100, franchiseJours: 30, plafondJoursIJ: 1095 },
-        { id: "ij2", type: "ij", capitalOuMontant: 100, franchiseJours: 30, plafondJoursIJ: 1095 },
+        { id: "ij1", type: "ij", nature: "forfaitaire", capitalOuMontant: 100, franchiseJours: 30, plafondJoursIJ: 1095 },
+        { id: "ij2", type: "ij", nature: "forfaitaire", capitalOuMontant: 100, franchiseJours: 30, plafondJoursIJ: 1095 },
       ] }),
       "cat2", referentiels
     );
