@@ -108,15 +108,21 @@ describe("projeterArretMaladie — aucune valeur NaN / undefined", () => {
 });
 
 describe("projeterArretMaladie — tolérance données indisponibles", () => {
-  it("CPAM TO_VERIFY → étages obligatoires à 0 + flag donneesCaisseIndisponibles", () => {
+  it("CPAM documenté (vérifié 2026) → IJ et pension servies, pas de flag indisponible", () => {
+    // Le bloc CPAM est désormais entièrement renseigné (IJ 1,4 SMIC,
+    // invalidité cat1/2/3 bornées, capital décès) → aucun TO_VERIFY
+    // critique, donc le flag doit rester baissé et les étages servis.
     const r = projeterArretMaladie(baseEntree(), "cat2", referentiels);
-    // Le référentiel actuel a la majorité des valeurs CPAM en TO_VERIFY
-    // (plafondJournalier, plafondMensuel cat1/2/3…) donc on doit avoir
-    // soit les IJ obligatoires à 0, soit le flag levé. On accepte les
-    // deux (selon ce que le moteur a pu calculer).
-    if (r.donneesCaisseIndisponibles) {
-      expect(r.rupturesCles.some((rc) => rc.type === "donnees_indisponibles")).toBe(true);
-    }
+    expect(r.donneesCaisseIndisponibles).toBe(false);
+    expect(r.rupturesCles.some((rc) => rc.type === "donnees_indisponibles")).toBe(false);
+    const ijServie = r.axe.some(
+      (p, i) => p.jour > 3 && p.jour <= 360 && r.series.ijObligatoire[i] > 0
+    );
+    expect(ijServie).toBe(true);
+    const pensionServie = r.axe.some(
+      (p, i) => p.jour >= 1095 && r.series.pensionInvalObligatoire[i] > 0
+    );
+    expect(pensionServie).toBe(true);
   });
 
   it("caisse TO_FILL (CARCDSF) → étages à 0 + flag levé + rupture 'donnees_indisponibles'", () => {

@@ -292,33 +292,49 @@ export function computeIJObligatoireJournaliere(
   const taux = safeNum(ij.tauxBrut) ?? safeNum(ij.tauxIJ);
   if (taux === null) return null;
 
-  // Revenu journalier de base — approximation : salaire brut/360 (jours
-  // calendaires) ou revenu TNS/360. Affinage possible via la règle CPAM
-  // 91,25 jours documentée dans pass-2026.json.
   const baseAnnuelle = entree.salaireBrutAnnuel > 0
     ? entree.salaireBrutAnnuel
     : (entree.revenuTNSAnnuel ?? 0);
   if (baseAnnuelle <= 0) return null;
-  const revenuJournalier = baseAnnuelle / 360;
-  let ijj = revenuJournalier * taux;
+  const salaireMensuel = baseAnnuelle / 12;
 
-  // Plafond journalier : formule paramétrique en priorité (suit les
-  // revalorisations SMIC/PASS), puis valeur figée plafondJournalier.
-  let plafondJ: number | null = null;
+  // Plafond du SALAIRE mensuel retenu (formule paramétrique 1,4 SMIC en
+  // priorité — suit les revalorisations —, sinon valeur figée). Pour
+  // CPAM : le plafond porte sur le SALAIRE, pas directement sur l'IJ.
+  let plafondSalaireMensuel: number | null = null;
   if (typeof ij.plafondFormule === "string") {
-    plafondJ = evalFormulaPlafond(ij.plafondFormule, vars);
+    plafondSalaireMensuel = evalFormulaPlafond(ij.plafondFormule, vars);
   }
-  if (plafondJ === null) plafondJ = safeNum(ij.plafondJournalier);
-  if (plafondJ !== null) ijj = Math.min(ijj, plafondJ);
+  if (plafondSalaireMensuel === null) plafondSalaireMensuel = safeNum(ij.plafondSalaireBrutMensuel);
 
-  // Majoration CPAM : 3 enfants à charge, à partir de J31
+  const salaireRetenu =
+    plafondSalaireMensuel !== null ? Math.min(salaireMensuel, plafondSalaireMensuel) : salaireMensuel;
+
+  // Salaire journalier de base (SJB) = salaire mensuel retenu × 3 mois /
+  // diviseur (91,25 = 3 mois calendaires, convention CPAM). IJ = taux × SJB.
+  const diviseurSJB = safeNum(ij.diviseurSJB);
+  let ijj: number;
+  if (diviseurSJB !== null && diviseurSJB > 0) {
+    const sjb = (salaireRetenu * 3) / diviseurSJB;
+    ijj = sjb * taux;
+  } else {
+    // Fallback (caisse sans diviseur SJB renseigné) : approximation
+    // journalière /360 sur le salaire retenu, puis plafond journalier figé.
+    ijj = (salaireRetenu * 12) / 360 * taux;
+    const plafondJ = safeNum(ij.plafondJournalier);
+    if (plafondJ !== null) ijj = Math.min(ijj, plafondJ);
+  }
+
+  // Majoration familiale J31 : N'EST PAS appliquée tant que la donnée
+  // est TO_VERIFY (cf. décision — contradiction L.323-4 non résolue).
+  // Le moteur n'invente jamais : maj.active doit être true ET tauxMajore
+  // numérique pour s'appliquer.
   const maj = ij.majorationFamilleApresJ31;
-  if (maj?.active && t >= 31 && (entree.nbEnfantsACharge ?? 0) >= 3) {
+  if (maj?.active === true && t >= 31 && (entree.nbEnfantsACharge ?? 0) >= 3) {
     const tauxMaj = safeNum(maj.tauxMajore);
-    if (tauxMaj !== null) {
-      const ijjMaj = revenuJournalier * tauxMaj;
-      const ijjBornee = plafondJ !== null ? Math.min(ijjMaj, plafondJ) : ijjMaj;
-      ijj = Math.max(ijj, ijjBornee);
+    if (tauxMaj !== null && diviseurSJB !== null && diviseurSJB > 0) {
+      const sjb = (salaireRetenu * 3) / diviseurSJB;
+      ijj = Math.max(ijj, sjb * tauxMaj);
     }
   }
 
@@ -405,7 +421,7 @@ function computeIJIndividuelle(t: number, contrats: ContratIndividuel[]): number
 // Phase invalidité (≥ J1095)
 // ────────────────────────────────────────────────────────────────────
 
-function computeInvalObligatoireMensuel(
+export function computeInvalObligatoireMensuel(
   caisseRef: any,
   categorie: CategorieInvalidite,
   salaireBrutMensuel: number,
@@ -419,17 +435,26 @@ function computeInvalObligatoireMensuel(
   // 1) Schéma CPAM : cat1/cat2/cat3
   const direct = cats[categorie];
   if (direct) {
-    const taux = safeNum(direct.tauxBase);
+    const taux = safeNum(direct.taux) ?? safeNum(direct.tauxBase);
     if (taux === null) return null;
-    const base = salaireBrutMensuel > 0 ? salaireBrutMensuel : revenuMensuelTNS;
+    let base = salaireBrutMensuel > 0 ? salaireBrutMensuel : revenuMensuelTNS;
     if (base <= 0) return null;
+    // SAM plafonné au PASS (plafondSAM annuel → mensuel) si renseigné.
+    const plafondSAM = safeNum(inv.plafondSAM);
+    if (plafondSAM !== null) base = Math.min(base, plafondSAM / 12);
     let pension = base * taux;
+    // cat3 : majoration tierce personne (prestation additionnelle, ne
+    // pas inventer si non renseignée — cf. test H10).
     if (categorie === "cat3") {
       const mtp = safeNum(direct.majorationTiercePersonneMensuelle);
       if (mtp !== null) pension += mtp;
     }
-    const pl = safeNum(direct.plafondMensuel);
-    if (pl !== null) pension = Math.min(pension, pl);
+    // Bornes mensuelles : plafond maxMensuel (fallback plafondMensuel —
+    // ancien schéma), puis plancher minMensuel.
+    const max = safeNum(direct.maxMensuel) ?? safeNum(direct.plafondMensuel);
+    if (max !== null) pension = Math.min(pension, max);
+    const min = safeNum(direct.minMensuel);
+    if (min !== null) pension = Math.max(pension, min);
     return pension;
   }
 

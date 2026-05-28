@@ -13,6 +13,10 @@ import type { EntreePerso } from "../lib/prevoyance/types";
 
 const EPS = 1; // tolérance €/mois pour les arrondis
 
+function safeNumOr0(x: unknown): number {
+  return typeof x === "number" && Number.isFinite(x) ? x : 0;
+}
+
 const PROFILS = generateProfilsCoherents(200, 7777);
 
 describe("G4 — Cohérence inter-référentiels", () => {
@@ -71,15 +75,28 @@ describe("G4 — Cohérence inter-référentiels", () => {
     }
   });
 
-  // G4c-bis — la pension d'invalidité obligatoire seule ne dépasse pas
-  // le revenu de référence.
-  it("G4c-bis — pension invalidité obligatoire <= revenu de référence (200 profils)", () => {
+  // G4c-bis — la pension d'invalidité obligatoire (part REVENU DE
+  // REMPLACEMENT) ne dépasse pas le revenu de référence.
+  //
+  // ⚠️ La majoration tierce personne (cat3, 1298,44 € CPAM) est une
+  // prestation de COMPENSATION du handicap, pas un revenu de
+  // remplacement : elle peut légitimement porter le total au-dessus du
+  // revenu d'activité. On la retranche donc avant de comparer.
+  it("G4c-bis — pension invalidité obligatoire (hors MTP) <= revenu de référence (200 profils)", () => {
+    const caisses = (referentiels.caisses as any).caisses;
     for (const { entree, categorie } of PROFILS) {
       const r = projeterArretMaladie(entree, categorie, referentiels);
       const ref = r.revenuReferenceMensuel;
       if (ref <= 0) continue;
+      const mtp =
+        categorie === "cat3"
+          ? safeNumOr0(
+              caisses[entree.caisse as string]?.invalidite?.categories?.cat3
+                ?.majorationTiercePersonneMensuelle
+            )
+          : 0;
       for (const v of r.series.pensionInvalObligatoire) {
-        expect(v).toBeLessThanOrEqual(ref + EPS);
+        expect(v - mtp).toBeLessThanOrEqual(ref + EPS);
       }
     }
   });

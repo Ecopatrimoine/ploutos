@@ -59,13 +59,18 @@ const vars = buildPlafondVariables(referentiels);
 describe("Famille H — Cas limites & pièges métier", () => {
   // H1 — multi-statut : un seul statut/caisse traité (limite v1)
   it("H1 — salarié avec revenuTNS parasite → base IJ et revenu réf sur le BRUT (un seul statut)", () => {
-    const e = entree({ statutPro: "salarie_cadre", salaireBrutAnnuel: 60000, revenuTNSAnnuel: 200000 });
+    // Brut SOUS le plafond 1,4 SMIC (2552 €/mois) → IJ proportionnelle,
+    // ce qui rend le test discriminant : si le moteur utilisait le
+    // revenuTNS parasite (200 000 €), l'IJ saturerait à 41,95 €/j.
+    const e = entree({ statutPro: "salarie_cadre", salaireBrutAnnuel: 24000, revenuTNSAnnuel: 200000 });
     const r = projeterArretMaladie(e, "cat2", referentiels);
     // Revenu de référence salarié = brut × coef, PAS basé sur le revenuTNS
-    expect(r.revenuReferenceMensuel).toBeCloseTo((60000 * 0.75) / 12, 2);
-    // L'IJ obligatoire CPAM est calculée sur le brut (60000/360×0.5), pas sur 200000
+    expect(r.revenuReferenceMensuel).toBeCloseTo((24000 * 0.75) / 12, 2);
+    // IJ CPAM sur le brut : SJB = (24000/12)×3/91,25 = 65,75 → IJ = 32,88 €/j
+    // (proportionnelle, < 41,95), et NON saturée comme le ferait le TNS.
     const ij = computeIJObligatoireJournaliere(30, (referentiels.caisses as any).caisses.CPAM, e, vars);
-    expect(ij).toBeCloseTo((60000 / 360) * 0.5, 1);
+    expect(ij).toBeCloseTo(32.88, 1);
+    expect(ij!).toBeLessThan(41.95);
   });
 
   // H2 — cumul emploi-retraite : retraité → projection minimale, pas de maintien
@@ -147,14 +152,13 @@ describe("Famille H — Cas limites & pièges métier", () => {
   });
 
   // H9 — salaire pile au plafond IJSS : pas d'effet de bord (continuité)
-  it("H9 — autour du plafond IJSS (CPAM patché 41,95 €/j), l'IJ croît puis plafonne sans saut", () => {
-    const ref = JSON.parse(JSON.stringify(referentiels));
-    ref.caisses.caisses.CPAM.ij.plafondFormule = "1.4 * SMIC_mensuel * 3 / 91.25 * 0.5";
-    const v = buildPlafondVariables(ref);
-    const cpam = ref.caisses.caisses.CPAM;
-    // Seuil où le plafond mord : brut/360 × 0.5 = 41,95 → brut ≈ 30 204 €.
+  it("H9 — autour du plafond IJSS (1,4 SMIC), l'IJ croît puis plafonne à 41,95 €/j sans saut", () => {
+    const v = buildPlafondVariables(referentiels);
+    const cpam = (referentiels.caisses as any).caisses.CPAM;
+    // Le plafond mord quand le salaire mensuel atteint 1,4 × SMIC = 2552,24 €,
+    // soit brut annuel ≈ 30 627 €. Au-delà, SJB plafonné → IJ = 41,95 €/j.
     const ijBas = computeIJObligatoireJournaliere(30, cpam, entree({ salaireBrutAnnuel: 25000 }), v)!;
-    const ijSeuil = computeIJObligatoireJournaliere(30, cpam, entree({ salaireBrutAnnuel: 30204 }), v)!;
+    const ijSeuil = computeIJObligatoireJournaliere(30, cpam, entree({ salaireBrutAnnuel: 30627 }), v)!;
     const ijHaut = computeIJObligatoireJournaliere(30, cpam, entree({ salaireBrutAnnuel: 80000 }), v)!;
     expect(ijBas).toBeLessThan(ijSeuil + 0.01);     // croissance
     expect(ijSeuil).toBeCloseTo(41.95, 0);          // au seuil = plafond
@@ -162,14 +166,24 @@ describe("Famille H — Cas limites & pièges métier", () => {
     expect(ijHaut).toBeGreaterThanOrEqual(ijSeuil - 0.01); // pas de chute
   });
 
-  // H10 — invalidité cat3 sans MTP renseignée : ne pas inventer
-  it("H10 — cat3 avec majoration tierce personne TO_VERIFY → pension cat3 == cat2 (MTP non inventée)", () => {
+  // H10 — invalidité cat3 : la MTP sourcée (1298,44 €) est ajoutée ;
+  // si une caisse ne la renseigne PAS, le moteur ne l'invente jamais.
+  it("H10 — cat3 = cat2 + MTP 1298,44 € (CPAM) ; MTP absente → cat3 == cat2 (non inventée)", () => {
     const e = entree({ caisse: "CPAM", salaireBrutAnnuel: 50000 });
     const idxInval = (r: ReturnType<typeof projeterArretMaladie>) => r.axe.findIndex((p) => p.jour >= 1095);
     const r2 = projeterArretMaladie(e, "cat2", referentiels);
     const r3 = projeterArretMaladie(e, "cat3", referentiels);
-    // CPAM cat2 et cat3 ont tauxBase 0.50 ; MTP TO_VERIFY non ajoutée.
-    expect(r3.series.pensionInvalObligatoire[idxInval(r3)]).toBe(r2.series.pensionInvalObligatoire[idxInval(r2)]);
+    const p2 = r2.series.pensionInvalObligatoire[idxInval(r2)];
+    const p3 = r3.series.pensionInvalObligatoire[idxInval(r3)];
+    // brut 50 000 → SAM plafonné PASS : cat2 = 2002,50 ; cat3 = 2002,50 + 1298,44.
+    expect(p3 - p2).toBeCloseTo(1298.44, 1);
+
+    // Caisse sans MTP renseignée → le moteur n'ajoute rien (cat3 retombe
+    // sur 50 % SAM borné = cat2 pour ce niveau de salaire).
+    const ref = JSON.parse(JSON.stringify(referentiels));
+    delete ref.caisses.caisses.CPAM.invalidite.categories.cat3.majorationTiercePersonneMensuelle;
+    const r3SansMtp = projeterArretMaladie(e, "cat3", ref);
+    expect(r3SansMtp.series.pensionInvalObligatoire[idxInval(r3SansMtp)]).toBeCloseTo(p2, 2);
   });
 
   // H11 — couverture collective > 100 % du brut : bornée (principe

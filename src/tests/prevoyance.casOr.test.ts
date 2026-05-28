@@ -86,33 +86,31 @@ describe("Cas d'or A — Mathieu, salarié cadre Syntec (CPAM / IDCC 1486)", () 
     expect(r.useLegalDefault).toBe(true);
   });
 
-  it("CPAM avec tauxBrut numérique → IJ obligatoire calculée même sans plafondJournalier renseigné", () => {
-    // tauxBrut=0.5 + carenceJours=3 sont numériques dans le ref ;
-    // plafondJournalier=TO_VERIFY ne bloque pas le calcul (sans plafond).
-    // IJ_obl mensuel non bornée = (brut/360) × 0.5 × 30 ≈ 2291,67 €/mois.
-    // Quand David renseignera plafondJournalier, l'IJ sera bornée
-    // (par exemple à 41,95 × 30 = 1258,5 €/mois) — c'est attendu.
+  it("CPAM : IJ obligatoire plafonnée à 41,95 €/j (×30 ≈ 1258,5 €/mois) car brut > 1,4 SMIC", () => {
+    // Mathieu (brut 55 000 → 4583 €/mois) dépasse le plafond 1,4 SMIC
+    // (2552,24 €) → SJB plafonné, IJ = 41,95 €/j, soit ≈ 1258,5 €/mois.
     const j30 = idxJour(r.axe, 30);
+    expect(r.series.ijObligatoire[j30]).toBeCloseTo(41.95 * 30, 0);
+    // Borne supérieure absolue (50 % du brut sans plafond) : l'IJ
+    // plafonnée reste bien en dessous.
     const ijObligNonBornee = (55000 / 360) * 0.5 * 30;
-    expect(r.series.ijObligatoire[j30]).toBeGreaterThan(0);
-    // L'IJ ne peut PAS dépasser le calcul sans plafond (qui est la
-    // borne supérieure absolue) — vrai avec ou sans plafond.
-    expect(r.series.ijObligatoire[j30]).toBeLessThanOrEqual(ijObligNonBornee + 1);
-    // Pas de flag indisponible pour cas A : CPAM a tout ce qu'il faut.
+    expect(r.series.ijObligatoire[j30]).toBeLessThan(ijObligNonBornee);
+    // CPAM entièrement documenté → pas de flag indisponible.
     expect(r.donneesCaisseIndisponibles).toBe(false);
   });
 
-  it("maintien Mensualisation actif en phase 90 % (J7), terminé après le palier 12 mois (J90)", () => {
+  it("maintien Mensualisation actif en phase 90 % (J7) et 66,66 % (J60), terminé après le palier (J90)", () => {
     const j7 = idxJour(r.axe, 7);
+    const j60 = idxJour(r.axe, 60);
     const j90 = idxJour(r.axe, 90);
     // J7 : phase 90 % → maintien complémentaire > 0 (cible 90 % > IJ obl).
     expect(r.series.maintienEmployeur[j7]).toBeGreaterThan(0);
-    // J90 : palier 12 mois terminé (fin à J67) → plus de maintien.
+    // J60 : phase 66,66 % → désormais > 0 (l'IJ CPAM est plafonnée à
+    // ≈ 1258,5 €, sous la cible 66,66 % du revenu de référence 3437,5 €).
+    expect(r.series.maintienEmployeur[j60]).toBeGreaterThan(0);
+    expect(r.series.maintienEmployeur[j60]).toBeLessThan(r.series.maintienEmployeur[j7]);
+    // J90 : palier terminé (fin à J67) → plus de maintien.
     expect(r.series.maintienEmployeur[j90]).toBe(0);
-    // NOTE : à J60 (phase 66,66 %), le maintien peut être nul tant que
-    // l'IJ obligatoire CPAM n'est pas plafonnée (plafondJournalier
-    // TO_VERIFY → IJ = 50 % du brut, qui absorbe déjà la cible 66,66 %
-    // du net). Il redeviendra > 0 quand le plafond CPAM sera renseigné.
   });
 
   it("complémentaire collective Syntec activée après franchise 90j (= J90)", () => {
@@ -130,6 +128,9 @@ describe("Cas d'or A — Mathieu, salarié cadre Syntec (CPAM / IDCC 1486)", () 
     // On LIT la pension obligatoire du résultat (au lieu de la recalculer)
     // pour rester résilient aux évolutions du référentiel (plafond renseigné).
     const pensionObl = r.series.pensionInvalObligatoire[j1095];
+    // Pension obligatoire cat2 = 50 % du SAM plafonné PASS = 50 % × 4005
+    // = 2002,50 € (brut 55 000 → 4583 €/mois > PMSS 4005).
+    expect(pensionObl).toBeCloseTo(2002.50, 1);
     expect(r.series.renteInvalCollective[j1095]).toBeCloseTo(Math.max(0, cible80 - pensionObl), 0);
   });
 
@@ -270,12 +271,10 @@ describe("Cas d'or C — Léa, salariée non-cadre Métallurgie (CPAM / IDCC 324
 
   it("exposition après J67 = IJSS seules (pas de coll/ind), revenu inférieur au net", () => {
     const j180 = idxJour(r.axe, 180);
-    // Borne supérieure absolue (sans plafond) : (brut/360) × tauxBrut × 30.
-    // Quand plafond renseigné, IJ devient inférieure. Donc on teste :
-    //   IJ_obl > 0 ET IJ_obl ≤ borne_sans_plafond.
-    const ijObligBorneMax = (28000 / 360) * 0.5 * 30;
-    expect(r.series.ijObligatoire[j180]).toBeGreaterThan(0);
-    expect(r.series.ijObligatoire[j180]).toBeLessThanOrEqual(ijObligBorneMax + 1);
+    // Léa (brut 28 000 → 2333 €/mois) est SOUS le plafond 1,4 SMIC
+    // (2552 €) → IJ proportionnelle : SJB = 2333,33×3/91,25 = 76,71 €/j,
+    // IJ = 38,36 €/j, soit ≈ 1150,7 €/mois (non plafonnée).
+    expect(r.series.ijObligatoire[j180]).toBeCloseTo(38.356 * 30, 0);
     expect(r.series.ijComplementaireCollective[j180]).toBe(0);
     expect(r.series.ijComplementaireIndividuelle[j180]).toBe(0);
     expect(r.series.maintienEmployeur[j180]).toBe(0);
@@ -285,16 +284,17 @@ describe("Cas d'or C — Léa, salariée non-cadre Métallurgie (CPAM / IDCC 324
     expect(totalAtIdx(r.series, j180)).toBe(r.series.ijObligatoire[j180]);
   });
 
-  it("bascule invalidité à J1095 : pension obligatoire cat2 > 0, aucune coll/ind", () => {
+  it("bascule invalidité à J1095 : pension obligatoire cat2 = 50 % SAM (sous plafond), aucune coll/ind", () => {
     const j1095 = idxJour(r.axe, 1095);
     const brutMensuel = 28000 / 12;
-    // Borne supérieure absolue (sans plafond) : brut_mensuel × 0.5 (tauxBase cat2).
-    // Quand plafondMensuel renseigné, la pension est bornée → inférieure.
-    expect(r.series.pensionInvalObligatoire[j1095]).toBeGreaterThan(0);
-    expect(r.series.pensionInvalObligatoire[j1095]).toBeLessThanOrEqual(brutMensuel * 0.5 + 1);
+    // SAM (2333 €/mois) < PASS mensuel (4005) → pas de plafonnement :
+    // pension cat2 = 50 % × 2333,33 = 1166,67 €, bornée [338,31 ; 2002,50]
+    // → 1166,67 € (le plafond ne mord pas).
+    expect(r.series.pensionInvalObligatoire[j1095]).toBeCloseTo(brutMensuel * 0.5, 1);
+    expect(r.series.pensionInvalObligatoire[j1095]).toBeCloseTo(1166.67, 1);
     expect(r.series.renteInvalCollective[j1095]).toBe(0);
     expect(r.series.renteInvalIndividuelle[j1095]).toBe(0);
-    // CPAM cat2 a tauxBase=0.5 numérique → pas de flag indisponible pour cas C.
+    // CPAM cat2 documenté (taux 0,5) → pas de flag indisponible pour cas C.
     expect(r.donneesCaisseIndisponibles).toBe(false);
   });
 

@@ -20,47 +20,81 @@
   "caisses": {
     "CPAM": {
       "nom": "Caisse primaire d'assurance maladie (régime général)",
-      "publicConcerne": "Salariés du privé",
+      "publicConcerne": "Salariés du secteur privé",
+      "dateVerification": "2026-05-28",
       "ij": {
+        "_commentaire": "IJ maladie de base. SJB = moyenne salaire brut 3 derniers mois / 91,25 (jours calendaires). IJ = 50% du SJB, plafonné.",
         "regle": "tranche_revenu",
         "carenceJours": 3,
         "tauxBrut": 0.5,
-        "formule": "0.5 * salaire_journalier_base (moyenne 3 derniers mois)",
-        "plafondJournalier": "TO_VERIFY",
-        "plafondDureeJours": 1095,
+        "diviseurSJB": 91.25,
+        "_commentaire_diviseur": "91,25 = 365/4 (3 mois en jours calendaires). Source ameli.fr.",
+        "plafondFormule": "1.4 * SMIC_mensuel",
+        "_commentaire_plafond_formule": "Plafond du salaire mensuel retenu = 1,4 x SMIC mensuel depuis le decret 2025-160 du 20/02/2025 (en vigueur 01/04/2025, ANCIEN plafond 1,8 SMIC). Art. R.323-4 CSS.",
+        "plafondSalaireBrutMensuel": 2552.24,
+        "_commentaire_plafond_valeur": "Valeur de controle 2026 : 1,4 x 1823,03 = 2552,24 EUR. SMIC mensuel au 01/01/2026 = 1823,03 EUR (SMIC horaire 12,02 EUR). A recalculer si le SMIC est revalorise en cours d'annee.",
+        "ijMaxJournaliere": 41.95,
+        "_commentaire_ij_max": "Valeur de controle : (2552,24 x 3) / 91,25 x 0,5 = 41,95 EUR/jour pour arrets prescrits a compter du 01/02/2026 (41,47 EUR pour janvier 2026). Source ameli.fr.",
+        "plafondDureeJours": 360,
+        "plafondDureeJoursALD": 1095,
+        "_commentaire_duree": "360 jours sur 3 ans glissants en maladie ordinaire ; jusqu'a 1095 jours (3 ans) en affection de longue duree. Source service-public F3053.",
         "majorationFamilleApresJ31": {
-          "active": true,
-          "tauxMajore": 0.6633,
-          "conditions": "À partir du 31e jour si 3 enfants à charge ou plus"
+          "_STATUT": "TO_VERIFY — NE PAS ACTIVER",
+          "_commentaire": "Majoration de l'IJ a 66,66% du SJB a partir du 31e jour d'arret continu pour assures avec >=3 enfants a charge. CONTRADICTION non resolue : des sources 2026 la decrivent active, mais un fil ameli a reponse certifiee evoque sa suppression par l'article 85 d'une LFSS modifiant l'art. L.323-4 CSS. Laisse en TO_VERIFY jusqu'a verification de la version en vigueur de L.323-4 sur Legifrance. Impact marginal (3 enfants + arret > 30j).",
+          "tauxMajore": "TO_VERIFY",
+          "conditions": "TO_VERIFY"
         }
       },
       "invalidite": {
+        "_commentaire": "Pension calculee sur le salaire annuel moyen (SAM) des 10 meilleures annees, plafonne au PASS (48060 EUR en 2026). Bascule en pension de retraite a 62 ans. Source ameli.fr + service-public.",
         "calculBase": "SAM_10_meilleures_annees",
+        "plafondSAM": 48060,
+        "_commentaire_plafond_sam": "SAM plafonne au PASS annuel 2026 = 48060 EUR.",
+        "ageBascule": 62,
+        "ageBasculeRetraite": 62,
         "categories": {
           "cat1": {
-            "definition": "Capable d'exercer une activité réduite",
-            "tauxBase": 0.30,
-            "plafondMensuel": "TO_VERIFY"
+            "definition": "Invalide capable d'exercer une activite reduite",
+            "taux": 0.30,
+            "minMensuel": 338.31,
+            "maxMensuel": 1201.50,
+            "_commentaire": "30% du SAM. Max = 30% du PMSS arrondi = 1201,50 EUR. Min 338,31 EUR revalorise au 01/04. Source aide-sociale.fr / service-public 2026."
           },
           "cat2": {
-            "definition": "Incapable d'exercer une activité",
-            "tauxBase": 0.50,
-            "plafondMensuel": "TO_VERIFY"
+            "definition": "Invalide incapable d'exercer une profession quelconque",
+            "taux": 0.50,
+            "minMensuel": 338.31,
+            "maxMensuel": 2002.50,
+            "_commentaire": "50% du SAM. Max = 50% du PMSS = 50% x 4005 = 2002,50 EUR. Source ameli.fr / quelles-aides.fr 2026."
           },
           "cat3": {
-            "definition": "Incapable + besoin d'une tierce personne",
-            "tauxBase": 0.50,
-            "majorationTiercePersonneMensuelle": "TO_VERIFY",
-            "plafondMensuel": "TO_VERIFY"
+            "definition": "Invalide incapable + besoin d'assistance d'une tierce personne",
+            "taux": 0.50,
+            "majorationTiercePersonneMensuelle": 1298.44,
+            "minMensuel": 1636.75,
+            "maxMensuel": 3300.94,
+            "_commentaire": "50% du SAM (comme cat2) + MTP forfaitaire 1298,44 EUR/mois. Min 1636,75 = 338,31 + 1298,44. Max 3300,94 = 2002,50 + 1298,44. MTP exoneree d'IR et CSG/CRDS, s'arrete au passage en retraite. Source ameli.fr / aide-sociale.fr 2026.",
+            "_commentaire_mtp": "Si MTP non renseignee/non demandee : le moteur ne doit PAS l'inventer (cf. test H10). La cat3 sans MTP = cat2."
           }
-        },
-        "ageBascule": 62
+        }
       },
       "capitalDeces": {
-        "type": "montant_fixe",
-        "montant": "TO_VERIFY",
-        "conditions": "Versé aux ayants droit, sous conditions d'ouverture des droits"
-      }
+        "_commentaire": "Montant forfaitaire unique depuis la reforme 2015 (independant du salaire). REVALORISE EN COURS D'ANNEE : 3910 EUR au 01/01/2026, puis 4009 EUR au 01/04/2026. On retient la valeur EN VIGUEUR.",
+        "type": "forfaitaire",
+        "montant": 4009,
+        "dateEffet": "2026-04-01",
+        "_commentaire_montant": "4009 EUR depuis le 01/04/2026. Source ameli.fr (page entreprise/capital-deces). Avant : 3910 EUR (01/01 au 31/03/2026).",
+        "conditions": "Defunt salarie, en arret maladie, chomeur indemnise, ou titulaire d'une pension d'invalidite au moment du deces. Verse en une fois, non imposable, hors succession."
+      },
+      "sources": [
+        "PASS 2026 : arrete du 22/12/2025, JORFTEXT000053143451 (Legifrance) — PASS 48060, PMSS 4005, journalier 220",
+        "IJSS maladie : decret 2025-160 du 20/02/2025 (plafond 1,4 SMIC), art. R.323-4 CSS, ameli.fr — IJ max 41,95 EUR/j",
+        "SMIC 2026 : 1823,03 EUR/mois (horaire 12,02 EUR) au 01/01/2026, URSSAF",
+        "Pensions invalidite : ameli.fr, service-public.fr — cat1 30%, cat2 50%, cat3 50%+MTP",
+        "MTP 2026 : 1298,44 EUR/mois, ameli.fr / aide-sociale.fr",
+        "Capital deces : ameli.fr — 4009 EUR au 01/04/2026",
+        "Tous chiffres verifies a la source le 2026-05-28"
+      ]
     },
     "SSI": {
       "nom": "Sécurité sociale des indépendants (ex-RSI, intégré au régime général depuis 2020)",

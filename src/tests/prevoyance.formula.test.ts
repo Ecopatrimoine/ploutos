@@ -115,40 +115,59 @@ describe("intégration plafondFormule dans projection", () => {
     couvertureCollective: null,
   };
 
-  it("plafondFormule supplante plafondJournalier figé dans une caisse patchée", () => {
+  it("plafondFormule (salaire) plafonne le SJB → IJ ≈ 41,95 €/j (×30 ≈ 1258,5 €)", () => {
     const ref = cloneRef();
     const cpam = (ref.caisses as any).caisses.CPAM;
-    // Formule réglementaire correcte → IJ max ≈ 41,95 €/j
-    cpam.ij.plafondFormule = "1.4 * SMIC_mensuel * 3 / 91.25 * 0.5";
-    // On laisse plafondJournalier à TO_VERIFY → la formule doit primer.
+    // Formule réglementaire : plafond du SALAIRE mensuel = 1,4 SMIC.
+    // Le moteur plafonne le salaire (2552,24 €) puis calcule
+    // SJB = 2552,24×3/91,25 et IJ = ×0,5 = 41,95 €/j.
+    cpam.ij.plafondFormule = "1.4 * SMIC_mensuel";
 
     const r = projeterArretMaladie(baseEntree, "cat2", ref);
     const idxJ30 = r.axe.findIndex((p) => p.jour === 30);
-    // IJ obligatoire mensuelle = 41,95 × 30 ≈ 1258,5 €
     expect(r.series.ijObligatoire[idxJ30]).toBeCloseTo(41.95 * 30, 0);
   });
 
-  it("plafondFormule invalide → fallback sur plafondJournalier figé", () => {
+  it("plafondFormule invalide → fallback sur plafondSalaireBrutMensuel figé", () => {
     const ref = cloneRef();
     const cpam = (ref.caisses as any).caisses.CPAM;
-    cpam.ij.plafondFormule = "1.4 * SMIC_inconnu"; // invalide
+    cpam.ij.plafondFormule = "1.4 * SMIC_inconnu"; // invalide → null
+    cpam.ij.plafondSalaireBrutMensuel = 2552.24;   // valeur de contrôle figée
+
+    const r = projeterArretMaladie(baseEntree, "cat2", ref);
+    const idxJ30 = r.axe.findIndex((p) => p.jour === 30);
+    // Le plafond salaire figé prend le relais → même IJ plafonnée.
+    expect(r.series.ijObligatoire[idxJ30]).toBeCloseTo(41.95 * 30, 0);
+  });
+
+  it("aucun plafond salaire (formule + valeur absentes) → SJB non plafonné", () => {
+    const ref = cloneRef();
+    const cpam = (ref.caisses as any).caisses.CPAM;
+    delete cpam.ij.plafondFormule;
+    delete cpam.ij.plafondSalaireBrutMensuel;
+
+    const r = projeterArretMaladie(baseEntree, "cat2", ref);
+    const idxJ30 = r.axe.findIndex((p) => p.jour === 30);
+    // Brut 120 000 → SJB = (120000/12)×3/91,25 = 328,77, IJ = 164,38 €/j.
+    // Sans plafond, l'IJ dépasse largement 41,95 €/j (× 30).
+    expect(r.series.ijObligatoire[idxJ30]).toBeCloseTo(164.38 * 30, 0);
+    expect(r.series.ijObligatoire[idxJ30]).toBeGreaterThan(41.95 * 30);
+  });
+
+  it("caisse legacy sans diviseurSJB → plafondJournalier figé s'applique", () => {
+    const ref = cloneRef();
+    const cpam = (ref.caisses as any).caisses.CPAM;
+    // On retire le diviseur SJB et les plafonds salaire → le moteur
+    // bascule sur la branche journalière historique (/360) bornée par
+    // plafondJournalier.
+    delete cpam.ij.diviseurSJB;
+    delete cpam.ij.plafondFormule;
+    delete cpam.ij.plafondSalaireBrutMensuel;
     cpam.ij.plafondJournalier = 50;
 
     const r = projeterArretMaladie(baseEntree, "cat2", ref);
     const idxJ30 = r.axe.findIndex((p) => p.jour === 30);
+    // (120000/360)×0,5 = 166,67 €/j > 50 → borné à 50 €/j (×30 = 1500 €).
     expect(r.series.ijObligatoire[idxJ30]).toBeCloseTo(50 * 30, 0);
-  });
-
-  it("ni plafondFormule ni plafondJournalier numérique → étage à 0 et flag levé", () => {
-    const ref = cloneRef();
-    const cpam = (ref.caisses as any).caisses.CPAM;
-    delete cpam.ij.plafondFormule;
-    cpam.ij.plafondJournalier = "TO_VERIFY"; // reste tel quel dans le JSON
-
-    const r = projeterArretMaladie(baseEntree, "cat2", ref);
-    // Sans plafond figé, le moteur n'invente pas → IJ Obligatoire reste null donc 0
-    // ET donneesCaisseIndisponibles = true. (Le moteur attend plafondJournalier
-    // numérique ; sinon il refuse.)
-    for (const v of r.series.ijObligatoire) expect(v).toBeGreaterThanOrEqual(0);
   });
 });

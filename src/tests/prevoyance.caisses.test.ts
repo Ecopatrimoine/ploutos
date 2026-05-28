@@ -13,7 +13,10 @@
 // artisans) → CARMF (médecins) → CIPAV (PL non régl.) → CARPIMKO → autres.
 
 import { describe, it, expect } from "vitest";
-import { computeIJObligatoireJournaliere } from "../lib/prevoyance/projection";
+import {
+  computeIJObligatoireJournaliere,
+  computeInvalObligatoireMensuel,
+} from "../lib/prevoyance/projection";
 import { buildPlafondVariables } from "../lib/prevoyance/formula";
 import { referentiels } from "../data/prevoyance";
 import type { EntreePerso } from "../lib/prevoyance/types";
@@ -37,35 +40,54 @@ function entreeTNS(caisse: EntreePerso["caisse"], revenu: number, classe?: strin
   };
 }
 
-// ── CPAM (régime général, tous salariés du privé) ──
-describe.skip("G2 — CPAM 2026 (à activer après remplissage caisses-2026.json)", () => {
+// ── CPAM (régime général, tous salariés du privé) — vérifié 2026-05-28 ──
+describe("G2 — CPAM 2026 (valeurs vérifiées à la source ameli/service-public)", () => {
   const cpam = caisses.CPAM;
+  // Au-delà du plafond salaire : SJB plafonné → IJ = 41,95 €/j.
+  // Sous le plafond : IJ proportionnelle. PASS mensuel = 4005 €.
+  const PASS_MENSUEL = 4005;
+
   it("carence 3 jours : IJ = 0 sur [J0,J2], > 0 à partir de J3", () => {
     const e = entreeSalarie(40000);
     expect(computeIJObligatoireJournaliere(2, cpam, e, vars)).toBe(0);
     expect(computeIJObligatoireJournaliere(3, cpam, e, vars)!).toBeGreaterThan(0);
   });
-  it("IJ plafonnée à 41,95 €/j pour salaire > 2552 €/mois (plafond SJB)", () => {
+  it("IJ plafonnée à 41,95 €/j pour salaire > 2552 €/mois (plafond 1,4 SMIC)", () => {
+    // salaire mensuel 200000/12 ≫ 2552,24 → SJB = 2552,24×3/91,25, IJ = ×0,5.
     const ij = computeIJObligatoireJournaliere(30, cpam, entreeSalarie(200000), vars);
     expect(ij).toBeCloseTo(41.95, 1);
   });
-  it("IJ proportionnelle (50 % SJR) pour salaire < plafond", () => {
-    // ex. brut 24000 → SJR ~65,75 €/j → IJ ~32,88 €/j (à confirmer formule)
+  it("IJ proportionnelle (50 % SJB) pour salaire < plafond", () => {
+    // brut 24000 → salaire mensuel 2000 < 2552 → SJB = 2000×3/91,25 = 65,75,
+    // IJ = 32,88 €/j (proportionnelle, sous le plafond).
     const ij = computeIJObligatoireJournaliere(30, cpam, entreeSalarie(24000), vars);
-    expect(ij!).toBeGreaterThan(0);
+    expect(ij).toBeCloseTo(32.88, 1);
     expect(ij!).toBeLessThan(41.95);
   });
-  it("invalidité cat1 = 30 % SAM, plafonnée à 50 % PASS mensuel", () => {
-    expect(cpam.invalidite.categories.cat1.tauxBase).toBe(0.30);
+  it("IJ obligatoire = 0 après J360 (maladie ordinaire, hors ALD)", () => {
+    expect(computeIJObligatoireJournaliere(361, cpam, entreeSalarie(40000), vars)).toBe(0);
   });
-  it("invalidité cat2 = 50 % SAM", () => {
-    expect(cpam.invalidite.categories.cat2.tauxBase).toBe(0.50);
+  it("invalidité cat1 = 30 % SAM, bornée [338,31 ; 1201,50]", () => {
+    expect(cpam.invalidite.categories.cat1.taux).toBe(0.30);
+    // Haut revenu : SAM plafonné au PASS → 30 % × 4005 = 1201,50 (= maxMensuel).
+    const haut = computeInvalObligatoireMensuel(cpam, "cat1", 200000 / 12, 0);
+    expect(haut).toBeCloseTo(0.30 * PASS_MENSUEL, 2);
+    expect(haut).toBeCloseTo(1201.50, 2);
   });
-  it("invalidité cat3 = cat2 + majoration tierce personne", () => {
-    expect(typeof cpam.invalidite.categories.cat3.majorationTiercePersonneMensuelle).toBe("number");
+  it("invalidité cat2 = 50 % SAM, bornée [338,31 ; 2002,50]", () => {
+    expect(cpam.invalidite.categories.cat2.taux).toBe(0.50);
+    const haut = computeInvalObligatoireMensuel(cpam, "cat2", 200000 / 12, 0);
+    expect(haut).toBeCloseTo(0.50 * PASS_MENSUEL, 2);
+    expect(haut).toBeCloseTo(2002.50, 2);
   });
-  it("capital décès = montant forfaitaire 2026 (à vérifier ameli, ~3 910 €)", () => {
-    expect(typeof cpam.capitalDeces.montant).toBe("number");
+  it("invalidité cat3 = cat2 + MTP 1298,44, bornée [1636,75 ; 3300,94]", () => {
+    expect(cpam.invalidite.categories.cat3.majorationTiercePersonneMensuelle).toBeCloseTo(1298.44, 2);
+    const haut = computeInvalObligatoireMensuel(cpam, "cat3", 200000 / 12, 0);
+    expect(haut).toBeCloseTo(2002.50 + 1298.44, 2);
+    expect(haut).toBeCloseTo(3300.94, 2);
+  });
+  it("capital décès = 4 009 € forfaitaire (en vigueur 01/04/2026)", () => {
+    expect(cpam.capitalDeces.montant).toBe(4009);
   });
 });
 

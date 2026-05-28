@@ -86,33 +86,33 @@ describe("G1 — Maternité / paternité & forfait social (valeurs fermes)", () 
 });
 
 describe("G1 — Cohérence socle ↔ calcul IJ (plafondFormule)", () => {
-  it("computeIJObligatoireJournaliere : CPAM patché avec plafondFormule 1,4 SMIC → IJ plafonnée à 41,95 €/j", () => {
-    // Patch en mémoire (sans toucher au JSON) : CPAM avec la formule
-    // réglementaire. Haut salaire pour saturer le plafond.
-    const ref = JSON.parse(JSON.stringify(referentiels));
-    ref.caisses.caisses.CPAM.ij.plafondFormule = "1.4 * SMIC_mensuel * 3 / 91.25 * 0.5";
-    const vars = buildPlafondVariables(ref);
+  // Le bloc CPAM embarqué porte plafondFormule = "1.4 * SMIC_mensuel"
+  // (plafond du SALAIRE mensuel retenu, pas de l'IJ). Le moteur plafonne
+  // le salaire puis calcule SJB = salaire×3/91,25 et IJ = ×0,5.
+  const cpam = (referentiels.caisses as any).caisses.CPAM;
+  const vars = buildPlafondVariables(referentiels);
+
+  it("computeIJObligatoireJournaliere : plafondFormule 1,4 SMIC → IJ plafonnée à 41,95 €/j (haut salaire)", () => {
+    // Vérifie qu'aucun patch n'est nécessaire : la formule embarquée suffit.
+    expect(cpam.ij.plafondFormule).toBe("1.4 * SMIC_mensuel");
     const entree: EntreePerso = {
       age: 40, ageRetraite: 64, statutPro: "salarie_cadre", caisse: "CPAM",
       idccCCN: null, ancienneteMois: 24, salaireBrutAnnuel: 200000,
       salaireNetMensuel: 0, contratsIndividuels: [], couvertureCollective: null,
     };
-    const ijJour = computeIJObligatoireJournaliere(30, ref.caisses.caisses.CPAM, entree, vars);
+    const ijJour = computeIJObligatoireJournaliere(30, cpam, entree, vars);
     expect(ijJour).toBeCloseTo(41.95, 1);
   });
 
   it("computeIJObligatoireJournaliere × 30 = mensuel (cohérence convention d'affichage)", () => {
-    const ref = JSON.parse(JSON.stringify(referentiels));
-    ref.caisses.caisses.CPAM.ij.plafondJournalier = 41.95;
-    const vars = buildPlafondVariables(ref);
     const entree: EntreePerso = {
       age: 40, ageRetraite: 64, statutPro: "salarie_cadre", caisse: "CPAM",
       idccCCN: null, ancienneteMois: 24, salaireBrutAnnuel: 200000,
       salaireNetMensuel: 0, contratsIndividuels: [], couvertureCollective: null,
     };
-    const ijJour = computeIJObligatoireJournaliere(30, ref.caisses.caisses.CPAM, entree, vars);
+    const ijJour = computeIJObligatoireJournaliere(30, cpam, entree, vars);
     expect(ijJour).not.toBeNull();
-    expect((ijJour as number) * 30).toBeCloseTo(41.95 * 30, 5);
+    expect((ijJour as number) * 30).toBeCloseTo(41.95 * 30, 0);
   });
 });
 
