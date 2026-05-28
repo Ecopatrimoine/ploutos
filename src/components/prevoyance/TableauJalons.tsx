@@ -12,6 +12,7 @@ const POINTS_CLES = [0, 3, 7, 30, 90, 180, 365, 1095];
 
 function totalAtIdx(s: ProjectionResult["series"], i: number): number {
   return (
+    s.salaire[i] +
     s.maintienEmployeur[i] +
     s.ijObligatoire[i] +
     s.ijComplementaireCollective[i] +
@@ -32,6 +33,7 @@ function libelleJour(jour: number): string {
 
 function detailJour(jour: number, s: ProjectionResult["series"], i: number): string {
   const parts: string[] = [];
+  if (s.salaire[i] > 0) parts.push("salaire (activité)");
   if (s.maintienEmployeur[i] > 0) parts.push("maintien employeur");
   if (s.ijObligatoire[i] > 0) parts.push("IJ régime obl.");
   if (s.ijComplementaireCollective[i] > 0) parts.push("IJ coll.");

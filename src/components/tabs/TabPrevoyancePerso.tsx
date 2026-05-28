@@ -44,6 +44,7 @@ import { TableauJalons } from "../prevoyance/TableauJalons";
 import { BlocConstats } from "../prevoyance/BlocConstats";
 import { BlocCouvertureCollective } from "../prevoyance/BlocCouvertureCollective";
 import { BlocContratsIndividuels } from "../prevoyance/BlocContratsIndividuels";
+import { BlocTpt } from "../prevoyance/BlocTpt";
 
 function defaultPrevoyancePerso(): PayloadPrevoyancePerso {
   return {
@@ -221,10 +222,17 @@ function ColonnePerso({
 
   const categorie = prevoyancePerso.categorieInvaliditeProjetee;
   const scenarioArret: ScenarioArret = prevoyancePerso.scenarioArret ?? "ald";
+  const tptConfig = prevoyancePerso.tpt;
+
+  // Carence de la caisse (pour la validation UI du début de TPT) : lue du
+  // référentiel, fallback 3 j (standard CPAM/SSI).
+  const carenceJours: number =
+    (referentiels.caisses as { caisses?: Record<string, { ij?: { carenceJours?: number } }> })
+      .caisses?.[entree.caisse ?? ""]?.ij?.carenceJours ?? 3;
 
   const projection = React.useMemo(
-    () => projeterArretMaladie(entree, categorie, referentiels, scenarioArret),
-    [entree, categorie, scenarioArret]
+    () => projeterArretMaladie(entree, categorie, referentiels, scenarioArret, tptConfig),
+    [entree, categorie, scenarioArret, tptConfig]
   );
 
   const constats = React.useMemo(() => {
@@ -293,6 +301,13 @@ function ColonnePerso({
           </label>
         ))}
       </div>
+
+      {/* Mi-temps thérapeutique */}
+      <BlocTpt
+        value={tptConfig}
+        carenceJours={carenceJours}
+        onChange={(next) => onChangePrevoyance({ tpt: next })}
+      />
 
       {/* Sélecteur catégorie invalidité */}
       <div

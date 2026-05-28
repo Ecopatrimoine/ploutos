@@ -326,6 +326,19 @@ export type ScenarioArret = "maladie_ordinaire" | "ald";
 // Défaut = "indemnitaire" (cf. SPEC_PREVOYANCE_SURCOUVERTURE §1).
 export type NatureContrat = "indemnitaire" | "forfaitaire";
 
+// Configuration d'une reprise en mi-temps thérapeutique (TPT). Le moteur
+// ne manipule que des jours depuis J0 (debutJour / finJour) ; la
+// conversion date↔jour se fait côté UI. pctTempsTravaille = part du
+// temps travaillé (0.5 = mi-temps). apresTpt : après finJour, retour en
+// arrêt total OU guérison. Cf. SPEC_ALD_TPT §5.1.
+export type TptConfig = {
+  actif: boolean;
+  debutJour: number;
+  finJour: number;
+  pctTempsTravaille: number; // 0.2 à 1.0
+  apresTpt: "retour_arret_total" | "guerison";
+};
+
 export type PayloadContratIndividuel = {
   id: string;
   type:
@@ -373,6 +386,9 @@ export type PayloadPrevoyancePerso = {
   // pour les dossiers antérieurs à l'extension ALD → le lecteur applique
   // "ald" par défaut.
   scenarioArret?: ScenarioArret;
+  // Reprise en mi-temps thérapeutique (optionnel, défaut inactif). Absent
+  // → projection sans TPT (cf. SPEC_ALD_TPT §5).
+  tpt?: TptConfig;
 };
 
 // ─── Lot 8 — Prévoyance collective d'entreprise (audit conformité) ────

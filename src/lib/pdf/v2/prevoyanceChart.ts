@@ -5,8 +5,9 @@
 // d'histogramme empilé à partir d'un ProjectionResult, sur le même
 // principe que le bar chart SVG de pageHypos.
 //
-// Pour rester lisible à l'impression, les 7 étages du moteur sont
-// regroupés en 4 catégories :
+// Pour rester lisible à l'impression, les étages du moteur sont
+// regroupés en catégories :
+//   - Salaire d'activité (mi-temps thérapeutique / guérison ; sinon nul, masqué)  (vert)
 //   - Maintien employeur            (navy)
 //   - Régime obligatoire (IJ + pension invalidité)   (gris-bleu)
 //   - Couverture collective (IJ + rente invalidité)  (or pâle)
@@ -27,15 +28,20 @@ function labelJour(jour: number): string {
   return `${(jour / 365).toFixed(0)}a`;
 }
 
-type Cat = { maintien: number; obligatoire: number; collective: number; individuelle: number };
+type Cat = { salaire: number; maintien: number; obligatoire: number; collective: number; individuelle: number };
 
 function categoriesAtIdx(s: ProjectionResult["series"], i: number): Cat {
   return {
+    salaire: s.salaire[i],
     maintien: s.maintienEmployeur[i],
     obligatoire: s.ijObligatoire[i] + s.pensionInvalObligatoire[i],
     collective: s.ijComplementaireCollective[i] + s.renteInvalCollective[i],
     individuelle: s.ijComplementaireIndividuelle[i] + s.renteInvalIndividuelle[i],
   };
+}
+
+function totalCat(c: Cat): number {
+  return c.salaire + c.maintien + c.obligatoire + c.collective + c.individuelle;
 }
 
 function euroCompact(v: number): string {
@@ -57,11 +63,8 @@ export function renderProjectionSVG(projection: ProjectionResult, t: Tokens): st
     .filter(Boolean) as Array<{ jour: number; cat: Cat }>;
 
   const ref = projection.revenuReferenceMensuel;
-  const maxTotal = Math.max(
-    ref,
-    ...points.map((p) => p.cat.maintien + p.cat.obligatoire + p.cat.collective + p.cat.individuelle),
-    1
-  );
+  const hasSalaire = points.some((p) => p.cat.salaire > 0);
+  const maxTotal = Math.max(ref, ...points.map((p) => totalCat(p.cat)), 1);
 
   // Géométrie SVG.
   const W = 720;
@@ -77,6 +80,7 @@ export function renderProjectionSVG(projection: ProjectionResult, t: Tokens): st
   const barW = Math.min(46, slot * 0.62);
 
   const couleurs = {
+    salaire: "#4E8C6A",
     maintien: t.navy,
     obligatoire: t.sectionGrisBleu,
     collective: t.kpiOrPale,
@@ -92,7 +96,7 @@ export function renderProjectionSVG(projection: ProjectionResult, t: Tokens): st
       const x = cx - barW / 2;
       let yCursor = padT + innerH;
       const segs: string[] = [];
-      const ordre: Array<keyof Cat> = ["maintien", "obligatoire", "collective", "individuelle"];
+      const ordre: Array<keyof Cat> = ["salaire", "maintien", "obligatoire", "collective", "individuelle"];
       for (const key of ordre) {
         const val = p.cat[key];
         if (val <= 0) continue;
@@ -102,7 +106,7 @@ export function renderProjectionSVG(projection: ProjectionResult, t: Tokens): st
           `<rect x="${x.toFixed(1)}" y="${yCursor.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="${couleurs[key]}" />`
         );
       }
-      const total = p.cat.maintien + p.cat.obligatoire + p.cat.collective + p.cat.individuelle;
+      const total = totalCat(p.cat);
       const labelTotal =
         total > 0
           ? `<text x="${cx.toFixed(1)}" y="${(yOf(total) - 4).toFixed(1)}" text-anchor="middle" font-size="9" fill="${t.texteFaible}" font-family="Lato,sans-serif">${euroCompact(total)}</text>`
@@ -132,6 +136,7 @@ export function renderProjectionSVG(projection: ProjectionResult, t: Tokens): st
   // Légende des 4 catégories.
   const legende = `
     <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;font-family:'Lato',sans-serif;font-size:9.5px;color:${t.texteFaible}">
+      ${hasSalaire ? legendeItem(couleurs.salaire, "Salaire (activité)") : ""}
       ${legendeItem(couleurs.maintien, "Maintien employeur")}
       ${legendeItem(couleurs.obligatoire, "Régime obligatoire")}
       ${legendeItem(couleurs.collective, "Couverture collective")}

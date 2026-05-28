@@ -4,7 +4,9 @@
 // et les adapters Pack PDF v2 (Lot 9). Toutes les valeurs monétaires
 // sont en EUROS / MOIS (sauf indication contraire dans les commentaires).
 
-import type { CodeCaisse, NatureContrat, StatutPro } from "../../types/patrimoine";
+import type { CodeCaisse, NatureContrat, StatutPro, TptConfig } from "../../types/patrimoine";
+
+export type { TptConfig };
 
 // Catégorie d'invalidité retenue pour la projection.
 //   cat1 : capable d'exercer une activité réduite (taux base ~30 %)
@@ -107,6 +109,8 @@ export type RuptureType =
   | "fin_maintien_6666"
   | "fin_palier_ij_obl"
   | "fin_palier_ij_compl"
+  | "debut_tpt"
+  | "fin_tpt"
   | "bascule_invalidite"
   | "fin_invalidite"
   | "donnees_indisponibles"

@@ -23,7 +23,7 @@ import type {
   SerieEmpilee,
 } from "./types";
 import type { Referentiels } from "../../data/prevoyance";
-import type { NatureContrat, StatutPro } from "../../types/patrimoine";
+import type { NatureContrat, StatutPro, TptConfig } from "../../types/patrimoine";
 import {
   buildPlafondVariables,
   evalFormulaPlafond,
@@ -601,6 +601,7 @@ function computeRenteInvalIndividuelle(
 
 function sumAtIdx(s: SerieEmpilee, i: number): number {
   return (
+    s.salaire[i] +
     s.maintienEmployeur[i] +
     s.ijObligatoire[i] +
     s.ijComplementaireCollective[i] +
@@ -618,7 +619,8 @@ function detectRuptures(
   maintien: MaintienParams,
   palier: Palier | null,
   isSalarie: boolean,
-  donneesIndisponibles: boolean
+  donneesIndisponibles: boolean,
+  tptRupture: { debut: number; fin: number; guerison: boolean } | null
 ): RuptureCle[] {
   const ruptures: RuptureCle[] = [];
   const joursAxe = new Set(axe.map((p) => p.jour));
@@ -656,16 +658,43 @@ function detectRuptures(
     });
   }
 
-  const idxBascule = axe.findIndex((p) => p.jour >= basculeJour);
-  if (idxBascule > 0) {
-    const avant = sumAtIdx(series, idxBascule - 1);
-    const apres = sumAtIdx(series, idxBascule);
-    ruptures.push({
-      jour: basculeJour,
-      libelle: "Reconnaissance de l'invalidité (passage AM → invalidité)",
-      impactNet: apres - avant,
-      type: "bascule_invalidite",
-    });
+  // Ruptures du mi-temps thérapeutique (jours insérés dans l'axe en amont).
+  if (tptRupture) {
+    const idxDebut = axe.findIndex((p) => p.jour === tptRupture.debut);
+    if (idxDebut > 0 && joursAxe.has(tptRupture.debut)) {
+      ruptures.push({
+        jour: tptRupture.debut,
+        libelle: "Reprise en mi-temps thérapeutique",
+        impactNet: sumAtIdx(series, idxDebut) - sumAtIdx(series, idxDebut - 1),
+        type: "debut_tpt",
+      });
+    }
+    const idxFin = axe.findIndex((p) => p.jour === tptRupture.fin);
+    if (idxFin > 0 && joursAxe.has(tptRupture.fin)) {
+      ruptures.push({
+        jour: tptRupture.fin,
+        libelle: tptRupture.guerison
+          ? "Fin du mi-temps thérapeutique (guérison)"
+          : "Fin du mi-temps thérapeutique (retour en arrêt total)",
+        impactNet: sumAtIdx(series, idxFin) - sumAtIdx(series, idxFin - 1),
+        type: "fin_tpt",
+      });
+    }
+  }
+
+  // Bascule invalidité — supprimée en cas de guérison (le risque s'arrête).
+  if (!tptRupture?.guerison) {
+    const idxBascule = axe.findIndex((p) => p.jour >= basculeJour);
+    if (idxBascule > 0) {
+      const avant = sumAtIdx(series, idxBascule - 1);
+      const apres = sumAtIdx(series, idxBascule);
+      ruptures.push({
+        jour: basculeJour,
+        libelle: "Reconnaissance de l'invalidité (passage AM → invalidité)",
+        impactNet: apres - avant,
+        type: "bascule_invalidite",
+      });
+    }
   }
 
   return ruptures.sort((a, b) => a.jour - b.jour);
@@ -679,7 +708,8 @@ export function projeterArretMaladie(
   entree: EntreePerso,
   categorie: CategorieInvalidite = "cat2",
   ref: Referentiels,
-  scenarioArret: ScenarioArret = "ald"
+  scenarioArret: ScenarioArret = "ald",
+  tpt?: TptConfig
 ): ProjectionResult {
   const today = new Date();
   const finJour = Math.max(0, (entree.ageRetraite - entree.age) * 365);
@@ -689,12 +719,24 @@ export function projeterArretMaladie(
   const isSalarie = isSalarieOuAssimile(entree.statutPro);
   const isTns = isTNS(entree.statutPro);
 
+  // Mi-temps thérapeutique (SPEC_ALD_TPT §5). Le TPT n'a de sens qu'en
+  // phase AM : finJour est borné à la bascule invalidité (1095) et le TPT
+  // est ignoré si debutJour ≥ 1095 ou si l'intervalle est vide.
+  const tptDebut = tpt?.actif ? Math.max(0, Math.round(tpt.debutJour)) : 0;
+  const tptFin = tpt?.actif ? Math.min(Math.round(tpt.finJour), BASCULE_INVALIDITE) : 0;
+  const tptActif = tpt?.actif === true && tptDebut < tptFin && tptDebut < BASCULE_INVALIDITE;
+  const tptPct = tptActif ? Math.min(Math.max(tpt!.pctTempsTravaille, 0), 1) : 1;
+  const tptGuerison = tptActif && tpt!.apresTpt === "guerison";
+
   // Construit l'axe puis y INSÈRE les jours « événements » de fin de
   // maintien (décision A9 : la rupture doit être un point de l'axe pour
   // que le graphique annote la marche d'escalier nette plutôt que
-  // d'interpoler en biais).
+  // d'interpoler en biais). Les bornes du TPT (debut/fin) sont insérées
+  // pour la même raison (marche nette à la reprise / fin du mi-temps).
   const { finPlein, finPartiel } = joursRupturesMaintien(maintien, palier, isSalarie);
-  const joursEvenements = [finPlein, finPartiel].filter((j): j is number => j !== null);
+  const joursEvenements = [finPlein, finPartiel, ...(tptActif ? [tptDebut, tptFin] : [])].filter(
+    (j): j is number => j !== null
+  );
   const axe = insertJoursAxe(buildAxe(entree, today), joursEvenements, today, finJour);
 
   const salaireBrutMensuel = entree.salaireBrutAnnuel / 12;
@@ -774,8 +816,69 @@ export function projeterArretMaladie(
   for (let i = 0; i < axe.length; i++) {
     const t = axe[i].jour;
 
+    // Phase « après TPT » en guérison : salaire plein, aucun autre étage,
+    // pas de bascule invalidité — le risque s'arrête (SPEC §5.3).
+    if (tptGuerison && t >= tptFin) {
+      series.salaire[i] = revenuReferenceMensuel;
+      continue;
+    }
+
+    // Phase 2 — mi-temps thérapeutique (debutJour ≤ t < finJour).
+    if (tptActif && t >= tptDebut && t < tptFin) {
+      const salairePartiel = revenuReferenceMensuel * tptPct;
+      const perteSalaire = Math.max(0, revenuReferenceMensuel - salairePartiel);
+      const ijPleineRaw = computeIJObligatoireMensuel(
+        t,
+        caisseRef,
+        entree,
+        revenuMensuelTNS,
+        salaireBrutMensuel,
+        plafondVars,
+        scenarioArret
+      );
+      if (ijPleineRaw === null) donneesIndisponibles = true;
+      // IJ TPT = min(IJ pleine plafonnée, perte de salaire), puis rabotée
+      // pour que salaire partiel + IJ ne dépasse pas le revenu de référence.
+      let ijTPT = Math.min(ijPleineRaw ?? 0, perteSalaire);
+      if (salairePartiel + ijTPT > revenuReferenceMensuel) {
+        ijTPT = Math.max(0, revenuReferenceMensuel - salairePartiel);
+      }
+      series.salaire[i] = salairePartiel;
+      series.maintienEmployeur[i] = 0;
+      series.ijObligatoire[i] = ijTPT;
+      // Complémentaire : complète au-delà du salaire partiel + IJ TPT.
+      series.ijComplementaireCollective[i] = computeIJCollective(
+        t,
+        couvertureEffective,
+        salaireBrutMensuel,
+        salairePartiel + ijTPT
+      );
+      // Individuel : bornage SURCOUV inchangé (déjà-perçu = salaire partiel
+      // + IJ TPT + collective) → cumul plafonné au revenu de référence.
+      const dejaPercuTpt =
+        salairePartiel + ijTPT + series.ijComplementaireCollective[i];
+      const etageTpt = computeIJIndividuelle(
+        t,
+        entree.contratsIndividuels,
+        revenuReferenceMensuel,
+        dejaPercuTpt
+      );
+      series.ijComplementaireIndividuelle[i] = etageTpt.total;
+      if (etageTpt.bornee) surCouvertureIndemnitaireBornee = true;
+      if (
+        etageTpt.forfaitaire > 0 &&
+        dejaPercuTpt + etageTpt.total > revenuReferenceMensuel * SEUIL_SURCOUVERTURE
+      ) {
+        surCouvertureForfaitaire = true;
+      }
+      continue;
+    }
+
     if (t < BASCULE_INVALIDITE) {
-      // Phase AM
+      // Phase AM — arrêt total. Couvre la phase 1 (avant TPT) ET la phase 3
+      // « retour arrêt total » après finJour : t étant le jour calendaire
+      // d'un arrêt continu, le plafond de durée IJ (360/1095) intègre
+      // automatiquement la durée déjà consommée (pas de remise à zéro).
       const ijObl = computeIJObligatoireMensuel(
         t,
         caisseRef,
@@ -875,7 +978,8 @@ export function projeterArretMaladie(
     maintien,
     palier,
     isSalarie,
-    donneesIndisponibles
+    donneesIndisponibles,
+    tptActif ? { debut: tptDebut, fin: tptFin, guerison: tptGuerison } : null
   );
 
   const useLegalDefault =

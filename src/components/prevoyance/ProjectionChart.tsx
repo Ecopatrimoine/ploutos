@@ -1,8 +1,9 @@
 // ─── ProjectionChart — graphique aires empilées (Lot 7) ──────────────
 //
 // Affiche un ProjectionResult sous forme d'AreaChart Recharts :
-//   - 7 séries empilées (maintien, IJ obl/coll/ind, pension inval
-//     obl/coll/ind)
+//   - séries empilées (maintien, IJ obl/coll/ind, pension inval
+//     obl/coll/ind) + salaire d'activité affiché uniquement en phase
+//     mi-temps thérapeutique / guérison (sinon nul)
 //   - ligne référence revenu (pointillés)
 //   - ligne verticale "bascule invalidité" à J1095
 //   - palette cabinet via CSS vars --cab-*
@@ -42,9 +43,11 @@ function formatEuro(v: number): string {
 }
 
 export const ProjectionChart = React.memo(function ProjectionChart({ projection }: Props) {
+  const hasSalaire = projection.series.salaire.some((v) => v > 0);
   const data = projection.axe.map((point, idx) => ({
     jour: point.jour,
     labelX: formatLabelX(point.jour, point.phase),
+    salaire: Math.round(projection.series.salaire[idx]),
     maintien: Math.round(projection.series.maintienEmployeur[idx]),
     ijObl: Math.round(projection.series.ijObligatoire[idx]),
     ijColl: Math.round(projection.series.ijComplementaireCollective[idx]),
@@ -99,6 +102,9 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection 
             }}
           />
 
+          {hasSalaire && (
+            <Area type="stepAfter" dataKey="salaire"       stackId="1" name="Salaire (activité partielle)" fill="#4E8C6A" fillOpacity={0.85} stroke="none" />
+          )}
           <Area type="stepAfter" dataKey="maintien"        stackId="1" name="Maintien employeur"           fill="var(--cab-navy, #101B3B)" fillOpacity={0.85} stroke="none" />
           <Area type="stepAfter" dataKey="ijObl"           stackId="1" name="IJ régime obligatoire"        fill="var(--cab-sky, #26428B)"  fillOpacity={0.75} stroke="none" />
           <Area type="stepAfter" dataKey="ijColl"          stackId="1" name="IJ prévoyance collective"     fill="#A98551" fillOpacity={0.8} stroke="none" />

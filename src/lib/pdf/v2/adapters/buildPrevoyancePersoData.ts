@@ -66,6 +66,7 @@ function euroMois(v: number): string {
 
 function totalAtIdx(s: ProjectionResult["series"], i: number): number {
   return (
+    s.salaire[i] +
     s.maintienEmployeur[i] +
     s.ijObligatoire[i] +
     s.ijComplementaireCollective[i] +
@@ -78,6 +79,7 @@ function totalAtIdx(s: ProjectionResult["series"], i: number): number {
 
 function compositionAtIdx(s: ProjectionResult["series"], i: number, jour: number): string {
   const parts: string[] = [];
+  if (s.salaire[i] > 0) parts.push("salaire (activité)");
   if (s.maintienEmployeur[i] > 0) parts.push("maintien employeur");
   if (s.ijObligatoire[i] > 0) parts.push("IJ régime obl.");
   if (s.ijComplementaireCollective[i] > 0) parts.push("IJ coll.");
@@ -211,7 +213,7 @@ export function buildPrevoyancePersoData(p: BuildPrevoyancePersoDataParams): Pre
     couvertureCollective: (prevoyancePerso?.couvertureCollective ?? null) as CouvertureCollective | null,
   };
 
-  const projection = projeterArretMaladie(entree, categorie, referentiels, scenarioArret);
+  const projection = projeterArretMaladie(entree, categorie, referentiels, scenarioArret, prevoyancePerso?.tpt);
   const ctx = buildContexteRegle(data as any, entree, projection);
   const constats = evaluerToutesLesRegles(ctx, which);
 

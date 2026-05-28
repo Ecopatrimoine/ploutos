@@ -60,6 +60,7 @@ function hasContratActif(
 
 function totalAtIdx(s: ContexteRegle["projection"]["series"], i: number): number {
   return (
+    s.salaire[i] +
     s.maintienEmployeur[i] +
     s.ijObligatoire[i] +
     s.ijComplementaireCollective[i] +
