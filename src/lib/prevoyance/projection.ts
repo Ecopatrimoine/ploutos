@@ -28,6 +28,7 @@ import {
   evalFormulaPlafond,
   type PlafondVariables,
 } from "./formula";
+import { coefBrutNet } from "./constants";
 
 // Paliers temporels phase AM (J0 → J1095).
 const PALIERS_AM = [0, 3, 7, 14, 30, 60, 90, 120, 180, 365, 547, 730, 912, 1095];
@@ -71,8 +72,7 @@ function dateAt(start: Date, daysOffset: number): string {
 // Axe temporel
 // ────────────────────────────────────────────────────────────────────
 
-function buildAxe(entree: EntreePerso): AxePoint[] {
-  const today = new Date();
+function buildAxe(entree: EntreePerso, today: Date): AxePoint[] {
   const finJour = Math.max(0, (entree.ageRetraite - entree.age) * 365);
   const points: AxePoint[] = [];
 
@@ -105,6 +105,24 @@ function buildAxe(entree: EntreePerso): AxePoint[] {
     });
   }
   return points;
+}
+
+// Insère des jours « événements » (ruptures) dans l'axe : déduplique,
+// borne à [0, finJour], étiquette la phase, et préserve le tri croissant.
+// Permet au graphique d'annoter la marche d'escalier exacte (fin de
+// maintien employeur) au lieu d'interpoler en biais entre deux points.
+function insertJoursAxe(axe: AxePoint[], jours: number[], today: Date, finJour: number): AxePoint[] {
+  const existants = new Set(axe.map((p) => p.jour));
+  const aAjouter = jours.filter(
+    (j) => Number.isFinite(j) && j >= 0 && j <= finJour && !existants.has(j)
+  );
+  if (aAjouter.length === 0) return axe;
+  const nouveaux: AxePoint[] = aAjouter.map((j) => ({
+    jour: j,
+    date: dateAt(today, j),
+    phase: j < BASCULE_INVALIDITE ? "am" : "invalidite",
+  }));
+  return [...axe, ...nouveaux].sort((a, b) => a.jour - b.jour);
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -180,6 +198,22 @@ function findPalierMaintien(paliers: Palier[], ancienneteMois: number): Palier |
   return best;
 }
 
+// Jours « événements » de fin de maintien employeur (taux plein puis
+// 66,66 %). Calculés une seule fois et partagés entre l'insertion dans
+// l'axe (pour annoter la marche) et detectRuptures (pour le libellé).
+function joursRupturesMaintien(
+  m: MaintienParams,
+  palier: Palier | null,
+  isSalarie: boolean
+): { finPlein: number | null; finPartiel: number | null } {
+  if (!isSalarie || !palier) return { finPlein: null, finPartiel: null };
+  const joursPlein = palier.joursA100Pct ?? palier.joursA90Pct ?? 0;
+  const jours6666 = palier.joursA6666Pct;
+  const finPlein = joursPlein > 0 ? m.carenceJours + joursPlein : null;
+  const finPartiel = jours6666 > 0 ? m.carenceJours + joursPlein + jours6666 : null;
+  return { finPlein, finPartiel };
+}
+
 function computeMaintienEmployeur(
   t: number,
   m: MaintienParams,
@@ -228,6 +262,12 @@ function computeIJObligatoireMensuel(
   salaireBrutMensuel: number,
   vars: PlafondVariables
 ): number | null {
+  // CONVENTION ×30 : les IJ sont stockées/calculées en valeur
+  // JOURNALIÈRE, converties en mensuel pour l'AFFICHAGE par × 30
+  // (« mois-type 30 jours »), convention de lisibilité distincte du
+  // calcul réglementaire en jours calendaires. Les tests d'exactitude
+  // juridique (famille G/T4) porteront sur la valeur journalière (avant
+  // × 30) — à exposer via un helper si besoin (cf. ROADMAP).
   if (isCaisseToFill(caisseRef)) return null;
   const ij = caisseRef.ij;
   if (ij?.TO_FILL) return null;
@@ -433,9 +473,11 @@ function detectRuptures(
   basculeJour: number,
   maintien: MaintienParams,
   palier: Palier | null,
+  isSalarie: boolean,
   donneesIndisponibles: boolean
 ): RuptureCle[] {
   const ruptures: RuptureCle[] = [];
+  const joursAxe = new Set(axe.map((p) => p.jour));
 
   if (donneesIndisponibles) {
     ruptures.push({
@@ -446,30 +488,28 @@ function detectRuptures(
     });
   }
 
-  if (palier) {
-    const joursPlein = palier.joursA100Pct ?? palier.joursA90Pct ?? 0;
-    const jours6666 = palier.joursA6666Pct;
-    const finPlein = maintien.carenceJours + joursPlein;
-    const finPartiel = finPlein + jours6666;
-    if (joursPlein > 0) {
-      ruptures.push({
-        jour: finPlein,
-        libelle:
-          palier.joursA100Pct !== undefined
-            ? "Fin du maintien employeur à taux plein (100 %)"
-            : "Fin du maintien employeur à 90 %",
-        impactNet: 0,
-        type: "fin_maintien_100",
-      });
-    }
-    if (jours6666 > 0) {
-      ruptures.push({
-        jour: finPartiel,
-        libelle: "Fin du maintien employeur (66,66 %)",
-        impactNet: 0,
-        type: "fin_maintien_6666",
-      });
-    }
+  // Ruptures de maintien : les jours ont été insérés dans l'axe en amont
+  // (cf. projeterArretMaladie). On ne crée la rupture que si le jour y
+  // figure → garantit qu'aucune rupture n'est orpheline hors de l'axe.
+  const { finPlein, finPartiel } = joursRupturesMaintien(maintien, palier, isSalarie);
+  if (finPlein !== null && joursAxe.has(finPlein) && palier) {
+    ruptures.push({
+      jour: finPlein,
+      libelle:
+        palier.joursA100Pct !== undefined
+          ? "Fin du maintien employeur à taux plein (100 %)"
+          : "Fin du maintien employeur à 90 %",
+      impactNet: 0,
+      type: "fin_maintien_100",
+    });
+  }
+  if (finPartiel !== null && joursAxe.has(finPartiel)) {
+    ruptures.push({
+      jour: finPartiel,
+      libelle: "Fin du maintien employeur (66,66 %)",
+      impactNet: 0,
+      type: "fin_maintien_6666",
+    });
   }
 
   const idxBascule = axe.findIndex((p) => p.jour >= basculeJour);
@@ -496,25 +536,42 @@ export function projeterArretMaladie(
   categorie: CategorieInvalidite = "cat2",
   ref: Referentiels
 ): ProjectionResult {
-  const axe = buildAxe(entree);
+  const today = new Date();
+  const finJour = Math.max(0, (entree.ageRetraite - entree.age) * 365);
   const maintien = getMaintienParams(entree.idccCCN, ref);
   const palier = findPalierMaintien(maintien.paliers, entree.ancienneteMois);
   const caisseRef = lookupCaisse(entree.caisse, ref);
   const isSalarie = isSalarieOuAssimile(entree.statutPro);
   const isTns = isTNS(entree.statutPro);
 
+  // Construit l'axe puis y INSÈRE les jours « événements » de fin de
+  // maintien (décision A9 : la rupture doit être un point de l'axe pour
+  // que le graphique annote la marche d'escalier nette plutôt que
+  // d'interpoler en biais).
+  const { finPlein, finPartiel } = joursRupturesMaintien(maintien, palier, isSalarie);
+  const joursEvenements = [finPlein, finPartiel].filter((j): j is number => j !== null);
+  const axe = insertJoursAxe(buildAxe(entree, today), joursEvenements, today, finJour);
+
   const salaireBrutMensuel = entree.salaireBrutAnnuel / 12;
+  // Revenu de référence TNS = bénéfice professionnel / 12. Le mapping
+  // (buildEntreePerso) alimente revenuTNSAnnuel avec le BÉNÉFICE (assiette
+  // IR : CA − charges), pas le CA brut. Distinct de l'assiette de
+  // cotisation des caisses TNS qui sert au calcul des IJ versées.
   const revenuMensuelTNS = (entree.revenuTNSAnnuel ?? 0) / 12;
   const baseMensuelleInvalidite = isSalarie ? salaireBrutMensuel : revenuMensuelTNS;
   const plafondVars = buildPlafondVariables(ref);
 
-  // Revenu de référence : net salarié ou TNS mensuel. Sert au calcul
-  // du maintien (cible monétaire) et à l'affichage UI.
+  // Revenu de référence (manque à gagner, ligne pointillée) :
+  //  - salarié / assimilé : net mensuel saisi, sinon brut × coef(statut)
+  //  - TNS : bénéfice mensuel (revenuMensuelTNS), SANS coefficient
+  // ⚠️ NE PAS confondre avec l'IJ versée par la caisse (étage
+  // ijObligatoire), calculée selon la formule propre de la caisse sur
+  // SON assiette — ce sont deux grandeurs distinctes.
   const revenuReferenceMensuel =
     entree.salaireNetMensuel > 0
       ? entree.salaireNetMensuel
       : isSalarie
-      ? salaireBrutMensuel * 0.78
+      ? salaireBrutMensuel * coefBrutNet(entree.statutPro)
       : revenuMensuelTNS;
 
   const series: SerieEmpilee = {
@@ -605,6 +662,7 @@ export function projeterArretMaladie(
     BASCULE_INVALIDITE,
     maintien,
     palier,
+    isSalarie,
     donneesIndisponibles
   );
 
@@ -627,7 +685,7 @@ export function projeterArretMaladie(
     revenuReferenceMensuel,
     rupturesCles,
     basculeInvaliditeJour: BASCULE_INVALIDITE,
-    finProjectionJour: Math.max(0, (entree.ageRetraite - entree.age) * 365),
+    finProjectionJour: finJour,
     categorieInvaliditeProjetee: categorie,
     useLegalDefault,
     donneesCaisseIndisponibles: donneesIndisponibles,

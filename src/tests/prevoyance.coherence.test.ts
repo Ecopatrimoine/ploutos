@@ -191,12 +191,36 @@ describe("Famille B — Cohérence mathématique interne", () => {
     }
   });
 
-  // B14 — coefficient du revenu de référence salarié
-  it("B14 — revenuRef ≈ salaireBrut × 0.78 / 12 quand le net mensuel n'est pas fourni", () => {
-    const r = projeterArretMaladie(
-      baseSalarie({ salaireBrutAnnuel: 60000, salaireNetMensuel: 0 }),
+  // B14 — coefficient du revenu de référence salarié, par statut
+  it("B14 — revenuRef = salaireBrut × coef(statut) / 12 quand le net n'est pas fourni", () => {
+    // Cadre → coef 0.75
+    const rCadre = projeterArretMaladie(
+      baseSalarie({ statutPro: "salarie_cadre", salaireBrutAnnuel: 60000, salaireNetMensuel: 0 }),
       "cat2", referentiels
     );
-    expect(r.revenuReferenceMensuel).toBeCloseTo((60000 * 0.78) / 12, 2);
+    expect(rCadre.revenuReferenceMensuel).toBeCloseTo((60000 * 0.75) / 12, 2);
+
+    // Non-cadre → coef 0.78
+    const rNonCadre = projeterArretMaladie(
+      baseSalarie({ statutPro: "salarie_non_cadre", salaireBrutAnnuel: 60000, salaireNetMensuel: 0 }),
+      "cat2", referentiels
+    );
+    expect(rNonCadre.revenuReferenceMensuel).toBeCloseTo((60000 * 0.78) / 12, 2);
+
+    // Fonctionnaire → coef 0.82
+    const rFonct = projeterArretMaladie(
+      baseSalarie({ statutPro: "fonctionnaire", salaireBrutAnnuel: 60000, salaireNetMensuel: 0 }),
+      "cat2", referentiels
+    );
+    expect(rFonct.revenuReferenceMensuel).toBeCloseTo((60000 * 0.82) / 12, 2);
+  });
+
+  // B14bis — TNS : revenu de référence = bénéfice / 12, SANS coefficient
+  it("B14bis — TNS : revenuRef = revenuTNSAnnuel (bénéfice) / 12, sans coefficient", () => {
+    const r = projeterArretMaladie(
+      baseTNS({ revenuTNSAnnuel: 90000, salaireBrutAnnuel: 0, salaireNetMensuel: 0 }),
+      "cat2", referentiels
+    );
+    expect(r.revenuReferenceMensuel).toBeCloseTo(90000 / 12, 2);
   });
 });

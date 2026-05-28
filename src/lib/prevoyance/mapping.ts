@@ -14,10 +14,29 @@
 
 import type { PatrimonialData } from "../../types/patrimoine";
 import type { EntreePerso } from "./types";
+import { coefBrutNet } from "./constants";
+import { computeBeneficeImposable } from "../calculs/ir";
+import { n, isProfessionLiberale } from "../calculs/utils";
 
 // Âge légal de retraite par défaut. Pour une personnalisation par
 // génération (selon date de naissance), voir docs/ROADMAP_PREVOYANCE.md.
 const AGE_RETRAITE_DEFAUT = 64;
+
+// Bénéfice professionnel TNS d'une personne, via la fonction EXACTE
+// utilisée par computeIR (pas de duplication de formule). isBNC / isBA
+// déduits du PCS (groupe + catégorie), comme dans computeIR.
+export function computeBeneficeTNS(data: PatrimonialData, which: "p1" | "p2"): number {
+  const groupe = which === "p1" ? data.person1PcsGroupe : data.person2PcsGroupe;
+  const categorie = which === "p1" ? data.person1Csp : data.person2Csp;
+  const isBA = groupe === "1";
+  const isBNC = isProfessionLiberale(categorie);
+  const ca = n(which === "p1" ? data.ca1 : data.ca2);
+  const bicType = which === "p1" ? data.bicType1 : data.bicType2;
+  const microRegime = which === "p1" ? data.microRegime1 : data.microRegime2;
+  const chargesReelles = n(which === "p1" ? data.chargesReelles1 : data.chargesReelles2);
+  const baRevenue = n(which === "p1" ? data.baRevenue1 : data.baRevenue2);
+  return computeBeneficeImposable(ca, bicType, isBNC, isBA, microRegime, chargesReelles, baRevenue);
+}
 
 export function calcAncienneteMois(dateEmbauche: string | null | undefined): number {
   if (!dateEmbauche) return 0;
@@ -68,21 +87,28 @@ export function buildEntreePerso(
   const salaryAnnuel = asNumber(which === "p1" ? data.salary1 : data.salary2);
   // Le salaire net mensuel sert au calcul de la cible de maintien
   // employeur. On le dérive du net imposable (salary*) saisi dans
-  // l'onglet Revenus. Fallback : brut × 0.78 / 12 (approximation
-  // documentée dans la spec §6.1).
+  // l'onglet Revenus. Fallback : brut × coef(statut) / 12 (table de
+  // coefficients indicative par statut — cf. constants.ts).
   const salaireNetMensuel =
     salaryAnnuel > 0
       ? salaryAnnuel / 12
       : travail.salaireBrutAnnuel > 0
-      ? (travail.salaireBrutAnnuel * 0.78) / 12
+      ? (travail.salaireBrutAnnuel * coefBrutNet(travail.statutPro)) / 12
       : 0;
 
-  // Revenu TNS annuel : pour les TNS, on prend le CA saisi dans
-  // Revenus (ca1/ca2). Les valeurs travail.revenuBNC/BIC sont
-  // marquées dans le type mais non saisies dans l'UI Travail
-  // (cf. revue LOT 2 — retrait du doublon avec l'onglet Revenus).
-  const caAnnuel = asNumber(which === "p1" ? data.ca1 : data.ca2);
-  const revenuTNSAnnuel = caAnnuel > 0 ? caAnnuel : undefined;
+  /**
+   * Revenu de référence TNS = BÉNÉFICE professionnel (assiette IR :
+   * CA − charges), soit ce que le client cesse de percevoir s'il
+   * s'arrête. On se branche sur computeBeneficeImposable (la fonction
+   * exacte utilisée par computeIR), on ne recalcule pas la formule.
+   *
+   * À NE PAS confondre avec l'assiette de cotisation des caisses TNS
+   * (revenu pro moyen 3 ans), qui sert au calcul des IJ VERSÉES — ça,
+   * c'est la prestation (étage ijObligatoire), pas le revenu de
+   * référence (le manque à gagner / ligne pointillée).
+   */
+  const benefTNS = computeBeneficeTNS(data, which);
+  const revenuTNSAnnuel = benefTNS > 0 ? benefTNS : undefined;
 
   return {
     age,

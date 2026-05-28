@@ -116,19 +116,9 @@ describe("Famille A — Invariants structurels", () => {
   });
 
   // A9 — toutes les rupturesCles ont un jour présent dans l'axe
-  //
-  // ⚠️ ÉCART MOTEUR IDENTIFIÉ (récap T1, décision attendue avant T2) :
-  // les ruptures `fin_maintien_100` / `fin_maintien_6666` sont posées à
-  // des jours CALCULÉS (carence + paliers, ex. J37, J67, J97) qui ne
-  // sont PAS des points de l'axe d'échantillonnage (0,3,7,14,30,60,90…).
-  // Deux corrections possibles, à trancher avec David :
-  //   (a) insérer les jours de rupture dans l'axe (le graphe annoterait
-  //       alors la marche exacte) — modif moteur ;
-  //   (b) reformuler A9 en « jour ∈ [0, finProjectionJour] » (les
-  //       ruptures sont des événements exacts, pas des points d'axe).
-  // Skip documenté en attendant la décision (pas d'adaptation au
-  // comportement, conformément à la consigne).
-  it.skip("A9 — toutes les rupturesCles ont un jour présent dans l'axe (200 profils) [BLOQUÉ — écart moteur, cf. récap T1]", () => {
+  // Décision (a) appliquée : les jours de rupture (fin_maintien_100/6666)
+  // sont désormais insérés dans l'axe par le moteur (cf. insertJoursAxe).
+  it("A9 — toutes les rupturesCles ont un jour présent dans l'axe (200 profils)", () => {
     for (const { entree, categorie } of PROFILS) {
       const r = projeterArretMaladie(entree, categorie, referentiels);
       const joursAxe = new Set(r.axe.map((p) => p.jour));

@@ -45,10 +45,17 @@ ultérieurement.
   en dur dans `src/lib/prevoyance/mapping.ts`. À affiner via la date
   de naissance pour respecter la réforme 2023 (62 → 64 ans progressif
   selon génération).
-- **Salaire net mensuel — affinage** : aujourd'hui fallback brut × 0.78 / 12
-  dans `mapping.ts` quand `salary*` non saisi. Affiner via le calcul
-  IR réel (CSG/CRDS, prélèvements salariaux) déjà présent dans
-  `lib/calculs/ir.ts`.
+- **Coefficient brut→net salarié — affinage** : table indicative par
+  statut aujourd'hui (`src/lib/prevoyance/constants.ts` : non-cadre 0,78,
+  cadre 0,75, fonctionnaire 0,82, assimilés salariés 0,75). Idéalement,
+  calcul réel par tranches de cotisations (CSG/CRDS, prélèvements
+  salariaux) en s'appuyant sur `lib/calculs/ir.ts`.
+- **IJ journalière exposée séparément** : le moteur calcule l'IJ
+  journalière puis la convertit en mensuel par × 30 (convention
+  d'affichage « mois-type 30 j ») inline dans `computeIJObligatoireMensuel`.
+  Pour les tests d'exactitude juridique (famille G / T4), extraire une
+  fonction `computeIJObligatoireJournaliere` testable qui retourne la
+  valeur journalière AVANT × 30. À faire au démarrage de T4.
 - **Plafond IJSS via formule** : `plafondFormule` supporté
   (cf. `src/lib/prevoyance/formula.ts`). Reste à ajouter le champ
   `"plafondFormule": "1.4 * SMIC_mensuel * 3 / 91.25 * 0.5"` aux

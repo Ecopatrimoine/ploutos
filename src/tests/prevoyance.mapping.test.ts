@@ -136,16 +136,38 @@ describe("buildEntreePerso", () => {
     expect(entree!.salaireNetMensuel).toBeCloseTo((55000 * 0.78) / 12, 0);
   });
 
-  it("revenuTNSAnnuel : alimenté depuis data.ca* pour les TNS", () => {
+  it("revenuTNSAnnuel : bénéfice professionnel (CA - charges) en régime réel", () => {
     const t = createEmptyTravail();
     t.statutPro = "tns_liberal";
     t.caisseAffiliation = "CARMF";
     const data = minimalData({
+      person1PcsGroupe: "3",
+      person1Csp: "31",        // profession libérale → BNC
       ca1: "95000",
+      microRegime1: false,     // régime réel
+      chargesReelles1: "20000",
       travail: { p1: t, p2: null },
     });
     const entree = buildEntreePerso(data, "p1");
-    expect(entree!.revenuTNSAnnuel).toBe(95000);
+    // Bénéfice = CA - charges = 95000 - 20000 = 75000 (assiette IR,
+    // via computeBeneficeImposable — pas le CA brut).
+    expect(entree!.revenuTNSAnnuel).toBe(75000);
+  });
+
+  it("revenuTNSAnnuel : micro BNC → CA - abattement 34%", () => {
+    const t = createEmptyTravail();
+    t.statutPro = "tns_liberal";
+    t.caisseAffiliation = "CARMF";
+    const data = minimalData({
+      person1PcsGroupe: "3",
+      person1Csp: "31",        // profession libérale → BNC (abattement 34%)
+      ca1: "77000",
+      microRegime1: true,
+      travail: { p1: t, p2: null },
+    });
+    const entree = buildEntreePerso(data, "p1");
+    // Bénéfice = 77000 - max(305, 77000 × 0.34) = 77000 - 26180 = 50820
+    expect(entree!.revenuTNSAnnuel).toBe(50820);
   });
 
   it("revenuTNSAnnuel : undefined si ca* à zéro", () => {
