@@ -100,23 +100,44 @@ describe("G2 — CPAM 2026 (valeurs vérifiées à la source ameli/service-publi
   });
 });
 
-// ── SSI (TNS commerçants / artisans) ──
-describe.skip("G2 — SSI 2026 (à activer après remplissage)", () => {
+// ── SSI (TNS commerçants / artisans) — vérifié 2026-05-28 ──
+describe("G2 — SSI 2026 (valeurs vérifiées : arrêté 01/08/2023, ameli, SODECC)", () => {
   const ssi = caisses.SSI;
-  it("carence maladie 3 jours (0 en AT/hospitalisation)", () => {
+
+  it("carence maladie 3 jours", () => {
     expect(ssi.ij.carenceJours).toBe(3);
   });
-  it("IJ entre plancher (~5,63 €/j bas revenu) et plafond (~64 €/j, 3 PASS)", () => {
-    const ijBas = computeIJObligatoireJournaliere(30, ssi, entreeTNS("SSI", 8000), vars);
+  it("IJ = RAAM/730, plafonnée à 65,84 €/j (RAAM ≥ PASS)", () => {
+    // RAAM 200000 ≫ PASS 48060 → RAAM plafonné → 48060/730 = 65,84 €/j.
     const ijHaut = computeIJObligatoireJournaliere(30, ssi, entreeTNS("SSI", 200000), vars);
-    expect(ijBas!).toBeGreaterThanOrEqual(5);
-    expect(ijHaut!).toBeLessThanOrEqual(70);
+    expect(ijHaut).toBeCloseTo(65.84, 1);
   });
-  it("durée maladie 87 j (hors ALD 360 j) — à vérifier", () => {
-    expect(typeof ssi.ij.plafondDureeJours).toBe("number");
+  it("IJ proportionnelle = RAAM/730 sous le PASS (ex. RAAM 36 500 → 50 €/j)", () => {
+    const ij = computeIJObligatoireJournaliere(30, ssi, entreeTNS("SSI", 36500), vars);
+    expect(ij).toBeCloseTo(50.0, 2);
+    expect(ij!).toBeLessThan(65.84);
   });
-  it("capital décès actif = 20 % PASS = 9 612 € (à vérifier)", () => {
-    expect(ssi.capitalDeces.montantActif).toBeCloseTo(9612, 0);
+  it("IJ = 0 si RAAM < 4582 € (seuil plancher — trou pédagogique réel)", () => {
+    expect(computeIJObligatoireJournaliere(30, ssi, entreeTNS("SSI", 3000), vars)).toBe(0);
+  });
+  it("invalidité PITD (cat2) = 50 % du revenu, plancher 747 €/mois", () => {
+    expect(ssi.invalidite.categories.cat2.taux).toBe(0.5);
+    // Revenu mensuel 10 000 → 50 % = 5000 (au-dessus du plancher).
+    expect(computeInvalObligatoireMensuel(ssi, "cat2", 0, 10000)).toBeCloseTo(5000, 2);
+    // Revenu faible (1000) → 50 % = 500 < 747 → remonté au plancher.
+    expect(computeInvalObligatoireMensuel(ssi, "cat2", 0, 1000)).toBeCloseTo(747, 2);
+  });
+  it("invalidité PIPM (cat1) = 30 % du revenu, plancher 530,21 €/mois", () => {
+    expect(ssi.invalidite.categories.cat1.taux).toBe(0.3);
+    expect(computeInvalObligatoireMensuel(ssi, "cat1", 0, 10000)).toBeCloseTo(3000, 2);
+    expect(computeInvalObligatoireMensuel(ssi, "cat1", 0, 1000)).toBeCloseTo(530.21, 2);
+  });
+  it("capital décès actif/invalide = 9 612 € (20 % PASS)", () => {
+    expect(ssi.capitalDeces.montantActifOuInvalide).toBe(9612);
+  });
+  it("durées : 360 j ordinaire / 1095 j ALD", () => {
+    expect(ssi.ij.plafondDureeJours).toBe(360);
+    expect(ssi.ij.plafondDureeJoursALD).toBe(1095);
   });
 });
 

@@ -272,6 +272,17 @@ function resolvePlafondDuree(
   return { duree: safeNum(ij?.plafondDureeJours), aldManquant: false };
 }
 
+// Extrait le diviseur d'une formule IJ de type "RAAM / N" (régime SSI :
+// "RAAM / 730"). Retourne null si la caisse n'utilise pas cette règle
+// (CPAM, qui n'a pas de champ formuleIJ).
+function parseFormuleRAAM(formuleIJ: unknown): number | null {
+  if (typeof formuleIJ !== "string") return null;
+  const m = formuleIJ.replace(/\s/g, "").match(/^RAAM\/(\d+(?:\.\d+)?)$/i);
+  if (!m) return null;
+  const diviseur = parseFloat(m[1]);
+  return Number.isFinite(diviseur) && diviseur > 0 ? diviseur : null;
+}
+
 // Valeur JOURNALIÈRE brute de l'IJ obligatoire (avant conversion ×30).
 // Exportée pour les tests d'exactitude juridique (famille G) : on
 // valide le journalier réglementaire, pas le mensuel d'affichage.
@@ -309,13 +320,30 @@ export function computeIJObligatoireJournaliere(
   }
 
   // 3) Règle tranche revenu (CPAM, SSI, CIPAV)
-  const taux = safeNum(ij.tauxBrut) ?? safeNum(ij.tauxIJ);
-  if (taux === null) return null;
-
   const baseAnnuelle = entree.salaireBrutAnnuel > 0
     ? entree.salaireBrutAnnuel
     : (entree.revenuTNSAnnuel ?? 0);
   if (baseAnnuelle <= 0) return null;
+
+  // 3a) Règle SSI : IJ = RAAM / 730 (RAAM = revenu d'activité annuel
+  // moyen, plafonné au PASS). Pas de taux séparé (le /730 ≈ 50 %/jour).
+  // IJ nulle sous le seuil plancher (RAAM < seuilRevenuNul) → trou
+  // pédagogique RÉEL, pas un bug. Plafond IJ journalier = ijMaxJournaliere.
+  const diviseurRAAM = parseFormuleRAAM(ij.formuleIJ);
+  if (diviseurRAAM !== null) {
+    const seuilNul = safeNum(ij.seuilRevenuNul);
+    if (seuilNul !== null && baseAnnuelle < seuilNul) return 0;
+    const passAnnuel = vars.PASS_annuel;
+    const raamPlafonne = passAnnuel > 0 ? Math.min(baseAnnuelle, passAnnuel) : baseAnnuelle;
+    let ijj = raamPlafonne / diviseurRAAM;
+    const ijMax = safeNum(ij.ijMaxJournaliere);
+    if (ijMax !== null) ijj = Math.min(ijj, ijMax);
+    return ijj;
+  }
+
+  // 3b) Règle CPAM : SJB plafonné au salaire 1,4 SMIC. Taux requis.
+  const taux = safeNum(ij.tauxBrut) ?? safeNum(ij.tauxIJ);
+  if (taux === null) return null;
   const salaireMensuel = baseAnnuelle / 12;
 
   // Plafond du SALAIRE mensuel retenu (formule paramétrique 1,4 SMIC en

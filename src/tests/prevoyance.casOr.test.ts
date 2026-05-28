@@ -361,10 +361,33 @@ describe("Cas d'or D — Pierre, gérant majoritaire SSI (TNS, Madelin)", () => 
     expect(r.series.renteInvalIndividuelle[j1095]).toBeCloseTo(5000 * 0.6, 0);
   });
 
-  it("SSI TO_VERIFY → IJ obligatoire et pension invalidité à 0 + flag levé", () => {
-    expect(r.donneesCaisseIndisponibles).toBe(true);
-    for (const v of r.series.ijObligatoire) expect(v).toBe(0);
-    for (const v of r.series.pensionInvalObligatoire) expect(v).toBe(0);
+  it("SSI documenté : IJ obligatoire RAAM/730 plafonnée + pension PITD, pas de flag", () => {
+    expect(r.donneesCaisseIndisponibles).toBe(false);
+    // IJ obligatoire AM : RAAM 60 000 ≥ PASS → plafonné, 48060/730 ≈ 65,84 €/j
+    // → ≈ 1975 €/mois.
+    const j30 = idxJour(r.axe, 30);
+    expect(r.series.ijObligatoire[j30]).toBeCloseTo((48060 / 730) * 30, 0);
+    // Pension invalidité PITD (cat2) = 50 % du revenu TNS mensuel (5000) = 2500.
+    // (maxMensuel SSI est _aVerifier → non plafonné par le moteur.)
+    const j1095 = idxJour(r.axe, 1095);
+    expect(r.series.pensionInvalObligatoire[j1095]).toBeCloseTo(2500, 0);
+  });
+
+  it("jalons SSI J3/J30/J90/J1095 (IJ obl. + Madelin)", () => {
+    const ijOblMensuel = (48060 / 730) * 30; // ≈ 1975 €
+    // J3 : fin carence SSI, IJ obl. servie ; Madelin IJ encore en franchise (30 j).
+    const j3 = idxJour(r.axe, 3);
+    expect(r.series.ijObligatoire[j3]).toBeCloseTo(ijOblMensuel, 0);
+    expect(r.series.ijComplementaireIndividuelle[j3]).toBe(0);
+    expect(totalAtIdx(r.series, j3)).toBeCloseTo(ijOblMensuel, 0);
+    // J30 et J90 : IJ obl. + Madelin IJ 3600 €.
+    for (const j of [30, 90]) {
+      const i = idxJour(r.axe, j);
+      expect(totalAtIdx(r.series, i)).toBeCloseTo(ijOblMensuel + 3600, 0);
+    }
+    // J1095 : bascule invalidité → pension PITD 2500 + rente Madelin 3000.
+    const j1095 = idxJour(r.axe, 1095);
+    expect(totalAtIdx(r.series, j1095)).toBeCloseTo(2500 + 3000, 0);
   });
 
   it("pas de couverture collective (TNS) → étages collectifs à 0", () => {

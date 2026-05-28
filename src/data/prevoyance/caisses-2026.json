@@ -97,30 +97,81 @@
       ]
     },
     "SSI": {
-      "nom": "Sécurité sociale des indépendants (ex-RSI, intégré au régime général depuis 2020)",
-      "publicConcerne": "TNS commerçants, artisans, auto-entrepreneurs",
+      "nom": "Securite sociale des independants (ex-RSI, integree au regime general depuis 2020)",
+      "publicConcerne": "Artisans, commercants, micro-entrepreneurs",
+      "dateVerification": "2026-05-28",
+      "_terminologie": "Le regime SSI n'utilise PAS cat1/2/3 comme la CPAM. Il a : PIPM (incapacite partielle au metier) ~ cat1 ; PITD (invalidite totale et definitive) ~ cat2 ; PITD+MTP ~ cat3. Mapping ci-dessous pour coherence avec le moteur.",
       "ij": {
+        "_commentaire": "IJ maladie = 1/730 du RAAM (revenu d'activite annuel moyen des 3 dernieres annees civiles), plafonne au PASS. Source ameli.fr.",
         "regle": "tranche_revenu",
+        "formuleIJ": "RAAM / 730",
+        "_commentaire_formule": "RAAM = moyenne des revenus cotises des 3 annees civiles precedant l'arret, plafonne au PASS (48060 EUR en 2026). Diviseur 730 = 365 x 2.",
         "carenceJours": 3,
-        "carenceJoursAccidentTravail": 0,
-        "carenceJoursHospitalisation": 0,
-        "formule": "1/730 du revenu annuel moyen des 3 dernières années",
-        "plafondJournalier": "TO_VERIFY",
-        "plancherJournalier": "TO_VERIFY",
-        "conditionsEligibilite": "1 an d'affiliation minimum",
-        "plafondDureeJours": 360
+        "carenceJoursHospitalisation": 3,
+        "ijMaxJournaliere": 65.84,
+        "_commentaire_ij_max": "Plafond IJ = 65,84 EUR/jour au 01/01/2026 (= PASS 48060 / 730). Source ameli.fr (arret-maladie-artisans-commercants).",
+        "seuilRevenuNul": 4582,
+        "_commentaire_seuil_nul": "Si RAAM < 4582 EUR (= 10% de la moyenne des PASS sur 3 ans), IJ = 0 EUR. Exception : micro-entrepreneurs payant la cotisation minimale IJ. Source ameli.fr 2026.",
+        "plafondDureeJours": 360,
+        "plafondDureeJoursALD": 1095,
+        "_commentaire_duree": "360 jours sur 3 ans glissants en maladie ordinaire (jusqu'a 3 ans / ALD selon situation). Versement tous les 14 jours. Source ameli.fr / previssima 2026."
       },
       "invalidite": {
+        "_commentaire": "Regime invalidite-deces TNS. Texte de reference : arrete du 01/08/2023 (JORFTEXT000047974238). Minima revalorises au 01/04/2026 (source SODECC). Bascule retraite a 62 ans.",
+        "calculBase": "revenu_annuel_moyen_10_meilleures_annees",
+        "_commentaire_assiette": "PITD : 50% de la moyenne des 10 meilleures annees. PIPM : 30%. Si < 10 ans d'assurance, PIPM calculee sur la moyenne depuis l'affiliation. ATTENTION : assiette invalidite (10 meilleures annees) differente de l'assiette IJ (RAAM 3 ans).",
+        "ageBasculeRetraite": 62,
         "categories": {
-          "totale_definitive": { "tauxBase": "TO_VERIFY" },
-          "partielle_metier": { "tauxBase": "TO_VERIFY" }
+          "cat1": {
+            "_mapping": "PIPM - Pension pour Incapacite Partielle au Metier",
+            "definition": "Perte de capacite de travail/gain > 2/3, mais capacite a exercer une activite reduite conservee",
+            "taux": 0.30,
+            "minMensuel": 530.21,
+            "_commentaire_min": "530,21 EUR/mois depuis le 01/04/2026 (etait 494,47 EUR). Source SODECC + arrete 01/08/2023 art. revalorise.",
+            "maxFormule": "0.30 * PASS_mensuel",
+            "maxMensuel_aVerifier": 1201.50,
+            "_commentaire_max": "Plafond = 30% du PASS mensuel (art. au plafond L.241-3 CSS). Valeur de controle 2026 : 30% x 4005 = 1201,50 EUR. (Sources 2025 donnaient 1172,55 ; recalcul 2026 sur PMSS 4005 = 1201,50. A confirmer ameli a la saisie.)"
+          },
+          "cat2": {
+            "_mapping": "PITD - Pension pour Invalidite Totale et Definitive",
+            "definition": "Acces a l'emploi restreint substantiellement et durablement (invalidite totale et definitive)",
+            "taux": 0.50,
+            "minMensuel": 747.00,
+            "_commentaire_min": "747 EUR/mois depuis le 01/04/2026 (etait 696,64 EUR). Source SODECC.",
+            "maxFormule": "0.50 * PASS_mensuel",
+            "maxMensuel_aVerifier": 2002.50,
+            "_commentaire_max": "Plafond = 50% du PASS mensuel. Valeur de controle 2026 : 50% x 4005 = 2002,50 EUR. (Sources 2025 donnaient 1962,50 / 1714 selon bases ; recalcul 2026 sur PMSS = 2002,50. A confirmer ameli a la saisie.)"
+          },
+          "cat3": {
+            "_mapping": "PITD + MTP - Invalidite totale + Majoration Tierce Personne",
+            "definition": "Invalidite totale et definitive + besoin d'assistance d'une tierce personne",
+            "taux": 0.50,
+            "majorationTiercePersonne": "40% de la pension, plancher reglementaire",
+            "_commentaire_mtp": "MTP = 40% du montant de la pension d'invalidite, sans pouvoir etre inferieure au minimum annuel de l'art. R.341-6 CSS (meme plancher MTP que le regime general, ~1298,44 EUR/mois). Source : arrete 01/08/2023 art. 16-17.",
+            "majorationTiercePersonneMensuelle_aVerifier": 1298.44,
+            "_commentaire_mtp_montant": "Le plancher MTP renvoie a R.341-6 CSS (regime general) = 1298,44 EUR/mois en 2026. Si MTP non renseignee : ne pas l'inventer (cf. test H10)."
+          }
         }
       },
       "capitalDeces": {
-        "type": "forfaitaire",
-        "montantActif": "TO_VERIFY",
-        "montantRetraite": "TO_VERIFY"
-      }
+        "_commentaire": "Capital deces SSI different du regime general. Source ameli.fr (deces-proche-capital-deces).",
+        "type": "forfaitaire_par_situation",
+        "montantActifOuInvalide": 9612,
+        "_commentaire_actif": "9612 EUR (= 20% du PASS) pour un artisan/commercant cotisant (non retraite) OU beneficiaire d'une pension d'invalidite. Source ameli.fr 2026.",
+        "montantRetraite_aVerifier": 3768,
+        "_commentaire_retraite": "Pour un retraite : historiquement ~8% du PASS. Conditions revues au 01/04/2026 (capital accorde si 80 trimestres valides au deces). Montant exact 2026 a confirmer ameli. Source ameli/SODECC.",
+        "majorationParEnfant": "5% du PASS par enfant a charge (< 16 ans, ou < 20 ans si etudes)",
+        "_commentaire_enfant": "Majoration de 5% du PASS par enfant a charge a verifier en version 2026. Source philtr/SSI."
+      },
+      "sources": [
+        "IJ artisans/commercants : ameli.fr (arret-maladie-artisans-commercants) — IJ max 65,84 EUR/j au 01/01/2026, IJ=0 si RAAM<4582, 1/730 RAAM, carence 3j, duree 360j",
+        "Invalidite TNS : arrete du 01/08/2023, JORFTEXT000047974238 (Legifrance) — PIPM 30%, PITD 50%, MTP 40% (R.341-6 CSS)",
+        "Revalorisation minima 01/04/2026 : SODECC — PIPM min 530,21 EUR, PITD min 747 EUR",
+        "Capital deces : ameli.fr (deces-proche-capital-deces) — 9612 EUR (20% PASS) actif/invalide",
+        "PASS 2026 : 48060 EUR / PMSS 4005 EUR (arrete 22/12/2025)",
+        "A CONFIRMER A LA SAISIE : maxima invalidite 2026 (formules 30%/50% PMSS retenues, valeurs de controle a verifier ameli), capital deces retraite 2026, majoration enfant 2026",
+        "Tous chiffres verifies a la source le 2026-05-28"
+      ]
     },
     "CARMF": {
       "nom": "Caisse autonome de retraite des médecins de France",

@@ -113,11 +113,18 @@ describe("G4 — Cohérence inter-référentiels", () => {
     }
   });
 
-  // G4d — ordres de grandeur entre caisses (CIPAV < CARMF, etc.) :
-  // à activer quand les IJ journalières seront renseignées.
-  it.skip("G4d — ordres de grandeur des plafonds journaliers entre caisses — TO_VERIFY", () => {
-    // Ex. attendu après remplissage : IJ CIPAV < IJ CARMF ;
-    // capital décès régime général < SSI < CARMF.
-    expect(true).toBe(true);
+  // G4d — ordres de grandeur entre caisses. Activable depuis que CPAM et
+  // SSI sont documentées (les caisses libérales CARMF/CIPAV restent
+  // TO_VERIFY → comparaison étendue différée).
+  it("G4d — ordres de grandeur CPAM vs SSI (capital décès, plafond IJ)", () => {
+    const caisses = (referentiels.caisses as any).caisses;
+    const cpam = caisses.CPAM;
+    const ssi = caisses.SSI;
+    // Capital décès : régime général (forfait 4009 €) < SSI (20 % PASS = 9612 €).
+    expect(cpam.capitalDeces.montant).toBeLessThan(ssi.capitalDeces.montantActifOuInvalide);
+    // Plafond IJ journalier : CPAM 41,95 € (1,4 SMIC) < SSI 65,84 € (PASS/730).
+    expect(cpam.ij.ijMaxJournaliere).toBeLessThan(ssi.ij.ijMaxJournaliere);
+    expect(cpam.ij.ijMaxJournaliere).toBeCloseTo(41.95, 2);
+    expect(ssi.ij.ijMaxJournaliere).toBeCloseTo(65.84, 2);
   });
 });
