@@ -47,6 +47,7 @@ function fakeProjection(opts: {
     salaire: z(), maintienEmployeur: z(), ijObligatoire: z(),
     ijComplementaireCollective: z(), ijComplementaireIndividuelle: z(),
     pensionInvalObligatoire: z(), renteInvalCollective: z(), renteInvalIndividuelle: z(),
+    renteInvalEnfants: z(),
   };
   if (opts.totalJ180 !== undefined) series.ijObligatoire[0] = opts.totalJ180;
   if (opts.pensionJ1095 !== undefined) series.pensionInvalObligatoire[1] = opts.pensionJ1095;

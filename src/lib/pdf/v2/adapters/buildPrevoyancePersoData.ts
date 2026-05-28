@@ -73,7 +73,8 @@ function totalAtIdx(s: ProjectionResult["series"], i: number): number {
     s.ijComplementaireIndividuelle[i] +
     s.pensionInvalObligatoire[i] +
     s.renteInvalCollective[i] +
-    s.renteInvalIndividuelle[i]
+    s.renteInvalIndividuelle[i] +
+    s.renteInvalEnfants[i]
   );
 }
 
@@ -87,6 +88,7 @@ function compositionAtIdx(s: ProjectionResult["series"], i: number, jour: number
   if (s.pensionInvalObligatoire[i] > 0) parts.push("pension inval. obl.");
   if (s.renteInvalCollective[i] > 0) parts.push("rente inval. coll.");
   if (s.renteInvalIndividuelle[i] > 0) parts.push("rente inval. ind.");
+  if (s.renteInvalEnfants[i] > 0) parts.push("rente enfants");
   if (parts.length === 0) return jour < 7 ? "carence — aucun revenu" : "aucun revenu de remplacement";
   return parts.join(" + ");
 }

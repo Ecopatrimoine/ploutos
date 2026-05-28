@@ -34,7 +34,7 @@ function categoriesAtIdx(s: ProjectionResult["series"], i: number): Cat {
   return {
     salaire: s.salaire[i],
     maintien: s.maintienEmployeur[i],
-    obligatoire: s.ijObligatoire[i] + s.pensionInvalObligatoire[i],
+    obligatoire: s.ijObligatoire[i] + s.pensionInvalObligatoire[i] + s.renteInvalEnfants[i],
     collective: s.ijComplementaireCollective[i] + s.renteInvalCollective[i],
     individuelle: s.ijComplementaireIndividuelle[i] + s.renteInvalIndividuelle[i],
   };

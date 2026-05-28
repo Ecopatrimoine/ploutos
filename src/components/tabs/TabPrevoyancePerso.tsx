@@ -45,6 +45,7 @@ import { BlocConstats } from "../prevoyance/BlocConstats";
 import { BlocCouvertureCollective } from "../prevoyance/BlocCouvertureCollective";
 import { BlocContratsIndividuels } from "../prevoyance/BlocContratsIndividuels";
 import { BlocTpt } from "../prevoyance/BlocTpt";
+import { BlocCarmf, defaultCarmf } from "../prevoyance/BlocCarmf";
 
 function defaultPrevoyancePerso(): PayloadPrevoyancePerso {
   return {
@@ -208,6 +209,12 @@ function ColonnePerso({
   cible,
   data,
 }: ColonneProps) {
+  // Pour un médecin affilié CARMF, le moteur a besoin du sous-objet carmf
+  // (architecture 2 étages + invalidité CARMF). À défaut de saisie, on
+  // applique une configuration par défaut pour activer la projection CARMF.
+  const estCarmf = entreeBase.caisse === "CARMF";
+  const carmfConfig = estCarmf ? prevoyancePerso.carmf ?? defaultCarmf(entreeBase) : undefined;
+
   // L'entree complete = mapping travail + saisies UI (contrats + couverture)
   const entree: EntreePerso = React.useMemo(
     () => ({
@@ -216,8 +223,9 @@ function ColonnePerso({
       // homologues moteur sont structurellement identiques (cf. note types/patrimoine.ts).
       contratsIndividuels: prevoyancePerso.contratsIndividuels as unknown as MoteurContratIndividuel[],
       couvertureCollective: prevoyancePerso.couvertureCollective as unknown as MoteurCouvertureCollective | null,
+      carmf: carmfConfig,
     }),
-    [entreeBase, prevoyancePerso.contratsIndividuels, prevoyancePerso.couvertureCollective]
+    [entreeBase, prevoyancePerso.contratsIndividuels, prevoyancePerso.couvertureCollective, carmfConfig]
   );
 
   const categorie = prevoyancePerso.categorieInvaliditeProjetee;
@@ -280,6 +288,11 @@ function ColonnePerso({
           </span>
         </div>
       </div>
+
+      {/* Paramètres CARMF (médecins libéraux) */}
+      {estCarmf && carmfConfig && (
+        <BlocCarmf value={carmfConfig} onChange={(next) => onChangePrevoyance({ carmf: next })} />
+      )}
 
       {/* Sélecteur scénario d'arrêt */}
       <div

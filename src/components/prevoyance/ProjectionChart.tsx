@@ -49,6 +49,8 @@ function formatLabelX(jour: number, phase: "am" | "invalidite"): string {
   if (phase === "am") {
     if (jour === 0) return "J0";
     if (jour < 30) return `J${jour}`;
+    // J91 = relais CARMF : libellé explicite (sinon collision avec J90 → "3 mois").
+    if (jour === 91) return "J91";
     if (jour < 365) return `${Math.round(jour / 30)} mois`;
     return `${(jour / 365).toFixed(1)} an${jour >= 365 ? "s" : ""}`;
   }
@@ -128,7 +130,10 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection 
     pensionInvalObl: Math.round(projection.series.pensionInvalObligatoire[idx]),
     renteInvalColl: Math.round(projection.series.renteInvalCollective[idx]),
     renteInvalInd: Math.round(projection.series.renteInvalIndividuelle[idx]),
+    renteInvalEnfants: Math.round(projection.series.renteInvalEnfants[idx]),
   }));
+
+  const hasRenteEnfants = projection.series.renteInvalEnfants.some((v) => v > 0);
 
   // Fenêtrage (SPEC §2) : la vue 3 ans ne montre que J0→J1095 (bascule
   // incluse). Le dépliage révèle la phase invalidité jusqu'à la retraite.
@@ -136,6 +141,13 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection 
   const data = vueComplete ? dataComplete : dataComplete.filter((d) => d.jour <= bascule);
 
   const labelBascule = dataComplete.find((d) => d.jour === bascule)?.labelX;
+
+  // Relais CPAM → CARMF (médecins libéraux) : ligne verticale à J91 si la
+  // projection comporte la rupture correspondante.
+  const relaisRupture = projection.rupturesCles.find((r) => r.type === "relais_carmf");
+  const labelRelais = relaisRupture
+    ? dataComplete.find((d) => d.jour === relaisRupture.jour)?.labelX
+    : undefined;
 
   return (
     <div style={{ width: "100%" }}>
@@ -180,6 +192,22 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection 
               }}
             />
 
+            {labelRelais && (
+              <ReferenceLine
+                x={labelRelais}
+                stroke="var(--cab-gold, #E3AF64)"
+                strokeDasharray="5 4"
+                strokeWidth={1.5}
+                label={{
+                  value: "relais CARMF",
+                  fontSize: 10,
+                  angle: -90,
+                  position: "insideTopLeft",
+                  fill: "var(--cab-gold, #E3AF64)",
+                }}
+              />
+            )}
+
             {labelBascule && (
               <ReferenceLine
                 x={labelBascule}
@@ -206,6 +234,9 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection 
             <Area type="stepAfter" dataKey="pensionInvalObl" stackId="1" name="Pension inval. obligatoire"  fill={COL.obligatoire}   fillOpacity={0.7} stroke="none" />
             <Area type="stepAfter" dataKey="renteInvalColl"  stackId="1" name="Rente inval. collective"     fill={COL.complementaire} fillOpacity={0.95} stroke="none" />
             <Area type="stepAfter" dataKey="renteInvalInd"   stackId="1" name="Rente inval. individuelle"   fill={COL.complementaire} fillOpacity={0.65} stroke="none" />
+            {hasRenteEnfants && (
+              <Area type="stepAfter" dataKey="renteInvalEnfants" stackId="1" name="Rente enfants (invalidité)" fill={COL.obligatoire} fillOpacity={0.45} stroke="none" />
+            )}
           </AreaChart>
         </ResponsiveContainer>
       </div>

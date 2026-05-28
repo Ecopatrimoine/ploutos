@@ -4,9 +4,9 @@
 // et les adapters Pack PDF v2 (Lot 9). Toutes les valeurs monétaires
 // sont en EUROS / MOIS (sauf indication contraire dans les commentaires).
 
-import type { CodeCaisse, NatureContrat, StatutPro, TptConfig } from "../../types/patrimoine";
+import type { CarmfConfig, CodeCaisse, NatureContrat, StatutPro, TptConfig } from "../../types/patrimoine";
 
-export type { TptConfig };
+export type { TptConfig, CarmfConfig };
 
 // Catégorie d'invalidité retenue pour la projection.
 //   cat1 : capable d'exercer une activité réduite (taux base ~30 %)
@@ -89,6 +89,9 @@ export type EntreePerso = {
   revenuReferenceMicroTNS?: boolean;
   contratsIndividuels: ContratIndividuel[];
   couvertureCollective: CouvertureCollective | null;
+  // Paramètres CARMF (médecins libéraux). Présent → le moteur applique
+  // l'architecture 2 étages CPAM/CARMF et l'invalidité CARMF.
+  carmf?: CarmfConfig;
 };
 
 // Série empilée — chaque tableau est aligné sur axe[]. Tous les
@@ -102,6 +105,10 @@ export type SerieEmpilee = {
   pensionInvalObligatoire: number[];
   renteInvalCollective: number[];
   renteInvalIndividuelle: number[];
+  // Rentes enfants à charge servies par le régime obligatoire en
+  // invalidité (CARMF). Étage distinct de la pension pour la lisibilité
+  // du graphique. Nul hors CARMF.
+  renteInvalEnfants: number[];
 };
 
 export type RuptureType =
@@ -111,6 +118,7 @@ export type RuptureType =
   | "fin_palier_ij_compl"
   | "debut_tpt"
   | "fin_tpt"
+  | "relais_carmf"
   | "bascule_invalidite"
   | "fin_invalidite"
   | "donnees_indisponibles"

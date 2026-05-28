@@ -14,6 +14,7 @@
 import pass from "./pass-2026.json";
 import caisses from "./caisses-2026.json";
 import ccn from "./ccn-2026.json";
+import carmf from "./carmf-2026.json";
 
 export const CURRENT_YEAR = 2026;
 
@@ -21,7 +22,11 @@ export type PassReferentiel = typeof pass;
 export type CaissesReferentiel = typeof caisses;
 export type CcnReferentiel = typeof ccn;
 
-export const referentiels = { pass, caisses, ccn };
+// Bloc CARMF (médecins libéraux) : structure dédiée, distincte du schéma
+// générique des caisses (architecture 2 étages CPAM→CARMF, barèmes par
+// tranche d'âge, majorations invalidité). Consommé par la branche CARMF
+// du moteur (cf. projection.ts). Source : carmf.fr, vérifié 2026-05-28.
+export const referentiels = { pass, caisses, ccn, carmf };
 export type Referentiels = typeof referentiels;
 
 if (typeof window !== "undefined" && new Date().getFullYear() > CURRENT_YEAR + 1) {

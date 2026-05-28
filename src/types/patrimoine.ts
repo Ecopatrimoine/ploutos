@@ -339,6 +339,23 @@ export type TptConfig = {
   apresTpt: "retour_arret_total" | "guerison";
 };
 
+// Paramètres spécifiques CARMF (médecins libéraux). Architecture à 2
+// étages : IJ CPAM J4-J90 puis CARMF J91-J1095, invalidité jusqu'au 62e
+// anniversaire. Cf. SPEC_PREVOYANCE_CARMF §2. revenuBNC_N2 = revenu non
+// salarié année N-2 (assiette des prestations 2026).
+export type CarmfConfig = {
+  statut: "medecin_titulaire" | "conjoint_collaborateur" | "medecin_remplacant";
+  optionConjointCollaborateur?: "quart" | "moitie"; // si conjoint collaborateur
+  revenuBNC_N2: number;
+  ancienneteAffiliationTrimestres: number; // carence d'affiliation : 8 trim = 2 ans
+  cumulEmploiRetraite: boolean; // si true → exclu du régime ID CARMF
+  // Majorations invalidité / rente conjoint :
+  marie: boolean;
+  anneesMariage: number;
+  ressourcesConjoint: number; // plafond 31 252 € pour la majoration conjoint
+  besoinTiercePersonne: boolean;
+};
+
 export type PayloadContratIndividuel = {
   id: string;
   type:
@@ -389,6 +406,9 @@ export type PayloadPrevoyancePerso = {
   // Reprise en mi-temps thérapeutique (optionnel, défaut inactif). Absent
   // → projection sans TPT (cf. SPEC_ALD_TPT §5).
   tpt?: TptConfig;
+  // Paramètres CARMF (médecins libéraux), optionnel — présent seulement
+  // pour les clients affiliés CARMF (cf. SPEC_PREVOYANCE_CARMF §2).
+  carmf?: CarmfConfig;
 };
 
 // ─── Lot 8 — Prévoyance collective d'entreprise (audit conformité) ────

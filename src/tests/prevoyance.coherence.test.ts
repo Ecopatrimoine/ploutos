@@ -15,6 +15,7 @@ const SERIES_KEYS: Array<keyof SerieEmpilee> = [
   "salaire", "maintienEmployeur", "ijObligatoire",
   "ijComplementaireCollective", "ijComplementaireIndividuelle",
   "pensionInvalObligatoire", "renteInvalCollective", "renteInvalIndividuelle",
+  "renteInvalEnfants",
 ];
 
 function baseSalarie(over: Partial<EntreePerso> = {}): EntreePerso {

@@ -28,6 +28,8 @@ import type {
   Regle,
 } from "./types";
 import type { StatutPro } from "../../types/patrimoine";
+import { referentiels } from "../../data/prevoyance";
+import { capitalDecesCarmf, pensionInvaliditeBaseAnnuelle } from "./carmf";
 
 const TNS_STATUTS: StatutPro[] = [
   "tns_liberal",
@@ -67,7 +69,8 @@ function totalAtIdx(s: ContexteRegle["projection"]["series"], i: number): number
     s.ijComplementaireIndividuelle[i] +
     s.pensionInvalObligatoire[i] +
     s.renteInvalCollective[i] +
-    s.renteInvalIndividuelle[i]
+    s.renteInvalIndividuelle[i] +
+    s.renteInvalEnfants[i]
   );
 }
 
@@ -135,11 +138,15 @@ export const regleDcTnsSansCapital: Regle = (ctx, cible) => {
 
 export const regleDcCapitalInsuffisantDettes: Regle = (ctx, cible) => {
   if (ctx.dettesImmobilieres <= 0) return null;
-  const capital = sumContratsParType(ctx.entree.contratsIndividuels, "deces_capital");
-  // Note : le capital décès régime obligatoire est lu du référentiel
-  // (souvent TO_VERIFY pour l'instant). On compare donc juste au
-  // capital individuel ; le constat reste pertinent même quand le
-  // référentiel sera complet.
+  // Capital décès individuel + capital décès obligatoire CARMF (71 500 € pour
+  // un médecin titulaire, proratisé pour un conjoint collaborateur) lorsque
+  // le client est affilié CARMF. Les autres régimes obligatoires restent
+  // souvent TO_VERIFY → seul l'individuel compte alors.
+  const capitalCarmf = ctx.entree.carmf
+    ? capitalDecesCarmf(referentiels.carmf, ctx.entree.carmf)
+    : 0;
+  const capital =
+    sumContratsParType(ctx.entree.contratsIndividuels, "deces_capital") + capitalCarmf;
   if (capital >= ctx.dettesImmobilieres) return null;
   const trou = ctx.dettesImmobilieres - capital;
 
@@ -426,6 +433,114 @@ export const regleSurCouvertureContrat: Regle = (ctx, cible) => {
 };
 
 // ────────────────────────────────────────────────────────────────────
+// Constats spécifiques CARMF (médecins libéraux) — SPEC_PREVOYANCE_CARMF §8
+// ────────────────────────────────────────────────────────────────────
+
+export const regleCarmfCarenceAffiliation: Regle = (ctx, cible) => {
+  const c = ctx.entree.carmf;
+  if (!c || c.cumulEmploiRetraite) return null;
+  if (c.ancienneteAffiliationTrimestres >= 8) return null;
+  const restants = 8 - c.ancienneteAffiliationTrimestres;
+  return {
+    id: `carmf_carence_affiliation_${cible}`,
+    severite: "alerte",
+    axe: "incapacite",
+    cible,
+    titre: "Carence d'affiliation CARMF — protection limitée aux 90 premiers jours",
+    detail:
+      `L'affiliation à la CARMF totalise ${c.ancienneteAffiliationTrimestres} trimestre(s) ; il en faut 8 ` +
+      `(2 ans) pour ouvrir droit aux indemnités journalières et à la pension d'invalidité CARMF. Pendant ` +
+      `cette période (encore ~${restants} trimestre(s)), la protection se limite aux indemnités CPAM des ` +
+      `90 premiers jours d'arrêt — au-delà, le revenu de remplacement est nul.`,
+    reference: "CARMF — carence d'affiliation (8 trimestres)",
+    action:
+      "Évaluer le besoin d'une couverture individuelle couvrant la période de carence d'affiliation, " +
+      "pendant laquelle aucune prestation CARMF n'est versée au-delà du 90e jour.",
+  };
+};
+
+export const regleCarmfAnteriorite: Regle = (ctx, cible) => {
+  const c = ctx.entree.carmf;
+  if (!c || c.cumulEmploiRetraite) return null;
+  const t = c.ancienneteAffiliationTrimestres;
+  if (t < 8 || t >= 24) return null;
+  const reduction = t < 16 ? "deux tiers" : "un tiers";
+  return {
+    id: `carmf_anteriorite_${cible}`,
+    severite: "info",
+    axe: "incapacite",
+    cible,
+    titre: "Prestations CARMF potentiellement réduites (antériorité d'affiliation)",
+    detail:
+      `Avec ${t} trimestres d'affiliation, les prestations CARMF peuvent être réduites de ${reduction} si ` +
+      `l'incapacité a une origine antérieure à l'affiliation. Le taux plein est atteint à 24 trimestres (6 ans).`,
+    reference: "CARMF — réduction pour antériorité (8 à 23 trimestres)",
+    action:
+      "Vérifier l'ancienneté d'affiliation et la date d'origine de l'incapacité pour estimer le niveau réel des droits CARMF.",
+  };
+};
+
+export const regleCarmfCumulEmploiRetraite: Regle = (ctx, cible) => {
+  const c = ctx.entree.carmf;
+  if (!c || !c.cumulEmploiRetraite) return null;
+  return {
+    id: `carmf_cumul_emploi_retraite_${cible}`,
+    severite: "attention",
+    axe: "incapacite",
+    cible,
+    titre: "Cumul emploi-retraite : aucune couverture incapacité-invalidité CARMF",
+    detail:
+      "En cumul emploi-retraite, le médecin est exclu du régime invalidité-décès CARMF : ni indemnités " +
+      "journalières CARMF, ni pension d'invalidité. Seules les indemnités CPAM des 90 premiers jours subsistent.",
+    reference: "CARMF — exclusion du régime ID en cumul emploi-retraite",
+    action:
+      "Vérifier la pertinence d'une couverture individuelle pour compenser l'absence de protection CARMF en cumul emploi-retraite.",
+  };
+};
+
+export const regleCarmfInvaliditeStop62: Regle = (ctx, cible) => {
+  const c = ctx.entree.carmf;
+  if (!c || c.cumulEmploiRetraite || c.ancienneteAffiliationTrimestres < 8) return null;
+  return {
+    id: `carmf_invalidite_stop_62_${cible}`,
+    severite: "info",
+    axe: "invalidite",
+    cible,
+    titre: "Pension d'invalidité CARMF limitée au 62e anniversaire",
+    detail:
+      "La pension d'invalidité CARMF et ses majorations cessent au 62e anniversaire, avec bascule vers la " +
+      "retraite — ce n'est pas une protection à vie.",
+    reference: "CARMF — durée de la pension d'invalidité (jusqu'à 62 ans)",
+    action:
+      "Évaluer le besoin de revenus de remplacement au-delà de 62 ans, la pension d'invalidité CARMF cessant à cet âge.",
+  };
+};
+
+export const regleCarmfPlafondConjoint: Regle = (ctx, cible) => {
+  const c = ctx.entree.carmf;
+  if (!c || c.cumulEmploiRetraite || c.ancienneteAffiliationTrimestres < 8) return null;
+  if (!(c.marie && c.anneesMariage >= 2)) return null;
+  const plafond = referentiels.carmf.invalidite.majorations.conjoint.plafondRessourcesConjoint;
+  if (c.ressourcesConjoint > plafond) return null; // aucune majoration → autre sujet
+  const base = pensionInvaliditeBaseAnnuelle(referentiels.carmf, c);
+  if (base <= 0 || c.ressourcesConjoint + base * 0.35 <= plafond) return null; // pas d'écrêtement
+  return {
+    id: `carmf_plafond_conjoint_${cible}`,
+    severite: "info",
+    axe: "invalidite",
+    cible,
+    titre: "Majoration conjoint CARMF réduite (plafond de ressources)",
+    detail:
+      `La majoration de 35 % pour conjoint est écrêtée : les ressources du conjoint ` +
+      `(${Math.round(c.ressourcesConjoint).toLocaleString("fr-FR")} €) plus la majoration dépasseraient le ` +
+      `plafond de ${plafond.toLocaleString("fr-FR")} €, au-delà duquel la majoration est réduite à due concurrence.`,
+    reference: "CARMF — plafond de ressources de la majoration conjoint",
+    action:
+      "Vérifier les ressources du conjoint : la majoration de pension est réduite lorsque leur cumul dépasse le plafond.",
+  };
+};
+
+// ────────────────────────────────────────────────────────────────────
 // Orchestrateur + tri par sévérité
 // ────────────────────────────────────────────────────────────────────
 
@@ -441,6 +556,11 @@ const REGLES_INDIVIDUELLES: Regle[] = [
   regleSurCouvertureBornee,
   regleSurCouvertureContrat,
   regleCollectiveTnsIgnoree,
+  regleCarmfCarenceAffiliation,
+  regleCarmfAnteriorite,
+  regleCarmfCumulEmploiRetraite,
+  regleCarmfInvaliditeStop62,
+  regleCarmfPlafondConjoint,
 ];
 
 const ORDRE_SEVERITE: Record<ConstatSeverite, number> = {

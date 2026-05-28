@@ -30,6 +30,12 @@ import {
   type PlafondVariables,
 } from "./formula";
 import { coefBrutNet } from "./constants";
+import {
+  computeIjCarmfJournaliere,
+  pensionInvaliditeTotaleAnnuelle,
+  renteEnfantsInvaliditeAnnuelle,
+  jourFinInvaliditeCarmf,
+} from "./carmf";
 
 // Paliers temporels phase AM (J0 → J1095).
 const PALIERS_AM = [0, 3, 7, 14, 30, 60, 90, 120, 180, 365, 547, 730, 912, 1095];
@@ -608,7 +614,8 @@ function sumAtIdx(s: SerieEmpilee, i: number): number {
     s.ijComplementaireIndividuelle[i] +
     s.pensionInvalObligatoire[i] +
     s.renteInvalCollective[i] +
-    s.renteInvalIndividuelle[i]
+    s.renteInvalIndividuelle[i] +
+    s.renteInvalEnfants[i]
   );
 }
 
@@ -620,10 +627,22 @@ function detectRuptures(
   palier: Palier | null,
   isSalarie: boolean,
   donneesIndisponibles: boolean,
-  tptRupture: { debut: number; fin: number; guerison: boolean } | null
+  tptRupture: { debut: number; fin: number; guerison: boolean } | null,
+  jourRelaisCarmf: number | null
 ): RuptureCle[] {
   const ruptures: RuptureCle[] = [];
   const joursAxe = new Set(axe.map((p) => p.jour));
+
+  // Relais CPAM → CARMF à J91 (médecins libéraux).
+  if (jourRelaisCarmf !== null && joursAxe.has(jourRelaisCarmf)) {
+    const idx = axe.findIndex((p) => p.jour === jourRelaisCarmf);
+    ruptures.push({
+      jour: jourRelaisCarmf,
+      libelle: "Relais CARMF (fin de l'indemnisation CPAM)",
+      impactNet: idx > 0 ? sumAtIdx(series, idx) - sumAtIdx(series, idx - 1) : 0,
+      type: "relais_carmf",
+    });
+  }
 
   if (donneesIndisponibles) {
     ruptures.push({
@@ -719,6 +738,15 @@ export function projeterArretMaladie(
   const isSalarie = isSalarieOuAssimile(entree.statutPro);
   const isTns = isTNS(entree.statutPro);
 
+  // CARMF (médecins libéraux) : architecture 2 étages. IJ CPAM J4-J90
+  // (bloc CPAM standard), relais CARMF J91-J1095, invalidité jusqu'au 62e
+  // anniversaire. Activé par la présence du sous-objet `carmf`.
+  const isCarmf = entree.carmf != null;
+  const carmfRef = (ref as { carmf?: unknown }).carmf;
+  const cpamRef = isCarmf ? lookupCaisse("CPAM", ref) : null;
+  const J_RELAIS_CARMF = 91;
+  const jourFinInvalCarmf = isCarmf ? jourFinInvaliditeCarmf(entree.age) : 0;
+
   // Mi-temps thérapeutique (SPEC_ALD_TPT §5). Le TPT n'a de sens qu'en
   // phase AM : finJour est borné à la bascule invalidité (1095) et le TPT
   // est ignoré si debutJour ≥ 1095 ou si l'intervalle est vide.
@@ -734,9 +762,12 @@ export function projeterArretMaladie(
   // d'interpoler en biais). Les bornes du TPT (debut/fin) sont insérées
   // pour la même raison (marche nette à la reprise / fin du mi-temps).
   const { finPlein, finPartiel } = joursRupturesMaintien(maintien, palier, isSalarie);
-  const joursEvenements = [finPlein, finPartiel, ...(tptActif ? [tptDebut, tptFin] : [])].filter(
-    (j): j is number => j !== null
-  );
+  const joursEvenements = [
+    finPlein,
+    finPartiel,
+    ...(tptActif ? [tptDebut, tptFin] : []),
+    ...(isCarmf ? [J_RELAIS_CARMF, jourFinInvalCarmf] : []),
+  ].filter((j): j is number => j !== null);
   const axe = insertJoursAxe(buildAxe(entree, today), joursEvenements, today, finJour);
 
   const salaireBrutMensuel = entree.salaireBrutAnnuel / 12;
@@ -801,6 +832,24 @@ export function projeterArretMaladie(
     pensionInvalObligatoire: axe.map(() => 0),
     renteInvalCollective: axe.map(() => 0),
     renteInvalIndividuelle: axe.map(() => 0),
+    renteInvalEnfants: axe.map(() => 0),
+  };
+
+  // IJ obligatoire MENSUELLE au jour t. Pour un médecin CARMF : étage CPAM
+  // jusqu'à J90, relais CARMF de J91 à J1095. Sinon, calcul générique de
+  // la caisse du client. Retourne null si une donnée critique manque.
+  const ijObligatoireMensuelAt = (t: number): number | null => {
+    if (isCarmf) {
+      if (t < J_RELAIS_CARMF) {
+        return computeIJObligatoireMensuel(
+          t, cpamRef, entree, revenuMensuelTNS, salaireBrutMensuel, plafondVars, scenarioArret
+        );
+      }
+      return computeIjCarmfJournaliere(carmfRef, entree.carmf!, entree.age, t) * 30;
+    }
+    return computeIJObligatoireMensuel(
+      t, caisseRef, entree, revenuMensuelTNS, salaireBrutMensuel, plafondVars, scenarioArret
+    );
   };
 
   // Scénario ALD demandé sur une caisse documentée dépourvue de durée
@@ -827,15 +876,7 @@ export function projeterArretMaladie(
     if (tptActif && t >= tptDebut && t < tptFin) {
       const salairePartiel = revenuReferenceMensuel * tptPct;
       const perteSalaire = Math.max(0, revenuReferenceMensuel - salairePartiel);
-      const ijPleineRaw = computeIJObligatoireMensuel(
-        t,
-        caisseRef,
-        entree,
-        revenuMensuelTNS,
-        salaireBrutMensuel,
-        plafondVars,
-        scenarioArret
-      );
+      const ijPleineRaw = ijObligatoireMensuelAt(t);
       if (ijPleineRaw === null) donneesIndisponibles = true;
       // IJ TPT = min(IJ pleine plafonnée, perte de salaire), puis rabotée
       // pour que salaire partiel + IJ ne dépasse pas le revenu de référence.
@@ -879,15 +920,7 @@ export function projeterArretMaladie(
       // « retour arrêt total » après finJour : t étant le jour calendaire
       // d'un arrêt continu, le plafond de durée IJ (360/1095) intègre
       // automatiquement la durée déjà consommée (pas de remise à zéro).
-      const ijObl = computeIJObligatoireMensuel(
-        t,
-        caisseRef,
-        entree,
-        revenuMensuelTNS,
-        salaireBrutMensuel,
-        plafondVars,
-        scenarioArret
-      );
+      const ijObl = ijObligatoireMensuelAt(t);
       if (ijObl === null) {
         donneesIndisponibles = true;
         series.ijObligatoire[i] = 0;
@@ -932,17 +965,30 @@ export function projeterArretMaladie(
       }
     } else {
       // Phase invalidité
-      const inv = computeInvalObligatoireMensuel(
-        caisseRef,
-        categorie,
-        salaireBrutMensuel,
-        revenuMensuelTNS
-      );
-      if (inv === null) {
-        donneesIndisponibles = true;
-        series.pensionInvalObligatoire[i] = 0;
+      if (isCarmf) {
+        // Pension CARMF (base + majorations) et rentes enfants (étage
+        // distinct), versées jusqu'au trimestre suivant le 62e anniversaire.
+        // Au-delà : étages à 0 (bascule retraite, hors périmètre projection).
+        const nbEnf = entree.nbEnfantsACharge ?? 0;
+        if (t < jourFinInvalCarmf) {
+          series.pensionInvalObligatoire[i] =
+            pensionInvaliditeTotaleAnnuelle(carmfRef, entree.carmf!, nbEnf) / 12;
+          series.renteInvalEnfants[i] =
+            renteEnfantsInvaliditeAnnuelle(carmfRef, entree.carmf!, nbEnf) / 12;
+        }
       } else {
-        series.pensionInvalObligatoire[i] = inv;
+        const inv = computeInvalObligatoireMensuel(
+          caisseRef,
+          categorie,
+          salaireBrutMensuel,
+          revenuMensuelTNS
+        );
+        if (inv === null) {
+          donneesIndisponibles = true;
+          series.pensionInvalObligatoire[i] = 0;
+        } else {
+          series.pensionInvalObligatoire[i] = inv;
+        }
       }
 
       series.renteInvalCollective[i] = computeRenteInvalCollective(
@@ -953,7 +999,9 @@ export function projeterArretMaladie(
       );
 
       const dejaPercuInval =
-        series.pensionInvalObligatoire[i] + series.renteInvalCollective[i];
+        series.pensionInvalObligatoire[i] +
+        series.renteInvalCollective[i] +
+        series.renteInvalEnfants[i];
       const etageInval = computeRenteInvalIndividuelle(
         entree.contratsIndividuels,
         baseMensuelleInvalidite,
@@ -979,7 +1027,8 @@ export function projeterArretMaladie(
     palier,
     isSalarie,
     donneesIndisponibles,
-    tptActif ? { debut: tptDebut, fin: tptFin, guerison: tptGuerison } : null
+    tptActif ? { debut: tptDebut, fin: tptFin, guerison: tptGuerison } : null,
+    isCarmf ? J_RELAIS_CARMF : null
   );
 
   const useLegalDefault =

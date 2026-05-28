@@ -1,0 +1,309 @@
+{
+  "_meta": {
+    "caisse": "CARMF",
+    "publicCible": "Médecins libéraux (généralistes, spécialistes) et conjoints collaborateurs",
+    "millesime": 2026,
+    "dateMiseAJour": "2026-05-28",
+    "sources": [
+      {
+        "nom": "CARMF - Incapacité temporaire d'exercice",
+        "url": "https://www.carmf.fr/page.php?page=cdrom/prev/prev-ij.htm",
+        "consultation": "2026-05-28",
+        "valeurs": ["IJ par tranche de revenu et d'âge 2026", "carence 90j", "durée 36 mois", "rechute <1an/>1an", "antériorité"]
+      },
+      {
+        "nom": "CARMF - Invalidité",
+        "url": "https://www.carmf.fr/page.php?page=cdrom/prev/prev-inva.htm",
+        "consultation": "2026-05-28",
+        "valeurs": ["pension annuelle 23 662€ / 31 549€", "majorations 35% conjoint, 35% tierce personne, 10% enfants", "rente enfant 8 788,52€", "durée jusqu'au 62e anniversaire"]
+      },
+      {
+        "nom": "CARMF - Formalités au décès",
+        "url": "https://www.carmf.fr/page.php?page=cdrom/prev/prev-dc.htm",
+        "consultation": "2026-05-28",
+        "valeurs": ["capital décès 71 500€", "rente conjoint min 8 557,20€ max 17 114,40€", "rente orphelin 10 078,48€ / 17 114,40€"]
+      }
+    ],
+    "notes": [
+      "Architecture 2 étages : J4-J90 CPAM (déjà dans bloc-cpam-2026.json), J91-J1095 CARMF",
+      "Réforme 2025 du RID : classe B (ex-forfait) devient proportionnelle 1/730 du revenu N-2",
+      "Médecins en cumul emploi-retraite : exclus du régime ID CARMF (IJ CPAM uniquement J4-J90)"
+    ]
+  },
+
+  "applicabilite": {
+    "statuts": ["medecin_liberal", "medecin_remplacant", "conjoint_collaborateur_medecin"],
+    "exclusion": ["medecin_cumul_emploi_retraite"]
+  },
+
+  "revenuReference": {
+    "definition": "Revenu non salarié N-2 (pour 2026 : revenus 2024)",
+    "champFichePloutos": "revenuBNC_2024"
+  },
+
+  "ij": {
+    "carence": {
+      "jours": 90,
+      "commentaire": "Relais des IJ CPAM (J4-J90). La CARMF commence à indemniser à partir du 91e jour."
+    },
+    "carenceAffiliation": {
+      "trimestresMinimum": 8,
+      "commentaire": "2 ans d'affiliation minimum pour IJ pleines. Antériorité (maladie antérieure à l'affiliation) : réduction 2/3 entre 8-15 trim, 1/3 entre 16-23 trim, taux plein ≥ 24 trim (6 ans).",
+      "champFichePloutos": "anciennete_affiliation_carmf_trimestres"
+    },
+    "dureeMaxJours": 1095,
+    "dureeMaxCommentaire": "36 mois maximum. Cohérent avec la bascule invalidité à J1095.",
+
+    "tranchesRevenu": {
+      "seuilBas": 48060,
+      "seuilHaut": 144179,
+      "_seuilCommentaire": "Seuils PASS 2024 retenus pour les prestations 2026 (PASS 2024 = 46 368 € pour les cotisations, mais CARMF retient le PASS valant pour le millésime de la prestation)"
+    },
+
+    "tableauMedecin": {
+      "moinsDe62Ans": {
+        "revenuLow": { "modeCalcul": "forfait", "montantParJour": 65.84 },
+        "revenuMid": { "modeCalcul": "proportionnel", "formule": "revenuN2 / 730" },
+        "revenuHigh": { "modeCalcul": "forfait", "montantParJour": 197.51 }
+      },
+      "de62a69Ans": {
+        "annee1Indemnisation": {
+          "tauxApplique": 1.00,
+          "revenuLow": 65.84,
+          "revenuMid": "1/730 du revenuN2",
+          "revenuHigh": 197.51
+        },
+        "annee2Indemnisation": {
+          "tauxApplique": 0.75,
+          "revenuLow": 49.38,
+          "revenuMid": "75% du taux normal",
+          "revenuHigh": 148.13
+        },
+        "annee3Indemnisation": {
+          "tauxApplique": 0.50,
+          "revenuLow": 32.92,
+          "revenuMid": "50% du taux normal",
+          "revenuHigh": 98.76
+        }
+      },
+      "plusDe70Ans": {
+        "tauxApplique": 0.50,
+        "revenuLow": 32.92,
+        "revenuMid": "50% du taux normal",
+        "revenuHigh": 98.76
+      }
+    },
+
+    "tableauConjointCollaborateur": {
+      "moinsDe62Ans": {
+        "optionQuart": {
+          "revenuLow": 16.46,
+          "revenuMid": "1/4 × (revenuN2 / 730)",
+          "revenuHigh": 49.38
+        },
+        "optionMoitie": {
+          "revenuLow": 32.92,
+          "revenuMid": "1/2 × (revenuN2 / 730)",
+          "revenuHigh": 98.76
+        }
+      },
+      "de62a69Ans": "Mêmes barèmes dégressifs que le médecin, au prorata 1/4 ou 1/2",
+      "plusDe70Ans": "50% du taux normal, au prorata 1/4 ou 1/2"
+    },
+
+    "rechute": {
+      "delaiCourtJours": 365,
+      "franchiseRechuteCourteJours": 15,
+      "franchiseRechuteLongueJours": 90,
+      "commentaire": "Rechute dans <1 an de reprise → franchise 15j. Rechute >1 an → nouvelle franchise 90j (nouvel arrêt)."
+    },
+
+    "fiscalite": {
+      "imposableIR": true,
+      "categorie": "BNC",
+      "csgCrds": true,
+      "exonerationALD": false,
+      "commentaireALD": "Les IJ CARMF en ALD ne sont PAS fiscalement exonérées (contrairement à certaines IJ CPAM en ALD). À confirmer fiscaliste côté Ploutos pour cohérence avec le bloc CPAM."
+    }
+  },
+
+  "invalidite": {
+    "conditions": {
+      "incapaciteRequise": "totale et définitive",
+      "tauxMinimum": "Pas de classement par catégorie comme CPAM. Reconnaissance médicale CARMF.",
+      "carenceAffiliationTrimestres": 8,
+      "carenceAffiliationCommentaire": "8 trimestres minimum (2 ans). De 8 à 15 trim : pension réduite d'1/3 si origine antérieure à l'affiliation."
+    },
+
+    "dureeVersement": {
+      "jusquAge": 62,
+      "commentaire": "Pension versée jusqu'au 1er jour du trimestre civil suivant le 62e anniversaire. Bascule retraite ensuite."
+    },
+
+    "tranchesRevenu": {
+      "seuilBas": 48060,
+      "seuilHaut": 144179,
+      "_referenceCalcul": "Meilleur revenu des 3 années précédant l'entrée en jouissance des droits"
+    },
+
+    "pensionMedecin": {
+      "revenuLow": {
+        "modeCalcul": "forfait",
+        "montantAnnuel": 23662.00,
+        "montantMensuel": 1971.83,
+        "_montantMensuelCommentaire": "23662 / 12 = 1971,83 €/mois"
+      },
+      "revenuMid": {
+        "modeCalcul": "variable",
+        "formule": "Variable selon revenus (interpolation entre 23 662 € et 31 549 €). Formule exacte non publiée par CARMF sur la page web.",
+        "_aVerifier": "Formule d'interpolation exacte à demander à la CARMF si besoin de précision. À défaut : interpolation linéaire en valeur entre les bornes."
+      },
+      "revenuHigh": {
+        "modeCalcul": "forfait",
+        "montantAnnuel": 31549.00,
+        "montantMensuel": 2629.08
+      }
+    },
+
+    "pensionConjointCollaborateur": {
+      "revenuLow": {
+        "optionQuart": { "montantAnnuel": 5915.50, "montantMensuel": 492.96 },
+        "optionMoitie": { "montantAnnuel": 11831.00, "montantMensuel": 985.92 }
+      },
+      "revenuHigh": {
+        "optionQuart": { "montantAnnuel": 7887.25, "montantMensuel": 657.27 },
+        "optionMoitie": { "montantAnnuel": 15774.50, "montantMensuel": 1314.54 }
+      }
+    },
+
+    "majorations": {
+      "conjoint": {
+        "taux": 0.35,
+        "conditions": "Marié depuis ≥ 2 ans au fait générateur. Ressources personnelles ≤ 31 252 € en 2026.",
+        "plafondRessourcesConjoint": 31252,
+        "reductibilite": "Si le bénéfice de la majoration conduit à dépasser le plafond, son montant est réduit à concurrence du dépassement.",
+        "champFichePloutos": ["statut_conjoint_marie", "annees_mariage", "ressources_conjoint"]
+      },
+      "tiercePersonne": {
+        "taux": 0.35,
+        "conditions": "Obligation de recours à une tierce personne pour les actes ordinaires de la vie",
+        "champFichePloutos": "besoin_tierce_personne_invalidite"
+      },
+      "bonificationFamiliale": {
+        "taux": 0.10,
+        "conditions": "≥ 3 enfants",
+        "champFichePloutos": "nombre_enfants"
+      },
+      "cumul": "Toutes les majorations sont cumulables entre elles"
+    },
+
+    "rentesEnfants": {
+      "parEnfant": {
+        "annuel": 8788.52,
+        "mensuel": 732.38
+      },
+      "optionQuart": { "annuel": 2197.13, "mensuel": 183.09 },
+      "optionMoitie": { "annuel": 4394.26, "mensuel": 366.19 },
+      "dureeVersement": {
+        "jusquAge": 21,
+        "prolongationEtudes": 25
+      }
+    },
+
+    "fiscalite": {
+      "imposableIR": true,
+      "categorie": "pensions",
+      "csgCrdsCasa": true,
+      "exoneration": "Cas d'exonération possibles selon le RFR"
+    }
+  },
+
+  "deces": {
+    "capitalDecesMedecin": {
+      "montant": 71500,
+      "versementUnique": true,
+      "exonerationIR": true,
+      "conditionsAttribution": {
+        "ageMaximum": 75,
+        "statut": "Cotisant non retraité OU invalide CARMF",
+        "aJourCotisations": true
+      },
+      "exclusion": "Ayants droit d'un médecin retraité non concernés"
+    },
+
+    "capitalDecesConjointCollaborateur": {
+      "optionQuart": 17875,
+      "optionMoitie": 35750
+    },
+
+    "beneficiairesCapital": {
+      "ordre": [
+        "Conjoint survivant non séparé de corps, marié ≥ 2 ans",
+        "À défaut : enfants < 21 ans + enfants majeurs infirmes à charge",
+        "À défaut : père et/ou mère à charge"
+      ]
+    },
+
+    "renteConjointSurvivant": {
+      "conditionsAttribution": {
+        "ageMaximum": 62,
+        "anneesMariageMin": 2,
+        "exceptions": "Enfant né ou à naître, ou décès subit/imprévisible"
+      },
+      "minimumAnnuel": 8557.20,
+      "minimumMensuel": 713.10,
+      "maximumAnnuel": 17114.40,
+      "maximumMensuel": 1426.20,
+      "majorationFamiliale": {
+        "taux": 0.10,
+        "conditions": "≥ 3 enfants avec le médecin"
+      },
+      "renteConjointDecesCollaborateur": {
+        "optionQuart": { "min": 2139.30, "max": 4278.60 },
+        "optionMoitie": { "min": 4278.60, "max": 8557.20 }
+      },
+      "dureeVersement": "Jusqu'au 1er jour du mois suivant le 62e anniversaire du survivant (puis bascule réversion)",
+      "perteDroits": "Remariage = perte du droit"
+    },
+
+    "renteOrphelins": {
+      "orphelinPereOuMere": {
+        "annuel": 10078.48,
+        "mensuel": 839.87
+      },
+      "orphelinPereEtMere": {
+        "annuel": 17114.40,
+        "mensuel": 1426.20
+      },
+      "decesConjointCollaborateur": {
+        "optionQuart": {
+          "orphelinPereOuMere": 2519.62,
+          "orphelinPereEtMere": 4278.60
+        },
+        "optionMoitie": {
+          "orphelinPereOuMere": 5039.24,
+          "orphelinPereEtMere": 8557.20
+        }
+      },
+      "dureeVersement": {
+        "jusquAge": 21,
+        "prolongationEtudes": 25
+      }
+    },
+
+    "fiscalite": {
+      "capitalDecesIR": "EXONÉRÉ d'impôt sur le revenu",
+      "rentesIR": "Imposables IR catégorie pensions",
+      "csgRente": 0.083,
+      "crdsRente": 0.005
+    }
+  },
+
+  "_messagesEssentiels": [
+    "Médecins en cumul emploi-retraite : NON couverts par le régime ID CARMF. IJ CPAM uniquement J4-J90.",
+    "Carence d'affiliation 2 ans (8 trimestres) : un médecin installé depuis moins de 2 ans n'a pas accès aux IJ CARMF pleines. POINT CRITIQUE DE CONSEIL pour les jeunes installés.",
+    "La pension d'invalidité CARMF s'arrête au 62e anniversaire, avec bascule vers la retraite. Pas de continuité automatique au-delà.",
+    "Le capital décès n'est PAS versé si le médecin est retraité au décès — seule la réversion s'applique alors.",
+    "Réforme 2025 du RID : la classe B (revenus 1 à 3 PASS) est désormais PROPORTIONNELLE au revenu (1/730), plus forfaitaire."
+  ]
+}
