@@ -14,7 +14,7 @@ export type PackItem =
   | "couverture" | "cabinet" | "famille" | "travail"
   | "bilanEndettement" | "ir" | "ifi"
   | "successionA" | "successionB"
-  | "profil" | "prevoyanceInd" | "prevoyanceColl"
+  | "profil" | "prevoyancePersoP1" | "prevoyancePersoP2" | "prevoyanceColl"
   | "hypos" | "recommandations" | "mentions";
 
 export type CompletudeManque = {
@@ -49,7 +49,8 @@ const PACK_LABELS: Record<PackItem, string> = {
   successionA:      "Succession civile",
   successionB:     "Assurance-vie & transmission",
   profil:           "Profil & adéquation MIF II",
-  prevoyanceInd:    "Prévoyance individuelle",
+  prevoyancePersoP1: "Prévoyance personnelle (P1)",
+  prevoyancePersoP2: "Prévoyance personnelle (P2)",
   prevoyanceColl:   "Prévoyance collective",
   hypos:            "Hypothèses et conséquences",
   recommandations:  "Recommandations & plan d'action",
@@ -157,12 +158,16 @@ function collectMissing(pack: PackItem, p: CheckParams): string[] {
       if (empty(mission.horizon)) out.push("mission.horizon (horizon non sélectionné)");
       break;
     }
-    case "prevoyanceInd": {
-      if (empty(data.person1JobTitle)) out.push("data.person1JobTitle (profession requise pour analyse prévoyance)");
+    case "prevoyancePersoP1": {
+      if (!data.travail?.p1?.statutPro) out.push("Onglet Travail P1 (statut professionnel requis pour la projection prévoyance)");
+      break;
+    }
+    case "prevoyancePersoP2": {
+      if (!data.travail?.p2?.statutPro) out.push("Onglet Travail P2 (statut professionnel requis — ou pas de 2e personne)");
       break;
     }
     case "prevoyanceColl": {
-      // Section dirigeant — pas de manque bloquant identifié
+      // Section dirigeant / analyse externe — pas de manque bloquant identifié
       break;
     }
     case "hypos": {
@@ -191,7 +196,7 @@ export const PACK_ORDER: PackItem[] = [
   "couverture", "cabinet", "famille", "travail",
   "bilanEndettement", "ir", "ifi",
   "successionA", "successionB",
-  "profil", "prevoyanceInd", "prevoyanceColl",
+  "profil", "prevoyancePersoP1", "prevoyancePersoP2", "prevoyanceColl",
   "hypos", "recommandations", "mentions",
   // Documents réglementaires (après le bilan)
   "lettre", "der", "dda", "adequation",

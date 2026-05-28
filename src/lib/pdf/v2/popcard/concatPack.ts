@@ -38,7 +38,7 @@ import { pageSuccessionA } from "../pages/pageSuccessionA";
 import { pageSuccessionB } from "../pages/pageSuccessionB";
 import { pageProfil } from "../pages/pageProfil";
 import { pageBilanEndettement } from "../pages/pageBilanEndettement";
-import { pagePrevoyanceInd } from "../pages/pagePrevoyanceInd";
+import { pagePrevoyancePerso } from "../pages/pagePrevoyancePerso";
 import { pagePrevoyanceColl } from "../pages/pagePrevoyanceColl";
 import { pageCabinet } from "../pages/pageCabinet";
 import { pageFamille } from "../pages/pageFamille";
@@ -59,7 +59,7 @@ import { buildSuccessionAData } from "../adapters/buildSuccessionAData";
 import { buildSuccessionBData } from "../adapters/buildSuccessionBData";
 import { buildProfilData } from "../adapters/buildProfilData";
 import { buildBilanEndettementData } from "../adapters/buildBilanEndettementData";
-import { buildPrevoyanceIndData } from "../adapters/buildPrevoyanceIndData";
+import { buildPrevoyancePersoData } from "../adapters/buildPrevoyancePersoData";
 import { buildPrevoyanceCollData } from "../adapters/buildPrevoyanceCollData";
 import { buildCabinetData } from "../adapters/buildCabinetData";
 import { buildFamilleData } from "../adapters/buildFamilleData";
@@ -171,9 +171,13 @@ function renderItemBody(
       const d = buildSuccessionBData({ succession: payload.succession, data, cabinet, clientName: payload.clientName, dateLettre, pagePosition });
       return pageSuccessionB(t, d);
     }
-    case "prevoyanceInd": {
-      const d = buildPrevoyanceIndData({ data, cabinet, clientName: payload.clientName, dateLettre, pagePosition });
-      return pagePrevoyanceInd(t, d);
+    case "prevoyancePersoP1": {
+      const d = buildPrevoyancePersoData({ data, cabinet, which: "p1", clientName: payload.clientName, dateLettre, pagePosition });
+      return pagePrevoyancePerso(t, d);
+    }
+    case "prevoyancePersoP2": {
+      const d = buildPrevoyancePersoData({ data, cabinet, which: "p2", clientName: payload.clientName, dateLettre, pagePosition });
+      return pagePrevoyancePerso(t, d);
     }
     case "prevoyanceColl": {
       const d = buildPrevoyanceCollData({ data, cabinet, clientName: payload.clientName, dateLettre, pagePosition });

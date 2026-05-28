@@ -54,6 +54,19 @@ ultérieurement.
   `"plafondFormule": "1.4 * SMIC_mensuel * 3 / 91.25 * 0.5"` aux
   caisses concernées dans `caisses-2026.json`.
 
+## Pack PDF
+
+- **Nettoyage anciens fichiers prévoyance génériques** : `pagePrevoyanceInd.ts`,
+  `buildPrevoyanceIndData.ts` et `renderPrevoyanceInd.ts` ne sont plus dans le
+  pipeline pack (remplacés au Lot 9 par `pagePrevoyancePerso` /
+  `buildPrevoyancePersoData`). Ils restent utilisés par l'aperçu standalone
+  `scripts/generatePdfLocal.ts` (+ script npm `pdf:prevoyanceInd`). À supprimer
+  quand l'aperçu standalone sera migré ou retiré, avec `renderPrevoyanceColl.ts`
+  si l'aperçu collective standalone n'est plus utile.
+- **SVG projection PDF** : `renderProjectionSVG` regroupe les 7 étages du moteur
+  en 4 catégories pour la lisibilité print. Si besoin du détail des 7 étages en
+  PDF, enrichir le helper.
+
 ## UI
 
 - **Carte concubinage / régime matrimonial** : aujourd'hui aucune
