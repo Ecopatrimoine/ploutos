@@ -69,3 +69,18 @@ export function actionCommenceParVerbeAnalyse(action: string): boolean {
   const a = action.trimStart();
   return VERBES_ANALYSE.some((v) => a.startsWith(v));
 }
+
+// Liste FERMÉE des verbes impératifs autorisés pour les actions
+// correctives de conformité collective (obligations légales de
+// l'employeur). Objectif : empêcher qu'un « Souscrire » déguisé en
+// obligation passe un jour. Toute action collective doit commencer
+// par l'un de ces verbes.
+export const VERBES_OBLIGATION_AUTORISES = [
+  "Mettre en place", "Mettre à jour", "Régulariser",
+  "Vérifier", "Documenter", "Formaliser", "Établir",
+];
+
+export function actionCommenceParVerbeObligation(action: string): boolean {
+  const a = action.trimStart();
+  return VERBES_OBLIGATION_AUTORISES.some((v) => a.startsWith(v));
+}

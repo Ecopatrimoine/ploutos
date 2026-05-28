@@ -108,7 +108,7 @@ function controleCadres15T1(e: EntrepriseAudit): ControleConformite {
       : `Taux T1 cadres déclaré à ${e.tauxT1Cadres} %, inférieur au minimum obligatoire de 1,50 %.`,
     actionCorrective: conforme
       ? undefined
-      : "Augmenter la cotisation prévoyance cadres au minimum 1,50 % de la T1.",
+      : "Régulariser la cotisation prévoyance cadres au minimum 1,50 % de la T1.",
   };
 }
 
@@ -125,7 +125,7 @@ function controleCategoriesObjectives(e: EntrepriseAudit): ControleConformite {
         "Aucune catégorie objective déclarée. Sans définition conforme aux 5 critères du décret 2021-1002, " +
         "l'exonération de cotisations sociales attachée au contrat est remise en cause.",
       actionCorrective:
-        "Définir formellement les catégories de personnel selon les critères du décret 2021-1002 (CSP, cadres/non-cadres, sous-catégorie objective).",
+        "Formaliser les catégories de personnel selon les critères du décret 2021-1002 (CSP, cadres/non-cadres, sous-catégorie objective).",
     };
   }
   return {
@@ -138,7 +138,7 @@ function controleCategoriesObjectives(e: EntrepriseAudit): ControleConformite {
       `Catégorie déclarée : "${declaree}". La conformité formelle aux 5 critères du décret 2021-1002 ` +
       `doit être vérifiée à la lecture du contrat et des actes de mise en place.`,
     actionCorrective:
-      "Auditer la rédaction contractuelle des catégories au regard des 5 critères du décret 2021-1002.",
+      "Vérifier la rédaction contractuelle des catégories au regard des 5 critères du décret 2021-1002.",
   };
 }
 
@@ -180,7 +180,7 @@ function controleCcnBranchePrevoyance(
     detail:
       "La CCN identifiée impose un plancher de prévoyance (garanties minimum cadres et/ou non-cadres). " +
       "Vérifier que la couverture en place atteint le minimum conventionnel.",
-    actionCorrective: "Comparer la couverture déclarée aux minima de la CCN (notice de prévoyance).",
+    actionCorrective: "Vérifier que la couverture déclarée atteint les minima de la CCN (notice de prévoyance).",
   };
 }
 
@@ -221,7 +221,7 @@ function controleCcnBrancheSante(
       "La CCN impose un panier santé supérieur au minimum ANI. " +
       "Vérifier que la couverture en place atteint ce niveau.",
     actionCorrective:
-      "Comparer le niveau de garanties santé déclaré aux minima de la CCN.",
+      "Vérifier que le niveau de garanties santé déclaré atteint les minima de la CCN.",
   };
 }
 
@@ -259,6 +259,6 @@ function controleForfaitSocial(e: EntrepriseAudit): ControleConformite {
           `les contributions patronales de prévoyance / retraite supplémentaire. Vérifier l'application ` +
           `effective sur la DSN.`,
     actionCorrective:
-      "Auditer l'application effective du taux de forfait social sur les bulletins de paie et la DSN.",
+      "Vérifier l'application effective du taux de forfait social sur les bulletins de paie et la DSN.",
   };
 }

@@ -20,6 +20,7 @@ import {
   REGEX_PRODUITS_COMMERCIAUX,
   REGEX_VERBES_PRESCRIPTIFS,
   actionCommenceParVerbeAnalyse,
+  actionCommenceParVerbeObligation,
 } from "../lib/prevoyance/__fixtures__/assureurs-interdits";
 import { generateProfils } from "./__fixtures__/prevoyanceFuzzing";
 import type { Constat, ContexteRegle, EntreePerso } from "../lib/prevoyance/types";
@@ -130,6 +131,18 @@ describe("Famille E — Conformité DDA", () => {
     for (const c of constats) {
       if (c.cible === "entreprise") continue;
       expect(actionCommenceParVerbeAnalyse(c.action), `action individuelle: ${c.id} → "${c.action.slice(0, 30)}"`).toBe(true);
+    }
+  });
+
+  // E3c — liste FERMÉE de verbes d'obligation pour les actions collectives
+  it("E3c — toute action de conformité collective commence par un verbe d'obligation autorisé", () => {
+    const collectifs = constats.filter((c) => c.cible === "entreprise");
+    expect(collectifs.length).toBeGreaterThan(0);
+    for (const c of collectifs) {
+      expect(
+        actionCommenceParVerbeObligation(c.action),
+        `action collective: ${c.id} → "${c.action.slice(0, 30)}"`
+      ).toBe(true);
     }
   });
 
