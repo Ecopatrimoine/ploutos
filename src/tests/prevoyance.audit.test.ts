@@ -141,22 +141,25 @@ describe("c_ccn_branche_prevoyance", () => {
 });
 
 describe("c_forfait_social_correctement_applique", () => {
-  it("toujours vigilance (rappel d'audit DSN)", () => {
-    const audit = runAuditConformite(baseEntreprise(), referentiels);
-    const c = audit.controles.find((x) => x.id === "c_forfait_social_correctement_applique")!;
-    expect(c.statut).toBe("vigilance");
-  });
-
-  it("detail mentionne 0 % pour effectif < 11", () => {
+  it("non_applicable si effectif < 11 (forfait social 0 %)", () => {
     const audit = runAuditConformite(baseEntreprise({ effectif: 5 }), referentiels);
     const c = audit.controles.find((x) => x.id === "c_forfait_social_correctement_applique")!;
+    expect(c.statut).toBe("non_applicable");
     expect(c.detail).toContain("0 %");
   });
 
-  it("detail mentionne 20 % pour effectif ≥ 11", () => {
+  it("vigilance si effectif ≥ 11 (taux standard 20 %)", () => {
     const audit = runAuditConformite(baseEntreprise({ effectif: 25 }), referentiels);
     const c = audit.controles.find((x) => x.id === "c_forfait_social_correctement_applique")!;
+    expect(c.statut).toBe("vigilance");
     expect(c.detail).toContain("20 %");
+  });
+
+  it("vigilance si effectif null (prudence)", () => {
+    const audit = runAuditConformite(baseEntreprise({ effectif: null }), referentiels);
+    const c = audit.controles.find((x) => x.id === "c_forfait_social_correctement_applique")!;
+    expect(c.statut).toBe("vigilance");
+    expect(c.detail).toContain("non renseigné");
   });
 });
 

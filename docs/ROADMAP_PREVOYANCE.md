@@ -16,10 +16,15 @@ ultérieurement.
   sur cohérence géographique (coût de la vie), prise en compte
   du patrimoine de P2 (s'il a un capital propre suffisant, il
   n'est pas "à charge" même avec revenus faibles).
-- **Règles de conformité collective** (réservées LOT 8) :
+- **Règles de conformité collective** (livrées au LOT 8) :
   `conf_cadres_15_t1`, `conf_ani_sante_obligatoire`,
   `conf_categories_objectives_invalides`,
   `conf_ccn_branche_obligatoire_non_respectee`.
+- **`conf_forfait_social_a_auditer`** : constat ajouté hors spec
+  initiale au Lot 8. Rappelle d'auditer le forfait social en DSN.
+  À reconsidérer : soit le promouvoir en contrôle à part entière
+  avec calcul du taux réel, soit le fusionner dans une note de
+  synthèse.
 
 ## Référentiels
 

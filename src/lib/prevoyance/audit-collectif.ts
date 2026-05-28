@@ -226,8 +226,24 @@ function controleCcnBrancheSante(
 }
 
 function controleForfaitSocial(e: EntrepriseAudit): ControleConformite {
-  const effectif = e.effectif ?? 0;
-  const tauxAttendu = effectif < 11 ? 0 : 0.20;
+  const effectif = e.effectif;
+
+  // Effectif < 11 : exonération de forfait social sur les contributions
+  // patronales de prévoyance/santé → non applicable (rien à auditer).
+  if (effectif !== null && effectif < 11) {
+    return {
+      id: "c_forfait_social_correctement_applique",
+      axe: "forfait_social",
+      libelle: "Forfait social appliqué selon effectif",
+      statut: "non_applicable",
+      reference: "art. L.137-15 et s. CSS",
+      detail:
+        `Effectif = ${effectif} salariés (< 11) : forfait social à 0 % sur les contributions patronales ` +
+        `de prévoyance et de santé collective. Aucun forfait social dû à ce titre.`,
+    };
+  }
+
+  // Effectif >= 11 OU inconnu (null = prudence) : vigilance + rappel DSN.
   return {
     id: "c_forfait_social_correctement_applique",
     axe: "forfait_social",
@@ -235,10 +251,13 @@ function controleForfaitSocial(e: EntrepriseAudit): ControleConformite {
     statut: "vigilance",
     reference: "art. L.137-15 et s. CSS",
     detail:
-      effectif < 11
-        ? "Effectif < 11 salariés : taux de forfait social réduit à 0 % sur les abondements PEE/PERCO. " +
-          "Vérifier que l'employeur en bénéficie effectivement sur la DSN."
-        : `Effectif = ${effectif} salariés : taux standard de forfait social ${Math.round(tauxAttendu * 100)} % applicable.`,
+      effectif === null
+        ? "Effectif non renseigné : impossible de déterminer le régime de forfait social. À partir de " +
+          "11 salariés, le taux standard de 20 % s'applique sur les contributions patronales de " +
+          "prévoyance / retraite supplémentaire. Renseigner l'effectif pour préciser l'analyse."
+        : `Effectif = ${effectif} salariés (≥ 11) : taux standard de forfait social 20 % applicable sur ` +
+          `les contributions patronales de prévoyance / retraite supplémentaire. Vérifier l'application ` +
+          `effective sur la DSN.`,
     actionCorrective:
       "Auditer l'application effective du taux de forfait social sur les bulletins de paie et la DSN.",
   };
