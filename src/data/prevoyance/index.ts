@@ -15,6 +15,7 @@ import pass from "./pass-2026.json";
 import caisses from "./caisses-2026.json";
 import ccn from "./ccn-2026.json";
 import carmf from "./carmf-2026.json";
+import cipav from "./cipav-2026.json";
 
 export const CURRENT_YEAR = 2026;
 
@@ -26,7 +27,12 @@ export type CcnReferentiel = typeof ccn;
 // générique des caisses (architecture 2 étages CPAM→CARMF, barèmes par
 // tranche d'âge, majorations invalidité). Consommé par la branche CARMF
 // du moteur (cf. projection.ts). Source : carmf.fr, vérifié 2026-05-28.
-export const referentiels = { pass, caisses, ccn, carmf };
+//
+// Bloc CIPAV (professions libérales non réglementées) : architecture
+// DIFFÉRENTE (phase 1 IJ libéraux J4-J90 → trou J91 → invalidité par
+// points). Consommé par la branche CIPAV du moteur (cf. cipav.ts).
+// Source : lacipav.fr + ameli.fr, vérifié 2026-05-29.
+export const referentiels = { pass, caisses, ccn, carmf, cipav };
 export type Referentiels = typeof referentiels;
 
 if (typeof window !== "undefined" && new Date().getFullYear() > CURRENT_YEAR + 1) {

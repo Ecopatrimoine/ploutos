@@ -356,6 +356,20 @@ export type CarmfConfig = {
   besoinTiercePersonne: boolean;
 };
 
+// Paramètres CIPAV (professions libérales non réglementées). Architecture
+// distincte de la CARMF : IJ libéraux J4-J90, puis trou (0 €) jusqu'à
+// l'invalidité, puis pension par points. Décision lot CIPAV : un SEUL
+// champ revenu N-2 pour tout le module (IJ + points), prudence fiscale.
+export type CipavConfig = {
+  revenuBNC_N2: number;              // revenu N-2 — champ unique (IJ libéraux + points prévoyance)
+  ancienneteAffiliationMois: number; // affiliation ≥ 12 mois requise pour les IJ libéraux
+  cumulEmploiRetraite: boolean;      // si true → exclu des IJ + pension CIPAV
+  tauxInvalidite: number;            // 100 = totale (cutoff 62 ans) ; 66-99 = partielle (cutoff 67) ; < 66 = pas de pension
+  marie: boolean;                    // ouvre la rente conjoint (prestation décès)
+  nbEnfants: number;                 // rente enfant servie PAR enfant (prestation décès)
+  decesAccidentel: boolean;          // majoration capital décès (+5 000 points)
+};
+
 export type PayloadContratIndividuel = {
   id: string;
   type:
@@ -409,6 +423,9 @@ export type PayloadPrevoyancePerso = {
   // Paramètres CARMF (médecins libéraux), optionnel — présent seulement
   // pour les clients affiliés CARMF (cf. SPEC_PREVOYANCE_CARMF §2).
   carmf?: CarmfConfig;
+  // Paramètres CIPAV (professions libérales non réglementées), optionnel —
+  // présent seulement pour les clients affiliés CIPAV (cf. SPEC_PREVOYANCE_CIPAV).
+  cipav?: CipavConfig;
 };
 
 // ─── Lot 8 — Prévoyance collective d'entreprise (audit conformité) ────

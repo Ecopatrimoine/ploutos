@@ -36,6 +36,11 @@ import {
   renteEnfantsInvaliditeAnnuelle,
   jourFinInvaliditeCarmf,
 } from "./carmf";
+import {
+  ijCipavPhase1Journaliere,
+  pensionInvaliditeCipavAnnuelle,
+  jourFinInvaliditeCipav,
+} from "./cipav";
 
 // Paliers temporels phase AM (J0 → J1095).
 const PALIERS_AM = [0, 3, 7, 14, 30, 60, 90, 120, 180, 365, 547, 730, 912, 1095];
@@ -628,7 +633,8 @@ function detectRuptures(
   isSalarie: boolean,
   donneesIndisponibles: boolean,
   tptRupture: { debut: number; fin: number; guerison: boolean } | null,
-  jourRelaisCarmf: number | null
+  jourRelaisCarmf: number | null,
+  jourTrouCipav: number | null
 ): RuptureCle[] {
   const ruptures: RuptureCle[] = [];
   const joursAxe = new Set(axe.map((p) => p.jour));
@@ -641,6 +647,19 @@ function detectRuptures(
       libelle: "Relais CARMF (fin de l'indemnisation CPAM)",
       impactNet: idx > 0 ? sumAtIdx(series, idx) - sumAtIdx(series, idx - 1) : 0,
       type: "relais_carmf",
+    });
+  }
+
+  // Trou de couverture CIPAV à J91 : fin des IJ libéraux, AUCUN relais.
+  // La courbe IJ tombe à zéro et y reste jusqu'à l'invalidité (constat
+  // pédagogique central CIPAV — bien plus marqué que la CARMF).
+  if (jourTrouCipav !== null && joursAxe.has(jourTrouCipav)) {
+    const idx = axe.findIndex((p) => p.jour === jourTrouCipav);
+    ruptures.push({
+      jour: jourTrouCipav,
+      libelle: "Fin des IJ CPAM — trou de couverture CIPAV (aucun relais)",
+      impactNet: idx > 0 ? sumAtIdx(series, idx) - sumAtIdx(series, idx - 1) : 0,
+      type: "trou_cipav",
     });
   }
 
@@ -747,6 +766,17 @@ export function projeterArretMaladie(
   const J_RELAIS_CARMF = 91;
   const jourFinInvalCarmf = isCarmf ? jourFinInvaliditeCarmf(entree.age) : 0;
 
+  // CIPAV (libéraux non réglementés) : architecture distincte. IJ libéraux
+  // J4-J90 (barème dédié, cf. cipav.ts), TROU J91→1095 (aucun relais — la
+  // courbe IJ tombe à 0), puis pension d'invalidité par points jusqu'au
+  // cutoff (62 ans totale / 67 ans partielle). Activé par `entree.cipav`.
+  const isCipav = entree.cipav != null;
+  const cipavRef = (ref as { cipav?: unknown }).cipav;
+  const J_TROU_CIPAV = 91;
+  const jourFinInvalCipav = isCipav
+    ? jourFinInvaliditeCipav(cipavRef, entree.age, entree.cipav!.tauxInvalidite)
+    : 0;
+
   // Mi-temps thérapeutique (SPEC_ALD_TPT §5). Le TPT n'a de sens qu'en
   // phase AM : finJour est borné à la bascule invalidité (1095) et le TPT
   // est ignoré si debutJour ≥ 1095 ou si l'intervalle est vide.
@@ -767,6 +797,7 @@ export function projeterArretMaladie(
     finPartiel,
     ...(tptActif ? [tptDebut, tptFin] : []),
     ...(isCarmf ? [J_RELAIS_CARMF, jourFinInvalCarmf] : []),
+    ...(isCipav ? [J_TROU_CIPAV, jourFinInvalCipav] : []),
   ].filter((j): j is number => j !== null);
   const axe = insertJoursAxe(buildAxe(entree, today), joursEvenements, today, finJour);
 
@@ -847,6 +878,11 @@ export function projeterArretMaladie(
       }
       return computeIjCarmfJournaliere(carmfRef, entree.carmf!, entree.age, t) * 30;
     }
+    if (isCipav) {
+      // Phase 1 IJ libéraux J4-J90 ; au-delà (J91+) : TROU, aucun relais.
+      // ijCipavPhase1Journaliere renvoie déjà 0 hors fenêtre J4-J90.
+      return ijCipavPhase1Journaliere(cipavRef, entree.cipav!, t) * 30;
+    }
     return computeIJObligatoireMensuel(
       t, caisseRef, entree, revenuMensuelTNS, salaireBrutMensuel, plafondVars, scenarioArret
     );
@@ -856,8 +892,12 @@ export function projeterArretMaladie(
   // ALD → on retombe sur 360 j et on signale la donnée manquante
   // (cohérent avec la tolérance TO_VERIFY). Aucune caisse documentée
   // actuelle (CPAM, SSI) n'est concernée : elles portent les deux durées.
+  // CIPAV : la branche dédiée gère intégralement les durées (IJ libéraux
+  // J4-J90 puis trou) ; le stub caisse générique n'est pas consulté, donc
+  // son absence de durée ALD ne doit PAS lever de faux « données indisponibles ».
   let donneesIndisponibles =
     scenarioArret === "ald" &&
+    !isCipav &&
     !isCaisseToFill(caisseRef) &&
     caisseRef.ij?.TO_FILL !== true &&
     resolvePlafondDuree(caisseRef.ij, scenarioArret).aldManquant;
@@ -976,6 +1016,16 @@ export function projeterArretMaladie(
           series.renteInvalEnfants[i] =
             renteEnfantsInvaliditeAnnuelle(carmfRef, entree.carmf!, nbEnf) / 12;
         }
+      } else if (isCipav) {
+        // Pension d'invalidité CIPAV (forfait + points), versée jusqu'au
+        // cutoff (62 ans totale / 67 ans partielle). Au-delà : 0 (bascule
+        // retraite, hors périmètre). Les rentes conjoint/enfant CIPAV sont
+        // des prestations DÉCÈS (fonctions pures de cipav.ts), pas des
+        // étages de la courbe invalidité → renteInvalEnfants reste 0.
+        if (t < jourFinInvalCipav) {
+          series.pensionInvalObligatoire[i] =
+            pensionInvaliditeCipavAnnuelle(cipavRef, entree.cipav!) / 12;
+        }
       } else {
         const inv = computeInvalObligatoireMensuel(
           caisseRef,
@@ -1028,7 +1078,8 @@ export function projeterArretMaladie(
     isSalarie,
     donneesIndisponibles,
     tptActif ? { debut: tptDebut, fin: tptFin, guerison: tptGuerison } : null,
-    isCarmf ? J_RELAIS_CARMF : null
+    isCarmf ? J_RELAIS_CARMF : null,
+    isCipav ? J_TROU_CIPAV : null
   );
 
   const useLegalDefault =

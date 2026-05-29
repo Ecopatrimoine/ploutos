@@ -46,6 +46,7 @@ import { BlocCouvertureCollective } from "../prevoyance/BlocCouvertureCollective
 import { BlocContratsIndividuels } from "../prevoyance/BlocContratsIndividuels";
 import { BlocTpt } from "../prevoyance/BlocTpt";
 import { BlocCarmf, defaultCarmf } from "../prevoyance/BlocCarmf";
+import { BlocCipav, defaultCipav } from "../prevoyance/BlocCipav";
 
 function defaultPrevoyancePerso(): PayloadPrevoyancePerso {
   return {
@@ -214,6 +215,11 @@ function ColonnePerso({
   // applique une configuration par défaut pour activer la projection CARMF.
   const estCarmf = entreeBase.caisse === "CARMF";
   const carmfConfig = estCarmf ? prevoyancePerso.carmf ?? defaultCarmf(entreeBase) : undefined;
+  // CIPAV (libéraux non réglementés) : sous-objet `cipav` requis par le
+  // moteur (IJ libéraux → trou → invalidité par points). Config par défaut
+  // à défaut de saisie, pour activer la projection CIPAV.
+  const estCipav = entreeBase.caisse === "CIPAV";
+  const cipavConfig = estCipav ? prevoyancePerso.cipav ?? defaultCipav(entreeBase) : undefined;
 
   // L'entree complete = mapping travail + saisies UI (contrats + couverture)
   const entree: EntreePerso = React.useMemo(
@@ -224,8 +230,9 @@ function ColonnePerso({
       contratsIndividuels: prevoyancePerso.contratsIndividuels as unknown as MoteurContratIndividuel[],
       couvertureCollective: prevoyancePerso.couvertureCollective as unknown as MoteurCouvertureCollective | null,
       carmf: carmfConfig,
+      cipav: cipavConfig,
     }),
-    [entreeBase, prevoyancePerso.contratsIndividuels, prevoyancePerso.couvertureCollective, carmfConfig]
+    [entreeBase, prevoyancePerso.contratsIndividuels, prevoyancePerso.couvertureCollective, carmfConfig, cipavConfig]
   );
 
   const categorie = prevoyancePerso.categorieInvaliditeProjetee;
@@ -292,6 +299,11 @@ function ColonnePerso({
       {/* Paramètres CARMF (médecins libéraux) */}
       {estCarmf && carmfConfig && (
         <BlocCarmf value={carmfConfig} onChange={(next) => onChangePrevoyance({ carmf: next })} />
+      )}
+
+      {/* Paramètres CIPAV (libéraux non réglementés) */}
+      {estCipav && cipavConfig && (
+        <BlocCipav value={cipavConfig} onChange={(next) => onChangePrevoyance({ cipav: next })} />
       )}
 
       {/* Sélecteur scénario d'arrêt */}

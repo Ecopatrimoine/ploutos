@@ -1,0 +1,73 @@
+{
+  "caisse": "CIPAV",
+  "libelle": "Caisse interprofessionnelle de prévoyance et d'assurance vieillesse",
+  "millesime": 2026,
+  "dateVerification": "2026-05-29",
+  "_sources": {
+    "ij_cpam_liberaux": "ameli.fr (arret-maladie profession liberale) + lacipav.fr/dispositif-indemnites-journalieres",
+    "invalidite": "lacipav.fr/pension-invalidite (valeurs 2026)",
+    "capital_deces": "lacipav.fr/capital-deces (valeurs 2026)",
+    "rentes": "lacipav.fr/rente-conjoint-enfant (valeurs 2026)"
+  },
+  "_architecture": "DIFFERENTE de la CARMF : phase 1 IJ libéraux J4-J90, phase 2 trou (0 € J91 → invalidité, aucun relais), phase 3 pension invalidité CIPAV. Bloc source complet : docs/bloc-cipav-2026.json.",
+
+  "pass": {
+    "annuel": 48060,
+    "_source": "ameli.fr / lacipav.fr 2026"
+  },
+
+  "ijCpamLiberaux": {
+    "_note": "Dispositif IJ des libéraux affiliés au régime général (commun 2021). RAAM/730, plafonné à 3×PASS, plancher 26,33 €/j. NE PAS confondre avec le bloc CPAM salarié (cap 41,95 €/j) — barème distinct.",
+    "carenceJours": 3,
+    "premierJourIndemnise": 4,
+    "dernierJourIndemnise": 90,
+    "diviseurRAAM": 730,
+    "raamPlafondAnnuel": 144180,
+    "_raamPlafond_detail": "3 × PASS = 3 × 48 060 = 144 180 € (2026)",
+    "ijMaxJournaliere": 197.51,
+    "_ijMax_detail": "144 180 / 730 = 197,51 €/j (revenu ≥ 3 PASS). Source ameli.fr 01/01/2026.",
+    "ijMinJournaliere": 26.33,
+    "_ijMin_detail": "Plancher 2026 : 26,33 €/j (revenu forfaitaire 40 % PASS = 19 224 €). NE s'applique PAS aux micro-entrepreneurs (non modélisé en v1).",
+    "seuilEligibiliteRevenu": 4806,
+    "_seuil_detail": "Revenu ≥ 10 % PASS (4 806 € en 2026). _aVerifier : recalculé vs 4 113 € (newsletter 2021).",
+    "affiliationMinMois": 12,
+    "_affiliation_detail": "Affilié depuis ≥ 1 an à la date du constat médical, sinon pas d'IJ (trou total dès J4)."
+  },
+
+  "pointsPrevoyance": {
+    "_note": "Socle commun invalidité / décès / rentes (réforme 2023, fin des classes A-H).",
+    "cotisationInvDecesTaux": 0.005,
+    "_cotisation_detail": "0,50 % du revenu déclaré.",
+    "valeurAchatPoint": 0.013,
+    "valeurServicePoint": 3.01,
+    "_formulePoints": "points = (revenu × 0,005) / 0,013"
+  },
+
+  "invalidite": {
+    "forfaitAnnuel": 2403,
+    "_forfait_detail": "5 % du PASS 2026 = 0,05 × 48 060 = 2 403 €. Coquille source CIPAV (2 355) écartée : 2 403 redonne leur exemple officiel 8 096,75 €.",
+    "diviseurPoints": 3,
+    "_formuleTotale": "pension_totale_annuelle = 2 403 + (points / 3) × 3,01",
+    "seuilTauxMinimal": 66,
+    "_seuilTaux_detail": "< 66 % : pas de pension. 66-99 % : partielle = totale × taux/100. 100 % : totale.",
+    "cutoffAgeTotale": 62,
+    "cutoffAgePartielle": 67
+  },
+
+  "capitalDeces": {
+    "forfait": 7209,
+    "_forfait_detail": "15 % du PASS 2026 = 0,15 × 48 060 = 7 209 €.",
+    "diviseurPoints": 1,
+    "_formule": "capital = 7 209 + points × 3,01 (points ENTIERS, pas de division). Exonéré.",
+    "majorationDecesAccidentelPoints": 5000,
+    "_majoration_detail": "Décès accidentel : +5 000 points avant multiplication par 3,01."
+  },
+
+  "rentes": {
+    "_note": "Rente conjoint ET rente enfant : MÊME formule. Rente enfant versée PAR enfant.",
+    "forfaitAnnuel": 720.90,
+    "_forfait_detail": "1,5 % du PASS 2026 = 0,015 × 48 060 = 720,90 €.",
+    "diviseurPoints": 10,
+    "_formule": "rente_annuelle = 720,90 + (points / 10) × 3,01"
+  }
+}

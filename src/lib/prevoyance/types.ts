@@ -4,9 +4,9 @@
 // et les adapters Pack PDF v2 (Lot 9). Toutes les valeurs monétaires
 // sont en EUROS / MOIS (sauf indication contraire dans les commentaires).
 
-import type { CarmfConfig, CodeCaisse, NatureContrat, StatutPro, TptConfig } from "../../types/patrimoine";
+import type { CarmfConfig, CipavConfig, CodeCaisse, NatureContrat, StatutPro, TptConfig } from "../../types/patrimoine";
 
-export type { TptConfig, CarmfConfig };
+export type { TptConfig, CarmfConfig, CipavConfig };
 
 // Catégorie d'invalidité retenue pour la projection.
 //   cat1 : capable d'exercer une activité réduite (taux base ~30 %)
@@ -92,6 +92,10 @@ export type EntreePerso = {
   // Paramètres CARMF (médecins libéraux). Présent → le moteur applique
   // l'architecture 2 étages CPAM/CARMF et l'invalidité CARMF.
   carmf?: CarmfConfig;
+  // Paramètres CIPAV (libéraux non réglementés). Présent → le moteur
+  // applique l'architecture CIPAV : IJ libéraux J4-J90, trou J91→1095,
+  // puis pension d'invalidité par points (cf. cipav.ts).
+  cipav?: CipavConfig;
 };
 
 // Série empilée — chaque tableau est aligné sur axe[]. Tous les
@@ -119,6 +123,7 @@ export type RuptureType =
   | "debut_tpt"
   | "fin_tpt"
   | "relais_carmf"
+  | "trou_cipav"
   | "bascule_invalidite"
   | "fin_invalidite"
   | "donnees_indisponibles"

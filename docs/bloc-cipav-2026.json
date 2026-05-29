@@ -1,0 +1,183 @@
+{
+  "caisse": "CIPAV",
+  "libelle": "Caisse interprofessionnelle de prévoyance et d'assurance vieillesse",
+  "millesime": 2026,
+  "audience": "Professions libérales non réglementées affiliées CIPAV (19 professions depuis 2018) : architectes, ingénieurs-conseil, moniteurs de ski, ostéopathes, psychologues, psychothérapeutes, ergothérapeutes, diététiciens, guides-conférenciers, etc.",
+  "_sources": {
+    "ij_cpam": "https://www.ameli.fr/assure/remboursements/indemnites-journalieres-maladie-maternite-paternite/arret-maladie-profession-liberale (consulté 29/05/2026)",
+    "ij_cipav_dispositif": "https://www.lacipav.fr/dispositif-indemnites-journalieres (newsletter 2021, valeurs IJ actualisées via ameli 2026)",
+    "invalidite": "https://www.lacipav.fr/pension-invalidite (consulté 29/05/2026, valeurs 2026)",
+    "capital_deces": "https://www.lacipav.fr/capital-deces (consulté 29/05/2026, valeurs 2026)",
+    "rentes": "https://www.lacipav.fr/rente-conjoint-enfant (consulté 29/05/2026, valeurs 2026)"
+  },
+
+  "pass": {
+    "valeur_2026": 48060,
+    "_source": "ameli.fr / lacipav.fr 2026"
+  },
+
+  "architecture": {
+    "description": "ATTENTION : architecture DIFFÉRENTE de la CARMF. La CIPAV n'a PAS de régime d'IJ propre prenant le relais après J90. Trois phases :",
+    "phase_1_cpam": {
+      "bornes_jours": "J4 à J90 (87 IJ max pour un arrêt continu)",
+      "regime": "CPAM / régime général libéraux (dispositif commun 2021)",
+      "note": "MÊME barème que la phase J4-J90 CARMF : réutiliser le bloc CPAM libéraux existant"
+    },
+    "phase_2_trou": {
+      "bornes_jours": "J91 jusqu'à reconnaissance invalidité",
+      "regime": "AUCUN - chute à 0 d'IJ",
+      "note": "C'EST LE TROU DE COUVERTURE CIPAV. Aucun relais équivalent à la CARMF. Point pédagogique central en RDV."
+    },
+    "phase_3_invalidite": {
+      "bornes": "à compter de la reconnaissance d'invalidité totale/partielle, jusqu'à 62 ans (totale) ou 67 ans / liquidation retraite (partielle)",
+      "regime": "Pension d'invalidité CIPAV (forfaitaire + proportionnelle par points)"
+    }
+  },
+
+  "ij_cpam_libéraux": {
+    "_note": "Strictement identique au dispositif appliqué en phase J4-J90 de la CARMF. Mécanique commune à toutes les libérales affiliées au régime général pour les IJ.",
+    "delai_carence_jours": 3,
+    "premier_jour_indemnise": 4,
+    "dernier_jour_indemnise": 90,
+    "duree_max_arret_continu_jours": 87,
+    "duree_max_glissante_3ans_jours": 360,
+    "_note_360": "Le plafond de 360 IJ sur 3 ans glissants ne concerne QUE le cumul de plusieurs arrêts non consécutifs. Pour une projection mono-arrêt continu, seul le plafond 87 jours s'applique. Non implémenté (hors périmètre projection continue).",
+    "formule": "1/730e du RAAM (revenu d'activité annuel moyen des 3 dernières années civiles)",
+    "_formule_detail": "IJ = RAAM / 730, soit ~50% du revenu moyen ramené au jour",
+    "raam_plafond_annuel": 144180,
+    "_raam_plafond_detail": "3 x PASS = 3 x 48 060 = 144 180 € (2026)",
+    "ij_max_jour": 197.51,
+    "_ij_max_source": "ameli.fr : 197,51 € bruts au 1er janvier 2026 (revenu >= 3 PASS)",
+    "ij_min_jour": 26.33,
+    "_ij_min_detail": "Plancher 2026 : 26,33 €/j, calculé sur revenu forfaitaire de 40% du PASS (19 224 €). NE s'applique PAS aux micro-entrepreneurs.",
+    "seuil_eligibilite_revenu": 4806,
+    "_seuil_detail": "Revenu annuel >= 10% du PASS (4 806 € en 2026) pour ouvrir droit aux IJ. NB : la newsletter CIPAV 2021 citait 4 113 € (ancien PASS) ; recalculé sur PASS 2026.",
+    "condition_affiliation": "Affilié depuis au moins 1 an à la date du constat médical",
+    "fiscalite": "IJ soumises à CSG 6,2% + CRDS 0,5% + IR, SAUF arrêt en ALD exonérante",
+    "_aVerifier": ["seuil_eligibilite_revenu recalculé (4 806 € vs 4 113 € newsletter) — confirmer le mode de calcul exact 10% PASS"]
+  },
+
+  "invalidite": {
+    "_source": "https://www.lacipav.fr/pension-invalidite",
+    "definition_totale": "Taux d'invalidité = 100%. Aptitudes irréversibles. Versement jusqu'à 62 ans, puis retraite pour inaptitude.",
+    "definition_partielle": "Taux entre 66% et 99%. Versement jusqu'à liquidation retraite ou 67 ans si poursuite d'activité.",
+    "seuil_minimal_taux": 66,
+    "_seuil_note": "Réduction d'au moins deux tiers de la capacité de travail requise",
+    "cutoff_age_totale": 62,
+    "cutoff_age_partielle": 67,
+    "formule": {
+      "partie_forfaitaire_annuelle": 2403,
+      "_forfait_detail": "5% du PASS 2026 = 0,05 x 48 060 = 2 403 €",
+      "partie_proportionnelle": {
+        "description": "Basée sur le TIERS des points prévoyance",
+        "cotisation_invalidite_deces_taux": 0.005,
+        "_cotisation_detail": "0,50% du revenu déclaré l'année précédente",
+        "valeur_achat_point": 0.013,
+        "valeur_service_point": 3.01,
+        "formule_points": "points = (revenu x 0,005) / 0,013",
+        "formule_montant": "proportionnel_annuel = (points / 3) x 3,01",
+        "_formule_complete": "pension_totale_annuelle = 2403 + ((revenu x 0,005 / 0,013) / 3) x 3,01"
+      },
+      "invalidite_partielle_calcul": "pension_partielle = pension_totale x (taux_invalidite / 100)"
+    },
+    "_exemple_officiel_verifie": {
+      "profil": "Revenu 20 000 €, invalidité totale 100%",
+      "cotisation": "20 000 x 0,5% = 100 €",
+      "points": "100 / 0,013 = 7 692,3 points",
+      "proportionnel": "7 692,3 / 3 x 3,01 = 7 717,94 €",
+      "forfaitaire": "2 403 €",
+      "total_annuel": "10 120,94 €",
+      "total_mensuel": "843,41 €"
+    },
+    "_exemple_partiel_verifie": {
+      "profil": "Revenu 20 000 €, invalidité partielle 80%",
+      "calcul": "(7 717,94 + 2 403) x 80%",
+      "_note_anomalie_source": "L'exemple officiel CIPAV écrit (7 717,94 + 2 355) x 80% = 8 096,75 € — incohérence interne de leur page (2 355 vs 2 403). En recalculant proprement avec 2 403 : (7 717,94 + 2 403) x 0,8 = 8 096,75 €. Le résultat 8 096,75 € correspond bien à 2 403, le 2 355 est une coquille de leur page. On retient 2 403.",
+      "total_annuel_retenu": "8 096,75 €",
+      "total_mensuel": "674,73 €"
+    }
+  },
+
+  "capital_deces": {
+    "_source": "https://www.lacipav.fr/capital-deces",
+    "exonere_fiscalite": true,
+    "_exoneration_detail": "Exonéré d'impôts et de prélèvements sociaux, versé en une fois",
+    "formule": {
+      "partie_forfaitaire": 7209,
+      "_forfait_detail": "15% du PASS 2026 = 0,15 x 48 060 = 7 209 €",
+      "partie_proportionnelle": {
+        "description": "Points prévoyance ENTIERS (pas de division, contrairement à invalidité /3 et rentes /10)",
+        "formule_points": "points = (revenu x 0,005) / 0,013",
+        "formule_montant": "proportionnel = points x 3,01",
+        "_formule_complete": "capital = 7209 + (revenu x 0,005 / 0,013) x 3,01"
+      },
+      "majoration_deces_accidentel_points": 5000,
+      "_majoration_detail": "En cas de décès accidentel, +5 000 points ajoutés au nombre de points avant multiplication par 3,01"
+    },
+    "_exemple_officiel_verifie": {
+      "profil": "Revenu 20 000 €",
+      "points": "7 692,3 points",
+      "proportionnel": "7 692,3 x 3,01 = 23 153,82 €",
+      "forfaitaire": "7 209 €",
+      "total": "30 362,82 €"
+    }
+  },
+
+  "rente_conjoint": {
+    "_source": "https://www.lacipav.fr/rente-conjoint-enfant",
+    "beneficiaires": "Conjoint marié ou partenaire PACS de l'assuré actif décédé",
+    "duree": "Jusqu'au départ à la retraite du bénéficiaire ou remariage",
+    "formule": {
+      "partie_forfaitaire_annuelle": 720.9,
+      "_forfait_detail": "1,5% du PASS 2026 = 0,015 x 48 060 = 720,90 €",
+      "partie_proportionnelle": {
+        "description": "Basée sur le DIXIÈME des points prévoyance",
+        "formule_points": "points = (revenu x 0,005) / 0,013",
+        "formule_montant": "proportionnel_annuel = (points / 10) x 3,01",
+        "_formule_complete": "rente_annuelle = 720,90 + ((revenu x 0,005 / 0,013) / 10) x 3,01"
+      }
+    },
+    "_exemple_officiel_verifie": {
+      "profil": "Revenu 20 000 €",
+      "points": "7 692,3 points",
+      "proportionnel": "7 692,3 / 10 x 3,01 = 2 315,38 €",
+      "forfaitaire": "720,90 €",
+      "total_annuel": "3 036,28 €",
+      "total_mensuel": "253,02 €"
+    }
+  },
+
+  "rente_enfant": {
+    "_source": "https://www.lacipav.fr/rente-conjoint-enfant",
+    "_note": "MÊME formule que la rente conjoint (forfait 1,5% PASS + 1/10 des points). Versée PAR enfant.",
+    "beneficiaires": "Chaque enfant de l'assuré décédé",
+    "duree": "Jusqu'à 21 ans, ou 25 ans si poursuite d'études. À vie si infirmité permanente survenue avant la majorité.",
+    "formule": {
+      "partie_forfaitaire_annuelle": 720.9,
+      "partie_proportionnelle": {
+        "formule_montant": "proportionnel_annuel = (points / 10) x 3,01",
+        "_formule_complete": "rente_annuelle_par_enfant = 720,90 + ((revenu x 0,005 / 0,013) / 10) x 3,01"
+      }
+    },
+    "_exemple_officiel_verifie": {
+      "profil": "Revenu 20 000 €, 2 enfants",
+      "rente_par_enfant_annuelle": "3 036,28 €",
+      "rente_par_enfant_mensuelle": "253,02 €",
+      "_note": "Chaque enfant perçoit ce montant indépendamment"
+    }
+  },
+
+  "conjoint_collaborateur": {
+    "_aVerifier": "Contrairement à la CARMF, la gestion du conjoint collaborateur CIPAV (option quart/moitié sur les droits) n'est PAS documentée sur les pages prévoyance lacipav.fr consultées. À vérifier avant d'implémenter une option conjoint collaborateur côté CIPAV. Par défaut : ne PAS proposer l'option conjoint collaborateur pour CIPAV tant que non confirmé."
+  },
+
+  "hypotheses_a_valider": [
+    "H1 — Phase 2 (J91→invalidité) modélisée comme chute à 0 d'IJ (le trou réel). Validé par David.",
+    "H2 — IJ CPAM J4-J90 réutilise le bloc CPAM libéraux existant (identique CARMF). À confirmer côté code que le bloc est bien factorisable.",
+    "H3 — Coquille source CIPAV sur le forfait invalidité (2 355 vs 2 403) : on retient 2 403 € (5% PASS), cohérent avec le résultat 8 096,75 € de leur propre exemple.",
+    "H4 — Seuil éligibilité IJ recalculé à 4 806 € (10% PASS 2026) au lieu de 4 113 € (newsletter 2021).",
+    "H5 — Conjoint collaborateur CIPAV NON implémenté (non documenté à la source). _aVerifier.",
+    "H6 — La 'cotisation invalidité-décès' = 0,5% du revenu déclaré. Le revenu de référence pour les prestations décès/invalidité/rentes = revenu déclaré de l'année N-1 (année avant le sinistre). À confirmer que le moteur utilise bien le revenu N-1 et non N-2 (la CARMF utilise N-2 pour les IJ, mais la CIPAV parle de 'l'année avant le décès/l'invalidité').",
+    "H7 — Cutoff invalidité totale à 62 ans (comme CARMF). Partielle jusqu'à 67 ans : à modéliser ou simplifier ? Proposition v1 : traiter l'invalidité TOTALE en priorité (cas le plus parlant en RDV), invalidité partielle en option."
+  ]
+}
