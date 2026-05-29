@@ -47,6 +47,7 @@ import { BlocContratsIndividuels } from "../prevoyance/BlocContratsIndividuels";
 import { BlocTpt } from "../prevoyance/BlocTpt";
 import { BlocCarmf, defaultCarmf } from "../prevoyance/BlocCarmf";
 import { BlocCipav, defaultCipav } from "../prevoyance/BlocCipav";
+import { BlocCarpimko, defaultCarpimko } from "../prevoyance/BlocCarpimko";
 
 function defaultPrevoyancePerso(): PayloadPrevoyancePerso {
   return {
@@ -220,6 +221,10 @@ function ColonnePerso({
   // à défaut de saisie, pour activer la projection CIPAV.
   const estCipav = entreeBase.caisse === "CIPAV";
   const cipavConfig = estCipav ? prevoyancePerso.cipav ?? defaultCipav(entreeBase) : undefined;
+  // CARPIMKO (auxiliaires médicaux) : sous-objet `carpimko` requis par le
+  // moteur (IJ libéraux → allocation forfaitaire → rente invalidité forfaitaire).
+  const estCarpimko = entreeBase.caisse === "CARPIMKO";
+  const carpimkoConfig = estCarpimko ? prevoyancePerso.carpimko ?? defaultCarpimko(entreeBase) : undefined;
 
   // L'entree complete = mapping travail + saisies UI (contrats + couverture)
   const entree: EntreePerso = React.useMemo(
@@ -231,8 +236,9 @@ function ColonnePerso({
       couvertureCollective: prevoyancePerso.couvertureCollective as unknown as MoteurCouvertureCollective | null,
       carmf: carmfConfig,
       cipav: cipavConfig,
+      carpimko: carpimkoConfig,
     }),
-    [entreeBase, prevoyancePerso.contratsIndividuels, prevoyancePerso.couvertureCollective, carmfConfig, cipavConfig]
+    [entreeBase, prevoyancePerso.contratsIndividuels, prevoyancePerso.couvertureCollective, carmfConfig, cipavConfig, carpimkoConfig]
   );
 
   const categorie = prevoyancePerso.categorieInvaliditeProjetee;
@@ -304,6 +310,11 @@ function ColonnePerso({
       {/* Paramètres CIPAV (libéraux non réglementés) */}
       {estCipav && cipavConfig && (
         <BlocCipav value={cipavConfig} onChange={(next) => onChangePrevoyance({ cipav: next })} />
+      )}
+
+      {/* Paramètres CARPIMKO (auxiliaires médicaux) */}
+      {estCarpimko && carpimkoConfig && (
+        <BlocCarpimko value={carpimkoConfig} onChange={(next) => onChangePrevoyance({ carpimko: next })} />
       )}
 
       {/* Sélecteur scénario d'arrêt */}

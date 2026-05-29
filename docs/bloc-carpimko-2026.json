@@ -1,0 +1,138 @@
+{
+  "caisse": "CARPIMKO",
+  "libelle": "Caisse autonome de retraite et de prévoyance des auxiliaires médicaux",
+  "millesime": 2026,
+  "audience": "Auxiliaires médicaux libéraux : masseurs-kinésithérapeutes, infirmiers (IDEL), orthophonistes, orthoptistes, pédicures-podologues.",
+  "_sources": {
+    "cotisation_inv_deces": "https://www.carpimko.com/je-suis-en-activite/ma-prevoyance/ma-cotisation-invalidite-deces (consulté 29/05/2026) : 1 022 € en 2026, forfaitaire indépendant du revenu",
+    "ij_invalidite": "https://www.carpimko.com/je-suis-en-activite/ma-prevoyance/en-cas-dincapacite-ou-dinvalidite (consulté 29/05/2026) : tableau IJ 2026 officiel",
+    "ij_cpam": "https://www.ameli.fr/.../arret-maladie-profession-liberale (dispositif libéraux 2021, mêmes bornes que CARMF/CIPAV)",
+    "deces_rentes": "carpimko.com (page décès, contenu pollué par menu DNN) + agrégateurs spécialisés concordants : APICIL, MetLife, CapMedical, philtr, caduceeconseil (consultés 29/05/2026)",
+    "_note_methode": "Les pages carpimko.com sur un CMS DNN renvoient un HTML saturé par le menu de navigation. Les montants invalidité/décès/rentes ont été recoupés sur 4+ agrégateurs spécialisés citant la CARPIMKO, tous concordants. Les valeurs IJ et cotisation viennent directement des pages officielles. Points divergents marqués _aVerifier."
+  },
+
+  "pass": { "valeur_2026": 48060 },
+
+  "architecture": {
+    "description": "Modèle PROCHE de la CARMF (relais IJ propre à J91), MAIS prestations CARPIMKO entièrement FORFAITAIRES (indépendantes du revenu), contrairement à CARMF (IJ liées au revenu) et CIPAV (points proportionnels). Trois phases :",
+    "phase_1_cpam": {
+      "bornes_jours": "J4 à J90 (87 IJ max arrêt continu)",
+      "regime": "CPAM / régime général libéraux (dispositif commun 2021)",
+      "note": "IDENTIQUE aux phases J4-J90 CARMF et CIPAV. Réutiliser le bloc CPAM libéraux. IJ liée au revenu (1/730e RAAM)."
+    },
+    "phase_2_carpimko_ij": {
+      "bornes_jours": "J91 jusqu'à la fin de la 3e année d'incapacité (dernier jour de la 3e année)",
+      "regime": "Allocation journalière CARPIMKO FORFAITAIRE",
+      "montant_base_jour": 55.44,
+      "note": "Forfaitaire 55,44 €/j quel que soit le revenu. Relais à partir de J91. NB : la majoration conjoint à charge sur les IJ a été SUPPRIMÉE au 01/01/2025."
+    },
+    "phase_3_invalidite": {
+      "bornes": "à compter du 1er jour de la 4e année suivant l'incapacité (succède à l'allocation journalière), forfaitaire",
+      "regime": "Rente d'invalidité CARPIMKO forfaitaire (totale ou partielle)"
+    }
+  },
+
+  "ij_cpam_libéraux": {
+    "_note": "Identique CARMF/CIPAV (dispositif commun 2021). Voir blocs précédents.",
+    "delai_carence_jours": 3,
+    "premier_jour_indemnise": 4,
+    "dernier_jour_indemnise": 90,
+    "duree_max_arret_continu_jours": 87,
+    "formule": "1/730e du RAAM (moyenne 3 dernières années)",
+    "raam_plafond_annuel": 144180,
+    "ij_max_jour": 197.51,
+    "ij_min_jour": 26.33,
+    "_revenu_reference": "N-2 (cohérence module, voir CIPAV H6 tranché)"
+  },
+
+  "ij_carpimko_phase2": {
+    "_source": "carpimko.com page incapacité, tableau 2026",
+    "montant_base_jour": 55.44,
+    "_base_mensuel_indicatif": "≈ 1 663 €/mois (55,44 x 30)",
+    "forfaitaire": true,
+    "_forfaitaire_note": "Montant identique pour tous, INDÉPENDANT du revenu.",
+    "majoration_descendant_a_charge_jour": 8.06,
+    "majoration_tierce_personne_jour": 20.16,
+    "majoration_conjoint_supprimee": true,
+    "_majoration_conjoint_note": "La majoration pour conjoint à charge sur les IJ a été SUPPRIMÉE au 01/01/2025 (confirmé MetLife/Previssima). Ne PAS l'inclure.",
+    "reprise_therapeutique": "55,44 €/j pendant 3 mois puis 27,72 €/j pendant 6 mois max",
+    "reprise_activite_partielle_jour": 27.72,
+    "borne_debut_jour": 91,
+    "borne_fin": "dernier jour de la 3e année d'incapacité",
+    "_duree_note": "La 'durée max' diverge selon les sources secondaires (1095 j = 3x365 vs 1005 j vs 'jusqu'au dernier jour de la 3e année'). La page officielle CARPIMKO dit 'au plus tard jusqu'au dernier jour de la 3e année d'incapacité'. RETENU : borne = fin de la 3e année à compter de l'incapacité (≈ J91 → ~J1095). _aVerifier la borne exacte au jour près.",
+    "conditions": "Demande dans les 6 mois du 1er jour d'arrêt + à jour de toutes cotisations CARPIMKO + arrêt CPAM non transmis automatiquement (démarche active).",
+    "_aVerifier": ["Durée exacte du versement (1095 vs 1005 j) — divergence sources secondaires, page officielle dit 'fin de la 3e année'."]
+  },
+
+  "invalidite": {
+    "_source": "carpimko.com page incapacité/invalidité + agrégateurs concordants",
+    "debut": "1er jour de la 4e année suivant l'incapacité (prend la suite de l'allocation journalière)",
+    "forfaitaire": true,
+    "_forfaitaire_note": "Rentes FORFAITAIRES, indépendantes du revenu (contrairement CARMF/CIPAV).",
+    "seuil_minimal_taux": 66,
+    "invalidite_partielle": {
+      "taux": "66% à 99%",
+      "rente_annuelle": 10080,
+      "_mensuel": "840 €/mois"
+    },
+    "invalidite_totale": {
+      "taux": "100%",
+      "rente_annuelle": 20160,
+      "_mensuel": "1 680 €/mois"
+    },
+    "sous_66pct": {
+      "rente_annuelle": 0,
+      "_note": "En dessous de 66% : aucune indemnisation (vide de couverture)."
+    },
+    "majorations_invalidite_totale": {
+      "tierce_personne_annuelle": 6048,
+      "enfant_a_charge_annuelle": 3024,
+      "_aVerifier": "Divergence sources sur la majoration enfant : APICIL cite '6 048 €/an en cas de personne à charge' (formulation ambiguë), assurances-prevoyance cite '3 024 €/an par enfant (réforme 2025)' + '6 048 €/an tierce personne'. RETENU provisoirement : tierce personne 6 048 €/an, enfant 3 024 €/an. À confirmer à la source (page invalidité officielle illisible via fetch)."
+    }
+  },
+
+  "capital_deces": {
+    "_source": "carpimko.com page décès + CapMedical/philtr concordants",
+    "forfaitaire": true,
+    "conjoint_sans_descendant": 36288,
+    "conjoint_avec_descendant_a_charge": 54432,
+    "ascendant_ou_descendant_sans_ayant_droit": 18144,
+    "_note_pacs": "Garanties décès étendues aux couples PACSés depuis juillet 2024.",
+    "_note": "Montants forfaitaires, indépendants du revenu."
+  },
+
+  "rente_conjoint": {
+    "_source": "carpimko.com + APICIL/philtr concordants",
+    "forfaitaire": true,
+    "rente_annuelle": 10080,
+    "_note": "Rente de survie au conjoint. Forfaitaire. (philtr exprime aussi en trimestriel : 2 520 €/trimestre x 4 = 10 080 €/an, cohérent.)"
+  },
+
+  "rente_education_enfant": {
+    "_source": "carpimko.com + APICIL/philtr concordants",
+    "forfaitaire": true,
+    "rente_annuelle_par_enfant": 7560,
+    "_trimestriel": "1 890 €/trimestre x 4 = 7 560 €/an",
+    "duree": "jusqu'à 18 ans, ou 25 ans si études (philtr) — _aVerifier borne d'âge exacte",
+    "_aVerifier": ["Borne d'âge rente éducation : 18 ans ou 21 ans de base, 25 si études — sources divergent légèrement (18/25 vs 21/25)."]
+  },
+
+  "cotisation_invalidite_deces": {
+    "_source": "carpimko.com officiel",
+    "montant_annuel_2026": 1022,
+    "forfaitaire": true,
+    "_note": "Cotisation FORFAITAIRE, indépendante du revenu (1 022 € depuis 2024, gelée). Obligatoire jusqu'à l'âge du taux plein, puis facultative jusqu'à 70 ans. Non utilisée directement dans le calcul de projection (les prestations sont forfaitaires, pas proportionnelles aux cotisations) — utile pour le constat de charges éventuellement."
+  },
+
+  "hypotheses_a_valider": [
+    "H1 — Phase 1 (J4-J90) = bloc CPAM libéraux réutilisé (identique CARMF/CIPAV).",
+    "H2 — Phase 2 IJ CARPIMKO forfaitaire 55,44 €/j de J91 à fin 3e année. Majoration conjoint SUPPRIMÉE (01/01/2025) → ne PAS l'inclure. Majorations descendant 8,06 €/j et tierce personne 20,16 €/j conservées.",
+    "H3 — Phase 3 invalidité forfaitaire : partielle (66-99%) 10 080 €/an, totale (100%) 20 160 €/an, sous 66% = 0. Débute en 4e année.",
+    "H4 — Majorations invalidité totale : tierce personne 6 048 €/an, enfant 3 024 €/an. DIVERGENCE sources → TO_VERIFY.",
+    "H5 — Durée IJ phase 2 : 'fin de la 3e année' (≈ J1095). Divergence 1095/1005 → TO_VERIFY borne au jour près.",
+    "H6 — Capital décès forfaitaire : 36 288 € (conjoint sans descendant), 54 432 € (avec descendant), 18 144 € (ascendant/descendant sans ayant droit).",
+    "H7 — Rente conjoint 10 080 €/an, rente éducation 7 560 €/an par enfant. Borne d'âge éducation → TO_VERIFY (18/21 vs 25 si études).",
+    "H8 — Revenu de référence IJ CPAM phase 1 = N-2 (cohérence module). Les prestations CARPIMKO étant forfaitaires, le revenu n'intervient QUE dans la phase 1 CPAM.",
+    "H9 — Conjoint collaborateur CARPIMKO : statut existant (page dédiée sur le site) mais droits prévoyance non détaillés ici → ne pas implémenter d'option spécifique sans vérification. TO_VERIFY."
+  ]
+}

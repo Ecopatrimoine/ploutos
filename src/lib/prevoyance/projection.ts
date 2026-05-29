@@ -41,6 +41,11 @@ import {
   pensionInvaliditeCipavAnnuelle,
   jourFinInvaliditeCipav,
 } from "./cipav";
+import {
+  ijCarpimkoPhase1Journaliere,
+  ijCarpimkoPhase2Journaliere,
+  renteInvaliditeCarpimkoAnnuelle,
+} from "./carpimko";
 
 // Paliers temporels phase AM (J0 → J1095).
 const PALIERS_AM = [0, 3, 7, 14, 30, 60, 90, 120, 180, 365, 547, 730, 912, 1095];
@@ -634,7 +639,8 @@ function detectRuptures(
   donneesIndisponibles: boolean,
   tptRupture: { debut: number; fin: number; guerison: boolean } | null,
   jourRelaisCarmf: number | null,
-  jourTrouCipav: number | null
+  jourTrouCipav: number | null,
+  jourRelaisCarpimko: number | null
 ): RuptureCle[] {
   const ruptures: RuptureCle[] = [];
   const joursAxe = new Set(axe.map((p) => p.jour));
@@ -660,6 +666,17 @@ function detectRuptures(
       libelle: "Fin des IJ CPAM — trou de couverture CIPAV (aucun relais)",
       impactNet: idx > 0 ? sumAtIdx(series, idx) - sumAtIdx(series, idx - 1) : 0,
       type: "trou_cipav",
+    });
+  }
+
+  // Relais CPAM → allocation journalière forfaitaire CARPIMKO à J91.
+  if (jourRelaisCarpimko !== null && joursAxe.has(jourRelaisCarpimko)) {
+    const idx = axe.findIndex((p) => p.jour === jourRelaisCarpimko);
+    ruptures.push({
+      jour: jourRelaisCarpimko,
+      libelle: "Relais CARPIMKO (allocation journalière forfaitaire)",
+      impactNet: idx > 0 ? sumAtIdx(series, idx) - sumAtIdx(series, idx - 1) : 0,
+      type: "relais_carpimko",
     });
   }
 
@@ -777,6 +794,14 @@ export function projeterArretMaladie(
     ? jourFinInvaliditeCipav(cipavRef, entree.age, entree.cipav!.tauxInvalidite)
     : 0;
 
+  // CARPIMKO (auxiliaires médicaux) : architecture proche CARMF mais
+  // FORFAITAIRE. IJ libéraux J4-J90, relais allocation journalière
+  // forfaitaire J91→fin 3e année, puis rente d'invalidité forfaitaire (sans
+  // borne d'âge → jusqu'à la fin de projection). Activé par `entree.carpimko`.
+  const isCarpimko = entree.carpimko != null;
+  const carpimkoRef = (ref as { carpimko?: unknown }).carpimko;
+  const J_RELAIS_CARPIMKO = 91;
+
   // Mi-temps thérapeutique (SPEC_ALD_TPT §5). Le TPT n'a de sens qu'en
   // phase AM : finJour est borné à la bascule invalidité (1095) et le TPT
   // est ignoré si debutJour ≥ 1095 ou si l'intervalle est vide.
@@ -798,6 +823,7 @@ export function projeterArretMaladie(
     ...(tptActif ? [tptDebut, tptFin] : []),
     ...(isCarmf ? [J_RELAIS_CARMF, jourFinInvalCarmf] : []),
     ...(isCipav ? [J_TROU_CIPAV, jourFinInvalCipav] : []),
+    ...(isCarpimko ? [J_RELAIS_CARPIMKO] : []),
   ].filter((j): j is number => j !== null);
   const axe = insertJoursAxe(buildAxe(entree, today), joursEvenements, today, finJour);
 
@@ -883,6 +909,14 @@ export function projeterArretMaladie(
       // ijCipavPhase1Journaliere renvoie déjà 0 hors fenêtre J4-J90.
       return ijCipavPhase1Journaliere(cipavRef, entree.cipav!, t) * 30;
     }
+    if (isCarpimko) {
+      // Phase 1 IJ libéraux J4-J90 (liée au revenu), puis relais allocation
+      // journalière FORFAITAIRE J91→fin 3e année.
+      if (t < J_RELAIS_CARPIMKO) {
+        return ijCarpimkoPhase1Journaliere(carpimkoRef, entree.carpimko!, t) * 30;
+      }
+      return ijCarpimkoPhase2Journaliere(carpimkoRef, entree.carpimko!, t) * 30;
+    }
     return computeIJObligatoireMensuel(
       t, caisseRef, entree, revenuMensuelTNS, salaireBrutMensuel, plafondVars, scenarioArret
     );
@@ -898,6 +932,7 @@ export function projeterArretMaladie(
   let donneesIndisponibles =
     scenarioArret === "ald" &&
     !isCipav &&
+    !isCarpimko &&
     !isCaisseToFill(caisseRef) &&
     caisseRef.ij?.TO_FILL !== true &&
     resolvePlafondDuree(caisseRef.ij, scenarioArret).aldManquant;
@@ -1026,6 +1061,13 @@ export function projeterArretMaladie(
           series.pensionInvalObligatoire[i] =
             pensionInvaliditeCipavAnnuelle(cipavRef, entree.cipav!) / 12;
         }
+      } else if (isCarpimko) {
+        // Rente d'invalidité CARPIMKO forfaitaire par palier (base, hors
+        // majorations TO_VERIFY). Aucune borne d'âge documentée → versée
+        // jusqu'à la fin de projection. Rentes décès = fonctions pures hors
+        // courbe (renteInvalEnfants reste 0).
+        series.pensionInvalObligatoire[i] =
+          renteInvaliditeCarpimkoAnnuelle(carpimkoRef, entree.carpimko!) / 12;
       } else {
         const inv = computeInvalObligatoireMensuel(
           caisseRef,
@@ -1079,7 +1121,8 @@ export function projeterArretMaladie(
     donneesIndisponibles,
     tptActif ? { debut: tptDebut, fin: tptFin, guerison: tptGuerison } : null,
     isCarmf ? J_RELAIS_CARMF : null,
-    isCipav ? J_TROU_CIPAV : null
+    isCipav ? J_TROU_CIPAV : null,
+    isCarpimko ? J_RELAIS_CARPIMKO : null
   );
 
   const useLegalDefault =

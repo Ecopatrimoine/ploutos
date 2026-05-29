@@ -4,9 +4,9 @@
 // et les adapters Pack PDF v2 (Lot 9). Toutes les valeurs monétaires
 // sont en EUROS / MOIS (sauf indication contraire dans les commentaires).
 
-import type { CarmfConfig, CipavConfig, CodeCaisse, NatureContrat, StatutPro, TptConfig } from "../../types/patrimoine";
+import type { CarmfConfig, CipavConfig, CarpimkoConfig, CodeCaisse, NatureContrat, StatutPro, TptConfig } from "../../types/patrimoine";
 
-export type { TptConfig, CarmfConfig, CipavConfig };
+export type { TptConfig, CarmfConfig, CipavConfig, CarpimkoConfig };
 
 // Catégorie d'invalidité retenue pour la projection.
 //   cat1 : capable d'exercer une activité réduite (taux base ~30 %)
@@ -96,6 +96,10 @@ export type EntreePerso = {
   // applique l'architecture CIPAV : IJ libéraux J4-J90, trou J91→1095,
   // puis pension d'invalidité par points (cf. cipav.ts).
   cipav?: CipavConfig;
+  // Paramètres CARPIMKO (auxiliaires médicaux). Présent → le moteur applique
+  // l'architecture CARPIMKO : IJ libéraux J4-J90, allocation journalière
+  // forfaitaire J91→fin 3e année, puis rente d'invalidité forfaitaire (cf. carpimko.ts).
+  carpimko?: CarpimkoConfig;
 };
 
 // Série empilée — chaque tableau est aligné sur axe[]. Tous les
@@ -124,6 +128,7 @@ export type RuptureType =
   | "fin_tpt"
   | "relais_carmf"
   | "trou_cipav"
+  | "relais_carpimko"
   | "bascule_invalidite"
   | "fin_invalidite"
   | "donnees_indisponibles"

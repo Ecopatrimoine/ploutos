@@ -370,6 +370,18 @@ export type CipavConfig = {
   decesAccidentel: boolean;          // majoration capital décès (+5 000 points)
 };
 
+// Paramètres CARPIMKO (auxiliaires médicaux libéraux). Architecture proche
+// CARMF (relais IJ propre J91) mais prestations entièrement FORFAITAIRES :
+// le revenu n'intervient QUE dans la phase 1 CPAM (revenu N-2). Formulaire
+// simplifié — pas de champ revenu pour les prestations.
+export type CarpimkoConfig = {
+  revenuBNC_N2: number;              // revenu N-2 — utilisé UNIQUEMENT pour les IJ CPAM phase 1
+  tauxInvalidite: number;            // 100 = totale / 66-99 = partielle / < 66 = pas de rente
+  nbEnfants: number;                 // majoration IJ descendant + rente éducation décès
+  besoinTiercePersonne: boolean;     // majoration IJ (et invalidité totale, TO_VERIFY)
+  marie: boolean;                    // capital décès / rente conjoint (prestations décès, hors courbe)
+};
+
 export type PayloadContratIndividuel = {
   id: string;
   type:
@@ -426,6 +438,9 @@ export type PayloadPrevoyancePerso = {
   // Paramètres CIPAV (professions libérales non réglementées), optionnel —
   // présent seulement pour les clients affiliés CIPAV (cf. SPEC_PREVOYANCE_CIPAV).
   cipav?: CipavConfig;
+  // Paramètres CARPIMKO (auxiliaires médicaux), optionnel — présent seulement
+  // pour les clients affiliés CARPIMKO (prestations forfaitaires).
+  carpimko?: CarpimkoConfig;
 };
 
 // ─── Lot 8 — Prévoyance collective d'entreprise (audit conformité) ────

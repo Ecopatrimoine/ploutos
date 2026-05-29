@@ -1,0 +1,61 @@
+{
+  "caisse": "CARPIMKO",
+  "libelle": "Caisse autonome de retraite et de prévoyance des auxiliaires médicaux",
+  "millesime": 2026,
+  "dateVerification": "2026-05-29",
+  "_sources": {
+    "ij_cotisation": "carpimko.com officiel (IJ phase 2 + cotisation invalidité-décès 1 022 €)",
+    "ij_cpam_liberaux": "ameli.fr (dispositif libéraux 2021, identique CARMF/CIPAV)",
+    "invalidite_deces_rentes": "carpimko.com (pages DNN illisibles via fetch) recoupé sur 4+ agrégateurs concordants (APICIL, MetLife, CapMedical, philtr, caduceeconseil)"
+  },
+  "_architecture": "PROCHE CARMF (relais propre J91) mais prestations entièrement FORFAITAIRES (indépendantes du revenu). Le revenu n'intervient QUE en phase 1 CPAM. Bloc source complet : docs/bloc-carpimko-2026.json.",
+
+  "pass": { "annuel": 48060 },
+
+  "ijCpamLiberaux": {
+    "_note": "Dispositif IJ libéraux commun (RAAM/730, plafond 3×PASS, plancher 26,33). Identique CARMF/CIPAV. Seul barème lié au revenu (N-2).",
+    "carenceJours": 3,
+    "premierJourIndemnise": 4,
+    "dernierJourIndemnise": 90,
+    "diviseurRAAM": 730,
+    "raamPlafondAnnuel": 144180,
+    "ijMaxJournaliere": 197.51,
+    "ijMinJournaliere": 26.33,
+    "seuilEligibiliteRevenu": 4806,
+    "_seuil_note": "10 % PASS — repris du dispositif libéraux commun (le bloc CARPIMKO renvoie aux blocs précédents). Évite qu'un revenu nul ne déclenche le plancher."
+  },
+
+  "ijCarpimkoPhase2": {
+    "_note": "Allocation journalière FORFAITAIRE, indépendante du revenu, relais à J91 jusqu'à la fin de la 3e année. Majoration conjoint SUPPRIMÉE au 01/01/2025 → exclue.",
+    "borneDebutJour": 91,
+    "borneFinJour": 1095,
+    "_borneFin_aVerifier": "RETENU : fin de la 3e année ≈ J1095 (3×365). Divergence sources 1095 vs 1005 j — à confirmer au jour près (H5).",
+    "montantBaseJour": 55.44,
+    "majorationDescendantJour": 8.06,
+    "majorationTiercePersonneJour": 20.16
+  },
+
+  "invalidite": {
+    "_note": "Rente FORFAITAIRE par palier (indépendante du revenu), à compter de la 4e année. Aucune borne d'âge documentée → versée jusqu'à la fin de projection (décision lot).",
+    "seuilTauxMinimal": 66,
+    "rentePartielleAnnuelle": 10080,
+    "renteTotaleAnnuelle": 20160,
+    "_majorations_aVerifier": "Majorations invalidité totale NON appliquées dans la courbe (divergence sources, H4). Tierce personne 6 048 €/an et enfant 3 024 €/an exposées pour vérification (it.skip).",
+    "majorationTiercePersonneAnnuelle": 6048,
+    "majorationEnfantAnnuelle": 3024
+  },
+
+  "capitalDeces": {
+    "_note": "Forfaitaire selon la situation familiale. PACS inclus depuis juillet 2024.",
+    "conjointSansDescendant": 36288,
+    "conjointAvecDescendant": 54432,
+    "ascendantOuDescendantSansAyantDroit": 18144
+  },
+
+  "renteConjointAnnuelle": 10080,
+  "renteEducationParEnfantAnnuelle": 7560,
+  "_renteEducation_aVerifier": "Borne d'âge rente éducation 18/21 vs 25 si études — divergence sources (H7).",
+
+  "cotisationInvDecesAnnuelle": 1022,
+  "_cotisation_note": "Forfaitaire (1 022 € depuis 2024, gelée). Non utilisée dans la projection (prestations forfaitaires, pas proportionnelles). Réservée à un éventuel constat de charges."
+}
