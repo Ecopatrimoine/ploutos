@@ -4,6 +4,10 @@
 // les paramètres propres au régime (statut, option conjoint collaborateur,
 // revenu N-2, ancienneté d'affiliation, situation conjoint/tierce personne).
 // Le moteur applique alors l'architecture 2 étages et l'invalidité CARMF.
+//
+// Squelette UI réutilisé tel quel par CIPAV et CARPIMKO (lots ultérieurs) :
+// 3 sections thématiques, labels parlants, aides au survol (tooltip « ? »)
+// et garde-fous inline doux. UI pure — aucune logique métier ici.
 
 import React from "react";
 import { Input } from "@/components/ui/input";
@@ -32,108 +36,198 @@ type Props = {
   onChange: (next: CarmfConfig) => void;
 };
 
+// Seuils de garde-fous de saisie (alertes douces, non bloquantes).
+const REVENU_BNC_MIN = 5_000;
+const REVENU_BNC_MAX = 500_000;
+const ANCIENNETE_MIN_DROITS_PLEINS = 8; // trimestres = 2 ans
+
+// En-tête de sous-section : hiérarchie visuelle sous le titre du bloc.
+function SousSection({ titre }: { titre: string }) {
+  return (
+    <div
+      className="text-[11px] font-bold uppercase tracking-wider"
+      style={{ color: BRAND.muted }}
+    >
+      {titre}
+    </div>
+  );
+}
+
+// Bandeau d'alerte inline doux (réutilise les tokens warning de la charte —
+// même grammaire visuelle que le warning micro-TNS de l'onglet).
+function InlineAlert({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="mt-1.5 rounded-lg px-2.5 py-1.5 text-xs"
+      style={{
+        background: BRAND.warningBg,
+        border: `1px solid ${BRAND.warningBorder}`,
+        color: BRAND.warning,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export const BlocCarmf = React.memo(function BlocCarmf({ value, onChange }: Props) {
   const v = value;
   function patch(p: Partial<CarmfConfig>) {
     onChange({ ...v, ...p });
   }
   const estConjoint = v.statut === "conjoint_collaborateur";
+  const cumul = v.cumulEmploiRetraite;
+
+  // Garde-fous (Niveau 2) — muets en cumul emploi-retraite : le régime IJ
+  // CARMF n'y est pas applicable, les contrôles d'activité deviennent moot.
+  const ancienneteInsuffisante = !cumul && v.ancienneteAffiliationTrimestres < ANCIENNETE_MIN_DROITS_PLEINS;
+  const revenuInhabituel =
+    !cumul && v.revenuBNC_N2 > 0 && (v.revenuBNC_N2 < REVENU_BNC_MIN || v.revenuBNC_N2 > REVENU_BNC_MAX);
 
   return (
     <div
-      className="rounded-xl p-3 space-y-3"
+      className="rounded-xl p-3 space-y-4"
       style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}
     >
       <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>
         Paramètres CARMF (médecin libéral)
       </div>
 
-      <div className="grid gap-3 md:grid-cols-12 items-end">
-        <div className="md:col-span-4">
-          <Field label="Statut CARMF">
-            <Select value={v.statut} onValueChange={(s) => patch({ statut: s as CarmfConfig["statut"] })}>
-              <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="medecin_titulaire">Médecin titulaire</SelectItem>
-                <SelectItem value="conjoint_collaborateur">Conjoint collaborateur</SelectItem>
-                <SelectItem value="medecin_remplacant">Médecin remplaçant</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-        </div>
-        {estConjoint && (
+      {/* ── Section 1 : Activité CARMF ─────────────────────────────── */}
+      <div className="space-y-3">
+        <SousSection titre="Activité CARMF" />
+
+        {cumul && (
+          <InlineAlert>Régime IJ CARMF non applicable en cumul emploi-retraite.</InlineAlert>
+        )}
+
+        <div
+          className="grid gap-3 md:grid-cols-12 items-start"
+          style={{ opacity: cumul ? 0.55 : 1 }}
+        >
           <div className="md:col-span-4">
-            <Field label="Option conjoint">
+            <Field label="Statut CARMF">
               <Select
-                value={v.optionConjointCollaborateur ?? "moitie"}
-                onValueChange={(o) => patch({ optionConjointCollaborateur: o as "quart" | "moitie" })}
+                value={v.statut}
+                disabled={cumul}
+                onValueChange={(s) => patch({ statut: s as CarmfConfig["statut"] })}
               >
                 <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="quart">Quart</SelectItem>
-                  <SelectItem value="moitie">Moitié</SelectItem>
+                  <SelectItem value="medecin_titulaire">Médecin titulaire</SelectItem>
+                  <SelectItem value="conjoint_collaborateur">Conjoint collaborateur</SelectItem>
+                  <SelectItem value="medecin_remplacant">Médecin remplaçant</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
           </div>
-        )}
-        <div className="md:col-span-4">
-          <Field label="Revenu BNC N-2 (€)">
-            <Input
-              type="number" min={0} value={v.revenuBNC_N2}
-              onChange={(e) => patch({ revenuBNC_N2: Math.max(0, Number(e.target.value) || 0) })}
-              className="rounded-xl"
-            />
-          </Field>
+          {estConjoint && (
+            <div className="md:col-span-4">
+              <Field label="Option conjoint collaborateur">
+                <Select
+                  value={v.optionConjointCollaborateur ?? "moitie"}
+                  disabled={cumul}
+                  onValueChange={(o) => patch({ optionConjointCollaborateur: o as "quart" | "moitie" })}
+                >
+                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="quart">Quart</SelectItem>
+                    <SelectItem value="moitie">Moitié</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+          )}
+          <div className="md:col-span-4">
+            <Field
+              label="Revenu BNC 2024 (déclaration 2042 C-PRO)"
+              tooltip="Revenu retenu par la CARMF pour calculer vos IJ 2026."
+            >
+              <Input
+                type="number" min={0} value={v.revenuBNC_N2} disabled={cumul}
+                onChange={(e) => patch({ revenuBNC_N2: Math.max(0, Number(e.target.value) || 0) })}
+                className="rounded-xl"
+              />
+            </Field>
+            {revenuInhabituel && (
+              <InlineAlert>Vérifier la saisie : valeur inhabituelle.</InlineAlert>
+            )}
+          </div>
+          <div className="md:col-span-4">
+            <Field
+              label="Ancienneté d'affiliation CARMF (trimestres)"
+              tooltip="Nombre de trimestres depuis votre 1ʳᵉ affiliation CARMF (défaut 24 = ≥ 6 ans, taux plein)."
+            >
+              <Input
+                type="number" min={0} value={v.ancienneteAffiliationTrimestres} disabled={cumul}
+                onChange={(e) => patch({ ancienneteAffiliationTrimestres: Math.max(0, Number(e.target.value) || 0) })}
+                className="rounded-xl"
+              />
+            </Field>
+            {ancienneteInsuffisante && (
+              <InlineAlert>
+                ⚠ Affiliation &lt; 2 ans : pas de droits aux IJ CARMF pleines pendant cette période.
+              </InlineAlert>
+            )}
+          </div>
         </div>
-        <div className="md:col-span-4">
-          <Field label="Ancienneté affiliation (trimestres)">
-            <Input
-              type="number" min={0} value={v.ancienneteAffiliationTrimestres}
-              onChange={(e) => patch({ ancienneteAffiliationTrimestres: Math.max(0, Number(e.target.value) || 0) })}
-              className="rounded-xl"
-            />
-          </Field>
-        </div>
-      </div>
 
-      <div className="flex flex-wrap items-center gap-4 text-sm" style={{ color: BRAND.navy }}>
-        <label className="flex items-center gap-1.5 cursor-pointer">
-          <input type="checkbox" checked={v.cumulEmploiRetraite} onChange={(e) => patch({ cumulEmploiRetraite: e.target.checked })} />
+        <label className="flex items-center gap-1.5 text-sm cursor-pointer" style={{ color: BRAND.navy }}>
+          <input
+            type="checkbox"
+            checked={v.cumulEmploiRetraite}
+            onChange={(e) => patch({ cumulEmploiRetraite: e.target.checked })}
+          />
           <span>Cumul emploi-retraite</span>
         </label>
-        <label className="flex items-center gap-1.5 cursor-pointer">
+      </div>
+
+      {/* ── Section 2 : Situation familiale ───────────────────────── */}
+      <div className="space-y-3">
+        <SousSection titre="Situation familiale" />
+
+        <label className="flex items-center gap-1.5 text-sm cursor-pointer" style={{ color: BRAND.navy }}>
           <input type="checkbox" checked={v.marie} onChange={(e) => patch({ marie: e.target.checked })} />
           <span>Marié(e)</span>
         </label>
-        <label className="flex items-center gap-1.5 cursor-pointer">
-          <input type="checkbox" checked={v.besoinTiercePersonne} onChange={(e) => patch({ besoinTiercePersonne: e.target.checked })} />
-          <span>Besoin tierce personne (invalidité)</span>
-        </label>
+
+        {v.marie && (
+          <div className="grid gap-3 md:grid-cols-12 items-end">
+            <div className="md:col-span-4">
+              <Field label="Années de mariage">
+                <Input
+                  type="number" min={0} value={v.anneesMariage}
+                  onChange={(e) => patch({ anneesMariage: Math.max(0, Number(e.target.value) || 0) })}
+                  className="rounded-xl"
+                />
+              </Field>
+            </div>
+            <div className="md:col-span-4">
+              <Field label="Ressources annuelles du conjoint (€)">
+                <Input
+                  type="number" min={0} value={v.ressourcesConjoint}
+                  onChange={(e) => patch({ ressourcesConjoint: Math.max(0, Number(e.target.value) || 0) })}
+                  className="rounded-xl"
+                />
+              </Field>
+            </div>
+          </div>
+        )}
       </div>
 
-      {v.marie && (
-        <div className="grid gap-3 md:grid-cols-12 items-end">
-          <div className="md:col-span-4">
-            <Field label="Années de mariage">
-              <Input
-                type="number" min={0} value={v.anneesMariage}
-                onChange={(e) => patch({ anneesMariage: Math.max(0, Number(e.target.value) || 0) })}
-                className="rounded-xl"
-              />
-            </Field>
-          </div>
-          <div className="md:col-span-4">
-            <Field label="Ressources du conjoint (€)">
-              <Input
-                type="number" min={0} value={v.ressourcesConjoint}
-                onChange={(e) => patch({ ressourcesConjoint: Math.max(0, Number(e.target.value) || 0) })}
-                className="rounded-xl"
-              />
-            </Field>
-          </div>
-        </div>
-      )}
+      {/* ── Section 3 : Garanties personnelles ────────────────────── */}
+      <div className="space-y-3">
+        <SousSection titre="Garanties personnelles" />
+
+        <label className="flex items-center gap-1.5 text-sm cursor-pointer" style={{ color: BRAND.navy }}>
+          <input
+            type="checkbox"
+            checked={v.besoinTiercePersonne}
+            onChange={(e) => patch({ besoinTiercePersonne: e.target.checked })}
+          />
+          <span>Besoin d'une tierce personne (invalidité)</span>
+        </label>
+      </div>
 
       <div className="text-xs" style={{ color: BRAND.muted, fontStyle: "italic" }}>
         Architecture 2 étages : indemnités CPAM les 90 premiers jours, puis relais CARMF jusqu'à 3 ans,
