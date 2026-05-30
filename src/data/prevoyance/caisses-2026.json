@@ -129,8 +129,8 @@
             "minMensuel": 530.21,
             "_commentaire_min": "530,21 EUR/mois depuis le 01/04/2026 (etait 494,47 EUR). Source SODECC + arrete 01/08/2023 art. revalorise.",
             "maxFormule": "0.30 * PASS_mensuel",
-            "maxMensuel_aVerifier": 1201.50,
-            "_commentaire_max": "Plafond = 30% du PASS mensuel (art. au plafond L.241-3 CSS). Valeur de controle 2026 : 30% x 4005 = 1201,50 EUR. (Sources 2025 donnaient 1172,55 ; recalcul 2026 sur PMSS 4005 = 1201,50. A confirmer ameli a la saisie.)"
+            "maxMensuel": 1201.50,
+            "_commentaire_max": "Plafond = 30% du PMSS = 30% x 4005 = 1201,50 EUR. CONFIRME exact (ameli.fr, bareme pensions invalidite independant au 01/01/2026, verifie 30/05/2026)."
           },
           "cat2": {
             "_mapping": "PITD - Pension pour Invalidite Totale et Definitive",
@@ -139,8 +139,8 @@
             "minMensuel": 747.00,
             "_commentaire_min": "747 EUR/mois depuis le 01/04/2026 (etait 696,64 EUR). Source SODECC.",
             "maxFormule": "0.50 * PASS_mensuel",
-            "maxMensuel_aVerifier": 2002.50,
-            "_commentaire_max": "Plafond = 50% du PASS mensuel. Valeur de controle 2026 : 50% x 4005 = 2002,50 EUR. (Sources 2025 donnaient 1962,50 / 1714 selon bases ; recalcul 2026 sur PMSS = 2002,50. A confirmer ameli a la saisie.)"
+            "maxMensuel": 2002.50,
+            "_commentaire_max": "Plafond = 50% du PMSS = 50% x 4005 = 2002,50 EUR. CONFIRME exact (ameli.fr, bareme pensions invalidite independant au 01/01/2026, verifie 30/05/2026)."
           },
           "cat3": {
             "_mapping": "PITD + MTP - Invalidite totale + Majoration Tierce Personne",
@@ -148,8 +148,8 @@
             "taux": 0.50,
             "majorationTiercePersonne": "40% de la pension, plancher reglementaire",
             "_commentaire_mtp": "MTP = 40% du montant de la pension d'invalidite, sans pouvoir etre inferieure au minimum annuel de l'art. R.341-6 CSS (meme plancher MTP que le regime general, ~1298,44 EUR/mois). Source : arrete 01/08/2023 art. 16-17.",
-            "majorationTiercePersonneMensuelle_aVerifier": 1298.44,
-            "_commentaire_mtp_montant": "Le plancher MTP renvoie a R.341-6 CSS (regime general) = 1298,44 EUR/mois en 2026. Si MTP non renseignee : ne pas l'inventer (cf. test H10)."
+            "majorationTiercePersonneMensuelle": 1298.44,
+            "_commentaire_mtp_montant": "Plancher MTP R.341-6 CSS (= regime general) = 1298,44 EUR/mois en 2026. CONFIRME exact (ameli.fr, bareme pensions invalidite independant au 01/01/2026, verifie 30/05/2026). Si MTP non renseignee : ne pas l'inventer (cf. test H10)."
           }
         }
       },
@@ -158,8 +158,8 @@
         "type": "forfaitaire_par_situation",
         "montantActifOuInvalide": 9612,
         "_commentaire_actif": "9612 EUR (= 20% du PASS) pour un artisan/commercant cotisant (non retraite) OU beneficiaire d'une pension d'invalidite. Source ameli.fr 2026.",
-        "montantRetraite_aVerifier": 3768,
-        "_commentaire_retraite": "Pour un retraite : historiquement ~8% du PASS. Conditions revues au 01/04/2026 (capital accorde si 80 trimestres valides au deces). Montant exact 2026 a confirmer ameli. Source ameli/SODECC.",
+        "montantRetraite": 3844.80,
+        "_commentaire_retraite": "Pour un retraite : 8% du PASS 2026 = 0,08 x 48060 = 3844,80 EUR (capital accorde si 80 trimestres valides au deces, conditions revues au 01/04/2026). CORRIGE depuis l'ancien millesime 3768 EUR. Source : ameli.fr capital-deces independant retraite 2026, verifie 30/05/2026.",
         "majorationParEnfant": "5% du PASS par enfant a charge (< 16 ans, ou < 20 ans si etudes)",
         "_commentaire_enfant": "Majoration de 5% du PASS par enfant a charge a verifier en version 2026. Source philtr/SSI."
       },
@@ -169,7 +169,9 @@
         "Revalorisation minima 01/04/2026 : SODECC — PIPM min 530,21 EUR, PITD min 747 EUR",
         "Capital deces : ameli.fr (deces-proche-capital-deces) — 9612 EUR (20% PASS) actif/invalide",
         "PASS 2026 : 48060 EUR / PMSS 4005 EUR (arrete 22/12/2025)",
-        "A CONFIRMER A LA SAISIE : maxima invalidite 2026 (formules 30%/50% PMSS retenues, valeurs de controle a verifier ameli), capital deces retraite 2026, majoration enfant 2026",
+        "Invalidite independant 2026 (ameli.fr, bareme pensions invalidite independant au 01/01/2026, verifie 30/05/2026) : cat1 max 1201,50 / cat2 max 2002,50 / MTP cat3 1298,44 CONFIRMES ; minima PIPM 530,21 / PITD 747,00 inchanges",
+        "Capital deces retraite (ameli.fr capital-deces independant retraite 2026, verifie 30/05/2026) = 3844,80 EUR (8% PASS), corrige depuis 3768 EUR (ancien millesime)",
+        "A CONFIRMER A LA SAISIE : majoration capital deces par enfant 2026 (philtr/SSI, non verifie)",
         "Tous chiffres verifies a la source le 2026-05-28"
       ]
     },

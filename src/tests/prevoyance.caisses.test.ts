@@ -120,20 +120,25 @@ describe("G2 — SSI 2026 (valeurs vérifiées : arrêté 01/08/2023, ameli, SOD
   it("IJ = 0 si RAAM < 4582 € (seuil plancher — trou pédagogique réel)", () => {
     expect(computeIJObligatoireJournaliere(30, ssi, entreeTNS("SSI", 3000), vars)).toBe(0);
   });
-  it("invalidité PITD (cat2) = 50 % du revenu, plancher 747 €/mois", () => {
+  it("invalidité PITD (cat2) = 50 % du revenu, bornée [747 ; 2002,50 €/mois]", () => {
     expect(ssi.invalidite.categories.cat2.taux).toBe(0.5);
-    // Revenu mensuel 10 000 → 50 % = 5000 (au-dessus du plancher).
-    expect(computeInvalObligatoireMensuel(ssi, "cat2", 0, 10000)).toBeCloseTo(5000, 2);
+    // Revenu mensuel 10 000 → 50 % = 5000, plafonné à 50 % PMSS = 2002,50 €
+    // (maxMensuel confirmé ameli 2026, vérifié 30/05/2026).
+    expect(computeInvalObligatoireMensuel(ssi, "cat2", 0, 10000)).toBeCloseTo(2002.50, 2);
     // Revenu faible (1000) → 50 % = 500 < 747 → remonté au plancher.
     expect(computeInvalObligatoireMensuel(ssi, "cat2", 0, 1000)).toBeCloseTo(747, 2);
   });
-  it("invalidité PIPM (cat1) = 30 % du revenu, plancher 530,21 €/mois", () => {
+  it("invalidité PIPM (cat1) = 30 % du revenu, bornée [530,21 ; 1201,50 €/mois]", () => {
     expect(ssi.invalidite.categories.cat1.taux).toBe(0.3);
-    expect(computeInvalObligatoireMensuel(ssi, "cat1", 0, 10000)).toBeCloseTo(3000, 2);
+    // Revenu 10 000 → 30 % = 3000, plafonné à 30 % PMSS = 1201,50 € (maxMensuel confirmé ameli 2026).
+    expect(computeInvalObligatoireMensuel(ssi, "cat1", 0, 10000)).toBeCloseTo(1201.50, 2);
     expect(computeInvalObligatoireMensuel(ssi, "cat1", 0, 1000)).toBeCloseTo(530.21, 2);
   });
   it("capital décès actif/invalide = 9 612 € (20 % PASS)", () => {
     expect(ssi.capitalDeces.montantActifOuInvalide).toBe(9612);
+  });
+  it("capital décès retraité = 3 844,80 € (8 % PASS 2026, corrigé depuis 3 768)", () => {
+    expect(ssi.capitalDeces.montantRetraite).toBeCloseTo(3844.80, 2);
   });
   it("durées : 360 j ordinaire / 1095 j ALD", () => {
     expect(ssi.ij.plafondDureeJours).toBe(360);

@@ -371,10 +371,10 @@ describe("Cas d'or D — Pierre, gérant majoritaire SSI (TNS, Madelin)", () => 
     // → ≈ 1975 €/mois.
     const j30 = idxJour(r.axe, 30);
     expect(r.series.ijObligatoire[j30]).toBeCloseTo((48060 / 730) * 30, 0);
-    // Pension invalidité PITD (cat2) = 50 % du revenu TNS mensuel (5000) = 2500.
-    // (maxMensuel SSI est _aVerifier → non plafonné par le moteur.)
+    // Pension invalidité PITD (cat2) = 50 % du revenu TNS mensuel (5000) = 2500,
+    // plafonnée à 50 % PMSS = 2002,50 € (maxMensuel confirmé ameli 2026, vérifié 30/05/2026).
     const j1095 = idxJour(r.axe, 1095);
-    expect(r.series.pensionInvalObligatoire[j1095]).toBeCloseTo(2500, 0);
+    expect(r.series.pensionInvalObligatoire[j1095]).toBeCloseTo(2002.50, 0);
   });
 
   it("jalons SSI J3/J30/J90/J1095 (IJ obl. + Madelin)", () => {
@@ -389,9 +389,9 @@ describe("Cas d'or D — Pierre, gérant majoritaire SSI (TNS, Madelin)", () => 
       const i = idxJour(r.axe, j);
       expect(totalAtIdx(r.series, i)).toBeCloseTo(ijOblMensuel + 3600, 0);
     }
-    // J1095 : bascule invalidité → pension PITD 2500 + rente Madelin 3000.
+    // J1095 : bascule invalidité → pension PITD plafonnée 2002,50 + rente Madelin 3000.
     const j1095 = idxJour(r.axe, 1095);
-    expect(totalAtIdx(r.series, j1095)).toBeCloseTo(2500 + 3000, 0);
+    expect(totalAtIdx(r.series, j1095)).toBeCloseTo(2002.50 + 3000, 0);
   });
 
   it("pas de couverture collective (TNS) → étages collectifs à 0", () => {
