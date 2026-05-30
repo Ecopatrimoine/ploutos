@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2, Copy, Pencil, FolderOpen, Database, Cloud, CloudOff, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { BRAND } from "./constants";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -816,6 +817,10 @@ export function ClientManager({
       <div className="mt-auto py-6 text-center text-xs text-slate-400" style={{ position:"relative", zIndex:1 }}>
         <p style={{ fontStyle:"italic" }}>« La richesse ne consiste pas à avoir de nombreuses possessions, mais à avoir peu de besoins. »</p>
         <p className="mt-1">© Ploutos {new Date().getFullYear()} — Données stockées localement</p>
+        {/* Badge version : version package.json + hash de commit (Netlify) — "dev" en local. */}
+        <p className="mt-1" style={{ fontSize: 11, color: BRAND.muted }}>
+          v{__APP_VERSION__} · {__COMMIT_HASH__}
+        </p>
       </div>
     </div>
   );
