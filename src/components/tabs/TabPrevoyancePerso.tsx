@@ -215,17 +215,50 @@ function ColonnePerso({
   // Pour un médecin affilié CARMF, le moteur a besoin du sous-objet carmf
   // (architecture 2 étages + invalidité CARMF). À défaut de saisie, on
   // applique une configuration par défaut pour activer la projection CARMF.
+  // Pour chaque caisse à config dédiée, on part de la config persistée (ou du
+  // défaut) PUIS on injecte EN LIVE les champs « situation familiale » dérivés
+  // du foyer (marié, années de mariage, ressources du conjoint, enfants). Le
+  // foyer (onglet Famille + revenus) est ainsi la source VIVANTE : aucune
+  // double saisie, et la config persistée ne peut pas dériver du dossier.
+  // Mémoïsé pour préserver l'identité de référence (sinon la projection se
+  // recalculerait à chaque rendu).
   const estCarmf = entreeBase.caisse === "CARMF";
-  const carmfConfig = estCarmf ? prevoyancePerso.carmf ?? defaultCarmf(entreeBase) : undefined;
-  // CIPAV (libéraux non réglementés) : sous-objet `cipav` requis par le
-  // moteur (IJ libéraux → trou → invalidité par points). Config par défaut
-  // à défaut de saisie, pour activer la projection CIPAV.
+  const carmfConfig = React.useMemo(
+    () =>
+      estCarmf
+        ? {
+            ...(prevoyancePerso.carmf ?? defaultCarmf(entreeBase)),
+            marie: entreeBase.marie ?? false,
+            anneesMariage: entreeBase.anneesMariage ?? 0,
+            ressourcesConjoint: entreeBase.ressourcesConjointAnnuelles ?? 0,
+          }
+        : undefined,
+    [estCarmf, prevoyancePerso.carmf, entreeBase]
+  );
   const estCipav = entreeBase.caisse === "CIPAV";
-  const cipavConfig = estCipav ? prevoyancePerso.cipav ?? defaultCipav(entreeBase) : undefined;
-  // CARPIMKO (auxiliaires médicaux) : sous-objet `carpimko` requis par le
-  // moteur (IJ libéraux → allocation forfaitaire → rente invalidité forfaitaire).
+  const cipavConfig = React.useMemo(
+    () =>
+      estCipav
+        ? {
+            ...(prevoyancePerso.cipav ?? defaultCipav(entreeBase)),
+            marie: entreeBase.marie ?? false,
+            nbEnfants: entreeBase.nbEnfantsACharge ?? 0,
+          }
+        : undefined,
+    [estCipav, prevoyancePerso.cipav, entreeBase]
+  );
   const estCarpimko = entreeBase.caisse === "CARPIMKO";
-  const carpimkoConfig = estCarpimko ? prevoyancePerso.carpimko ?? defaultCarpimko(entreeBase) : undefined;
+  const carpimkoConfig = React.useMemo(
+    () =>
+      estCarpimko
+        ? {
+            ...(prevoyancePerso.carpimko ?? defaultCarpimko(entreeBase)),
+            marie: entreeBase.marie ?? false,
+            nbEnfants: entreeBase.nbEnfantsACharge ?? 0,
+          }
+        : undefined,
+    [estCarpimko, prevoyancePerso.carpimko, entreeBase]
+  );
 
   // L'entree complete = mapping travail + saisies UI (contrats + couverture)
   const entree: EntreePerso = React.useMemo(

@@ -142,6 +142,15 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
         <SelectContent>{MATRIMONIAL_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
       </Select>
     </Field>
+    <Field label="Date de mariage / PACS">
+      <Input
+        type="date"
+        value={data.dateMariage ?? ""}
+        onChange={(e) => setField("dateMariage", e.target.value || null)}
+        disabled={data.coupleStatus !== "married" && data.coupleStatus !== "pacs"}
+        className={`rounded-xl ${data.coupleStatus !== "married" && data.coupleStatus !== "pacs" ? "bg-slate-100 text-slate-400" : ""}`}
+      />
+    </Field>
     <Field label="Parent isolé">
       <Select value={data.singleParent ? "yes" : "no"} onValueChange={(v) => setField("singleParent", v === "yes")}>
         <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>

@@ -22,7 +22,7 @@ export function defaultCarpimko(entreeBase: EntreePerso): CarpimkoConfig {
     tauxInvalidite: 100,
     nbEnfants: entreeBase.nbEnfantsACharge ?? 0,
     besoinTiercePersonne: false,
-    marie: false,
+    marie: entreeBase.marie ?? false,
   };
 }
 
@@ -121,29 +121,8 @@ export const BlocCarpimko = React.memo(function BlocCarpimko({ value, onChange }
         </div>
       </div>
 
-      {/* ── Section 2 : Situation familiale ───────────────────────── */}
-      <div className="space-y-3">
-        <SousSection titre="Situation familiale" />
-
-        <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
-          <label className="flex items-center gap-1.5 text-sm cursor-pointer" style={{ color: BRAND.navy }}>
-            <input type="checkbox" checked={v.marie} onChange={(e) => patch({ marie: e.target.checked })} />
-            <span>Marié(e) / PACS</span>
-          </label>
-          <div className="w-44">
-            <Field
-              label="Descendants à charge"
-              tooltip="Majore l'allocation journalière (+8,06 €/j par enfant) et ouvre la rente éducation décès (7 560 €/an par enfant)."
-            >
-              <Input
-                type="number" min={0} value={v.nbEnfants}
-                onChange={(e) => patch({ nbEnfants: Math.max(0, Number(e.target.value) || 0) })}
-                className="rounded-xl"
-              />
-            </Field>
-          </div>
-        </div>
-      </div>
+      {/* Situation familiale (marié/PACS, descendants à charge) : dérivée du
+          dossier (onglet Famille), plus de saisie ici. */}
 
       {/* ── Section 3 : Garanties personnelles ────────────────────── */}
       <div className="space-y-3">

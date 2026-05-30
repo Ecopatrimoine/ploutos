@@ -77,7 +77,13 @@ export type EntreePerso = {
   salaireNetMensuel: number;                // approximé brut × 0.78 / 12 (affichage)
   revenuTNSAnnuel?: number;                 // TNS — assiette pro (bénéfice), sert au calcul des IJ caisse
   classeCotisationCaisse?: string;          // CARMF : "A" | "B" | "C"
-  nbEnfantsACharge?: number;                // pour majoration CPAM J31
+  nbEnfantsACharge?: number;                // enfants rattachés au foyer (dérivé du dossier)
+  // Données foyer dérivées du dossier par le mapping (évitent la double saisie
+  // dans les blocs caisse). Le moteur les consomme via la config (injection
+  // live à l'assemblage) ; valeurs au sens « prestation prévoyance ».
+  marie?: boolean;                          // couple marié / PACS
+  anneesMariage?: number;                   // années écoulées depuis la date de mariage/PACS
+  ressourcesConjointAnnuelles?: number;     // revenus annuels de l'autre personne du foyer
   // Revenu de référence mensuel calculé en amont par le mapping
   // (buildEntreePerso). Si fourni, le moteur l'utilise tel quel ;
   // sinon il applique son fallback interne. C'est le « manque à

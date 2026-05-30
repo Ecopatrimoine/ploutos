@@ -24,7 +24,7 @@ export function defaultCipav(entreeBase: EntreePerso): CipavConfig {
     ancienneteAffiliationMois: entreeBase.ancienneteMois ?? 0,
     cumulEmploiRetraite: false,
     tauxInvalidite: 100,
-    marie: false,
+    marie: entreeBase.marie ?? false,
     nbEnfants: entreeBase.nbEnfantsACharge ?? 0,
     decesAccidentel: false,
   };
@@ -162,29 +162,8 @@ export const BlocCipav = React.memo(function BlocCipav({ value, onChange }: Prop
         </label>
       </div>
 
-      {/* ── Section 2 : Situation familiale ───────────────────────── */}
-      <div className="space-y-3">
-        <SousSection titre="Situation familiale" />
-
-        <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
-          <label className="flex items-center gap-1.5 text-sm cursor-pointer" style={{ color: BRAND.navy }}>
-            <input type="checkbox" checked={v.marie} onChange={(e) => patch({ marie: e.target.checked })} />
-            <span>Marié(e) / PACS</span>
-          </label>
-          <div className="w-40">
-            <Field
-              label="Enfants à charge"
-              tooltip="Nombre d'enfants ouvrant droit à la rente enfant (prestation décès, versée par enfant)."
-            >
-              <Input
-                type="number" min={0} value={v.nbEnfants}
-                onChange={(e) => patch({ nbEnfants: Math.max(0, Number(e.target.value) || 0) })}
-                className="rounded-xl"
-              />
-            </Field>
-          </div>
-        </div>
-      </div>
+      {/* Situation familiale (marié/PACS, enfants à charge) : dérivée du
+          dossier (onglet Famille), plus de saisie ici. */}
 
       {/* ── Section 3 : Garanties personnelles ────────────────────── */}
       <div className="space-y-3">

@@ -24,9 +24,9 @@ export function defaultCarmf(entreeBase: EntreePerso): CarmfConfig {
     revenuBNC_N2: entreeBase.revenuTNSAnnuel ?? 0,
     ancienneteAffiliationTrimestres: 24,
     cumulEmploiRetraite: false,
-    marie: false,
-    anneesMariage: 0,
-    ressourcesConjoint: 0,
+    marie: entreeBase.marie ?? false,
+    anneesMariage: entreeBase.anneesMariage ?? 0,
+    ressourcesConjoint: entreeBase.ressourcesConjointAnnuelles ?? 0,
     besoinTiercePersonne: false,
   };
 }
@@ -182,38 +182,8 @@ export const BlocCarmf = React.memo(function BlocCarmf({ value, onChange }: Prop
         </label>
       </div>
 
-      {/* ── Section 2 : Situation familiale ───────────────────────── */}
-      <div className="space-y-3">
-        <SousSection titre="Situation familiale" />
-
-        <label className="flex items-center gap-1.5 text-sm cursor-pointer" style={{ color: BRAND.navy }}>
-          <input type="checkbox" checked={v.marie} onChange={(e) => patch({ marie: e.target.checked })} />
-          <span>Marié(e)</span>
-        </label>
-
-        {v.marie && (
-          <div className="grid gap-3 md:grid-cols-12 items-end">
-            <div className="md:col-span-4">
-              <Field label="Années de mariage">
-                <Input
-                  type="number" min={0} value={v.anneesMariage}
-                  onChange={(e) => patch({ anneesMariage: Math.max(0, Number(e.target.value) || 0) })}
-                  className="rounded-xl"
-                />
-              </Field>
-            </div>
-            <div className="md:col-span-4">
-              <Field label="Ressources annuelles du conjoint (€)">
-                <Input
-                  type="number" min={0} value={v.ressourcesConjoint}
-                  onChange={(e) => patch({ ressourcesConjoint: Math.max(0, Number(e.target.value) || 0) })}
-                  className="rounded-xl"
-                />
-              </Field>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Situation familiale (marié, années de mariage, ressources du conjoint) :
+          dérivée du dossier (onglet Famille + revenus), plus de saisie ici. */}
 
       {/* ── Section 3 : Garanties personnelles ────────────────────── */}
       <div className="space-y-3">

@@ -189,6 +189,9 @@ export type PatrimonialData = {
   person2Nationalite?: string;
   coupleStatus: string;
   matrimonialRegime: string;
+  // Date de mariage / PACS (ISO), optionnelle. Source unique pour l'ancienneté
+  // de mariage utilisée par les prestations prévoyance (majoration conjoint).
+  dateMariage?: string | null;
   singleParent: boolean;
   // ─── Lot Dossier client — Adresse du foyer (utilisée par la fiche DDA
   //     dans le bandeau identité client et par les pages de contact PDF). ─

@@ -17,6 +17,7 @@ import type { EntreePerso } from "./types";
 import { coefBrutNet, STATUTS_TNS, STATUTS_SALARIE } from "./constants";
 import { computeBeneficeImposable } from "../calculs/ir";
 import { n, isProfessionLiberale } from "../calculs/utils";
+import { calcRevenuMensuel } from "./contexte";
 
 // Âge légal de retraite par défaut. Pour une personnalisation par
 // génération (selon date de naissance), voir docs/ROADMAP_PREVOYANCE.md.
@@ -138,11 +139,27 @@ export function buildEntreePerso(
   }
   // retraité / sans activité → 0
 
+  // ── Données foyer (évitent la double saisie dans les blocs caisse) ──
+  // marié au sens prestation prévoyance = mariage OU PACS (concubinage exclu) ;
+  // enfants = rattachés au foyer (même prédicat que les parts fiscales,
+  // c.rattached !== false) ; ressources du conjoint = revenus annuels de
+  // l'AUTRE personne (calcRevenuMensuel réutilisé) ; années de mariage =
+  // années écoulées depuis data.dateMariage.
+  const marie = data.coupleStatus === "married" || data.coupleStatus === "pacs";
+  const nbEnfantsACharge = (data.childrenData ?? []).filter((c) => c.rattached !== false).length;
+  const autre = which === "p1" ? "p2" : "p1";
+  const ressourcesConjointAnnuelles = calcRevenuMensuel(data, autre) * 12;
+  const anneesMariage = calcAgeFromBirth(data.dateMariage);
+
   return {
     age,
     ageRetraite: AGE_RETRAITE_DEFAUT,
     statutPro: travail.statutPro,
     caisse: travail.caisseAffiliation,
+    marie,
+    nbEnfantsACharge,
+    ressourcesConjointAnnuelles,
+    anneesMariage,
     idccCCN: travail.employeur?.idccCCN ?? null,
     // Ancienneté d'affiliation : pour un TNS, on part de la date de début
     // d'activité / 1ʳᵉ affiliation (pas de date d'embauche) ; pour un salarié,
