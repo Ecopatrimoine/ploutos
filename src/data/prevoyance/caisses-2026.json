@@ -161,8 +161,8 @@
         "_commentaire_actif": "9612 EUR (= 20% du PASS) pour un artisan/commercant cotisant (non retraite) OU beneficiaire d'une pension d'invalidite. Source ameli.fr 2026.",
         "montantRetraite": 3844.80,
         "_commentaire_retraite": "Pour un retraite : 8% du PASS 2026 = 0,08 x 48060 = 3844,80 EUR (capital accorde si 80 trimestres valides au deces, conditions revues au 01/04/2026). CORRIGE depuis l'ancien millesime 3768 EUR. Source : ameli.fr capital-deces independant retraite 2026, verifie 30/05/2026.",
-        "majorationParEnfant": "5% du PASS par enfant a charge (< 16 ans, ou < 20 ans si etudes)",
-        "_commentaire_enfant": "Majoration de 5% du PASS par enfant a charge a verifier en version 2026. Source philtr/SSI."
+        "montantParEnfant": 2403,
+        "_commentaire_enfant": "Capital orphelin = 5% du PASS 2026 = 0,05 x 48060 = 2403 EUR par enfant a charge (< 16 ans, ou < 20 ans si etudes). CONFIRME (ameli.fr capital-deces enfants travailleurs independants, 5% PASS, verifie 30/05/2026)."
       },
       "sources": [
         "IJ artisans/commercants : ameli.fr (arret-maladie-artisans-commercants) — IJ max 65,84 EUR/j au 01/01/2026, IJ=0 si RAAM<4582, 1/730 RAAM, carence 3j, duree 360j",
@@ -172,7 +172,7 @@
         "PASS 2026 : 48060 EUR / PMSS 4005 EUR (arrete 22/12/2025)",
         "Invalidite independant 2026 (ameli.fr, bareme pensions invalidite independant au 01/01/2026, verifie 30/05/2026) : cat1 max 1201,50 / cat2 max 2002,50 / MTP cat3 1298,44 CONFIRMES ; minima PIPM 530,21 / PITD 747,00 inchanges",
         "Capital deces retraite (ameli.fr capital-deces independant retraite 2026, verifie 30/05/2026) = 3844,80 EUR (8% PASS), corrige depuis 3768 EUR (ancien millesime)",
-        "A CONFIRMER A LA SAISIE : majoration capital deces par enfant 2026 (philtr/SSI, non verifie)",
+        "Capital deces orphelin par enfant (ameli.fr capital-deces enfants travailleurs independants, 5% PASS, verifie 30/05/2026) = 2403 EUR (5% PASS), CONFIRME (etait philtr non verifie)",
         "Tous chiffres verifies a la source le 2026-05-28"
       ]
     },

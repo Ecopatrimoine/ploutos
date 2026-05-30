@@ -140,6 +140,10 @@ describe("G2 — SSI 2026 (valeurs vérifiées : arrêté 01/08/2023, ameli, SOD
   it("capital décès retraité = 3 844,80 € (8 % PASS 2026, corrigé depuis 3 768)", () => {
     expect(ssi.capitalDeces.montantRetraite).toBeCloseTo(3844.80, 2);
   });
+  it("capital décès orphelin = 2 403 € par enfant (5 % PASS 2026, confirmé ameli)", () => {
+    expect(ssi.capitalDeces.montantParEnfant).toBe(2403);
+    expect(ssi.capitalDeces.montantParEnfant).toBeCloseTo((referentiels.pass as any).pass.annuel * 0.05, 2);
+  });
   it("durées : 360 j ordinaire / 1095 j ALD", () => {
     expect(ssi.ij.plafondDureeJours).toBe(360);
     expect(ssi.ij.plafondDureeJoursALD).toBe(1095);
