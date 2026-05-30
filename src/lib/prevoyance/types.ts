@@ -171,7 +171,7 @@ export type Constat = {
   action: string;                   // proposition CGP — JAMAIS d'assureur ni de produit nommé (DDA)
   impactChiffre?: {
     montant: number;
-    libelle: string;                // "Trou de revenu mensuel à J180"
+    libelle: string;                // "Manque à gagner mensuel à J180"
   };
 };
 

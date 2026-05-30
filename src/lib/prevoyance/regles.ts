@@ -163,7 +163,7 @@ export const regleDcCapitalInsuffisantDettes: Regle = (ctx, cible) => {
     action:
       `Évaluer le besoin d'un capital décès additionnel d'environ ${formatEUR(trou)}, ` +
       `ou réviser à la baisse ce besoin si une assurance emprunteur DC est déjà en place sur la dette.`,
-    impactChiffre: { montant: trou, libelle: "Trou de capital décès face aux dettes immobilières" },
+    impactChiffre: { montant: trou, libelle: "Déficit de capital décès face aux dettes immobilières" },
   };
 };
 
@@ -247,7 +247,7 @@ export const regleIjPlafondInsuffisant: Regle = (ctx, cible) => {
     action:
       "Évaluer la mise en place d'une couverture complémentaire IJ visant un revenu de remplacement " +
       "proche du revenu de référence sur la durée maximale d'arrêt (jusqu'à 1 095 jours).",
-    impactChiffre: { montant: trou, libelle: "Trou de revenu mensuel à J180" },
+    impactChiffre: { montant: trou, libelle: "Manque à gagner mensuel à J180" },
   };
 };
 
@@ -315,7 +315,7 @@ export const regleInvCat2AucuneCouvertureCompl: Regle = (ctx, cible) => {
     action:
       "Évaluer la mise en place d'une rente invalidité complémentaire visant un revenu de remplacement " +
       "proche du revenu de référence en cas d'invalidité reconnue.",
-    impactChiffre: { montant: trou, libelle: "Trou de revenu invalidité mensuel" },
+    impactChiffre: { montant: trou, libelle: "Manque à gagner invalidité mensuel" },
   };
 };
 
