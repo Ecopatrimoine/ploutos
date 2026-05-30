@@ -16,10 +16,15 @@ import { describe, it, expect } from "vitest";
 import {
   computeIJObligatoireJournaliere,
   computeInvalObligatoireMensuel,
+  resolveDiscriminant,
+  forfaitaireInvalMensuel,
+  forfaitaireCapitalDeces,
+  projeterArretMaladie,
 } from "../lib/prevoyance/projection";
 import { buildPlafondVariables } from "../lib/prevoyance/formula";
 import { referentiels } from "../data/prevoyance";
 import type { EntreePerso } from "../lib/prevoyance/types";
+import type { ForfaitConfig } from "../types/patrimoine";
 
 const vars = buildPlafondVariables(referentiels);
 const caisses = (referentiels.caisses as any).caisses;
@@ -184,5 +189,208 @@ describe.skip("G2 — CARPIMKO 2026 (à activer après remplissage)", () => {
   it("carence 90 jours, IJ uniforme", () => {
     expect(carpimko.ij.carenceJours).toBe(90);
     expect(typeof carpimko.ij.ijJournaliere).toBe("number");
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════
+// MOTEUR FORFAITAIRE (CNBF, CARCDSF, CAVEC) — lot 1
+//
+// Valeurs sourcées (SPEC_PREVOYANCE_CAISSES_FORFAITAIRES §2/§8). L'IJ
+// forfaitaire est calculée par le moteur (ijObligatoireMensuelAt), on la
+// lit donc via series.ijObligatoire (mensuel = journalier ×30). L'invalidité
+// et le capital décès sont testés via les helpers purs exportés
+// (forfaitaireInvalMensuel / forfaitaireCapitalDeces). Âge de retraite porté
+// à 72 pour que la phase invalidité (J1095) tienne dans l'axe même borne 70.
+// ════════════════════════════════════════════════════════════════════
+
+// Construit une entrée forfaitaire pour le moteur.
+function entreeForfait(
+  caisse: EntreePerso["caisse"],
+  forfait: ForfaitConfig,
+  over: Partial<EntreePerso> = {}
+): EntreePerso {
+  return {
+    age: 45, ageRetraite: 72, statutPro: "tns_liberal", caisse,
+    idccCCN: null, ancienneteMois: 120, salaireBrutAnnuel: 0, salaireNetMensuel: 0,
+    revenuTNSAnnuel: 80000, contratsIndividuels: [], couvertureCollective: null,
+    forfait,
+    ...over,
+  };
+}
+
+// IJ obligatoire MENSUELLE servie au jour t (lue dans la projection).
+function ijObligAtJour(e: EntreePerso, jour: number): number {
+  const r = projeterArretMaladie(e, "cat2", referentiels);
+  // L'axe ne contient pas forcément le jour exact : on insère via un point
+  // existant >= jour en phase AM. On cherche l'index du jour demandé ; à
+  // défaut on prend le premier point AM dont le jour est dans la fenêtre.
+  const idx = r.axe.findIndex((p) => p.jour === jour);
+  if (idx >= 0) return r.series.ijObligatoire[idx];
+  // Fallback : interpoler sur le palier englobant (IJ forfaitaire = plateau).
+  const cand = r.axe.filter((p) => p.jour >= 90 && p.jour < 1095);
+  return cand.length ? r.series.ijObligatoire[r.axe.indexOf(cand[0])] : 0;
+}
+
+// ── CNBF (avocats) ──
+describe("Forfaitaire — CNBF 2026 (cnbf.fr barème 19/01/2026)", () => {
+  const cnbf = caisses.CNBF;
+
+  it("schéma JSON : moteur forfaitaire, phase1 externe (LPA/AON)", () => {
+    expect(cnbf.moteur).toBe("forfaitaire");
+    expect(cnbf.ij.phase1.type).toBe("externe");
+    expect(cnbf.discriminant.type).toBe("anciennete");
+  });
+
+  it("discriminant ancienneté : < 240 mois → moins20, >= 240 → plus20", () => {
+    const e1 = entreeForfait("CNBF", { tauxInvalidite: 100 }, { ancienneteMois: 120 });
+    const e2 = entreeForfait("CNBF", { tauxInvalidite: 100 }, { ancienneteMois: 240 });
+    expect(resolveDiscriminant(cnbf, e1)).toBe("moins20");
+    expect(resolveDiscriminant(cnbf, e2)).toBe("plus20");
+  });
+
+  it("IJ 90 €/j servie à J91 et J200 (mensuel 90×30)", () => {
+    const e = entreeForfait("CNBF", { tauxInvalidite: 100 });
+    expect(ijObligAtJour(e, 90)).toBeCloseTo(90 * 30, 2);
+    expect(ijObligAtJour(e, 180)).toBeCloseTo(90 * 30, 2);
+  });
+
+  it("invalidité ancienneté < 240 mois & taux > 66 → 9 577/12 €/mois", () => {
+    const e = entreeForfait("CNBF", { tauxInvalidite: 100 }, { ancienneteMois: 120 });
+    expect(forfaitaireInvalMensuel(cnbf, e)).toBeCloseTo(9577 / 12, 2);
+  });
+
+  it("invalidité taux < 66 → 0", () => {
+    const e = entreeForfait("CNBF", { tauxInvalidite: 50 }, { ancienneteMois: 120 });
+    expect(forfaitaireInvalMensuel(cnbf, e)).toBe(0);
+  });
+
+  it("ancienneté >= 240 mois → invalidité 0 ET aucun faux warning données indisponibles", () => {
+    const e = entreeForfait("CNBF", { tauxInvalidite: 100 }, { ancienneteMois: 300 });
+    expect(forfaitaireInvalMensuel(cnbf, e)).toBe(0);
+    const r = projeterArretMaladie(e, "cat2", referentiels);
+    expect(r.donneesCaisseIndisponibles).toBe(false);
+    expect(r.rupturesCles.some((rc) => rc.type === "donnees_indisponibles")).toBe(false);
+  });
+
+  it("capital décès forfaitaire = 50 000 €", () => {
+    const e = entreeForfait("CNBF", { tauxInvalidite: 100 });
+    expect(forfaitaireCapitalDeces(cnbf, e)).toBe(50000);
+  });
+});
+
+// ── CARCDSF dentiste ──
+describe("Forfaitaire — CARCDSF dentiste 2026 (carcdsf.fr)", () => {
+  const carcdsf = caisses.CARCDSF;
+
+  it("IJ 113,22 €/j (mensuel ×30)", () => {
+    const e = entreeForfait("CARCDSF", { tauxInvalidite: 100, sousProfession: "dentiste" });
+    expect(ijObligAtJour(e, 180)).toBeCloseTo(113.22 * 30, 2);
+  });
+
+  it("invalidité totale, âge < 62 → 31 824,20/12 €/mois", () => {
+    const e = entreeForfait("CARCDSF", { tauxInvalidite: 100, sousProfession: "dentiste" }, { age: 50 });
+    expect(forfaitaireInvalMensuel(carcdsf, e)).toBeCloseTo(31824.20 / 12, 2);
+  });
+
+  it("invalidité + 1 enfant → + 9 314,40/12 €/mois", () => {
+    const e = entreeForfait(
+      "CARCDSF",
+      { tauxInvalidite: 100, sousProfession: "dentiste" },
+      { age: 50, nbEnfantsACharge: 1 }
+    );
+    expect(forfaitaireInvalMensuel(carcdsf, e)).toBeCloseTo((31824.20 + 9314.40) / 12, 2);
+  });
+
+  it("âge >= 62 → invalidité 0 (borne d'âge)", () => {
+    const e = entreeForfait("CARCDSF", { tauxInvalidite: 100, sousProfession: "dentiste" }, { age: 62 });
+    expect(forfaitaireInvalMensuel(carcdsf, e)).toBe(0);
+  });
+
+  it("capital décès dentiste = 19 220 €", () => {
+    const e = entreeForfait("CARCDSF", { tauxInvalidite: 100, sousProfession: "dentiste" });
+    expect(forfaitaireCapitalDeces(carcdsf, e)).toBe(19220);
+  });
+});
+
+// ── CARCDSF sage-femme ──
+describe("Forfaitaire — CARCDSF sage-femme 2026 (millésime 2025 sur invalidité/capital)", () => {
+  const carcdsf = caisses.CARCDSF;
+
+  it("IJ 49,70 €/j (mensuel ×30)", () => {
+    const e = entreeForfait("CARCDSF", { tauxInvalidite: 100, sousProfession: "sage_femme" });
+    expect(ijObligAtJour(e, 180)).toBeCloseTo(49.70 * 30, 2);
+  });
+
+  it("invalidité → 13 460/12 €/mois, sans majoration enfant", () => {
+    const e = entreeForfait(
+      "CARCDSF",
+      { tauxInvalidite: 100, sousProfession: "sage_femme" },
+      { age: 50, nbEnfantsACharge: 2 }
+    );
+    expect(forfaitaireInvalMensuel(carcdsf, e)).toBeCloseTo(13460 / 12, 2);
+  });
+
+  it("capital décès sage-femme = 14 831 €", () => {
+    const e = entreeForfait("CARCDSF", { tauxInvalidite: 100, sousProfession: "sage_femme" });
+    expect(forfaitaireCapitalDeces(carcdsf, e)).toBe(14831);
+  });
+
+  it("marqueur 2025 TO_VERIFY présent sur sage-femme invalidité + capital décès", () => {
+    expect(carcdsf.invalidite.montantAnnuel100._meta.sage_femme._TO_VERIFY).toBe(true);
+    expect(carcdsf.capitalDeces._TO_VERIFY).toBe(true);
+  });
+});
+
+// ── CAVEC ──
+describe("Forfaitaire — CAVEC 2026 (cavec.fr grille officielle)", () => {
+  const cavec = caisses.CAVEC;
+
+  it("classe dérivée du revenu : 50 000 → C3", () => {
+    const e = entreeForfait("CAVEC", { tauxInvalidite: 100 }, { revenuTNSAnnuel: 50000 });
+    expect(resolveDiscriminant(cavec, e)).toBe("3");
+  });
+
+  it("IJ 130 €/j (mensuel ×30)", () => {
+    const e = entreeForfait("CAVEC", { tauxInvalidite: 100 }, { revenuTNSAnnuel: 50000 });
+    expect(ijObligAtJour(e, 180)).toBeCloseTo(130 * 30, 2);
+  });
+
+  it("invalidité 100 % C3 → 33 240/12 €/mois", () => {
+    const e = entreeForfait("CAVEC", { tauxInvalidite: 100 }, { revenuTNSAnnuel: 50000, age: 55 });
+    expect(forfaitaireInvalMensuel(cavec, e)).toBeCloseTo(33240 / 12, 2);
+  });
+
+  it("invalidité proportionnelle taux 70 % C2 → 16 620 × 0,70 / 12 = 969,50 €/mois", () => {
+    const e = entreeForfait("CAVEC", { tauxInvalidite: 70 }, { revenuTNSAnnuel: 30000, age: 55 });
+    expect(resolveDiscriminant(cavec, e)).toBe("2");
+    expect(forfaitaireInvalMensuel(cavec, e)).toBeCloseTo((16620 * 0.70) / 12, 2);
+    expect(forfaitaireInvalMensuel(cavec, e)).toBeCloseTo(969.50, 2);
+  });
+
+  it("taux < 66 → 0", () => {
+    const e = entreeForfait("CAVEC", { tauxInvalidite: 50 }, { revenuTNSAnnuel: 50000, age: 55 });
+    expect(forfaitaireInvalMensuel(cavec, e)).toBe(0);
+  });
+
+  it("âge >= 70 → invalidité 0 (borne d'âge)", () => {
+    const e = entreeForfait("CAVEC", { tauxInvalidite: 100 }, { revenuTNSAnnuel: 50000, age: 70 });
+    expect(forfaitaireInvalMensuel(cavec, e)).toBe(0);
+  });
+
+  it("capital décès C4 = 290 850 €", () => {
+    const e = entreeForfait("CAVEC", { tauxInvalidite: 100 }, { revenuTNSAnnuel: 200000 });
+    expect(resolveDiscriminant(cavec, e)).toBe("4");
+    expect(forfaitaireCapitalDeces(cavec, e)).toBe(290850);
+  });
+
+  it("option classe forcée (C3 dérivée → C4) honorée", () => {
+    const e = entreeForfait(
+      "CAVEC",
+      { tauxInvalidite: 100, classeOption: "4" },
+      { revenuTNSAnnuel: 50000, age: 55 }
+    );
+    expect(resolveDiscriminant(cavec, e)).toBe("4");
+    expect(forfaitaireInvalMensuel(cavec, e)).toBeCloseTo(49860 / 12, 2);
+    expect(forfaitaireCapitalDeces(cavec, e)).toBe(290850);
   });
 });

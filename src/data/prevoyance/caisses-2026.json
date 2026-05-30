@@ -256,9 +256,59 @@
     "CARCDSF": {
       "nom": "Caisse autonome de retraite des chirurgiens-dentistes et sages-femmes",
       "publicConcerne": "Chirurgiens-dentistes, sages-femmes",
-      "ij": { "TO_FILL": true },
-      "invalidite": { "TO_FILL": true },
-      "capitalDeces": { "TO_FILL": true }
+      "dateVerification": "2026-01",
+      "moteur": "forfaitaire",
+      "discriminant": {
+        "type": "profession",
+        "sourceProfession": "forfait.sousProfession",
+        "valeursValides": ["dentiste", "sage_femme"]
+      },
+      "ij": {
+        "_commentaire": "IJ J91 -> J1095. Carence 90 jours, phase J4->J90 couverte par la CPAM (RAAM/730). Source carcdsf.fr guide IJ 2026 (verifie 2026-01).",
+        "carenceJours": 90,
+        "plafondDureeJours": 1095,
+        "phase1": { "type": "cpam" },
+        "montantJournalier": {
+          "mode": "parDiscriminant",
+          "valeurs": { "dentiste": 113.22, "sage_femme": 49.70 }
+        }
+      },
+      "invalidite": {
+        "_commentaire": "Invalidite totale/permanente uniquement (commission inaptitude). Mode binaire. Borne d'age < 62 ans. Dentiste : source 2026 (image invalidite janvier 2026). Sage-femme : valeur millesime 2025 -> TO_VERIFY 2026.",
+        "modeTaux": "binaire",
+        "seuilTauxMinimal": 66,
+        "borneAgeMax": 62,
+        "montantAnnuel100": {
+          "mode": "parDiscriminant",
+          "valeurs": {
+            "dentiste": 31824.20,
+            "sage_femme": 13460
+          },
+          "_meta": {
+            "sage_femme": {
+              "_source": "memento 2025, 2026 a confirmer",
+              "_TO_VERIFY": true
+            }
+          }
+        },
+        "majorationEnfantAnnuelle": {
+          "mode": "parDiscriminant",
+          "valeurs": { "dentiste": 9314.40, "sage_femme": null }
+        }
+      },
+      "capitalDeces": {
+        "_commentaire": "Capitaux deces millesime 2025 -> TO_VERIFY 2026 (memento 2026 a confirmer).",
+        "_source": "memento 2025, 2026 a confirmer",
+        "_TO_VERIFY": true,
+        "mode": "parDiscriminant",
+        "valeurs": { "dentiste": 19220, "sage_femme": 14831 }
+      },
+      "sources": [
+        "carcdsf.fr — guide IJ 2026 (carence 90 j, J91->1095, IJ dentiste 113,22 / sage-femme 49,70), verifie 2026-01",
+        "carcdsf.fr — image invalidite janvier 2026 (dentiste 31 824,20 €/an + majoration enfant 9 314,40 €/an, borne age 62)",
+        "Invalidite sage-femme 13 460 €/an : memento 2025, a confirmer 2026 (TO_VERIFY)",
+        "Capitaux deces 19 220 € (dentiste) / 14 831 € (sage-femme) : memento 2025, a confirmer 2026 (TO_VERIFY)"
+      ]
     },
     "CARPV": {
       "nom": "Caisse autonome de retraite et de prévoyance des vétérinaires",
@@ -270,9 +320,44 @@
     "CNBF": {
       "nom": "Caisse nationale des barreaux français",
       "publicConcerne": "Avocats",
-      "ij": { "TO_FILL": true },
-      "invalidite": { "TO_FILL": true },
-      "capitalDeces": { "TO_FILL": true }
+      "dateVerification": "2026-01-19",
+      "moteur": "forfaitaire",
+      "discriminant": {
+        "type": "anciennete",
+        "sourceAnciennete": "ancienneteMois",
+        "seuils": [
+          { "maxMois": 240, "cle": "moins20" },
+          { "maxMois": null, "cle": "plus20" }
+        ]
+      },
+      "ij": {
+        "_commentaire": "IJ forfait unique 90 €/j, J91 -> J1095. Phase J4->J90 : LPA/AON (prevoyance de branche du barreau), HORS caisse (note constat lot 3). Source cnbf.fr bareme 2026 (19/01/2026).",
+        "carenceJours": 90,
+        "plafondDureeJours": 1095,
+        "phase1": { "type": "externe", "libelle": "LPA/AON (prévoyance de branche du barreau)" },
+        "montantJournalier": { "mode": "uniforme", "valeur": 90 }
+      },
+      "invalidite": {
+        "_commentaire": "Invalidite totale uniquement (taux > 66 %), mode binaire. anciennete < 240 mois -> 9 577 €/an (50 % retraite base forfaitaire 19 154 €). anciennete >= 240 mois -> 50 % de la retraite proportionnelle (non calculable forfaitairement) : aucun montant (null), PAS de faux warning donnees indisponibles (point d'attention = lot 3).",
+        "modeTaux": "binaire",
+        "seuilTauxMinimal": 66,
+        "borneAgeMax": null,
+        "montantAnnuel100": {
+          "mode": "parDiscriminant",
+          "valeurs": { "moins20": 9577, "plus20": null }
+        },
+        "majorationEnfantAnnuelle": null
+      },
+      "capitalDeces": {
+        "_commentaire": "Forfait 50 000 € (maladie ou accident), avocat non retraite. Source cnbf.fr bareme 2026.",
+        "mode": "uniforme",
+        "valeur": 50000
+      },
+      "sources": [
+        "cnbf.fr — bareme 2026 (19/01/2026) : IJ 90 €/j J91->1095, capital deces 50 000 €",
+        "Invalidite anciennete < 20 ans (240 mois) : 9 577 €/an (= 50 % retraite base forfaitaire 19 154 €)",
+        "Invalidite anciennete >= 20 ans : 50 % retraite proportionnelle, non calculable forfaitairement -> aucun montant (point d'attention lot 3)"
+      ]
     },
     "CAVOM": {
       "nom": "Caisse d'assurance vieillesse des officiers ministériels",
@@ -284,9 +369,48 @@
     "CAVEC": {
       "nom": "Caisse d'assurance vieillesse des experts-comptables et commissaires aux comptes",
       "publicConcerne": "Experts-comptables, commissaires aux comptes",
-      "ij": { "TO_FILL": true },
-      "invalidite": { "TO_FILL": true },
-      "capitalDeces": { "TO_FILL": true }
+      "dateVerification": "2026-05-30",
+      "moteur": "forfaitaire",
+      "discriminant": {
+        "type": "classe",
+        "sourceClasse": "revenuTNSAnnuel",
+        "grilleRevenuClasse": [
+          { "classe": "1", "revenuMax": 14919 },
+          { "classe": "2", "revenuMax": 44822 },
+          { "classe": "3", "revenuMax": 81454 },
+          { "classe": "4", "revenuMax": null }
+        ]
+      },
+      "ij": {
+        "_commentaire": "IJ forfait unique 130 €/j (toutes classes), J91, duree 36 mois. Phase J4->J90 : CPAM. Source cavec.fr 2026.",
+        "carenceJours": 90,
+        "plafondDureeJours": 1095,
+        "phase1": { "type": "cpam" },
+        "montantJournalier": { "mode": "uniforme", "valeur": 130 }
+      },
+      "invalidite": {
+        "_commentaire": "Mode proportionnel au taux entre 66 % et 100 %. Borne d'age < 70 ans. Montant a 100 % par classe. Source cavec.fr 2026.",
+        "modeTaux": "proportionnel",
+        "seuilTauxMinimal": 66,
+        "borneAgeMax": 70,
+        "montantAnnuel100": {
+          "mode": "parDiscriminant",
+          "valeurs": { "1": 12465, "2": 16620, "3": 33240, "4": 49860 }
+        },
+        "majorationEnfantAnnuelle": null
+      },
+      "capitalDeces": {
+        "_commentaire": "Capital deces par classe. Source cavec.fr 2026.",
+        "mode": "parDiscriminant",
+        "valeurs": { "1": 72713, "2": 96950, "3": 193900, "4": 290850 }
+      },
+      "sources": [
+        "cavec.fr — grille complete officielle 2026 (verifie 2026-05-30)",
+        "IJ 130 €/j, J91, duree 36 mois (1095 j)",
+        "Invalidite 100 % par classe : C1 12 465 / C2 16 620 / C3 33 240 / C4 49 860 €/an ; borne age 70 ; taux 66-100 proportionnel",
+        "Capital deces : C1 72 713 / C2 96 950 / C3 193 900 / C4 290 850 €",
+        "Grille revenu -> classe : C1 0-14 919 / C2 14 920-44 822 / C3 44 823-81 454 / C4 > 81 454"
+      ]
     },
     "CAVAMAC": {
       "nom": "Caisse d'allocation vieillesse des agents généraux d'assurance",

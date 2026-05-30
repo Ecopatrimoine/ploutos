@@ -125,9 +125,9 @@ describe("projeterArretMaladie — tolérance données indisponibles", () => {
     expect(pensionServie).toBe(true);
   });
 
-  it("caisse TO_FILL (CARCDSF) → étages à 0 + flag levé + rupture 'donnees_indisponibles'", () => {
+  it("caisse TO_FILL (CARPV) → étages à 0 + flag levé + rupture 'donnees_indisponibles'", () => {
     const r = projeterArretMaladie(
-      baseEntree({ caisse: "CARCDSF", statutPro: "tns_liberal", idccCCN: null }),
+      baseEntree({ caisse: "CARPV", statutPro: "tns_liberal", idccCCN: null }),
       "cat2",
       referentiels
     );

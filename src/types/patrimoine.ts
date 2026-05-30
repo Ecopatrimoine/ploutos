@@ -389,6 +389,19 @@ export type CarpimkoConfig = {
   marie: boolean;                    // capital décès / rente conjoint (prestations décès, hors courbe)
 };
 
+// Config commune aux caisses FORFAITAIRES (CNBF, CARCDSF, CAVEC…), pilotées
+// par le moteur générique (caisseRef.moteur === "forfaitaire") plutôt que par
+// une branche dédiée. Un seul type partagé : le discriminant pertinent dépend
+// de la caisse (anciennete CNBF, sous-profession CARCDSF, classe CAVEC).
+// Cf. SPEC_PREVOYANCE_CAISSES_FORFAITAIRES §5.4. Câblage UI = lot 2.
+export type ForfaitConfig = {
+  revenuBNC_N2?: number;             // seed revenu (pattern des autres *Config)
+  tauxInvalidite: number;            // 0-100 (mode taux binaire/proportionnel)
+  sousProfession?: "dentiste" | "sage_femme"; // CARCDSF (discriminant profession)
+  classeOption?: string;            // CAVEC : classe forcée si option supérieure
+  cumulEmploiRetraite?: boolean;
+};
+
 export type PayloadContratIndividuel = {
   id: string;
   type:
@@ -448,6 +461,10 @@ export type PayloadPrevoyancePerso = {
   // Paramètres CARPIMKO (auxiliaires médicaux), optionnel — présent seulement
   // pour les clients affiliés CARPIMKO (prestations forfaitaires).
   carpimko?: CarpimkoConfig;
+  // Paramètres des caisses FORFAITAIRES (CNBF, CARCDSF, CAVEC…), optionnel —
+  // présent seulement pour les clients affiliés à une caisse pilotée par le
+  // moteur forfaitaire générique (cf. SPEC_PREVOYANCE_CAISSES_FORFAITAIRES).
+  forfait?: ForfaitConfig;
 };
 
 // ─── Lot 8 — Prévoyance collective d'entreprise (audit conformité) ────

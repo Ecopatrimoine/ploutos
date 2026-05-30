@@ -424,6 +424,139 @@ function computeIJObligatoireMensuel(
 }
 
 // ────────────────────────────────────────────────────────────────────
+// Moteur FORFAITAIRE générique (CNBF, CARCDSF, CAVEC…)
+//
+// Caisses dont les prestations (IJ, invalidité, capital décès) sont
+// déclarées EN DATA (caisseRef.moteur === "forfaitaire") plutôt que par
+// une branche de code dédiée. Le moteur lit le `discriminant`, résout la
+// clé pertinente (ancienneté / sous-profession / classe), puis applique
+// les montants déclarés. Aucune logique par caisse en dur.
+// Cf. SPEC_PREVOYANCE_CAISSES_FORFAITAIRES §3-4.
+// ────────────────────────────────────────────────────────────────────
+
+// Résout la clé de discriminant pour une caisse forfaitaire donnée.
+// Retourne une chaîne (clé) ou null si la donnée nécessaire manque.
+//   - "aucun"       → clé fixe "default" (montant uniforme, clé ignorée).
+//   - "anciennete"  → premier seuil dont (maxMois === null || ancienneteMois
+//                     < maxMois). < seuil (ex. < 240 mois → "moins20").
+//   - "profession"  → entree.forfait?.sousProfession ?? null.
+//   - "classe"      → classe forcée (forfait.classeOption) sinon dérivée du
+//                     revenu via grilleRevenuClasse (1re ligne où revenu
+//                     <= revenuMax, ou dernière ligne si revenuMax null).
+export function resolveDiscriminant(caisseRef: any, entree: EntreePerso): string | null {
+  const disc = caisseRef?.discriminant;
+  if (!disc) return "default";
+  const type = disc.type;
+  if (type === "aucun") return "default";
+  if (type === "anciennete") {
+    const seuils = Array.isArray(disc.seuils) ? disc.seuils : [];
+    const anc = safeNum(entree.ancienneteMois) ?? 0;
+    for (const s of seuils) {
+      const maxMois = safeNum(s?.maxMois);
+      if (maxMois === null || anc < maxMois) return s?.cle ?? null;
+    }
+    return null;
+  }
+  if (type === "profession") {
+    return entree.forfait?.sousProfession ?? null;
+  }
+  if (type === "classe") {
+    const forced = entree.forfait?.classeOption;
+    if (forced != null && forced !== "") return String(forced);
+    const grille = Array.isArray(disc.grilleRevenuClasse) ? disc.grilleRevenuClasse : [];
+    const revenu = safeNum(entree.revenuTNSAnnuel) ?? 0;
+    for (const row of grille) {
+      const revenuMax = safeNum(row?.revenuMax);
+      if (revenuMax === null || revenu <= revenuMax) return row?.classe != null ? String(row.classe) : null;
+    }
+    return grille.length > 0 ? String(grille[grille.length - 1].classe) : null;
+  }
+  return null;
+}
+
+// Résout une structure "montant" {mode:"uniforme",valeur} |
+// {mode:"parDiscriminant",valeurs:{...}} pour une clé donnée. Retourne null
+// si non documenté (valeurs[clé] absent/null → "pas de montant", pas une
+// erreur ; cf. CNBF plus20).
+function resolveMontant(m: any, cle: string | null): number | null {
+  if (!m) return null;
+  if (m.mode === "uniforme") return safeNum(m.valeur);
+  if (m.mode === "parDiscriminant") {
+    if (cle === null) return null;
+    return safeNum(m.valeurs?.[cle]);
+  }
+  return null;
+}
+
+// IJ JOURNALIÈRE forfaitaire au jour t.
+//   t < carenceJours          → phase1 (cpam → délégué ; externe/aucune → 0).
+//   carence <= t < plafond     → montantJournalier résolu via discriminant.
+//   t >= plafondDureeJours      → 0 (l'invalidité prend le relais).
+function ijForfaitaireJournaliere(
+  caisseRef: any,
+  entree: EntreePerso,
+  vars: PlafondVariables,
+  scenarioArret: ScenarioArret,
+  refCpam: any,
+  t: number
+): number {
+  const ij = caisseRef?.ij;
+  if (!ij) return 0;
+  const carence = safeNum(ij.carenceJours) ?? 0;
+  const plafond = safeNum(ij.plafondDureeJours);
+  if (t < carence) {
+    const phase1 = ij.phase1;
+    if (phase1?.type === "cpam") {
+      // Délègue au calcul CPAM libéraux existant (RAAM/730 ou SJB) via la
+      // caisse CPAM générique, sur l'assiette de l'entrée.
+      const j = computeIJObligatoireJournaliere(t, refCpam, entree, vars, scenarioArret);
+      return j ?? 0;
+    }
+    // externe (LPA/AON) ou aucune → rien côté caisse (note = lot 3).
+    return 0;
+  }
+  if (plafond !== null && t >= plafond) return 0;
+  const cle = resolveDiscriminant(caisseRef, entree);
+  const montant = resolveMontant(ij.montantJournalier, cle);
+  return montant ?? 0;
+}
+
+// Pension d'INVALIDITÉ MENSUELLE forfaitaire (SPEC §4.4).
+//   taux = entree.forfait?.tauxInvalidite ?? 0
+//   borneAgeMax atteinte → 0 ; taux < seuil → 0
+//   base = montantAnnuel100 résolu via discriminant ; null → 0 (PAS de flag
+//   données indisponibles : cas CNBF plus20 intentionnel).
+//   binaire → base ; proportionnel → base * taux/100
+//   + majorationEnfantAnnuelle (si résolue != null) * nbEnfantsACharge
+//   retour pension / 12.
+export function forfaitaireInvalMensuel(caisseRef: any, entree: EntreePerso): number {
+  const inv = caisseRef?.invalidite;
+  if (!inv) return 0;
+  const taux = safeNum(entree.forfait?.tauxInvalidite) ?? 0;
+  const borneAgeMax = safeNum(inv.borneAgeMax);
+  if (borneAgeMax !== null && entree.age >= borneAgeMax) return 0;
+  const seuil = safeNum(inv.seuilTauxMinimal) ?? 0;
+  if (taux < seuil) return 0;
+  const cle = resolveDiscriminant(caisseRef, entree);
+  const base = resolveMontant(inv.montantAnnuel100, cle);
+  if (base === null) return 0; // pas de montant (CNBF plus20) — pas un trou
+  let pension = inv.modeTaux === "proportionnel" ? base * (taux / 100) : base;
+  const maj = resolveMontant(inv.majorationEnfantAnnuelle, cle);
+  if (maj !== null) pension += maj * (safeNum(entree.nbEnfantsACharge) ?? 0);
+  return pension / 12;
+}
+
+// Capital décès forfaitaire (SPEC §4.5). Donnée de référence : N'alimente PAS
+// les 9 séries de projection (revenus de remplacement). Exposé pour les tests
+// et le futur module succession. Retourne null si non documenté.
+export function forfaitaireCapitalDeces(caisseRef: any, entree: EntreePerso): number | null {
+  const cap = caisseRef?.capitalDeces;
+  if (!cap) return null;
+  const cle = resolveDiscriminant(caisseRef, entree);
+  return resolveMontant(cap, cle);
+}
+
+// ────────────────────────────────────────────────────────────────────
 // IJ complémentaire collective et individuelle
 // ────────────────────────────────────────────────────────────────────
 
@@ -802,6 +935,13 @@ export function projeterArretMaladie(
   const carpimkoRef = (ref as { carpimko?: unknown }).carpimko;
   const J_RELAIS_CARPIMKO = 91;
 
+  // Caisses FORFAITAIRES (CNBF, CARCDSF, CAVEC…) : moteur générique piloté par
+  // la DONNÉE (caisseRef.moteur === "forfaitaire"), pas un isXxx en dur. IJ
+  // forfaitaire J91→1095 (phase 1 CPAM ou externe selon le JSON), puis pension
+  // d'invalidité forfaitaire. Capital décès stocké hors courbe (succession).
+  const isForfaitaire = caisseRef?.moteur === "forfaitaire";
+  const cpamRefForfait = isForfaitaire ? lookupCaisse("CPAM", ref) : null;
+
   // Mi-temps thérapeutique (SPEC_ALD_TPT §5). Le TPT n'a de sens qu'en
   // phase AM : finJour est borné à la bascule invalidité (1095) et le TPT
   // est ignoré si debutJour ≥ 1095 ou si l'intervalle est vide.
@@ -917,6 +1057,13 @@ export function projeterArretMaladie(
       }
       return ijCarpimkoPhase2Journaliere(carpimkoRef, entree.carpimko!, t) * 30;
     }
+    if (isForfaitaire) {
+      // IJ forfaitaire journalière (phase 1 déléguée à la CPAM si type cpam,
+      // sinon 0 côté caisse), convertie en mensuel d'affichage (×30).
+      return ijForfaitaireJournaliere(
+        caisseRef, entree, plafondVars, scenarioArret, cpamRefForfait, t
+      ) * 30;
+    }
     return computeIJObligatoireMensuel(
       t, caisseRef, entree, revenuMensuelTNS, salaireBrutMensuel, plafondVars, scenarioArret
     );
@@ -935,6 +1082,7 @@ export function projeterArretMaladie(
     !isCarmf &&
     !isCipav &&
     !isCarpimko &&
+    !isForfaitaire &&
     !isCaisseToFill(caisseRef) &&
     caisseRef.ij?.TO_FILL !== true &&
     resolvePlafondDuree(caisseRef.ij, scenarioArret).aldManquant;
@@ -1070,6 +1218,12 @@ export function projeterArretMaladie(
         // courbe (renteInvalEnfants reste 0).
         series.pensionInvalObligatoire[i] =
           renteInvaliditeCarpimkoAnnuelle(carpimkoRef, entree.carpimko!) / 12;
+      } else if (isForfaitaire) {
+        // Pension d'invalidité forfaitaire (binaire ou proportionnelle au taux),
+        // bornée par l'âge déclaré dans le JSON. Aucun flag « données
+        // indisponibles » pour les caisses forfaitaires : une base null (CNBF
+        // anciennete >= 20 ans) est une absence intentionnelle, pas un trou.
+        series.pensionInvalObligatoire[i] = forfaitaireInvalMensuel(caisseRef, entree);
       } else {
         const inv = computeInvalObligatoireMensuel(
           caisseRef,

@@ -186,8 +186,9 @@ describe("Famille A — Invariants structurels", () => {
 
   // A14 — référentiel "trou" (caisse TO_FILL) → flag + rupture donnees_indisponibles
   it("A14 — caisse non documentée (TO_FILL) → donneesCaisseIndisponibles + rupture associée", () => {
-    // CARCDSF est au schéma minimal (TO_FILL) dans le référentiel.
-    const e = baseEntree({ caisse: "CARCDSF", statutPro: "tns_liberal", idccCCN: null, salaireBrutAnnuel: 0, revenuTNSAnnuel: 80000 });
+    // CARPV est au schéma minimal (TO_FILL) dans le référentiel (cobaye TO_FILL
+    // redirigé de CARCDSF, désormais remplie en caisse forfaitaire — lot 1).
+    const e = baseEntree({ caisse: "CARPV", statutPro: "tns_liberal", idccCCN: null, salaireBrutAnnuel: 0, revenuTNSAnnuel: 80000 });
     const r = projeterArretMaladie(e, "cat2", referentiels);
     expect(r.donneesCaisseIndisponibles).toBe(true);
     expect(r.rupturesCles.some((rc) => rc.type === "donnees_indisponibles")).toBe(true);

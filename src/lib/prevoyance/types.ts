@@ -4,9 +4,9 @@
 // et les adapters Pack PDF v2 (Lot 9). Toutes les valeurs monétaires
 // sont en EUROS / MOIS (sauf indication contraire dans les commentaires).
 
-import type { CarmfConfig, CipavConfig, CarpimkoConfig, CodeCaisse, NatureContrat, StatutPro, TptConfig } from "../../types/patrimoine";
+import type { CarmfConfig, CipavConfig, CarpimkoConfig, ForfaitConfig, CodeCaisse, NatureContrat, StatutPro, TptConfig } from "../../types/patrimoine";
 
-export type { TptConfig, CarmfConfig, CipavConfig, CarpimkoConfig };
+export type { TptConfig, CarmfConfig, CipavConfig, CarpimkoConfig, ForfaitConfig };
 
 // Catégorie d'invalidité retenue pour la projection.
 //   cat1 : capable d'exercer une activité réduite (taux base ~30 %)
@@ -106,6 +106,10 @@ export type EntreePerso = {
   // l'architecture CARPIMKO : IJ libéraux J4-J90, allocation journalière
   // forfaitaire J91→fin 3e année, puis rente d'invalidité forfaitaire (cf. carpimko.ts).
   carpimko?: CarpimkoConfig;
+  // Paramètres des caisses FORFAITAIRES (CNBF, CARCDSF, CAVEC…). Consommé par
+  // le moteur forfaitaire générique quand caisseRef.moteur === "forfaitaire"
+  // (sous-profession CARCDSF, classe forcée CAVEC, taux d'invalidité projeté).
+  forfait?: ForfaitConfig;
 };
 
 // Série empilée — chaque tableau est aligné sur axe[]. Tous les
