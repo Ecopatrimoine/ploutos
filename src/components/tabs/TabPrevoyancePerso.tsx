@@ -100,6 +100,7 @@ const TabPrevoyancePerso = React.memo(function TabPrevoyancePerso({
                 onChangePrevoyance={(patch) => patchPrevoyance("p1", patch)}
                 cible="p1"
                 data={data}
+                aligned={hasP2}
               />
               {hasP2 && entreeP2Base && (
                 <ColonnePerso
@@ -109,6 +110,7 @@ const TabPrevoyancePerso = React.memo(function TabPrevoyancePerso({
                   onChangePrevoyance={(patch) => patchPrevoyance("p2", patch)}
                   cible="p2"
                   data={data}
+                  aligned={hasP2}
                 />
               )}
             </div>
@@ -176,6 +178,9 @@ type ColonneProps = {
   onChangePrevoyance: (patch: Partial<PayloadPrevoyancePerso>) => void;
   cible: "p1" | "p2";
   data: PatrimonialData;
+  // true en mode 2 personnes (colonnes côte à côte) → réserve une hauteur
+  // minimale au récap pour aligner les 2 colonnes. Inactif en mode 1 personne.
+  aligned: boolean;
 };
 
 function ColonnePerso({
@@ -185,6 +190,7 @@ function ColonnePerso({
   onChangePrevoyance,
   cible,
   data,
+  aligned,
 }: ColonneProps) {
   // Pour un médecin affilié CARMF, le moteur a besoin du sous-objet carmf
   // (architecture 2 étages + invalidité CARMF). À défaut de saisie, on
@@ -281,9 +287,10 @@ function ColonnePerso({
 
   return (
     <div className="space-y-4">
-      {/* Récap statut */}
+      {/* Récap statut — en mode 2 personnes, min-height pour que les 2 colonnes
+          démarrent alignées même si la ligne Statut/Caisse/Ancienneté s'enroule. */}
       <div
-        className="rounded-xl p-4"
+        className={`rounded-xl p-4 ${aligned ? "xl:min-h-[6rem]" : ""}`}
         style={{ background: SURFACE.cardSoft, border: `1px solid ${SURFACE.border}` }}
       >
         <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
