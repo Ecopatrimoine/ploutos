@@ -176,7 +176,7 @@ function EtatVide({ onGoToTravail }: { onGoToTravail?: () => void }) {
         <button
           type="button"
           onClick={onGoToTravail}
-          className="rounded-xl px-4 py-2 text-sm font-bold transition-all"
+          className="rounded-xl px-4 py-2 text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#A67F32]"
           style={{
             background: BRAND.navy,
             color: "#fff",
@@ -381,7 +381,7 @@ function ColonnePerso({
       {projection.revenuReferenceMicroTNS && (
         <div
           className="rounded-xl p-3 text-sm"
-          style={{ background: "rgba(245,158,11,0.08)", border: "1px solid #F59E0B", color: "#7C4A04" }}
+          style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}
         >
           {WARNING_MICRO_TNS}
         </div>

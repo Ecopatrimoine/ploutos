@@ -100,7 +100,7 @@ function TooltipContenu({
           <span>{formatEuro(Number(p.value))}</span>
         </div>
       ))}
-      <div style={{ color: COL.reference, display: "flex", justifyContent: "space-between", gap: 12, marginTop: 4 }}>
+      <div style={{ color: BRAND.muted, display: "flex", justifyContent: "space-between", gap: 12, marginTop: 4 }}>
         <span>Revenu de référence</span>
         <span>{formatEuro(refMensuel)}</span>
       </div>
@@ -159,7 +159,7 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection 
           <button
             type="button"
             onClick={() => setVueComplete((v) => !v)}
-            className="rounded-xl px-3 py-1.5 text-xs font-semibold transition-all"
+            className="rounded-xl px-3 py-1.5 text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#A67F32]"
             style={{ background: BRAND.navy, color: "#fff", border: "none", cursor: "pointer" }}
           >
             {vueComplete ? "Revenir à la vue 3 ans" : "Voir l'invalidité jusqu'à la retraite"}
@@ -171,9 +171,9 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection 
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-            <XAxis dataKey="labelX" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+            <XAxis dataKey="labelX" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
             <YAxis
-              tick={{ fontSize: 10 }}
+              tick={{ fontSize: 11 }}
               tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)} k€` : `${v} €`)}
             />
             <Tooltip content={<TooltipContenu refMensuel={projection.revenuReferenceMensuel} />} />
@@ -186,9 +186,9 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection 
               strokeWidth={1.5}
               label={{
                 value: `Revenu de réf. (${formatEuro(projection.revenuReferenceMensuel)})`,
-                fontSize: 10,
+                fontSize: 11,
                 position: "insideTopRight",
-                fill: COL.reference,
+                fill: BRAND.muted,
               }}
             />
 
@@ -200,10 +200,10 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection 
                 strokeWidth={1.5}
                 label={{
                   value: "relais CARMF",
-                  fontSize: 10,
+                  fontSize: 11,
                   angle: -90,
                   position: "insideTopLeft",
-                  fill: "var(--cab-gold, #E3AF64)",
+                  fill: BRAND.goldText,
                 }}
               />
             )}
@@ -216,10 +216,10 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection 
                 strokeWidth={1.5}
                 label={{
                   value: "bascule invalidité",
-                  fontSize: 10,
+                  fontSize: 11,
                   angle: -90,
                   position: "insideTopLeft",
-                  fill: "var(--cab-gold, #E3AF64)",
+                  fill: BRAND.goldText,
                 }}
               />
             )}

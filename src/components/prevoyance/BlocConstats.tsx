@@ -46,11 +46,15 @@ type Props = {
   constats: Constat[];
 };
 
+// Palette sémantique alignée sur les tokens de charte Ploutos (BRAND.*),
+// déjà utilisés partout ailleurs dans le module. non_conformite et alerte
+// partagent la teinte danger ; la hiérarchie passe par la bordure (pleine
+// vs légère), l'icône et le libellé (jamais la couleur seule).
 const COULEURS: Record<ConstatSeverite, { bg: string; border: string; texte: string; icone: string; label: string }> = {
-  non_conformite: { bg: "rgba(220, 38, 38, 0.08)", border: "#DC2626", texte: "#7A1F1F", icone: "⚠", label: "NON-CONFORMITÉ" },
-  alerte:         { bg: "rgba(239, 68, 68, 0.07)", border: "#EF4444", texte: "#9B2C2C", icone: "🔴", label: "ALERTE" },
-  attention:      { bg: "rgba(245, 158, 11, 0.07)", border: "#F59E0B", texte: "#7C4A04", icone: "🟠", label: "ATTENTION" },
-  info:           { bg: "rgba(59, 130, 246, 0.07)", border: "#3B82F6", texte: "#1E3A8A", icone: "ℹ", label: "INFO" },
+  non_conformite: { bg: BRAND.dangerBg, border: BRAND.danger, texte: BRAND.danger, icone: "⚠", label: "NON-CONFORMITÉ" },
+  alerte:         { bg: BRAND.dangerBg, border: BRAND.dangerBorder, texte: BRAND.danger, icone: "🔴", label: "ALERTE" },
+  attention:      { bg: BRAND.warningBg, border: BRAND.warningBorder, texte: BRAND.warning, icone: "🟠", label: "ATTENTION" },
+  info:           { bg: "rgba(38,66,139,0.06)", border: BRAND.sky, texte: BRAND.sky, icone: "ℹ", label: "INFO" },
 };
 
 const LIBELLE_AXE: Record<string, string> = {

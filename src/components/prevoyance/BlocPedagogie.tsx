@@ -101,7 +101,7 @@ export function BandeauResumeClient({
     >
       {items.map((it) => (
         <div key={it.label} style={{ minWidth: 120 }}>
-          <div className="text-[10px] uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.6)" }}>
+          <div className="text-[11px] uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.72)" }}>
             {it.label}
           </div>
           <div className="text-sm font-bold" style={{ textTransform: it.label === "Complémentaire" ? "capitalize" : "none" }}>
@@ -385,7 +385,7 @@ function Accordeon({ titre, children }: { titre: string; children: React.ReactNo
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm"
+        className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#A67F32]"
         style={{ background: SURFACE.cardSoft, color: BRAND.navy, border: "none", cursor: "pointer", fontWeight: 600 }}
         aria-expanded={open}
       >
