@@ -172,6 +172,12 @@ export function buildEntreePerso(
     salaireBrutAnnuel: travail.salaireBrutAnnuel,
     salaireNetMensuel,
     revenuTNSAnnuel,
+    // Config des caisses FORFAITAIRES (CNBF, CARCDSF, CAVEC…) : saisie dans
+    // l'onglet Travail (BlocForfait), persistée dans data.prevoyance.{p}.forfait.
+    // Le moteur la consomme via resolveDiscriminant / forfaitaireInvalMensuel
+    // (sous-profession CARCDSF, classe forcée CAVEC, taux d'invalidité projeté).
+    // Cf. SPEC_PREVOYANCE_CAISSES_FORFAITAIRES §5.4 (point 5 : mapping → moteur).
+    forfait: data.prevoyance?.[which]?.forfait,
     contratsIndividuels: [], // saisis dans l'UI prévoyance (LOT 7)
     couvertureCollective: null, // idem
   };

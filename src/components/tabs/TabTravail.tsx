@@ -14,6 +14,16 @@ import { buildEntreePerso } from "../../lib/prevoyance/mapping";
 import { BlocCarmf, defaultCarmf } from "../prevoyance/BlocCarmf";
 import { BlocCipav, defaultCipav } from "../prevoyance/BlocCipav";
 import { BlocCarpimko, defaultCarpimko } from "../prevoyance/BlocCarpimko";
+import { BlocForfait, defaultForfait } from "../prevoyance/BlocForfait";
+import { referentiels } from "../../data/prevoyance";
+
+// Référence JSON d'une caisse (caisseRef) depuis le référentiel. null si
+// inconnue. Utilisée pour aiguiller les caisses FORFAITAIRES par la DONNÉE
+// (caisseRef.moteur === "forfaitaire"), pas par une liste de codes en dur.
+function lookupCaisseRef(code: string | null): any {
+  if (!code) return null;
+  return (referentiels.caisses as { caisses?: Record<string, any> }).caisses?.[code] ?? null;
+}
 
 
 // ── TabTravail ─────────────────────────────────────────────────────────────────────
@@ -67,8 +77,24 @@ const TabTravail = React.memo(function TabTravail(props: any) {
         return <BlocCipav value={pp.cipav ?? defaultCipav(entreeBase)} onChange={(next) => patchPrev(w, { cipav: next })} />;
       case "CARPIMKO":
         return <BlocCarpimko value={pp.carpimko ?? defaultCarpimko(entreeBase)} onChange={(next) => patchPrev(w, { carpimko: next })} />;
-      default:
+      default: {
+        // Caisses FORFAITAIRES (CNBF, CARCDSF, CAVEC…) : aiguillage par la
+        // DONNÉE (caisseRef.moteur === "forfaitaire"), pas un code en dur →
+        // ajouter une caisse = ajouter un JSON, zéro code ici.
+        const caisseRef = lookupCaisseRef(entreeBase.caisse);
+        if (caisseRef?.moteur === "forfaitaire") {
+          const jobTitle = which === 1 ? data.person1JobTitle : data.person2JobTitle;
+          return (
+            <BlocForfait
+              value={pp.forfait ?? defaultForfait(entreeBase, jobTitle)}
+              onChange={(next) => patchPrev(w, { forfait: next })}
+              caisseRef={caisseRef}
+              revenuTNSAnnuel={entreeBase.revenuTNSAnnuel}
+            />
+          );
+        }
         return null;
+      }
     }
   }
 

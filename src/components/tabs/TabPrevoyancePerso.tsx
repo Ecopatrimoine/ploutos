@@ -295,6 +295,15 @@ function ColonnePerso({
   const scenarioArret: ScenarioArret = prevoyancePerso.scenarioArret ?? "ald";
   const tptConfig = prevoyancePerso.tpt;
 
+  // Référence JSON de la caisse (caisseRef) : pilote la bascule taux% / radios
+  // cat1-3. Critère = la DONNÉE (caisseRef.invalidite.modeTaux ∈ {binaire,
+  // proportionnel}), PAS une liste de codes en dur (cf. SPEC §5.3).
+  const caisseRefInvalidite =
+    (referentiels.caisses as { caisses?: Record<string, { invalidite?: { modeTaux?: string } }> })
+      .caisses?.[entree.caisse ?? ""]?.invalidite;
+  const utiliseTauxInvalidite = caisseRefInvalidite?.modeTaux != null;
+  const tauxInvaliditeProjete = prevoyancePerso.forfait?.tauxInvalidite ?? 100;
+
   // Carence de la caisse (pour la validation UI du début de TPT) : lue du
   // référentiel, fallback 3 j (standard CPAM/SSI).
   const carenceJours: number =
@@ -408,25 +417,48 @@ function ColonnePerso({
         onChange={(next) => onChangePrevoyance({ tpt: next })}
       />
 
-      {/* Sélecteur catégorie invalidité */}
+      {/* Invalidité projetée : pour les caisses à MODE TAUX (forfaitaires —
+          caisseRef.invalidite.modeTaux défini), saisie d'un taux % (pattern
+          CIPAV/CARPIMKO) à la place des radios cat1/2/3. Sinon (CPAM/SSI, mode
+          catégorie) : radios cat1/2/3. Critère porté par la donnée caisse, pas
+          un code en dur (cf. SPEC §5.3). */}
       <div
         className="rounded-xl p-3 flex flex-wrap items-center gap-4"
         style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}
       >
         <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>
-          Catégorie d'invalidité projetée
+          {utiliseTauxInvalidite ? "Taux d'invalidité projeté (%)" : "Catégorie d'invalidité projetée"}
         </div>
-        {(["cat1", "cat2", "cat3"] as const).map((cat) => (
-          <label key={cat} className="flex items-center gap-1.5 text-sm cursor-pointer" style={{ color: BRAND.navy }}>
-            <input
-              type="radio"
-              name={`cat-${cible}`}
-              checked={categorie === cat}
-              onChange={() => onChangePrevoyance({ categorieInvaliditeProjetee: cat })}
-            />
-            <span>{libelleCategorie(cat)}</span>
-          </label>
-        ))}
+        {utiliseTauxInvalidite ? (
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={tauxInvaliditeProjete}
+            onChange={(e) =>
+              onChangePrevoyance({
+                forfait: {
+                  ...(prevoyancePerso.forfait ?? { tauxInvalidite: 100 }),
+                  tauxInvalidite: Math.min(100, Math.max(0, Number(e.target.value) || 0)),
+                },
+              })
+            }
+            className="w-24 rounded-xl border px-2 py-1 text-sm"
+            style={{ borderColor: SURFACE.border, color: BRAND.navy }}
+          />
+        ) : (
+          (["cat1", "cat2", "cat3"] as const).map((cat) => (
+            <label key={cat} className="flex items-center gap-1.5 text-sm cursor-pointer" style={{ color: BRAND.navy }}>
+              <input
+                type="radio"
+                name={`cat-${cible}`}
+                checked={categorie === cat}
+                onChange={() => onChangePrevoyance({ categorieInvaliditeProjetee: cat })}
+              />
+              <span>{libelleCategorie(cat)}</span>
+            </label>
+          ))
+        )}
       </div>
 
       {/* Warning micro-TNS : revenu de référence calé sur le CA */}
