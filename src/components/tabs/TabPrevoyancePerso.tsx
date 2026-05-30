@@ -77,22 +77,58 @@ const TabPrevoyancePerso = React.memo(function TabPrevoyancePerso({
 
   const hasP2 = entreeP2Base !== null;
 
+  // Affichage côte à côte sur écran intermédiaire (tablette). Sur grand écran
+  // (xl+) la grille est déjà en 2 colonnes nativement et le toggle est masqué ;
+  // ce drapeau ne sert qu'à forcer 2 colonnes EN DESSOUS de xl, à la demande.
+  // État de session uniquement (pas de persistance) : préférence d'affichage
+  // transitoire, qui dépend de l'orientation tablette du moment.
+  const [forceWide, setForceWide] = React.useState(false);
+
   return (
     <TabsContent value="prevoyance" className="space-y-4">
       <Card className="border-0 relative overflow-hidden">
         <CardAccentTop />
         <CardHeader>
-          <SectionTitle
-            icon={ShieldCheck}
-            title="Prévoyance personnelle"
-            subtitle="Projection de revenus en cas d'arrêt maladie puis invalidité, par personne du foyer."
-          />
+          <div className="flex items-start justify-between gap-3">
+            <SectionTitle
+              icon={ShieldCheck}
+              title="Prévoyance personnelle"
+              subtitle="Projection de revenus en cas d'arrêt maladie puis invalidité, par personne du foyer."
+            />
+            {/* Toggle d'affichage — utile seulement en mode 2 personnes et sur
+                écran intermédiaire (tablette). Masqué sur grand écran (xl:hidden,
+                déjà 2 colonnes) et inexistant en mode 1 personne. */}
+            {hasP2 && (
+              <button
+                type="button"
+                onClick={() => setForceWide((w) => !w)}
+                aria-pressed={forceWide}
+                className="xl:hidden shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#A67F32]"
+                style={{
+                  background: forceWide ? BRAND.navy : SURFACE.card,
+                  color: forceWide ? "#fff" : BRAND.navy,
+                  border: `1px solid ${forceWide ? BRAND.navy : SURFACE.border}`,
+                  cursor: "pointer",
+                }}
+              >
+                {forceWide ? "↕ 1 colonne" : "↔ 2 colonnes"}
+              </button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {!entreeP1Base ? (
             <EtatVide onGoToTravail={onGoToTravail} />
           ) : (
-            <div className={hasP2 ? "grid gap-6 xl:grid-cols-2 xl:grid-rows-[auto_1fr]" : "max-w-3xl mx-auto"}>
+            <div
+              className={
+                hasP2
+                  ? forceWide
+                    ? "grid gap-6 grid-cols-2 xl:grid-rows-[auto_1fr]"
+                    : "grid gap-6 xl:grid-cols-2 xl:grid-rows-[auto_1fr]"
+                  : "max-w-3xl mx-auto"
+              }
+            >
               <ColonnePerso
                 label={person1}
                 entreeBase={entreeP1Base}
