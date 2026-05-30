@@ -28,6 +28,7 @@ import {
   createEmptyEmployeur,
   suggestCaisseFromStatut,
 } from "../../lib/prevoyance/utils";
+import { STATUTS_TNS } from "../../lib/prevoyance/constants";
 
 const STATUTS_PRO: Array<{ value: StatutPro; label: string }> = [
   { value: "salarie_non_cadre",   label: "Salarié non-cadre" },
@@ -83,6 +84,7 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
   const employeur = value.employeur;
   const statut = value.statutPro;
   const isSal = isSalarieLike(statut);
+  const isTNS = STATUTS_TNS.includes(statut as StatutPro);
 
   function patchEmployeur(patch: Partial<EmployeurInfo>) {
     const next: EmployeurInfo = { ...(employeur ?? createEmptyEmployeur()), ...patch };
@@ -277,7 +279,11 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
         </div>
       </div>
 
-      {/* Date embauche + temps travail */}
+      {/* Date embauche + temps travail — salariés / assimilés salariés uniquement.
+          Pour les TNS (libéraux, gérant majoritaire), « date d'embauche » et
+          « temps de travail » n'ont pas de sens : on affiche à la place le champ
+          « Début d'activité / affiliation » ci-dessous. */}
+      {isSal && (
       <div className="grid gap-3 md:grid-cols-3 items-start">
         <Field label="Date d'embauche">
           <Input
@@ -332,6 +338,25 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
           <div className="hidden md:block" />
         )}
       </div>
+      )}
+
+      {/* Début d'activité / 1ʳᵉ affiliation — TNS uniquement (pas de date
+          d'embauche : l'ancienneté d'affiliation en découle, cf. mapping). */}
+      {isTNS && (
+        <div className="grid gap-3 md:grid-cols-2 items-start">
+          <Field
+            label="Début d'activité / 1ʳᵉ affiliation à la caisse"
+            tooltip="Date de début d'activité libérale ou de 1ʳᵉ affiliation à votre caisse (CIPAV, CARMF…). Sert à calculer votre ancienneté d'affiliation."
+          >
+            <Input
+              type="date"
+              value={value.dateDebutActivite ?? ""}
+              onChange={(e) => onChange({ dateDebutActivite: e.target.value || null })}
+              className="rounded-xl"
+            />
+          </Field>
+        </div>
+      )}
 
       {/* Salaire brut + prime — uniquement pour salariés / assimilés.
           Pour les TNS, les revenus sont saisis dans l'onglet Revenus

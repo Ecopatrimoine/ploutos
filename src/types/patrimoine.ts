@@ -286,7 +286,11 @@ export type PayloadTravail = {
   statutPro: StatutPro | "";
   caisseAffiliation: CodeCaisse | null;
   employeur: EmployeurInfo | null;
-  dateEmbauche: string | null;       // ISO date
+  dateEmbauche: string | null;       // ISO date — salariés / assimilés salariés
+  // Date de début d'activité / 1ʳᵉ affiliation à la caisse (TNS), optionnel.
+  // Sert d'assiette à l'ancienneté d'affiliation pour les TNS (qui n'ont pas
+  // de date d'embauche). Distinct de dateEmbauche, jamais confondu.
+  dateDebutActivite?: string | null; // ISO date — TNS
   tempsTravail: {
     type: "plein" | "partiel";
     pourcentage?: number;            // 0-100, utilisé si type=partiel

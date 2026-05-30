@@ -100,6 +100,7 @@ export function createEmptyTravail(): PayloadTravail {
     caisseAffiliation: null,
     employeur: null,
     dateEmbauche: null,
+    dateDebutActivite: null,
     tempsTravail: { type: "plein" },
     salaireBrutAnnuel: 0,
     primeAnnuelle: null,

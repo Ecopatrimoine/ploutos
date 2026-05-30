@@ -144,7 +144,12 @@ export function buildEntreePerso(
     statutPro: travail.statutPro,
     caisse: travail.caisseAffiliation,
     idccCCN: travail.employeur?.idccCCN ?? null,
-    ancienneteMois: calcAncienneteMois(travail.dateEmbauche),
+    // Ancienneté d'affiliation : pour un TNS, on part de la date de début
+    // d'activité / 1ʳᵉ affiliation (pas de date d'embauche) ; pour un salarié,
+    // de la date d'embauche. calcAncienneteMois inchangé, seule l'entrée varie.
+    ancienneteMois: calcAncienneteMois(
+      isTNSstatut ? travail.dateDebutActivite : travail.dateEmbauche
+    ),
     revenuReferenceMensuel,
     revenuReferenceMicroTNS,
     salaireBrutAnnuel: travail.salaireBrutAnnuel,
