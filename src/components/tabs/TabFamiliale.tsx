@@ -128,8 +128,8 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
       </Field>
     </div>
   </div>
-  {/* Situation couple sur une ligne */}
-  <div className="grid gap-4 md:grid-cols-3">
+  {/* Situation couple sur une ligne (4 champs) */}
+  <div className="grid gap-4 md:grid-cols-4">
     <Field label="Situation de couple">
       <Select value={data.coupleStatus} onValueChange={(v) => setField("coupleStatus", v)}>
         <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
