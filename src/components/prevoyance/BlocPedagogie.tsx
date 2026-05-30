@@ -276,6 +276,7 @@ function sumObligatoireAtIdx(s: ProjectionResult["series"], i: number): number {
 }
 
 type Trou =
+  | { kind: "critique"; debutJour: number; finJour: number }
   | { kind: "total"; debutJour: number; finJour: number }
   | { kind: "obligatoire"; debutJour: number; finJour: number; montantComble: number };
 
@@ -283,11 +284,27 @@ type Trou =
 //   TROU B (revenu TOTAL ≈ 0 — rien ne comble, le plus grave) ;
 //   sinon TROU A (régime OBLIGATOIRE ≈ 0 mais total > 0 — un complémentaire
 //   comble). Jamais les deux pour le même intervalle.
-function detecterTrou(projection: ProjectionResult): Trou | null {
+export function detecterTrou(projection: ProjectionResult): Trou | null {
   const { axe, basculeInvaliditeJour: bascule, series } = projection;
   const SEUIL = 1; // tolérance d'arrondi (€)
   const totals = axe.map((_, i) => totalAtIdx(series, i));
   const obligs = axe.map((_, i) => sumObligatoireAtIdx(series, i));
+
+  // ── TROU C — CRITIQUE : aucune couverture sur TOUTE la période d'arrêt ──
+  // Priorité ABSOLUE (avant B et A). Déclenché si AUCUN point pré-bascule n'a
+  // de revenu : total ≤ SEUIL pour TOUS les i tels que jour < bascule (ni IJ,
+  // ni complémentaire, ni maintien, rien). ≠ carence initiale (zéro SUIVI d'un
+  // revenu pré-bascule → il existe un point pré-bascule > 0 → C ne se déclenche
+  // PAS, B/A reprennent la main). Garde-fou : aucun point pré-bascule → pas de C.
+  const aUnPointPreBascule = axe.some((p) => p.jour < bascule);
+  if (aUnPointPreBascule) {
+    const aucunRevenuAvantBascule = axe.every(
+      (p, i) => p.jour >= bascule || totals[i] <= SEUIL
+    );
+    if (aucunRevenuAvantBascule) {
+      return { kind: "critique", debutJour: axe[0].jour, finJour: bascule };
+    }
+  }
 
   // ── TROU B — aucun revenu de remplacement (total ≈ 0) ──
   // Premier intervalle à 0 APRÈS le 1er revenu versé et AVANT la bascule
@@ -335,6 +352,27 @@ function EncartTrou({ projection }: { projection: ProjectionResult }) {
   if (!trou) return null;
   const debut = libelleJour(trou.debutJour, projection.basculeInvaliditeJour);
   const fin = libelleJour(trou.finJour, projection.basculeInvaliditeJour);
+
+  // TROU C — critique : aucune couverture sur TOUTE la durée de l'arrêt
+  // (pire que B : pas un intervalle, mais toute la période). Rouge danger.
+  if (trou.kind === "critique") {
+    return (
+      <div
+        className="rounded-xl px-4 py-3"
+        style={{ background: BRAND.dangerBg, border: `1px solid ${BRAND.dangerBorder}`, borderLeft: `4px solid ${BRAND.danger}` }}
+      >
+        <div className="text-sm font-black flex items-center gap-2" style={{ color: BRAND.danger }}>
+          <span aria-hidden>⚠</span> Aucune couverture sur tout l'arrêt
+        </div>
+        <div className="text-sm mt-1" style={{ color: BRAND.navy, lineHeight: 1.5 }}>
+          Aucun revenu de remplacement n'est versé sur <strong>TOUTE</strong> la durée de l'arrêt de travail,
+          de <strong>{debut}</strong> jusqu'à la bascule en invalidité (<strong>{fin}</strong>). Ni le régime
+          obligatoire, ni un éventuel contrat complémentaire ne versent quoi que ce soit pendant cette période.
+          Une couverture individuelle (prévoyance Madelin) est indispensable pour combler ce risque.
+        </div>
+      </div>
+    );
+  }
 
   // TROU B — rien ne comble : alerte rouge danger.
   if (trou.kind === "total") {
