@@ -35,7 +35,8 @@
       "_ijMaxJournaliereFormule": "(plafondSalaireBrutMensuel × 3 mois) / 91,25 jours × taux 0,5 = (2552,24 × 3) / 91,25 × 0,5 ≈ 41,95 €/j",
       "_diviseur91_25Note": "91,25 = 365 / 4 (= moyenne calendaire de 3 mois). Convention CPAM 'jours calendaires' pour le salaire journalier de base (SJR).",
       "dateApplication": "2026-02-01",
-      "majorationApres30JoursAvecEnfants": "TO_VERIFY"
+      "majorationApres30JoursAvecEnfants": "SUPPRIMEE",
+      "_majorationApres30JoursAvecEnfantsNote": "Majoration IJ apres J31 pour >=3 enfants SUPPRIMEE par art. 85 LFSS (modif. L.323-4 CSS), arrets prescrits >= 01/07/2020. Ne jamais reactiver. Verifie 30/05/2026."
     },
     "accidentTravail": {
       "regimeCSS": "art. R.433-1 CSS",

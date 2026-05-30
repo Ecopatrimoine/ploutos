@@ -144,16 +144,38 @@ describe("G1 — Paramètres confirmés à la source et figés (vérifiés 2026-
   });
 });
 
-describe("G1 — Paramètre encore en suspens (it.skip, contradiction de sources)", () => {
-  // ⚠️ CONTRADICTION DÉTECTÉE — NE PAS FIGER.
-  // Majoration familiale IJ à compter du 31e jour (≥ 3 enfants, taux
-  // ~66,66 %) : des sources 2026 la décrivent encore en vigueur, MAIS
-  // un fil ameli à réponse certifiée indique que l'article 85 d'une
-  // LFSS a modifié l'art. L.323-4 CSS et SUPPRIMÉ cette majoration
-  // (date d'entrée en vigueur non confirmée de façon fiable).
-  // → David vérifiera la version en vigueur de L.323-4 sur Légifrance
-  //   avant de trancher. Impact marginal (3 enfants + arrêt > 30 j).
-  it.skip("IJSS maladie : majoration familiale après J30 (≥ 3 enfants) — TO_VERIFY (suppression L.323-4 art. 85 LFSS à confirmer)", () => {
-    expect(pass.ijss.maladieOrdinaire.majorationApres30JoursAvecEnfants).toBeTypeOf("number");
+describe("G1 — Majoration familiale IJ après J31 (≥ 3 enfants) : SUPPRIMÉE (L.323-4, LFSS art. 85)", () => {
+  // CONFIRMÉ (vérifié 30/05/2026) : l'article 85 de la LFSS a modifié
+  // l'art. L.323-4 CSS et SUPPRIMÉ cette majoration pour les arrêts
+  // prescrits à compter du 01/07/2020 (dispositif aboli, stable). Le champ
+  // majorationFamilleApresJ31 reste désactivé DÉFINITIVEMENT. Tests de
+  // NON-RÉGRESSION : un assuré CPAM avec 3 enfants ne doit PAS voir ses IJ
+  // majorées après le 31e jour.
+  const vars = buildPlafondVariables(referentiels);
+  const cpam = (referentiels.caisses as any).caisses.CPAM;
+  const e: EntreePerso = {
+    age: 40, ageRetraite: 64, statutPro: "salarie_non_cadre", caisse: "CPAM",
+    idccCCN: null, ancienneteMois: 60, salaireBrutAnnuel: 30000, salaireNetMensuel: 1950,
+    nbEnfantsACharge: 3, contratsIndividuels: [], couvertureCollective: null,
+  };
+
+  it("IJ identique avant/après J31 — aucune marche d'escalier (majoration non appliquée)", () => {
+    const ijJ30 = computeIJObligatoireJournaliere(30, cpam, e, vars);
+    const ijJ35 = computeIJObligatoireJournaliere(35, cpam, e, vars);
+    const ijJ90 = computeIJObligatoireJournaliere(90, cpam, e, vars);
+    expect(ijJ30).not.toBeNull();
+    expect(ijJ35).toBeCloseTo(ijJ30!, 6);
+    expect(ijJ90).toBeCloseTo(ijJ30!, 6);
+  });
+
+  it("le moteur reste à 50 % du SJB, jamais le taux majoré 66,66 %", () => {
+    const ijJ35 = computeIJObligatoireJournaliere(35, cpam, e, vars)!;
+    const sjb = (2500 * 3) / 91.25; // salaire mensuel 2500 < plafond 1,4 SMIC
+    expect(ijJ35).toBeCloseTo(sjb * 0.5, 2);
+    expect(ijJ35).not.toBeCloseTo(sjb * 0.6666, 1);
+  });
+
+  it("référentiel : champ majorationFamilleApresJ31 désactivé (active ≠ true)", () => {
+    expect(cpam.ij.majorationFamilleApresJ31.active).not.toBe(true);
   });
 });

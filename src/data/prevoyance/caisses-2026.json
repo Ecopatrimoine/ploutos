@@ -39,10 +39,11 @@
         "plafondDureeJoursALD": 1095,
         "_commentaire_duree": "360 jours sur 3 ans glissants en maladie ordinaire ; jusqu'a 1095 jours (3 ans) en affection de longue duree. Source service-public F3053.",
         "majorationFamilleApresJ31": {
-          "_STATUT": "TO_VERIFY — NE PAS ACTIVER",
-          "_commentaire": "Majoration de l'IJ a 66,66% du SJB a partir du 31e jour d'arret continu pour assures avec >=3 enfants a charge. CONTRADICTION non resolue : des sources 2026 la decrivent active, mais un fil ameli a reponse certifiee evoque sa suppression par l'article 85 d'une LFSS modifiant l'art. L.323-4 CSS. Laisse en TO_VERIFY jusqu'a verification de la version en vigueur de L.323-4 sur Legifrance. Impact marginal (3 enfants + arret > 30j).",
-          "tauxMajore": "TO_VERIFY",
-          "conditions": "TO_VERIFY"
+          "_STATUT": "SUPPRIME — NE JAMAIS REACTIVER",
+          "_commentaire": "Majoration IJ apres J31 pour >=3 enfants SUPPRIMEE par art. 85 LFSS (modif. L.323-4 CSS), arrets prescrits >= 01/07/2020. Ne jamais reactiver. Verifie 30/05/2026.",
+          "active": false,
+          "tauxMajore": null,
+          "conditions": "supprime pour les arrets prescrits a compter du 01/07/2020 (art. 85 LFSS, L.323-4 CSS)"
         }
       },
       "invalidite": {
