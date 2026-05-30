@@ -92,7 +92,7 @@ const TabPrevoyancePerso = React.memo(function TabPrevoyancePerso({
           {!entreeP1Base ? (
             <EtatVide onGoToTravail={onGoToTravail} />
           ) : (
-            <div className={hasP2 ? "grid gap-6 xl:grid-cols-2" : "max-w-3xl mx-auto"}>
+            <div className={hasP2 ? "grid gap-6 xl:grid-cols-2 xl:grid-rows-[auto_1fr]" : "max-w-3xl mx-auto"}>
               <ColonnePerso
                 label={person1}
                 entreeBase={entreeP1Base}
@@ -286,11 +286,19 @@ function ColonnePerso({
   );
 
   return (
-    <div className="space-y-4">
-      {/* Récap statut — en mode 2 personnes, min-height pour que les 2 colonnes
-          démarrent alignées même si la ligne Statut/Caisse/Ancienneté s'enroule. */}
+    <div
+      className={
+        aligned
+          ? "space-y-4 xl:space-y-0 xl:grid xl:row-span-2 xl:[grid-template-rows:subgrid] xl:gap-4"
+          : "space-y-4"
+      }
+    >
+      {/* Récap statut — en mode 2 personnes, la colonne est un subgrid sur 2
+          lignes : le récap occupe la 1ʳᵉ piste (auto = hauteur du plus grand des
+          deux), et xl:h-full fait remplir cette hauteur aux deux cartes. Pas de
+          valeur fixe : l'alignement s'adapte au contenu (P1 3 lignes / P2 2). */}
       <div
-        className={`rounded-xl p-4 ${aligned ? "xl:min-h-[6rem]" : ""}`}
+        className={`rounded-xl p-4 ${aligned ? "xl:h-full" : ""}`}
         style={{ background: SURFACE.cardSoft, border: `1px solid ${SURFACE.border}` }}
       >
         <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
@@ -326,6 +334,10 @@ function ColonnePerso({
           </span>
         </div>
       </div>
+
+      {/* Corps de colonne — un seul conteneur, pour occuper la 2e piste du
+          subgrid en mode 2 personnes (empilement normal sinon). */}
+      <div className="space-y-4">
 
       {/* La SAISIE des blocs caisse (CARMF/CIPAV/CARPIMKO) est désormais dans
           l'onglet Travail, sous « Statut professionnel & employeur ». Ici, on
@@ -450,6 +462,7 @@ function ColonnePerso({
         </div>
         <BlocConstats constats={constats} />
       </div>
+      </div>{/* fin corps de colonne */}
     </div>
   );
 }
