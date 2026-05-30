@@ -20,7 +20,6 @@ import { TabsContent } from "@/components/ui/tabs";
 import { ShieldCheck } from "lucide-react";
 import type {
   PatrimonialData,
-  PayloadPrevoyance,
   PayloadPrevoyancePerso,
   CategorieInvalidite,
   ScenarioArret,
@@ -45,26 +44,14 @@ import { BlocConstats } from "../prevoyance/BlocConstats";
 import { BlocCouvertureCollective } from "../prevoyance/BlocCouvertureCollective";
 import { BlocContratsIndividuels } from "../prevoyance/BlocContratsIndividuels";
 import { BlocTpt } from "../prevoyance/BlocTpt";
-import { BlocCarmf, defaultCarmf } from "../prevoyance/BlocCarmf";
-import { BlocCipav, defaultCipav } from "../prevoyance/BlocCipav";
-import { BlocCarpimko, defaultCarpimko } from "../prevoyance/BlocCarpimko";
+// defaultCarmf/Cipav/Carpimko restent importés : ils seedent les configs
+// injectées dans l'entrée de projection. La SAISIE des blocs caisse a été
+// déplacée dans l'onglet Travail (cf. BlocStatutEmployeur voisin).
+import { defaultCarmf } from "../prevoyance/BlocCarmf";
+import { defaultCipav } from "../prevoyance/BlocCipav";
+import { defaultCarpimko } from "../prevoyance/BlocCarpimko";
 import { BandeauResumeClient, BlocPedagogie } from "../prevoyance/BlocPedagogie";
-
-function defaultPrevoyancePerso(): PayloadPrevoyancePerso {
-  return {
-    contratsIndividuels: [],
-    couvertureCollective: null,
-    categorieInvaliditeProjetee: "cat2",
-    scenarioArret: "ald",
-  };
-}
-
-function getPrevoyancePerso(
-  data: PatrimonialData,
-  which: "p1" | "p2"
-): PayloadPrevoyancePerso {
-  return data.prevoyance?.[which] ?? defaultPrevoyancePerso();
-}
+import { getPrevoyancePerso, patchPrevoyancePair } from "../../lib/prevoyance/utils";
 
 type Props = {
   data: PatrimonialData;
@@ -85,20 +72,7 @@ const TabPrevoyancePerso = React.memo(function TabPrevoyancePerso({
   const entreeP2Base = React.useMemo(() => buildEntreePerso(data, "p2"), [data]);
 
   function patchPrevoyance(which: "p1" | "p2", patch: Partial<PayloadPrevoyancePerso>) {
-    const current: PayloadPrevoyance = data.prevoyance ?? {
-      version: 1,
-      p1: defaultPrevoyancePerso(),
-      p2: entreeP2Base ? defaultPrevoyancePerso() : null,
-    };
-    const next: PayloadPrevoyance = {
-      version: 1,
-      p1: which === "p1" ? { ...current.p1, ...patch } : current.p1,
-      p2:
-        which === "p2"
-          ? { ...(current.p2 ?? defaultPrevoyancePerso()), ...patch }
-          : current.p2,
-    };
-    setField("prevoyance", next);
+    setField("prevoyance", patchPrevoyancePair(data.prevoyance, which, patch, entreeP2Base !== null));
   }
 
   const hasP2 = entreeP2Base !== null;
@@ -346,20 +320,10 @@ function ColonnePerso({
         </div>
       </div>
 
-      {/* Paramètres CARMF (médecins libéraux) */}
-      {estCarmf && carmfConfig && (
-        <BlocCarmf value={carmfConfig} onChange={(next) => onChangePrevoyance({ carmf: next })} />
-      )}
-
-      {/* Paramètres CIPAV (libéraux non réglementés) */}
-      {estCipav && cipavConfig && (
-        <BlocCipav value={cipavConfig} onChange={(next) => onChangePrevoyance({ cipav: next })} />
-      )}
-
-      {/* Paramètres CARPIMKO (auxiliaires médicaux) */}
-      {estCarpimko && carpimkoConfig && (
-        <BlocCarpimko value={carpimkoConfig} onChange={(next) => onChangePrevoyance({ carpimko: next })} />
-      )}
+      {/* La SAISIE des blocs caisse (CARMF/CIPAV/CARPIMKO) est désormais dans
+          l'onglet Travail, sous « Statut professionnel & employeur ». Ici, on
+          LIT seulement la config (carmfConfig/… injectés dans l'entrée) pour la
+          projection — cet onglet redevient lecture/projection pure. */}
 
       {/* Sélecteur scénario d'arrêt */}
       <div

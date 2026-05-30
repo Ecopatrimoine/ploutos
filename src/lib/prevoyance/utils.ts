@@ -16,6 +16,9 @@
 import type {
   CodeCaisse,
   EmployeurInfo,
+  PatrimonialData,
+  PayloadPrevoyance,
+  PayloadPrevoyancePerso,
   PayloadTravail,
   StatutPro,
 } from "../../types/patrimoine";
@@ -107,6 +110,51 @@ export function createEmptyTravail(): PayloadTravail {
     revenuBNC: null,
     revenuBIC: null,
     optionMadelin: false,
+  };
+}
+
+// ─── Persistance des saisies Prévoyance par personne (data.prevoyance) ──
+// Helpers PARTAGÉS entre l'onglet Prévoyance (lecture/projection) et l'onglet
+// Travail (saisie des blocs caisse) : une seule logique de merge, pas de
+// duplication. Le stockage reste data.prevoyance.{p1|p2}.
+
+export function defaultPrevoyancePerso(): PayloadPrevoyancePerso {
+  return {
+    contratsIndividuels: [],
+    couvertureCollective: null,
+    categorieInvaliditeProjetee: "cat2",
+    scenarioArret: "ald",
+  };
+}
+
+export function getPrevoyancePerso(
+  data: PatrimonialData,
+  which: "p1" | "p2"
+): PayloadPrevoyancePerso {
+  return data.prevoyance?.[which] ?? defaultPrevoyancePerso();
+}
+
+// Merge pur : renvoie le PayloadPrevoyance suivant après application d'un
+// patch sur la personne `which`. `hasP2` détermine l'initialisation de p2
+// quand data.prevoyance est entièrement absent (couple/2e personne présente).
+export function patchPrevoyancePair(
+  current: PayloadPrevoyance | null | undefined,
+  which: "p1" | "p2",
+  patch: Partial<PayloadPrevoyancePerso>,
+  hasP2: boolean
+): PayloadPrevoyance {
+  const cur: PayloadPrevoyance = current ?? {
+    version: 1,
+    p1: defaultPrevoyancePerso(),
+    p2: hasP2 ? defaultPrevoyancePerso() : null,
+  };
+  return {
+    version: 1,
+    p1: which === "p1" ? { ...cur.p1, ...patch } : cur.p1,
+    p2:
+      which === "p2"
+        ? { ...(cur.p2 ?? defaultPrevoyancePerso()), ...patch }
+        : cur.p2,
   };
 }
 

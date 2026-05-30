@@ -3,13 +3,17 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
-import { Briefcase, ShieldCheck } from "lucide-react";
+import { Briefcase, ShieldCheck, Stethoscope } from "lucide-react";
 import { BRAND, SURFACE, PCS_GROUPES, PCS_CATEGORIES } from "../../constants";
-import type { PayloadTravail, PayloadTravailPair } from "../../types/patrimoine";
+import type { PayloadTravail, PayloadTravailPair, PayloadPrevoyancePerso } from "../../types/patrimoine";
 import { isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, isIndependant } from "../../lib/calculs/utils";
 import { Field, SectionTitle } from "../shared";
 import { BlocStatutEmployeur } from "../travail/BlocStatutEmployeur";
-import { createEmptyTravail } from "../../lib/prevoyance/utils";
+import { createEmptyTravail, getPrevoyancePerso, patchPrevoyancePair } from "../../lib/prevoyance/utils";
+import { buildEntreePerso } from "../../lib/prevoyance/mapping";
+import { BlocCarmf, defaultCarmf } from "../prevoyance/BlocCarmf";
+import { BlocCipav, defaultCipav } from "../prevoyance/BlocCipav";
+import { BlocCarpimko, defaultCarpimko } from "../prevoyance/BlocCarpimko";
 
 
 // ── TabTravail ─────────────────────────────────────────────────────────────────────
@@ -41,6 +45,35 @@ const TabTravail = React.memo(function TabTravail(props: any) {
           };
     setField("travail", nextPair);
   }
+
+  // Saisie « activité caisse » (prévoyance) — écrit dans data.prevoyance.{p1|p2}
+  // via le util partagé (même logique que l'onglet Prévoyance). Le stockage
+  // reste data.prevoyance ; seule la saisie est ici, à côté du statut/employeur.
+  function patchPrev(which: "p1" | "p2", patch: Partial<PayloadPrevoyancePerso>) {
+    setField("prevoyance", patchPrevoyancePair(data.prevoyance, which, patch, isCouple));
+  }
+
+  // Bloc caisse d'une personne, conditionné à sa caisse libérale ; null sinon
+  // (aucune carte vide). entreeBase seede les défauts (revenu, ancienneté, foyer).
+  function caisseBloc(which: 1 | 2): React.ReactNode {
+    const w = which === 1 ? "p1" : "p2";
+    const entreeBase = buildEntreePerso(data, w);
+    if (!entreeBase) return null;
+    const pp = getPrevoyancePerso(data, w);
+    switch (entreeBase.caisse) {
+      case "CARMF":
+        return <BlocCarmf value={pp.carmf ?? defaultCarmf(entreeBase)} onChange={(next) => patchPrev(w, { carmf: next })} />;
+      case "CIPAV":
+        return <BlocCipav value={pp.cipav ?? defaultCipav(entreeBase)} onChange={(next) => patchPrev(w, { cipav: next })} />;
+      case "CARPIMKO":
+        return <BlocCarpimko value={pp.carpimko ?? defaultCarpimko(entreeBase)} onChange={(next) => patchPrev(w, { carpimko: next })} />;
+      default:
+        return null;
+    }
+  }
+
+  const blocCaisseP1 = caisseBloc(1);
+  const blocCaisseP2 = isCouple ? caisseBloc(2) : null;
 
   return (
 <TabsContent value="travail" className="space-y-4">
@@ -157,6 +190,26 @@ const TabTravail = React.memo(function TabTravail(props: any) {
       </div>
     </CardContent>
   </Card>
+
+  {/* ── Activité caisse (prévoyance) — saisie propre aux caisses libérales,
+        affichée seulement si la personne est affiliée CARMF/CIPAV/CARPIMKO ── */}
+  {(blocCaisseP1 || blocCaisseP2) && (
+    <Card className="border-0" style={{ borderRadius: 20 }}>
+      <CardHeader>
+        <SectionTitle
+          icon={Stethoscope}
+          title="Activité caisse (prévoyance)"
+          subtitle="Paramètres propres à la caisse libérale (CARMF / CIPAV / CARPIMKO) utilisés par la projection prévoyance."
+        />
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2 items-start">
+          {blocCaisseP1}
+          {blocCaisseP2}
+        </div>
+      </CardContent>
+    </Card>
+  )}
 </TabsContent>
 
   );
