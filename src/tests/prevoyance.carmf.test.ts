@@ -338,3 +338,20 @@ describe("CARMF §7.7 — capital et rentes décès", () => {
     expect(avecTrou.some((c) => c.id.startsWith("dc_capital_insuffisant_dettes"))).toBe(true);
   });
 });
+
+// ────────────────────────────────────────────────────────────────────
+// §7.8 — Régression : pas de faux « données indisponibles » (branche dédiée)
+// ────────────────────────────────────────────────────────────────────
+describe("CARMF §7.8 — faux warning données indisponibles", () => {
+  const e = medecin();
+
+  it("CARMF en ALD → donneesCaisseIndisponibles = false (branche dédiée, stub générique ignoré)", () => {
+    const r = projeterArretMaladie(e, "cat2", referentiels, "ald");
+    expect(r.donneesCaisseIndisponibles).toBe(false);
+  });
+
+  it("CARMF en maladie ordinaire → inchangé (false) — non-régression", () => {
+    const r = projeterArretMaladie(e, "cat2", referentiels, "maladie_ordinaire");
+    expect(r.donneesCaisseIndisponibles).toBe(false);
+  });
+});

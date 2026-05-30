@@ -926,11 +926,13 @@ export function projeterArretMaladie(
   // ALD → on retombe sur 360 j et on signale la donnée manquante
   // (cohérent avec la tolérance TO_VERIFY). Aucune caisse documentée
   // actuelle (CPAM, SSI) n'est concernée : elles portent les deux durées.
-  // CIPAV : la branche dédiée gère intégralement les durées (IJ libéraux
-  // J4-J90 puis trou) ; le stub caisse générique n'est pas consulté, donc
-  // son absence de durée ALD ne doit PAS lever de faux « données indisponibles ».
+  // CARMF / CIPAV / CARPIMKO : leur branche dédiée gère intégralement les
+  // durées ; le stub caisse générique (TO_VERIFY, sans durée ALD) n'est PAS
+  // consulté, donc son absence de durée ALD ne doit PAS lever de faux
+  // « données indisponibles ».
   let donneesIndisponibles =
     scenarioArret === "ald" &&
+    !isCarmf &&
     !isCipav &&
     !isCarpimko &&
     !isCaisseToFill(caisseRef) &&
