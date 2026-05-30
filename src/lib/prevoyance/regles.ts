@@ -541,6 +541,51 @@ export const regleCarmfPlafondConjoint: Regle = (ctx, cible) => {
 };
 
 // ────────────────────────────────────────────────────────────────────
+// Constats spécifiques CNBF (avocats) — SPEC_PREVOYANCE_CAISSES_FORFAITAIRES §6
+// ────────────────────────────────────────────────────────────────────
+
+// Note constat : les 90 premiers jours d'arrêt d'un avocat ne sont pas
+// couverts par la CNBF mais par la prévoyance de branche du barreau
+// (LPA/AON), hors caisse. Sans montant (dépend du barreau). Se déclenche
+// pour toute caisse CNBF, quelle que soit l'ancienneté.
+export const regleCnbfLpaAon: Regle = (ctx, cible) => {
+  if (ctx.entree.caisse !== "CNBF") return null;
+  return {
+    id: `cnbf_lpa_aon_${cible}`,
+    severite: "attention",
+    axe: "incapacite",
+    cible,
+    titre: "Couverture des 90 premiers jours (LPA/AON)",
+    detail:
+      "Les 90 premiers jours sont normalement couverts par LPA/AON (prévoyance de branche du barreau) — pensez à renseigner cette couverture collective.",
+    reference: "CNBF — prévoyance de branche du barreau (LPA/AON), 90 premiers jours",
+    action:
+      "Renseigner la couverture collective LPA/AON du barreau du client.",
+  };
+};
+
+// Note constat : pour une ancienneté ≥ 20 ans (240 mois), la pension
+// d'invalidité CNBF correspond à 50 % de la retraite proportionnelle
+// (selon points acquis), non calculable forfaitairement → non estimée
+// ici, à récupérer sur le relevé CNBF. Sans montant (informer sans déformer).
+export const regleCnbfInvalidite20ans: Regle = (ctx, cible) => {
+  if (ctx.entree.caisse !== "CNBF") return null;
+  if (ctx.entree.ancienneteMois < 240) return null;
+  return {
+    id: `cnbf_invalidite_20ans_${cible}`,
+    severite: "attention",
+    axe: "invalidite",
+    cible,
+    titre: "Invalidité CNBF (ancienneté ≥ 20 ans) non estimée",
+    detail:
+      "Ancienneté ≥ 20 ans : la pension d'invalidité CNBF correspond à 50 % de votre retraite proportionnelle (selon points acquis), non estimée ici — à récupérer sur votre relevé CNBF.",
+    reference: "CNBF — pension d'invalidité proportionnelle (ancienneté ≥ 20 ans)",
+    action:
+      "Récupérer le relevé CNBF du client pour estimer la pension d'invalidité proportionnelle.",
+  };
+};
+
+// ────────────────────────────────────────────────────────────────────
 // Orchestrateur + tri par sévérité
 // ────────────────────────────────────────────────────────────────────
 
@@ -561,6 +606,8 @@ const REGLES_INDIVIDUELLES: Regle[] = [
   regleCarmfCumulEmploiRetraite,
   regleCarmfInvaliditeStop62,
   regleCarmfPlafondConjoint,
+  regleCnbfLpaAon,
+  regleCnbfInvalidite20ans,
 ];
 
 const ORDRE_SEVERITE: Record<ConstatSeverite, number> = {

@@ -14,6 +14,8 @@ import {
   regleIjCcnNonDocumentee,
   regleInvCat2AucuneCouvertureCompl,
   regleInvTnsMadelinAbsent,
+  regleCnbfLpaAon,
+  regleCnbfInvalidite20ans,
 } from "../lib/prevoyance/regles";
 import {
   buildContexteRegle,
@@ -607,5 +609,85 @@ describe("buildContexteRegle — intégration", () => {
     expect(ctx.enfantsMineurs).toBe(1);
     expect(ctx.revenuP1Mensuel).toBeCloseTo(55000 / 12, 0);
     expect(ctx.revenuP2Mensuel).toBe(0);
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────
+// Constats CNBF (avocats) — LOT 3 / SPEC §6
+// ────────────────────────────────────────────────────────────────────
+
+const entreeCnbf: EntreePerso = {
+  age: 45,
+  ageRetraite: 64,
+  statutPro: "tns_liberal",
+  caisse: "CNBF",
+  idccCCN: null,
+  ancienneteMois: 120,
+  salaireBrutAnnuel: 0,
+  salaireNetMensuel: 0,
+  revenuTNSAnnuel: 90000,
+  contratsIndividuels: [],
+  couvertureCollective: null,
+};
+
+describe("règles CNBF (LPA/AON + invalidité ≥ 20 ans) — LOT 3", () => {
+  it("CNBF ancienneté < 240 mois : LPA/AON présent, invalidité 20 ans absent", () => {
+    const ctx = makeCtx({ ...entreeCnbf, ancienneteMois: 120 });
+    const lpaAon = regleCnbfLpaAon(ctx, "p1");
+    const inval = regleCnbfInvalidite20ans(ctx, "p1");
+    expect(lpaAon).not.toBeNull();
+    expect(lpaAon?.id).toBe("cnbf_lpa_aon_p1");
+    expect(lpaAon?.severite).toBe("attention");
+    expect(lpaAon?.axe).toBe("incapacite");
+    expect(inval).toBeNull();
+
+    // Via le pipeline complet (evaluerToutesLesRegles)
+    const ids = evaluerToutesLesRegles(ctx, "p1").map((c) => c.id);
+    expect(ids).toContain("cnbf_lpa_aon_p1");
+    expect(ids).not.toContain("cnbf_invalidite_20ans_p1");
+  });
+
+  it("CNBF ancienneté >= 240 mois : LPA/AON et invalidité 20 ans présents", () => {
+    const ctx = makeCtx({ ...entreeCnbf, ancienneteMois: 240 });
+    const lpaAon = regleCnbfLpaAon(ctx, "p1");
+    const inval = regleCnbfInvalidite20ans(ctx, "p1");
+    expect(lpaAon).not.toBeNull();
+    expect(inval).not.toBeNull();
+    expect(inval?.id).toBe("cnbf_invalidite_20ans_p1");
+    expect(inval?.severite).toBe("attention");
+    expect(inval?.axe).toBe("invalidite");
+
+    const ids = evaluerToutesLesRegles(ctx, "p1").map((c) => c.id);
+    expect(ids).toContain("cnbf_lpa_aon_p1");
+    expect(ids).toContain("cnbf_invalidite_20ans_p1");
+  });
+
+  it("caisse non-CNBF (CAVEC) : aucun constat CNBF, même ancienneté élevée", () => {
+    const ctx = makeCtx({ ...entreeCnbf, caisse: "CAVEC", ancienneteMois: 300 });
+    expect(regleCnbfLpaAon(ctx, "p1")).toBeNull();
+    expect(regleCnbfInvalidite20ans(ctx, "p1")).toBeNull();
+
+    const ids = evaluerToutesLesRegles(ctx, "p1").map((c) => c.id);
+    expect(ids).not.toContain("cnbf_lpa_aon_p1");
+    expect(ids).not.toContain("cnbf_invalidite_20ans_p1");
+  });
+
+  it("aucun montant chiffré dans les constats CNBF", () => {
+    const ctx = makeCtx({ ...entreeCnbf, ancienneteMois: 240 });
+    const lpaAon = regleCnbfLpaAon(ctx, "p1");
+    const inval = regleCnbfInvalidite20ans(ctx, "p1");
+    expect(lpaAon?.impactChiffre).toBeUndefined();
+    expect(inval?.impactChiffre).toBeUndefined();
+    // Pas de symbole euro ni de montant dans détail/action
+    expect(lpaAon?.detail).not.toMatch(/€|\d{3,}/);
+    expect(inval?.detail).not.toMatch(/€/);
+    expect(lpaAon?.action).not.toMatch(/€/);
+    expect(inval?.action).not.toMatch(/€/);
+  });
+
+  it("propage la cible passée en argument (p2)", () => {
+    const ctx = makeCtx({ ...entreeCnbf, ancienneteMois: 240 });
+    expect(regleCnbfLpaAon(ctx, "p2")?.id).toBe("cnbf_lpa_aon_p2");
+    expect(regleCnbfInvalidite20ans(ctx, "p2")?.id).toBe("cnbf_invalidite_20ans_p2");
   });
 });
