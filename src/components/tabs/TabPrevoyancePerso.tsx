@@ -396,15 +396,25 @@ function ColonnePerso({
         naturesContrats={naturesContrats}
       />
 
-      {/* Graphique + couche pédagogique RDV (ÉL. 2 à 6) */}
+      {/* Graphique */}
       <div
-        className="rounded-xl p-4 space-y-4"
+        className="rounded-xl p-4"
         style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}
       >
         <div className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: BRAND.sky }}>
           Projection des revenus de remplacement
         </div>
         <ProjectionChart projection={projection} />
+      </div>
+
+      {/* Couche pédagogique RDV (ÉL. 2 à 6) — carte dédiée, montage explicite */}
+      <div
+        className="rounded-xl p-4"
+        style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}
+      >
+        <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: BRAND.sky }}>
+          Lecture pédagogique (RDV client)
+        </div>
         <BlocPedagogie projection={projection} />
       </div>
 

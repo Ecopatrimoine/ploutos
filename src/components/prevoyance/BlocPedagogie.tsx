@@ -9,7 +9,9 @@
 //   3. MontantsRuptures      — €/mois aux ruptures clés
 //   4. JaugeCouverture       — taux de couverture en phase invalidité
 //   5. EncadresExplicatifs   — encarts déroulables (carence, maintien, …)
-//   6. EncartTrou            — alerte rouge si période à 0 € de remplacement
+//   6. EncartTrou            — alerte « trou » : rouge si aucun revenu (total
+//                              à 0), ambre si le régime obligatoire est à sec
+//                              mais qu'un complémentaire comble
 //
 // Palette et libellés repris à l'identique de ProjectionChart (LOT UI-GRAPH)
 // pour la cohérence visuelle ; seuils couleur repris de TableauJalons.
@@ -59,11 +61,11 @@ function totalAtIdx(s: ProjectionResult["series"], i: number): number {
 }
 
 function libelleJour(jour: number, basculeJour: number): string {
-  if (jour === 0) return "le 1er jour";
   if (jour === basculeJour) return "la reconnaissance d'invalidité";
-  if (jour < 30) return `le ${jour}e jour`;
-  if (jour < 365) return `${Math.round(jour / 30)} mois`;
-  return `${(jour / 365).toFixed(1)} ans`;
+  if (jour === 0) return "le 1er jour d'arrêt";
+  if (jour < 100) return `le ${jour}e jour d'arrêt`;
+  if (jour < 365) return `${Math.round(jour / 30)} mois d'arrêt`;
+  return `${(jour / 365).toFixed(1)} ans d'arrêt`;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -262,40 +264,70 @@ function MontantsRuptures({ projection }: { projection: ProjectionResult }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// ÉLÉMENT 6 — Encart rouge dédié au « trou » de couverture
+// ÉLÉMENT 6 — Encart « trou » de couverture (deux cas distincts)
 // ─────────────────────────────────────────────────────────────────────
 
-// Détecte le premier intervalle à revenu ≈ 0 APRÈS le premier revenu versé
-// et AVANT la bascule invalidité (la carence initiale J0-J3 n'est pas un
-// trou de couverture). Lecture directe des séries — aucun calcul métier.
-function detecterTrou(projection: ProjectionResult): { debutJour: number; finJour: number } | null {
+// Étages du RÉGIME OBLIGATOIRE (base), à distinguer des autres (maintien
+// employeur, complémentaires collective/individuelle, salaire/TPT) pour la
+// détection des trous. Mapping validé : obligatoire = IJ régime obligatoire
+// + pension d'invalidité obligatoire + rente enfants (servie par le régime).
+function sumObligatoireAtIdx(s: ProjectionResult["series"], i: number): number {
+  return s.ijObligatoire[i] + s.pensionInvalObligatoire[i] + s.renteInvalEnfants[i];
+}
+
+type Trou =
+  | { kind: "total"; debutJour: number; finJour: number }
+  | { kind: "obligatoire"; debutJour: number; finJour: number; montantComble: number };
+
+// Détection sur les SÉRIES DÉJÀ CALCULÉES (aucun calcul métier). Priorité :
+//   TROU B (revenu TOTAL ≈ 0 — rien ne comble, le plus grave) ;
+//   sinon TROU A (régime OBLIGATOIRE ≈ 0 mais total > 0 — un complémentaire
+//   comble). Jamais les deux pour le même intervalle.
+function detecterTrou(projection: ProjectionResult): Trou | null {
   const { axe, basculeInvaliditeJour: bascule, series } = projection;
-  const totals = axe.map((_, i) => totalAtIdx(series, i));
   const SEUIL = 1; // tolérance d'arrondi (€)
+  const totals = axe.map((_, i) => totalAtIdx(series, i));
+  const obligs = axe.map((_, i) => sumObligatoireAtIdx(series, i));
 
-  const firstNonZero = totals.findIndex((t) => t > SEUIL);
-  if (firstNonZero < 0) return null; // aucun revenu jamais versé → cas « données indisponibles », pas un trou
-
-  let debutIdx = -1;
-  for (let i = firstNonZero + 1; i < axe.length; i++) {
-    if (axe[i].jour >= bascule) break;
-    if (totals[i] <= SEUIL) {
-      debutIdx = i;
-      break;
+  // ── TROU B — aucun revenu de remplacement (total ≈ 0) ──
+  // Premier intervalle à 0 APRÈS le 1er revenu versé et AVANT la bascule
+  // (la carence/franchise initiale, qui précède tout revenu, est ignorée).
+  const firstTotal = totals.findIndex((t) => t > SEUIL);
+  if (firstTotal >= 0) {
+    let bStart = -1;
+    for (let i = firstTotal + 1; i < axe.length; i++) {
+      if (axe[i].jour >= bascule) break;
+      if (totals[i] <= SEUIL) { bStart = i; break; }
+    }
+    if (bStart >= 0) {
+      let finJour = bascule;
+      for (let i = bStart + 1; i < axe.length; i++) {
+        if (axe[i].jour >= bascule) break;
+        if (totals[i] > SEUIL) { finJour = axe[i].jour; break; }
+      }
+      return { kind: "total", debutJour: axe[bStart].jour, finJour };
     }
   }
-  if (debutIdx < 0) return null;
 
-  // Fin du trou = reprise d'un revenu (avant bascule) sinon la bascule.
-  let finJour = bascule;
-  for (let i = debutIdx + 1; i < axe.length; i++) {
+  // ── TROU A — régime obligatoire à sec, complémentaire comble ──
+  // Premier intervalle (avant bascule) où l'obligatoire ≈ 0 ALORS QUE le
+  // revenu total > 0. La carence initiale est exclue d'office (total = 0 →
+  // ne satisfait pas total > 0).
+  let aStart = -1;
+  for (let i = 0; i < axe.length; i++) {
     if (axe[i].jour >= bascule) break;
-    if (totals[i] > SEUIL) {
-      finJour = axe[i].jour;
-      break;
-    }
+    if (obligs[i] <= SEUIL && totals[i] > SEUIL) { aStart = i; break; }
   }
-  return { debutJour: axe[debutIdx].jour, finJour };
+  if (aStart >= 0) {
+    let finJour = bascule;
+    for (let i = aStart + 1; i < axe.length; i++) {
+      if (axe[i].jour >= bascule) break;
+      if (obligs[i] > SEUIL || totals[i] <= SEUIL) { finJour = axe[i].jour; break; }
+    }
+    return { kind: "obligatoire", debutJour: axe[aStart].jour, finJour, montantComble: totals[aStart] };
+  }
+
+  return null;
 }
 
 function EncartTrou({ projection }: { projection: ProjectionResult }) {
@@ -303,18 +335,40 @@ function EncartTrou({ projection }: { projection: ProjectionResult }) {
   if (!trou) return null;
   const debut = libelleJour(trou.debutJour, projection.basculeInvaliditeJour);
   const fin = libelleJour(trou.finJour, projection.basculeInvaliditeJour);
+
+  // TROU B — rien ne comble : alerte rouge danger.
+  if (trou.kind === "total") {
+    return (
+      <div
+        className="rounded-xl px-4 py-3"
+        style={{ background: BRAND.dangerBg, border: `1px solid ${BRAND.dangerBorder}`, borderLeft: `4px solid ${BRAND.danger}` }}
+      >
+        <div className="text-sm font-black flex items-center gap-2" style={{ color: BRAND.danger }}>
+          <span aria-hidden>⚠</span> Trou de couverture — aucun revenu
+        </div>
+        <div className="text-sm mt-1" style={{ color: BRAND.navy, lineHeight: 1.5 }}>
+          Aucun revenu de remplacement n'est versé entre <strong>{debut}</strong> et <strong>{fin}</strong>.
+          Sur cette période, le revenu tombe à zéro : seules des garanties individuelles pourraient le combler.
+        </div>
+      </div>
+    );
+  }
+
+  // TROU A — la base ne verse rien mais le complémentaire comble : ambre/attention.
+  const ref = projection.revenuReferenceMensuel;
+  const pct = ref > 0 ? Math.round((trou.montantComble / ref) * 100) : 0;
   return (
     <div
       className="rounded-xl px-4 py-3"
-      style={{ background: BRAND.dangerBg, border: `1px solid ${BRAND.dangerBorder}`, borderLeft: `4px solid ${BRAND.danger}` }}
+      style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, borderLeft: `4px solid ${BRAND.warning}` }}
     >
-      <div className="text-sm font-black flex items-center gap-2" style={{ color: BRAND.danger }}>
-        <span aria-hidden>⚠</span> Trou de couverture
+      <div className="text-sm font-black flex items-center gap-2" style={{ color: BRAND.warning }}>
+        <span aria-hidden>⚠</span> Régime de base à sec
       </div>
       <div className="text-sm mt-1" style={{ color: BRAND.navy, lineHeight: 1.5 }}>
-        Aucun revenu de remplacement n'est versé entre <strong>{debut}</strong> et <strong>{fin}</strong> d'arrêt.
-        Sur cette période, seules vos garanties individuelles (contrat Madelin, prévoyance personnelle) peuvent
-        combler ce vide — à défaut, le revenu tombe à zéro.
+        Entre <strong>{debut}</strong> et <strong>{fin}</strong>, le régime obligatoire ne verse aucun revenu de
+        remplacement. Votre couverture repose alors <strong>entièrement</strong> sur votre contrat individuel, qui
+        verse <strong>{euroMois(trou.montantComble)}</strong> ({pct} % du revenu de référence).
       </div>
     </div>
   );
