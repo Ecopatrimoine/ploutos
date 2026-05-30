@@ -5,6 +5,31 @@ Format : [Version] — Date · Added / Changed / Fixed / Removed
 
 ---
 
+## [1.4.0] — 30 mai 2026
+
+Module **Prévoyance personnelle** : projection des revenus de remplacement en cas d'arrêt maladie puis invalidité, par personne du foyer.
+
+### Added
+- Couverture par caisse : régime général (CPAM), indépendants (SSI), et caisses des libéraux — CARMF (médecins), CIPAV (libéraux non réglementés), CARPIMKO (paramédicaux)
+- Architecture par étages : IJ obligatoires, maintien employeur, complémentaires collective et individuelle, pension d'invalidité
+- Scénarios : maladie ordinaire (360 j) et affection longue durée (jusqu'à 3 ans), reprise en mi-temps thérapeutique, catégories d'invalidité projetées (Cat 1 / 2 / 3), gestion de la surcouverture
+- Visualisation RDV client : graphique de projection jusqu'à la retraite ; couche pédagogique (bandeau résumé, légende, montants aux points-clés, jauge de couverture, encadrés explicatifs)
+- Détection et signalement du « trou » de couverture : régime de base à sec (complémentaire seul) vs absence totale de revenu de remplacement
+- Champ d'affiliation distinct pour les TNS (date de début d'activité / 1ʳᵉ affiliation, distincte de la date d'embauche)
+
+### Changed
+- Saisie du statut professionnel et de la caisse d'affiliation regroupée dans l'onglet Travail
+- Informations du foyer (situation familiale, enfants, ressources du conjoint, date de mariage) dérivées automatiquement du dossier — fin des doubles saisies dans les blocs caisse
+
+### Fixed
+- Valeurs SSI 2026 vérifiées à la source (ameli) : plafonds des pensions d'invalidité (cat 1 = 1 201,50 € · cat 2 = 2 002,50 €), majoration tierce personne cat 3 (1 298,44 €), capital décès retraité corrigé (3 844,80 €), capital orphelin (2 403 €)
+- Majoration familiale des IJ après le 31ᵉ jour (CPAM, ≥ 3 enfants) documentée comme supprimée (art. 85 LFSS, L.323-4 CSS) — test de non-régression ajouté
+
+### Notes
+- Les valeurs servant à la projection des caisses libérales (CARMF/CIPAV/CARPIMKO) sont vérifiées à la source. Certaines hypothèses de travail restent ouvertes, documentées en code et tests, en attente de vérification. Les caisses non encore documentées (MSA, CNBF…) sont signalées dans l'interface.
+
+---
+
 ## [1.1.4] — Mars 2026
 
 ### Added
