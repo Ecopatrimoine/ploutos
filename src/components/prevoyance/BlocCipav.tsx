@@ -102,6 +102,7 @@ export const BlocCipav = React.memo(function BlocCipav({ value, onChange }: Prop
             <Field
               label="Revenu BNC 2024 (déclaration 2042 C-PRO)"
               tooltip="Revenu retenu pour vos IJ libéraux et pour le calcul de vos points de prévoyance (invalidité, décès, rentes)."
+              reserveLabel
             >
               <Input
                 type="number" min={0} value={v.revenuBNC_N2} disabled={cumul}
@@ -120,6 +121,7 @@ export const BlocCipav = React.memo(function BlocCipav({ value, onChange }: Prop
             <Field
               label="Ancienneté d'affiliation CIPAV (mois)"
               tooltip="Nombre de mois depuis votre 1ʳᵉ affiliation CIPAV. Au moins 12 mois (1 an) sont requis pour ouvrir droit aux IJ libéraux."
+              reserveLabel
             >
               <Input
                 type="number" min={0} value={v.ancienneteAffiliationMois} disabled={cumul}
@@ -137,6 +139,7 @@ export const BlocCipav = React.memo(function BlocCipav({ value, onChange }: Prop
             <Field
               label="Taux d'invalidité projeté (%)"
               tooltip="100 % = invalidité totale (pension versée jusqu'à 62 ans). 66 à 99 % = partielle (jusqu'à 67 ans). Sous 66 % : pas de pension CIPAV."
+              reserveLabel
             >
               <Input
                 type="number" min={0} max={100} value={v.tauxInvalidite} disabled={cumul}

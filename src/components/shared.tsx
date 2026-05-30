@@ -59,10 +59,17 @@ export function HelpTooltip({ text }: { text: string }) {
   );
 }
 
-export function Field({ label, children, tooltip }: { label: string; children: React.ReactNode; tooltip?: string }) {
+// `reserveLabel` (opt-in) : réserve ~2 lignes de hauteur au label (au md+) et
+// l'aligne en haut, pour que les Inputs d'une même rangée démarrent à la même
+// hauteur quand certains labels font 1 ligne et d'autres 2. Sans le prop, le
+// comportement est strictement inchangé (aucun impact sur les autres écrans).
+export function Field({ label, children, tooltip, reserveLabel }: { label: string; children: React.ReactNode; tooltip?: string; reserveLabel?: boolean }) {
   return (
     <div className="space-y-2">
-      <Label className="text-xs font-bold flex items-center gap-0.5" style={{ color: BRAND.muted }}>
+      <Label
+        className={`text-xs font-bold flex gap-0.5 ${reserveLabel ? "items-start md:min-h-[2rem]" : "items-center"}`}
+        style={{ color: BRAND.muted }}
+      >
         {label}{tooltip && <HelpTooltip text={tooltip} />}
       </Label>
       {children}

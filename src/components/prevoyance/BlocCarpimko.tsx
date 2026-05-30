@@ -87,6 +87,7 @@ export const BlocCarpimko = React.memo(function BlocCarpimko({ value, onChange }
             <Field
               label="Revenu BNC 2024 (déclaration 2042 C-PRO)"
               tooltip="Utilisé UNIQUEMENT pour vos IJ CPAM des 90 premiers jours. Les prestations CARPIMKO (allocation, invalidité, décès) sont forfaitaires, indépendantes du revenu."
+              reserveLabel
             >
               <Input
                 type="number" min={0} value={v.revenuBNC_N2}
@@ -105,6 +106,7 @@ export const BlocCarpimko = React.memo(function BlocCarpimko({ value, onChange }
             <Field
               label="Taux d'invalidité projeté (%)"
               tooltip="100 % = invalidité totale (rente forfaitaire 20 160 €/an). 66 à 99 % = partielle (10 080 €/an, montant unique). Sous 66 % : aucune rente."
+              reserveLabel
             >
               <Input
                 type="number" min={0} max={100} value={v.tauxInvalidite}

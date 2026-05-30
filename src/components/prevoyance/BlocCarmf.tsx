@@ -106,7 +106,7 @@ export const BlocCarmf = React.memo(function BlocCarmf({ value, onChange }: Prop
           style={{ opacity: cumul ? 0.55 : 1 }}
         >
           <div className="md:col-span-4">
-            <Field label="Statut CARMF">
+            <Field label="Statut CARMF" reserveLabel>
               <Select
                 value={v.statut}
                 disabled={cumul}
@@ -123,7 +123,7 @@ export const BlocCarmf = React.memo(function BlocCarmf({ value, onChange }: Prop
           </div>
           {estConjoint && (
             <div className="md:col-span-4">
-              <Field label="Option conjoint collaborateur">
+              <Field label="Option conjoint collaborateur" reserveLabel>
                 <Select
                   value={v.optionConjointCollaborateur ?? "moitie"}
                   disabled={cumul}
@@ -142,6 +142,7 @@ export const BlocCarmf = React.memo(function BlocCarmf({ value, onChange }: Prop
             <Field
               label="Revenu BNC 2024 (déclaration 2042 C-PRO)"
               tooltip="Revenu retenu par la CARMF pour calculer vos IJ 2026."
+              reserveLabel
             >
               <Input
                 type="number" min={0} value={v.revenuBNC_N2} disabled={cumul}
@@ -157,6 +158,7 @@ export const BlocCarmf = React.memo(function BlocCarmf({ value, onChange }: Prop
             <Field
               label="Ancienneté d'affiliation CARMF (trimestres)"
               tooltip="Nombre de trimestres depuis votre 1ʳᵉ affiliation CARMF (défaut 24 = ≥ 6 ans, taux plein)."
+              reserveLabel
             >
               <Input
                 type="number" min={0} value={v.ancienneteAffiliationTrimestres} disabled={cumul}
