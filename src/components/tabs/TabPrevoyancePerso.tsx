@@ -48,6 +48,7 @@ import { BlocTpt } from "../prevoyance/BlocTpt";
 import { BlocCarmf, defaultCarmf } from "../prevoyance/BlocCarmf";
 import { BlocCipav, defaultCipav } from "../prevoyance/BlocCipav";
 import { BlocCarpimko, defaultCarpimko } from "../prevoyance/BlocCarpimko";
+import { BandeauResumeClient, BlocPedagogie } from "../prevoyance/BlocPedagogie";
 
 function defaultPrevoyancePerso(): PayloadPrevoyancePerso {
   return {
@@ -261,6 +262,16 @@ function ColonnePerso({
     return evaluerToutesLesRegles(ctx, cible);
   }, [data, entree, projection, cible]);
 
+  // Natures des contrats complémentaires (indemnitaire / forfaitaire) pour
+  // le bandeau résumé — lecture passive des saisies, aucun recalcul.
+  const naturesContrats = React.useMemo(
+    () =>
+      Array.from(
+        new Set(prevoyancePerso.contratsIndividuels.map((c) => c.nature ?? "indemnitaire"))
+      ),
+    [prevoyancePerso.contratsIndividuels]
+  );
+
   return (
     <div className="space-y-4">
       {/* Récap statut */}
@@ -376,15 +387,25 @@ function ColonnePerso({
         </div>
       )}
 
-      {/* Graphique */}
+      {/* Bandeau résumé client (ÉL. 1) — lecture passive au-dessus du graphe */}
+      <BandeauResumeClient
+        profil={libelleStatut(entreeBase.statutPro)}
+        caisse={entree.caisse}
+        revenuRefMensuel={projection.revenuReferenceMensuel}
+        scenarioLibelle={libelleScenario(scenarioArret)}
+        naturesContrats={naturesContrats}
+      />
+
+      {/* Graphique + couche pédagogique RDV (ÉL. 2 à 6) */}
       <div
-        className="rounded-xl p-4"
+        className="rounded-xl p-4 space-y-4"
         style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}
       >
         <div className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: BRAND.sky }}>
           Projection des revenus de remplacement
         </div>
         <ProjectionChart projection={projection} />
+        <BlocPedagogie projection={projection} />
       </div>
 
       {/* Tableau jalons */}
