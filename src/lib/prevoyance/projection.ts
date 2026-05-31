@@ -567,6 +567,26 @@ export function forfaitaireInvalMensuel(caisseRef: any, entree: EntreePerso): nu
   const base = resolveMontant(inv.montantAnnuel100, cle, assiette);
   if (base === null) return 0; // pas de montant (CNBF plus20) — pas un trou
 
+  // Mode CARPV : double palier d'invalidité par classe.
+  //   taux < seuilPartiel        -> 0 (invalidité non couverte sous 66 %)
+  //   seuilPartiel <= taux < seuilTotal -> rente palier 66 % de la classe
+  //   taux >= seuilTotal         -> rente palier 100 % de la classe
+  //   Deux tables parDiscriminant distinctes (montantAnnuel66 / montantAnnuel100).
+  //   Seuils lus depuis la donnée (fallback 66/100). NE PAS déclarer
+  //   seuilTauxMinimal sur cette caisse (le plancher de taux est porté ici).
+  //   Borne d'âge : évaluée plus haut (ligne 558) sur l'âge figé, comme CAVEC/CRN.
+  if (inv.modeTaux === "doublePalierCarpv") {
+    const seuilPartiel = safeNum(inv.seuilPartiel) ?? 66;
+    const seuilTotal = safeNum(inv.seuilTotal) ?? 100;
+    if (taux < seuilPartiel) return 0;
+    const cleP = resolveDiscriminant(caisseRef, entree);
+    const annuel =
+      taux >= seuilTotal
+        ? resolveMontant(inv.montantAnnuel100, cleP, assiette)
+        : resolveMontant(inv.montantAnnuel66, cleP, assiette);
+    return (annuel ?? 0) / 12;
+  }
+
   // Mode CAVAMAC : barème par tranche distinct de binaire/proportionnel.
   //   `base` est la pension TOTALE (mode pourcentageRevenu : déjà PLANCHÉE par
   //   tauxAppliquePlafonne — lot A/B). La réduction partielle s'applique APRÈS
