@@ -105,6 +105,16 @@ function classeRetenue(caisseRef: any, forfait: ForfaitConfig, revenu: number): 
   } as any);
 }
 
+// Libellé d'affichage d'une classe. La VALEUR du SelectItem reste la clé
+// technique brute (k) lue par le moteur (resolveDiscriminant) ; on n'embellit
+// que le texte. "minimum" -> "Minimum", "medium" -> "Médium" (CARPV), "C" -> "C".
+function labelClasse(k: string): string {
+  if (k === "medium") return "Médium";
+  if (k === "minimum") return "Minimum";
+  if (k === "maximum") return "Maximum";
+  return k; // CAVEC "1".."4", CAVOM "A".."D" : inchangés
+}
+
 // Helper PUR conservé pour compatibilité (NE sert PLUS à seeder — aucun effet de
 // bord). Priorité explicite > classeParDefaut > "" (grille/placeholder côté
 // affichage). Doit rester aligné avec resolveDiscriminant (sans la branche grille,
@@ -238,16 +248,15 @@ export const BlocForfait = React.memo(function BlocForfait({ value, onChange, ca
                   value={selectValue}
                   onValueChange={(s) => patch({ classeOption: s === "auto" ? "" : s })}
                 >
-                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="— Sélectionnez une classe —" />
+                  </SelectTrigger>
                   <SelectContent>
                     {hasGrille && (
                       <SelectItem value="auto">{classeAuto ? `Classe déduite (${classeAuto})` : "Classe déduite"}</SelectItem>
                     )}
-                    {!hasGrille && !classeOptionSet && (
-                      <SelectItem value="">— Sélectionnez une classe —</SelectItem>
-                    )}
                     {classeKeys.map((k) => (
-                      <SelectItem key={k} value={k}>{`Classe ${k}`}</SelectItem>
+                      <SelectItem key={k} value={k}>{`Classe ${labelClasse(k)}`}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
