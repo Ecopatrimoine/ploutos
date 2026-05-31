@@ -313,9 +313,56 @@
     "CARPV": {
       "nom": "Caisse autonome de retraite et de prévoyance des vétérinaires",
       "publicConcerne": "Vétérinaires libéraux",
-      "ij": { "TO_FILL": true },
-      "invalidite": { "TO_FILL": true },
-      "capitalDeces": { "TO_FILL": true }
+      "dateVerification": "2026-02-01",
+      "moteur": "forfaitaire",
+      "discriminant": { "type": "classe" },
+      "classeParDefaut": "maximum",
+      "ij": {
+        "_commentaire": "Aucune IJ CARPV. CPAM/CNAVPL verse sur les 90 premiers jours (87 IJ, carence 3j, limite 360 IJ sur 3 ans). Rien apres J90 (trou). Source Livret CARPV fevrier 2026.",
+        "carenceJours": 90,
+        "plafondDureeJours": null,
+        "phase1": { "type": "cpam" },
+        "montantJournalier": { "mode": "uniforme", "valeur": 0 }
+      },
+      "invalidite": {
+        "_commentaire": "Double palier par classe. < 66 % : rien. 66 % <= taux < 100 % : rente palier 66 %. taux = 100 % : rente palier 100 %. Carence 1 an (366e jour). Borne age 65 (age fige au debut d'arret ; coupure au 65e anniversaire atteint en cours de projection = TO_VERIFY). Point de rente 2026 = 53,50 €. PAS de seuilTauxMinimal (plancher porte par seuilPartiel). Source Livret CARPV fevrier 2026.",
+        "modeTaux": "doublePalierCarpv",
+        "seuilPartiel": 66,
+        "seuilTotal": 100,
+        "borneAgeMax": 65,
+        "montantAnnuel66": { "mode": "parDiscriminant", "valeurs": { "minimum": 8560, "medium": 17120, "maximum": 25680 } },
+        "montantAnnuel100": { "mode": "parDiscriminant", "valeurs": { "minimum": 13375, "medium": 26750, "maximum": 40125 } },
+        "majorationEnfantAnnuelle": null
+      },
+      "capitalDeces": {
+        "_commentaire": "Capital deces par classe. Reduction apres 65 ans (66->52% ... 75->25%) NON geree au MVP (TO_VERIFY). Source Livret CARPV fevrier 2026.",
+        "mode": "parDiscriminant",
+        "valeurs": { "minimum": 37985, "medium": 75970, "maximum": 113955 }
+      },
+      "renteSurvieConjoint": {
+        "_commentaire": "Rente de survie du conjoint marie/pacse (annuelle, par classe). Jusqu'a 65 ans, supprimee si remariage. Referentiel inerte, NON cablee aux 9 series, reservee futur module succession. Source Livret CARPV fevrier 2026.",
+        "mode": "parDiscriminant",
+        "valeurs": { "minimum": 4815, "medium": 9630, "maximum": 14445 }
+      },
+      "renteEducationOrphelin": {
+        "_commentaire": "Rente education/orphelin (annuelle, par classe). Enfants < 21 ans (< 25 si etudes, viagere si inapte avant 18 ans). Referentiel inerte, NON cablee aux 9 series, reservee futur module succession. Source Livret CARPV fevrier 2026.",
+        "mode": "parDiscriminant",
+        "valeurs": { "minimum": 4280, "medium": 8560, "maximum": 12840 }
+      },
+      "sources": [
+        "CARPV — Guide 2026 « Comprendre vos cotisations et prestations » (fevrier 2026) : https://www.carpv.fr/wp-content/uploads/2026/02/Livret-2026_-fevrier_VD.pdf",
+        "CARPV — page prevoyance (maj 06/03/2026) : https://www.carpv.fr/votre-prevoyance/la-prevoyance/",
+        "Point de rente 2026 = 53,50 € (etait 51,50 € en 2024)",
+        "Invalidite 66 % par classe : minimum 8 560 / medium 17 120 / maximum 25 680",
+        "Invalidite 100 % par classe : minimum 13 375 / medium 26 750 / maximum 40 125",
+        "Capital deces par classe : minimum 37 985 / medium 75 970 / maximum 113 955",
+        "Rente survie conjoint par classe : minimum 4 815 / medium 9 630 / maximum 14 445",
+        "Rente education/orphelin par classe : minimum 4 280 / medium 8 560 / maximum 12 840",
+        "Classe par defaut = maximum (sauf demande de cotisation en classe inferieure)",
+        "IJ : CPAM/CNAVPL sur 90 premiers jours, aucune IJ CARPV, trou apres J90",
+        "TO_VERIFY : reduction capital deces apres 65 ans (66->52% ... 75->25%), non geree au MVP",
+        "TO_VERIFY : coupure rente invalidite au 65e anniversaire atteint en cours de projection (moteur evalue l'age fige)"
+      ]
     },
     "CNBF": {
       "nom": "Caisse nationale des barreaux français",

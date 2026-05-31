@@ -13,6 +13,7 @@
 import { describe, it, expect } from "vitest";
 import {
   forfaitaireInvalMensuel,
+  forfaitaireCapitalDeces,
 } from "../lib/prevoyance/projection";
 import { referentiels } from "../data/prevoyance";
 import type { EntreePerso } from "../lib/prevoyance/types";
@@ -108,13 +109,28 @@ describe("CARPV — classe par défaut + borne d'âge", () => {
 });
 
 describe("CARPV — état du référentiel à l'issue de C-1", () => {
-  it("CARPV est encore un stub TO_FILL (donnée = lot C-2, pas encore encodée)", () => {
+  it("CARPV référentiel encodé (C-2) : classe maximum taux 100 → 40125/12", () => {
     const carpv = caisses.CARPV;
-    expect(carpv).toBeTruthy();
-    // À ce stade le moteur doublePalierCarpv existe mais la donnée n'est pas
-    // encore branchée : l'invalidité reste un stub TO_FILL.
-    expect(carpv.invalidite?.TO_FILL).toBe(true);
-    expect(carpv.moteur).toBeUndefined();
+    expect(carpv.moteur).toBe("forfaitaire");
+    expect(carpv.invalidite?.modeTaux).toBe("doublePalierCarpv");
+    const e = entree({ tauxInvalidite: 100, classeOption: "maximum" }, { caisse: "CARPV" });
+    expect(forfaitaireInvalMensuel(carpv, e)).toBeCloseTo(40125 / 12, 2);
+  });
+  it("CARPV référentiel encodé (C-2) : classe par défaut maximum, taux 80 → 25680/12", () => {
+    const carpv = caisses.CARPV;
+    // pas de classeOption -> doit résoudre classeParDefaut "maximum"
+    const e = entree({ tauxInvalidite: 80 }, { caisse: "CARPV" });
+    expect(forfaitaireInvalMensuel(carpv, e)).toBeCloseTo(25680 / 12, 2);
+  });
+  it("CARPV référentiel encodé (C-2) : classe minimum taux 100 → 13375/12", () => {
+    const carpv = caisses.CARPV;
+    const e = entree({ tauxInvalidite: 100, classeOption: "minimum" }, { caisse: "CARPV" });
+    expect(forfaitaireInvalMensuel(carpv, e)).toBeCloseTo(13375 / 12, 2);
+  });
+  it("CARPV référentiel encodé (C-2) : capital décès classe maximum → 113955", () => {
+    const carpv = caisses.CARPV;
+    const e = entree({ tauxInvalidite: 0, classeOption: "maximum" }, { caisse: "CARPV" });
+    expect(forfaitaireCapitalDeces(carpv, e)).toBe(113955);
   });
 
   it("non-régression CAVOM invalidité (parDiscriminant) : classe C taux 80 → 33070/12", () => {
