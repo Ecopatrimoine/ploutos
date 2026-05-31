@@ -479,16 +479,31 @@ export function resolveDiscriminant(caisseRef: any, entree: EntreePerso): string
   return null;
 }
 
-// Résout une structure "montant" {mode:"uniforme",valeur} |
-// {mode:"parDiscriminant",valeurs:{...}} pour une clé donnée. Retourne null
-// si non documenté (valeurs[clé] absent/null → "pas de montant", pas une
-// erreur ; cf. CNBF plus20).
-function resolveMontant(m: any, cle: string | null): number | null {
+// Résout une structure "montant" pour une clé donnée. Retourne null si non
+// documenté (valeurs[clé] absent/null → "pas de montant", pas une erreur ;
+// cf. CNBF plus20).
+//   - {mode:"uniforme",valeur}                       → valeur fixe.
+//   - {mode:"parDiscriminant",valeurs:{...}}          → valeurs[clé].
+//   - {mode:"pourcentageRevenu",taux,plafond?,plancher?}
+//        → taux × min(assiette, plafond), plancher optionnel (ex. CAVAMAC :
+//          25 % des commissions brutes plafonnées). `taux` exprimé EN FRACTION
+//          dans le JSON (0.25 = 25 %). assiette absente/0 → 0 (helper).
+// Le param `assiette` est OPTIONNEL et rétro-compatible : un appel à deux
+// arguments (modes uniforme/parDiscriminant) se comporte exactement comme avant
+// — ces deux modes n'utilisent jamais l'assiette. (Pas de `vars` : le plafond
+// est une valeur en euros littérale dans le JSON, aucun plafond paramétrique
+// PASS requis pour CAVAMAC.)
+function resolveMontant(m: any, cle: string | null, assiette?: number | null): number | null {
   if (!m) return null;
   if (m.mode === "uniforme") return safeNum(m.valeur);
   if (m.mode === "parDiscriminant") {
     if (cle === null) return null;
     return safeNum(m.valeurs?.[cle]);
+  }
+  if (m.mode === "pourcentageRevenu") {
+    const taux = safeNum(m.taux);
+    if (taux === null) return null; // taux non documenté → pas un montant
+    return tauxAppliquePlafonne(assiette, taux, safeNum(m.plafond), safeNum(m.plancher));
   }
   return null;
 }
@@ -543,10 +558,15 @@ export function forfaitaireInvalMensuel(caisseRef: any, entree: EntreePerso): nu
   const seuil = safeNum(inv.seuilTauxMinimal) ?? 0;
   if (taux < seuil) return 0;
   const cle = resolveDiscriminant(caisseRef, entree);
-  const base = resolveMontant(inv.montantAnnuel100, cle);
+  // Assiette des modes "pourcentageRevenu" = commissions brutes saisies (champ
+  // dédié, PAS de fallback sur revenuTNSAnnuel dans ce lot). Absente → assiette
+  // undefined → pourcentageRevenu rend 0 (trou visible, pas faux silencieux).
+  // Ignorée par uniforme / parDiscriminant (CAVOM, CAVEC, CNBF, CARCDSF).
+  const assiette = entree.forfait?.commissionsBrutes;
+  const base = resolveMontant(inv.montantAnnuel100, cle, assiette);
   if (base === null) return 0; // pas de montant (CNBF plus20) — pas un trou
   let pension = inv.modeTaux === "proportionnel" ? base * (taux / 100) : base;
-  const maj = resolveMontant(inv.majorationEnfantAnnuelle, cle);
+  const maj = resolveMontant(inv.majorationEnfantAnnuelle, cle, assiette);
   if (maj !== null) pension += maj * (safeNum(entree.nbEnfantsACharge) ?? 0);
   return pension / 12;
 }
@@ -558,7 +578,10 @@ export function forfaitaireCapitalDeces(caisseRef: any, entree: EntreePerso): nu
   const cap = caisseRef?.capitalDeces;
   if (!cap) return null;
   const cle = resolveDiscriminant(caisseRef, entree);
-  return resolveMontant(cap, cle);
+  // cf. forfaitaireInvalMensuel : assiette = commissions brutes (mode
+  // pourcentageRevenu), ignorée par uniforme / parDiscriminant.
+  const assiette = entree.forfait?.commissionsBrutes;
+  return resolveMontant(cap, cle, assiette);
 }
 
 // ────────────────────────────────────────────────────────────────────

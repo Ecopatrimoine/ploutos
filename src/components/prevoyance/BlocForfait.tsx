@@ -127,6 +127,14 @@ export const BlocForfait = React.memo(function BlocForfait({ value, onChange, ca
   const hasModeTaux = caisseRef?.invalidite?.modeTaux != null; // binaire | proportionnel
   const tauxSousSeuil = v.tauxInvalidite > 0 && v.tauxInvalidite < SEUIL_TAUX_INVALIDITE;
 
+  // Champ "Commissions brutes" affiché UNIQUEMENT si la caisse calcule une
+  // prestation en % du revenu (mode "pourcentageRevenu") sur l'invalidité ou le
+  // capital décès. Critère DATA (pas de "if caisse === CAVAMAC") : CAVEC / CAVOM
+  // (uniforme / parDiscriminant) ne voient jamais ce champ.
+  const usesPourcentageRevenu =
+    caisseRef?.invalidite?.montantAnnuel100?.mode === "pourcentageRevenu" ||
+    caisseRef?.capitalDeces?.mode === "pourcentageRevenu";
+
   // Classe CAVEC : déduite du revenu via la grille (affichage de l'item "auto").
   const revenu = revenuTNSAnnuel ?? v.revenuBNC_N2 ?? 0;
   const classeAuto = classeDeduite(caisseRef, revenu);
@@ -266,6 +274,24 @@ export const BlocForfait = React.memo(function BlocForfait({ value, onChange, ca
               {tauxSousSeuil && (
                 <InlineAlert>Sous 66 % : aucune pension d'invalidité de la caisse.</InlineAlert>
               )}
+            </div>
+          )}
+
+          {/* Commissions brutes annuelles (caisses en mode pourcentageRevenu,
+              ex. CAVAMAC). Assiette des prestations invalidité / capital décès. */}
+          {usesPourcentageRevenu && (
+            <div className="md:col-span-4">
+              <Field
+                label="Commissions brutes annuelles"
+                tooltip="Assiette de vos prestations invalidité et décès pour cette caisse : un pourcentage de vos commissions brutes annuelles, plafonné."
+                reserveLabel
+              >
+                <Input
+                  type="number" min={0} value={v.commissionsBrutes ?? 0}
+                  onChange={(e) => patch({ commissionsBrutes: Math.max(0, Number(e.target.value) || 0) })}
+                  className="rounded-xl"
+                />
+              </Field>
             </div>
           )}
         </div>

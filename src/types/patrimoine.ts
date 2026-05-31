@@ -399,6 +399,9 @@ export type ForfaitConfig = {
   tauxInvalidite: number;            // 0-100 (mode taux binaire/proportionnel)
   sousProfession?: "dentiste" | "sage_femme"; // CARCDSF (discriminant profession)
   classeOption?: string;            // CAVEC : classe forcée si option supérieure
+  commissionsBrutes?: number;        // assiette annuelle des caisses en mode
+                                     // "pourcentageRevenu" (ex. CAVAMAC : 25 %
+                                     // des commissions brutes plafonnées)
   cumulEmploiRetraite?: boolean;
 };
 
