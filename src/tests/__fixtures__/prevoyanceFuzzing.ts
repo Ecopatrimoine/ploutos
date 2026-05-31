@@ -133,7 +133,7 @@ export function generateProfilsCoherents(
       const statutPro = pick(rng, STATUTS_SALARIE_FUZZ);
       const entree: EntreePerso = {
         age, ageRetraite: 64, statutPro,
-        caisse: pick(rng, ["CPAM", "MSA"] as CodeCaisse[]),
+        caisse: pick(rng, ["CPAM"] as CodeCaisse[]),
         idccCCN: rng() < 0.5 ? pick(rng, ["1486", "3248", "9999"]) : null,
         ancienneteMois: intBetween(rng, 0, 480),
         salaireBrutAnnuel: brut, salaireNetMensuel: 0,
@@ -146,7 +146,7 @@ export function generateProfilsCoherents(
     const statutPro = pick(rng, STATUTS_TNS_FUZZ);
     const entree: EntreePerso = {
       age, ageRetraite: 64, statutPro,
-      caisse: pick(rng, ["CARMF", "SSI", "CIPAV", "CARPIMKO"] as CodeCaisse[]),
+      caisse: pick(rng, ["CARMF", "SSI", "CIPAV", "CARPIMKO", "MSA"] as CodeCaisse[]),
       idccCCN: null, ancienneteMois: 0,
       salaireBrutAnnuel: 0, salaireNetMensuel: 0,
       revenuTNSAnnuel: revenuTNS,
