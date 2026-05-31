@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BRAND, SURFACE } from "../../constants";
 import { Field } from "../shared";
+import { resolveDiscriminant } from "../../lib/prevoyance/projection";
 import type { ForfaitConfig, EntreePerso } from "../../lib/prevoyance/types";
 
 // Config forfaitaire par défaut (revenu N-2 repris du revenu TNS de l'onglet
@@ -92,6 +93,30 @@ function classeDeduite(caisseRef: any, revenu: number): string | null {
   return grille.length > 0 ? String(grille[grille.length - 1].classe) : null;
 }
 
+// Classe RETENUE pour l'affichage (helper PUR, sans effet ni setState). Réutilise
+// la résolution du MOTEUR (resolveDiscriminant) pour garantir l'alignement strict
+// avec le calcul : choix explicite (forfait.classeOption) > défaut déclaré en DATA
+// (caisseRef.classeParDefaut, ex. CAVOM "C") > grille revenu (CAVEC) > null
+// (placeholder). Aucune mutation : la simple consultation ne modifie pas le dossier.
+function classeRetenue(caisseRef: any, forfait: ForfaitConfig, revenu: number): string | null {
+  return resolveDiscriminant(caisseRef, {
+    revenuTNSAnnuel: revenu,
+    forfait,
+  } as any);
+}
+
+// Helper PUR conservé pour compatibilité (NE sert PLUS à seeder — aucun effet de
+// bord). Priorité explicite > classeParDefaut > "" (grille/placeholder côté
+// affichage). Doit rester aligné avec resolveDiscriminant (sans la branche grille,
+// laissée à classeDeduite/au moteur). Aucun code de caisse en dur.
+export function classeInitiale(caisseRef: any, forfait: ForfaitConfig): string {
+  if (forfait.classeOption && forfait.classeOption !== "") return forfait.classeOption;
+  if (caisseRef?.classeParDefaut != null && String(caisseRef.classeParDefaut) !== "") {
+    return String(caisseRef.classeParDefaut);
+  }
+  return ""; // empty = non choisie → grille (CAVEC) ou placeholder (beta)
+}
+
 export const BlocForfait = React.memo(function BlocForfait({ value, onChange, caisseRef, revenuTNSAnnuel }: Props) {
   const v = value;
   function patch(p: Partial<ForfaitConfig>) {
@@ -102,10 +127,44 @@ export const BlocForfait = React.memo(function BlocForfait({ value, onChange, ca
   const hasModeTaux = caisseRef?.invalidite?.modeTaux != null; // binaire | proportionnel
   const tauxSousSeuil = v.tauxInvalidite > 0 && v.tauxInvalidite < SEUIL_TAUX_INVALIDITE;
 
-  // Classe CAVEC : déduite du revenu, surchargée par classeOption si saisie.
+  // Classe CAVEC : déduite du revenu via la grille (affichage de l'item "auto").
   const revenu = revenuTNSAnnuel ?? v.revenuBNC_N2 ?? 0;
   const classeAuto = classeDeduite(caisseRef, revenu);
-  const classeEffective = v.classeOption && v.classeOption !== "" ? v.classeOption : classeAuto;
+  // Classe RETENUE (alignée moteur, pure) : explicite > classeParDefaut > grille >
+  // null. Sert au libellé "classe retenue" et à piloter la valeur du Select.
+  const classeEffective = classeRetenue(caisseRef, v, revenu);
+
+  // Options de classe DÉRIVÉES de la donnée (clés de invalidite.montantAnnuel100).
+  // CAVEC → ["1","2","3","4"] ; CAVOM → ["A","B","C","D"]. Fallback 1/2/3/4 si
+  // la donnée est vide (ne casse aucun comportement existant).
+  const classeKeysData = Object.keys(caisseRef?.invalidite?.montantAnnuel100?.valeurs ?? {});
+  const classeKeys = classeKeysData.length > 0 ? classeKeysData : ["1", "2", "3", "4"];
+
+  // Caisse "classe" avec une grille revenu (CAVEC) → option "auto" + déduction.
+  // Sans grille (CAVOM) → pas d'"auto" ; la classe est choisie (ou seedée par
+  // classeParDefaut), sinon placeholder anti-zéro silencieux.
+  const hasGrille =
+    Array.isArray(caisseRef?.discriminant?.grilleRevenuClasse) &&
+    caisseRef.discriminant.grilleRevenuClasse.length > 0;
+
+  // PAS de useEffect de seeding : la classe par défaut (CAVOM "C") est résolue À
+  // LA LECTURE par le moteur (resolveDiscriminant) et reflétée ci-dessous dans le
+  // Select. La simple consultation d'un dossier ne déclenche AUCUN onChange et ne
+  // marque donc jamais le dossier comme modifié.
+
+  // Valeur sélectionnée du Select, alignée sur la résolution moteur :
+  //   classeOption explicite → classeOption ;
+  //   sinon grille (CAVEC)   → "auto" (item déduit) ;
+  //   sinon classeParDefaut  → String(classeParDefaut) (CAVOM "C") ;
+  //   sinon                  → "" → placeholder "— Sélectionnez une classe —".
+  const classeOptionSet = !!v.classeOption && v.classeOption !== "";
+  const selectValue = classeOptionSet
+    ? v.classeOption!
+    : hasGrille
+    ? "auto"
+    : caisseRef?.classeParDefaut != null && String(caisseRef.classeParDefaut) !== ""
+    ? String(caisseRef.classeParDefaut)
+    : "";
 
   return (
     <div
@@ -157,25 +216,31 @@ export const BlocForfait = React.memo(function BlocForfait({ value, onChange, ca
             </div>
           )}
 
-          {/* Classe CAVEC (discriminant === "classe") : déduite + option sup. */}
+          {/* Classe de cotisation (discriminant === "classe") : déduite via
+              grille (CAVEC) ou choisie / par défaut (CAVOM). Options et logique
+              dérivées de la DATA — aucun code de caisse en dur. */}
           {discType === "classe" && (
             <div className="md:col-span-4">
               <Field
-                label={`Classe CAVEC${classeAuto ? ` (déduite : classe ${classeAuto})` : ""}`}
+                label={`Classe de cotisation${classeAuto ? ` (déduite : classe ${classeAuto})` : ""}`}
                 tooltip="Classe déduite de votre revenu TNS. Modifiable si vous avez opté pour la classe immédiatement supérieure (option de cotisation)."
                 reserveLabel
               >
                 <Select
-                  value={v.classeOption && v.classeOption !== "" ? v.classeOption : "auto"}
+                  value={selectValue}
                   onValueChange={(s) => patch({ classeOption: s === "auto" ? "" : s })}
                 >
                   <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="auto">{classeAuto ? `Classe déduite (${classeAuto})` : "Classe déduite"}</SelectItem>
-                    <SelectItem value="1">Classe 1</SelectItem>
-                    <SelectItem value="2">Classe 2</SelectItem>
-                    <SelectItem value="3">Classe 3</SelectItem>
-                    <SelectItem value="4">Classe 4</SelectItem>
+                    {hasGrille && (
+                      <SelectItem value="auto">{classeAuto ? `Classe déduite (${classeAuto})` : "Classe déduite"}</SelectItem>
+                    )}
+                    {!hasGrille && !classeOptionSet && (
+                      <SelectItem value="">— Sélectionnez une classe —</SelectItem>
+                    )}
+                    {classeKeys.map((k) => (
+                      <SelectItem key={k} value={k}>{`Classe ${k}`}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </Field>

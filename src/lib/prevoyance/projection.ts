@@ -463,6 +463,11 @@ export function resolveDiscriminant(caisseRef: any, entree: EntreePerso): string
   if (type === "classe") {
     const forced = entree.forfait?.classeOption;
     if (forced != null && forced !== "") return String(forced);
+    // Défaut déclaré en DATA (ex. CAVOM classeParDefaut "C") : résolu À LA
+    // LECTURE, sans jamais muter l'entrée. CAVEC n'a pas de classeParDefaut →
+    // saute cette étape et retombe sur la grille revenu ci-dessous.
+    const parDefaut = caisseRef?.classeParDefaut;
+    if (parDefaut != null && String(parDefaut) !== "") return String(parDefaut);
     const grille = Array.isArray(disc.grilleRevenuClasse) ? disc.grilleRevenuClasse : [];
     const revenu = safeNum(entree.revenuTNSAnnuel) ?? 0;
     for (const row of grille) {

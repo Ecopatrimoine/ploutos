@@ -362,9 +362,43 @@
     "CAVOM": {
       "nom": "Caisse d'assurance vieillesse des officiers ministériels",
       "publicConcerne": "Huissiers, commissaires-priseurs, etc.",
-      "ij": { "TO_FILL": true },
-      "invalidite": { "TO_FILL": true },
-      "capitalDeces": { "TO_FILL": true }
+      "dateVerification": "2026-05-31",
+      "moteur": "forfaitaire",
+      "discriminant": { "type": "classe" },
+      "classeParDefaut": "C",
+      "ij": {
+        "_commentaire": "CAVOM ne verse aucune IJ propre. Phase J4->J90 : CPAM (relais securite sociale). Au-dela de J90 : aucun revenu de remplacement cote regime obligatoire. Source PDF RID 2026 (13/01/2026).",
+        "carenceJours": 90,
+        "plafondDureeJours": null,
+        "phase1": { "type": "cpam" },
+        "montantJournalier": { "mode": "uniforme", "valeur": 0 }
+      },
+      "invalidite": {
+        "_commentaire": "Invalidite permanente/definitive >= 66 %, binaire. Montant annuel par classe (VSP-RID 3,3745). Source PDF RID 2026.",
+        "modeTaux": "binaire",
+        "seuilTauxMinimal": 66,
+        "borneAgeMax": null,
+        "montantAnnuel100": { "mode": "parDiscriminant", "valeurs": { "A": 8268, "B": 16535, "C": 33070, "D": 49605 } },
+        "majorationEnfantAnnuelle": null
+      },
+      "capitalDeces": {
+        "_commentaire": "Capital deces par classe. Source PDF RID 2026.",
+        "mode": "parDiscriminant",
+        "valeurs": { "A": 17716, "B": 35432, "C": 70965, "D": 106297 }
+      },
+      "renteSurvieOrphelin": {
+        "_commentaire": "Rente survie conjoint + rente orphelin (annuelle) par classe. Stockage referentiel pour futur module succession, NON cablee aux 9 series. Source PDF RID 2026.",
+        "mode": "parDiscriminant",
+        "valeurs": { "A": 5315, "B": 10630, "C": 21259, "D": 31889 }
+      },
+      "sources": [
+        "cavom.net — PDF officiel « Tableaux recapitulatifs parametres RB/RC/RID 2026 » (13/01/2026) : https://www.cavom.net/wp-content/uploads/2026/01/Tableaux-recapitulatifs-parametres-RB-RC-RID-2026.pdf",
+        "VSP-RID 2026 = 3,3745 € (montants par classe deja calcules par la caisse)",
+        "Pension invalidite annuelle par classe : A 8 268 / B 16 535 / C 33 070 / D 49 605",
+        "Capital deces par classe : A 17 716 / B 35 432 / C 70 965 / D 106 297",
+        "Rente survie/orphelin annuelle par classe : A 5 315 / B 10 630 / C 21 259 / D 31 889",
+        "Phase J4->J90 : CPAM (la CAVOM ne verse aucune IJ) ; au-dela de J90 : aucun revenu de remplacement cote regime"
+      ]
     },
     "CAVEC": {
       "nom": "Caisse d'assurance vieillesse des experts-comptables et commissaires aux comptes",
