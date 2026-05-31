@@ -248,10 +248,49 @@
     },
     "MSA": {
       "nom": "Mutualité sociale agricole",
-      "publicConcerne": "Exploitants et salariés agricoles",
-      "ij": { "TO_FILL": true },
-      "invalidite": { "TO_FILL": true },
-      "capitalDeces": { "TO_FILL": true }
+      "publicConcerne": "Exploitants agricoles (régime AMEXA non-salarié)",
+      "dateVerification": "2026-04-01",
+      "ij": {
+        "_commentaire": "IJ AMEXA exploitant : carence 3j, 26 €/j du J4 au J28, 34,66 €/j a partir du J29. Forfaitaire (independant du revenu). Plafond 360 IJ / 3 ans (1095j ALD). Periode 01/04/2026-31/03/2027. Salarie agricole = alias CPAM (non encode ici). Source msa.fr IJ Amexa.",
+        "regle": "paliers_temporels",
+        "carenceJours": 3,
+        "paliers": [
+          { "jusquaJour": 28, "montant": 26 },
+          { "jusquaJour": null, "montant": 34.66 }
+        ],
+        "plafondDureeJours": 360,
+        "plafondDureeJoursALD": 1095
+      },
+      "invalidite": {
+        "_commentaire": "Invalidite AMEXA exploitant (depuis 2020) : partielle (cat1) = 30 % du revenu moyen bornee [4465,69 ; 7209]/an ; totale (cat2) = 50 % bornee [7916,45 ; 12015]/an. Bornes converties en mensuel (/12). cat3 = copie de cat2 (pas de garantie tierce personne distincte au MVP : evite un faux 'donnees indisponibles' si projete en cat3). Cessation a 62 ans NON appliquee (gap partage CPAM/SSI) -> TO_VERIFY. Majoration tierce personne +40 % hors MVP -> TO_VERIFY. Source Legifrance R732 (01/01/2026) + msa.fr.",
+        "calculBase": "revenu_professionnel_moyen",
+        "plafondSAM": 48060,
+        "ageBascule": 62,
+        "ageBasculeRetraite": 62,
+        "categories": {
+          "cat1": { "definition": "Inaptitude partielle (30 % du revenu moyen)", "taux": 0.30, "minMensuel": 372.14, "maxMensuel": 600.75 },
+          "cat2": { "definition": "Inaptitude totale (50 % du revenu moyen)", "taux": 0.50, "minMensuel": 659.70, "maxMensuel": 1001.25 },
+          "cat3": { "definition": "Copie de cat2 (pas de MTP distincte au MVP, evite faux trou)", "taux": 0.50, "minMensuel": 659.70, "maxMensuel": 1001.25 }
+        }
+      },
+      "capitalDeces": {
+        "_commentaire": "Capital deces AMEXA forfaitaire (depuis 2022, revalo instruction interministerielle 26/03/2026). Source Justice.fr / CLEISS.",
+        "type": "forfaitaire",
+        "montant": 4009,
+        "dateEffet": "2026-04-01"
+      },
+      "sources": [
+        "Legifrance Code rural R732-1 et s. (en vigueur 01/01/2026, decret 2025-1409) : invalidite 30%/50% bornee",
+        "msa.fr IJ Amexa : 26 €/j (J4-J28), 34,66 €/j (J29+), carence 3j, 360 IJ/3 ans : https://www.msa.fr/lfp/sante/ij-amexa",
+        "msa.fr invalidite/inaptitude : https://www.msa.fr/lfp/sante/invalidite-inaptitude",
+        "Invalidite partielle 2026 : 30 % borne [4465,69 ; 7209]/an (372,14-600,75/mois)",
+        "Invalidite totale 2026 : 50 % borne [7916,45 ; 12015]/an (659,70-1001,25/mois)",
+        "Capital deces 4009 € (Justice.fr 01/04/2026, instruction DSS/2A/2026/36 du 26/03/2026)",
+        "PASS 2026 = 48 060 €",
+        "TO_VERIFY : coupure invalidite a 62 ans (ageBascule non applique, gap partage CPAM/SSI)",
+        "TO_VERIFY : majoration tierce personne +40 % (AVQ), hors MVP",
+        "Salarie agricole = alias profil CPAM (aligne regime general, source CLEISS) : non encode ici"
+      ]
     },
     "CARCDSF": {
       "nom": "Caisse autonome de retraite des chirurgiens-dentistes et sages-femmes",
