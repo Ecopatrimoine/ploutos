@@ -487,11 +487,42 @@
       ]
     },
     "CRN": {
-      "nom": "Caisse de retraite des notaires",
+      "nom": "Caisse de prévoyance et de retraite des notaires (CPRN)",
       "publicConcerne": "Notaires (en complément du régime de base et CARCDSF)",
-      "ij": { "TO_FILL": true },
-      "invalidite": { "TO_FILL": true },
-      "capitalDeces": { "TO_FILL": true }
+      "dateVerification": "2026-05-31",
+      "moteur": "forfaitaire",
+      "discriminant": { "type": "aucun" },
+      "ij": {
+        "_commentaire": "La CPRN ne verse aucune IJ propre. Phase J4->J90 : CPAM (relais securite sociale). Au-dela de J90 : aucun revenu de remplacement cote regime obligatoire. Source cprn.fr (prevoyance 2026).",
+        "carenceJours": 90,
+        "plafondDureeJours": null,
+        "phase1": { "type": "cpam" },
+        "montantJournalier": { "mode": "uniforme", "valeur": 0 }
+      },
+      "invalidite": {
+        "_commentaire": "Rente d'invalidite versee uniquement en cas d'invalidite PERMANENTE ET TOTALE (l'invalidite partielle n'est PAS couverte) -> mode binaire, seuilTauxMinimal 100 (declenchement a tauxInvalidite >= 100). Rente totale 26 400 €/an servie jusqu'a 62 ans (borneAgeMax). Source cprn.fr 'Tout savoir sur ma prevoyance' (03/02/2026).",
+        "modeTaux": "binaire",
+        "seuilTauxMinimal": 100,
+        "borneAgeMax": 62,
+        "montantAnnuel100": { "mode": "uniforme", "valeur": 26400 },
+        "majorationEnfantAnnuelle": null
+      },
+      "capitalDeces": {
+        "_commentaire": "Capital deces forfaitaire 110 000 € (convergence MetLife notaire / tessoria / difiplus 2026). Doublement (x3 en cas d'accident selon contrat) NON gere ici (TO_VERIFY).",
+        "mode": "uniforme",
+        "valeur": 110000
+      },
+      "renteSurvieOrphelin": {
+        "_commentaire": "Rente education 19 800 €/an/enfant (< 21 ans, < 26 si etudes ; viagere si enfant inapte). Stockage referentiel pour futur module succession, NON cablee aux 9 series. Source cprn.fr.",
+        "mode": "uniforme",
+        "valeur": 19800
+      },
+      "sources": [
+        "cprn.fr — 'Tout savoir sur ma prevoyance' (verifie 03/02/2026) : rente invalidite totale 26 400 €/an jusqu'a 62 ans ; rente education 19 800 €/an/enfant (< 21 ans, < 26 si etudes)",
+        "Capital deces 110 000 € : MetLife (notaire) + tessoria + difiplus (convergence 2026)",
+        "Invalidite : permanente ET totale uniquement (partielle non couverte) -> binaire, seuil 100",
+        "Arret de travail : aucune IJ CPRN propre ; CPAM J4->J90 ; rien au-dela de J90"
+      ]
     }
   }
 }
