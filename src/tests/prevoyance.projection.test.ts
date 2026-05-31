@@ -20,6 +20,8 @@ import { describe, expect, it } from "vitest";
 import { projeterArretMaladie } from "../lib/prevoyance/projection";
 import { referentiels } from "../data/prevoyance";
 import type { EntreePerso } from "../lib/prevoyance/types";
+import type { CodeCaisse } from "../types/patrimoine";
+import { CAISSE_COBAYE, makeRefAvecCobaye } from "./__fixtures__/refCobaye";
 
 function baseEntree(over: Partial<EntreePerso> = {}): EntreePerso {
   return {
@@ -125,11 +127,11 @@ describe("projeterArretMaladie — tolérance données indisponibles", () => {
     expect(pensionServie).toBe(true);
   });
 
-  it("caisse TO_FILL (CARPV) → étages à 0 + flag levé + rupture 'donnees_indisponibles'", () => {
+  it("caisse TO_FILL (cobaye fictif) → étages à 0 + flag levé + rupture 'donnees_indisponibles'", () => {
     const r = projeterArretMaladie(
-      baseEntree({ caisse: "CARPV", statutPro: "tns_liberal", idccCCN: null }),
+      baseEntree({ caisse: CAISSE_COBAYE as CodeCaisse, statutPro: "tns_liberal", idccCCN: null }),
       "cat2",
-      referentiels
+      makeRefAvecCobaye()
     );
     expect(r.donneesCaisseIndisponibles).toBe(true);
     expect(r.rupturesCles.some((rc) => rc.type === "donnees_indisponibles")).toBe(true);

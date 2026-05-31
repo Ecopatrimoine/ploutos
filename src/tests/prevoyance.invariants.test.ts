@@ -8,7 +8,9 @@ import { describe, it, expect } from "vitest";
 import { projeterArretMaladie } from "../lib/prevoyance/projection";
 import { referentiels } from "../data/prevoyance";
 import type { EntreePerso, ProjectionResult, SerieEmpilee } from "../lib/prevoyance/types";
+import type { CodeCaisse } from "../types/patrimoine";
 import { generateProfils } from "./__fixtures__/prevoyanceFuzzing";
+import { CAISSE_COBAYE, makeRefAvecCobaye } from "./__fixtures__/refCobaye";
 
 const SERIES_KEYS: Array<keyof SerieEmpilee> = [
   "salaire", "maintienEmployeur", "ijObligatoire",
@@ -186,10 +188,10 @@ describe("Famille A — Invariants structurels", () => {
 
   // A14 — référentiel "trou" (caisse TO_FILL) → flag + rupture donnees_indisponibles
   it("A14 — caisse non documentée (TO_FILL) → donneesCaisseIndisponibles + rupture associée", () => {
-    // CARPV est au schéma minimal (TO_FILL) dans le référentiel (cobaye TO_FILL
-    // redirigé de CARCDSF, désormais remplie en caisse forfaitaire — lot 1).
-    const e = baseEntree({ caisse: "CARPV", statutPro: "tns_liberal", idccCCN: null, salaireBrutAnnuel: 0, revenuTNSAnnuel: 80000 });
-    const r = projeterArretMaladie(e, "cat2", referentiels);
+    // Cobaye fictif dédié (_TEST_TOFILL) injecté dans un référentiel dérivé : il
+    // n'existe que dans les tests et ne bloque AUCUNE vraie caisse du référentiel.
+    const e = baseEntree({ caisse: CAISSE_COBAYE as CodeCaisse, statutPro: "tns_liberal", idccCCN: null, salaireBrutAnnuel: 0, revenuTNSAnnuel: 80000 });
+    const r = projeterArretMaladie(e, "cat2", makeRefAvecCobaye());
     expect(r.donneesCaisseIndisponibles).toBe(true);
     expect(r.rupturesCles.some((rc) => rc.type === "donnees_indisponibles")).toBe(true);
   });
