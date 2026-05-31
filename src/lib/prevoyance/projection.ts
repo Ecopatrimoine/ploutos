@@ -335,6 +335,23 @@ export function computeIJObligatoireJournaliere(
     return safeNum(ij.ijJournaliere);
   }
 
+  // 2bis) Règle paliers temporels (MSA exploitant AMEXA) : IJ forfaitaire dont
+  // le montant change selon le jour d'arrêt t. Tableau ij.paliers ordonné :
+  // [{ jusquaJour, montant }, ...]. On retourne le montant du PREMIER palier dont
+  // (jusquaJour === null OU t <= jusquaJour). Indépendant du revenu (court-circuite
+  // avant le calcul baseAnnuelle). Carence et plafond de durée déjà appliqués en amont.
+  // Ex. MSA : 26 €/j du J4 au J28, 34,66 €/j à partir du J29.
+  if (ij.regle === "paliers_temporels") {
+    const paliers = Array.isArray(ij.paliers) ? ij.paliers : [];
+    for (const p of paliers) {
+      const jusqua = p?.jusquaJour;
+      if (jusqua === null || jusqua === undefined || t <= jusqua) {
+        return safeNum(p?.montant);
+      }
+    }
+    return null; // aucun palier ne matche (donnée incohérente) -> trou visible, pas un faux montant
+  }
+
   // 3) Règle tranche revenu (CPAM, SSI, CIPAV)
   const baseAnnuelle = entree.salaireBrutAnnuel > 0
     ? entree.salaireBrutAnnuel
