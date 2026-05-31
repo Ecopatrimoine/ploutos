@@ -449,9 +449,42 @@
     "CAVAMAC": {
       "nom": "Caisse d'allocation vieillesse des agents généraux d'assurance",
       "publicConcerne": "Agents généraux d'assurance",
-      "ij": { "TO_FILL": true },
-      "invalidite": { "TO_FILL": true },
-      "capitalDeces": { "TO_FILL": true }
+      "dateVerification": "2026-05-31",
+      "moteur": "forfaitaire",
+      "discriminant": { "type": "aucun" },
+      "ij": {
+        "_commentaire": "Arret de travail : IJ servies par l'UNAPL/CPAM (regime de base), RIEN cote CAVAMAC. Phase J4->J90 : relais CPAM ; au-dela de J90 : trou (aucun revenu de remplacement cote caisse). Source cavamac.fr (RID 2026).",
+        "carenceJours": 90,
+        "plafondDureeJours": null,
+        "phase1": { "type": "cpam" },
+        "montantJournalier": { "mode": "uniforme", "valeur": 0 }
+      },
+      "invalidite": {
+        "_commentaire": "Prestation invalidite RID = 25 % des commissions brutes plafonnees (plafond 625 777 €), planchee a 60 000 pts RCO = 24 738 €. Invalidite totale (>= 66 %) : pension pleine. Invalidite partielle (33 % <= n < 66 %) : pension totale x 1,5 x (n/100). n < 33 % : aucune prestation. Source cavamac.fr fiche parametres 2026.",
+        "modeTaux": "trancheCavamac",
+        "seuilPartiel": 33,
+        "seuilPlein": 66,
+        "borneAgeMax": null,
+        "montantAnnuel100": { "mode": "pourcentageRevenu", "taux": 0.25, "plafond": 625777, "plancher": 24738 },
+        "majorationEnfantAnnuelle": null
+      },
+      "capitalDeces": {
+        "_commentaire": "Capital deces = 25 % des commissions brutes plafonnees (625 777 €), planche a 24 738 € ; porte a 50 % en presence d'un conjoint/pacse OU d'enfant(s) a charge (gere par le moteur via marie/nbEnfantsACharge). Doublement en cas de deces accidentel NON gere ici (TO_VERIFY). Source cavamac.fr fiche parametres 2026.",
+        "mode": "pourcentageRevenu",
+        "tauxBase": 0.25,
+        "tauxMajoreFamille": 0.5,
+        "plafond": 625777,
+        "plancher": 24738
+      },
+      "sources": [
+        "CAVAMAC — Fiche parametres officielle 2026 : https://www.cavamac.fr/wp-content/uploads/2026/01/043_Fiche_parametres.pdf",
+        "CAVAMAC — page « Ma prevoyance » : https://www.cavamac.fr/je-suis-en-activite/ma-prevoyance/",
+        "Plafond commissions RID 2026 = 625 777 €",
+        "Plancher invalidite/capital = 60 000 points RCO = 24 738 € (valeur du point RCO 2026 = 0,4123 €)",
+        "Taux RID prestation invalidite = 25 % des commissions brutes plafonnees",
+        "Capital deces = 25 % (seul) ou 50 % (conjoint/pacse ou enfants) des commissions brutes plafonnees, planche a 24 738 €",
+        "Arret de travail : IJ servies par l'UNAPL/CPAM (J4->J90), aucune IJ cote caisse, trou apres J90"
+      ]
     },
     "CRN": {
       "nom": "Caisse de retraite des notaires",
