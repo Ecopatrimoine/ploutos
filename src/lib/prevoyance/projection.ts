@@ -547,6 +547,7 @@ function ijForfaitaireJournaliere(
 //   base = montantAnnuel100 résolu via discriminant ; null → 0 (PAS de flag
 //   données indisponibles : cas CNBF plus20 intentionnel).
 //   binaire → base ; proportionnel → base * taux/100
+//   trancheCavamac → tranche partielle 33-65 % au facteur 3/2, plein ≥ 66 %
 //   + majorationEnfantAnnuelle (si résolue != null) * nbEnfantsACharge
 //   retour pension / 12.
 export function forfaitaireInvalMensuel(caisseRef: any, entree: EntreePerso): number {
@@ -565,6 +566,27 @@ export function forfaitaireInvalMensuel(caisseRef: any, entree: EntreePerso): nu
   const assiette = entree.forfait?.commissionsBrutes;
   const base = resolveMontant(inv.montantAnnuel100, cle, assiette);
   if (base === null) return 0; // pas de montant (CNBF plus20) — pas un trou
+
+  // Mode CAVAMAC : barème par tranche distinct de binaire/proportionnel.
+  //   `base` est la pension TOTALE (mode pourcentageRevenu : déjà PLANCHÉE par
+  //   tauxAppliquePlafonne — lot A/B). La réduction partielle s'applique APRÈS
+  //   le plancher (ordre métier : plancher dans la totale, puis × 1,5 × n).
+  //   taux < seuilPartiel → 0 ; seuilPartiel ≤ taux < seuilPlein → totale × 1,5 × n/100 ;
+  //   taux ≥ seuilPlein → totale pleine.
+  //   Seuils lus depuis la donnée (inv.seuilPartiel / inv.seuilPlein) avec
+  //   fallback barème CAVAMAC 33/66. NE réutilise PAS seuilTauxMinimal (qui, pour
+  //   cette caisse, doit rester absent/≤ seuilPartiel — le plancher de taux est
+  //   porté ici). Pas de majoration enfant (CAVAMAC n'en a pas sur l'invalidité).
+  if (inv.modeTaux === "trancheCavamac") {
+    const seuilPartiel = safeNum(inv.seuilPartiel) ?? 33;
+    const seuilPlein = safeNum(inv.seuilPlein) ?? 66;
+    let annuel: number;
+    if (taux < seuilPartiel) annuel = 0;
+    else if (taux < seuilPlein) annuel = base * 1.5 * (taux / 100);
+    else annuel = base;
+    return annuel / 12;
+  }
+
   let pension = inv.modeTaux === "proportionnel" ? base * (taux / 100) : base;
   const maj = resolveMontant(inv.majorationEnfantAnnuelle, cle, assiette);
   if (maj !== null) pension += maj * (safeNum(entree.nbEnfantsACharge) ?? 0);
@@ -581,6 +603,22 @@ export function forfaitaireCapitalDeces(caisseRef: any, entree: EntreePerso): nu
   // cf. forfaitaireInvalMensuel : assiette = commissions brutes (mode
   // pourcentageRevenu), ignorée par uniforme / parDiscriminant.
   const assiette = entree.forfait?.commissionsBrutes;
+
+  // Capital 25/50 selon la situation familiale (ex. CAVAMAC). Activé
+  // UNIQUEMENT en mode pourcentageRevenu AVEC tauxMajoreFamille déclaré : taux
+  // majoré si conjoint/PACS (entree.marie) OU enfant à charge, sinon tauxBase.
+  // Les caisses en uniforme/parDiscriminant (CAVOM, capital fixe) ou en
+  // pourcentageRevenu SANS tauxMajoreFamille gardent le comportement historique
+  // (resolveMontant) — aucun effet de marie/nbEnfants. Le plancher s'applique
+  // sur le résultat final, au taux choisi (porté par tauxAppliquePlafonne).
+  if (cap.mode === "pourcentageRevenu" && cap.tauxMajoreFamille != null) {
+    const aAyantsDroit =
+      entree.marie === true || (safeNum(entree.nbEnfantsACharge) ?? 0) > 0;
+    const tauxChoisi = aAyantsDroit ? safeNum(cap.tauxMajoreFamille) : safeNum(cap.tauxBase);
+    if (tauxChoisi === null) return null; // taux non documenté → pas un montant
+    return tauxAppliquePlafonne(assiette, tauxChoisi, safeNum(cap.plafond), safeNum(cap.plancher));
+  }
+
   return resolveMontant(cap, cle, assiette);
 }
 
