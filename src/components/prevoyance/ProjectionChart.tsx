@@ -42,6 +42,7 @@ const COL = {
   maintien: "#5B7FB0",
   obligatoire: "var(--cab-navy, #101B3B)",
   complementaire: "#A9B8D4",
+  individuelle: "#B5806B",   // Madelin : terracotta sourd, hors famille bleue (color-blind safe)
   reference: "#888780",
 };
 
@@ -142,12 +143,22 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection 
 
   const labelBascule = dataComplete.find((d) => d.jour === bascule)?.labelX;
 
-  // Relais CPAM → CARMF (médecins libéraux) : ligne verticale à J91 si la
-  // projection comporte la rupture correspondante.
-  const relaisRupture = projection.rupturesCles.find((r) => r.type === "relais_carmf");
-  const labelRelais = relaisRupture
-    ? dataComplete.find((d) => d.jour === relaisRupture.jour)?.labelX
-    : undefined;
+  // Repères de changement de PAYEUR (relais CPAM → caisse, ou trou de couverture).
+  // Idiome identique à la bascule invalidité : on retrouve le labelX du jour de rupture.
+  // Les 3 types concernés sont les seules ruptures qui changent le payeur de l'IJ
+  // obligatoire (CPAM des 90 premiers jours → caisse/trou ensuite).
+  const TYPES_RELAIS_PAYEUR = ["relais_carmf", "trou_cipav", "relais_carpimko"] as const;
+  const reperesRelais = projection.rupturesCles
+    .filter((r) => (TYPES_RELAIS_PAYEUR as readonly string[]).includes(r.type))
+    .map((r) => ({
+      labelX: dataComplete.find((d) => d.jour === r.jour)?.labelX,
+      // Étiquette courte pour le repère vertical (le libellé complet reste dans la donnée).
+      texte:
+        r.type === "relais_carmf" ? "relais CARMF" :
+        r.type === "trou_cipav" ? "trou CIPAV" :
+        "relais CARPIMKO",
+    }))
+    .filter((x) => x.labelX != null);
 
   return (
     <div style={{ width: "100%" }}>
@@ -192,21 +203,22 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection 
               }}
             />
 
-            {labelRelais && (
+            {reperesRelais.map((rep, i) => (
               <ReferenceLine
-                x={labelRelais}
+                key={`relais-${i}`}
+                x={rep.labelX!}
                 stroke="var(--cab-gold, #E3AF64)"
                 strokeDasharray="5 4"
                 strokeWidth={1.5}
                 label={{
-                  value: "relais CARMF",
+                  value: rep.texte,
                   fontSize: 11,
                   angle: -90,
                   position: "insideTopLeft",
                   fill: BRAND.goldText,
                 }}
               />
-            )}
+            ))}
 
             {labelBascule && (
               <ReferenceLine
@@ -228,14 +240,14 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection 
               <Area type="stepAfter" dataKey="salaire"       stackId="1" name="Salaire (activité)"          fill={COL.salaire}       fillOpacity={0.9} stroke="none" />
             )}
             <Area type="stepAfter" dataKey="maintien"        stackId="1" name="Maintien employeur"          fill={COL.maintien}      fillOpacity={0.9} stroke="none" />
-            <Area type="stepAfter" dataKey="ijObl"           stackId="1" name="IJ régime obligatoire"       fill={COL.obligatoire}   fillOpacity={0.9} stroke="none" />
-            <Area type="stepAfter" dataKey="ijColl"          stackId="1" name="IJ prévoyance collective"    fill={COL.complementaire} fillOpacity={0.95} stroke="none" />
-            <Area type="stepAfter" dataKey="ijInd"           stackId="1" name="IJ prévoyance individuelle"  fill={COL.complementaire} fillOpacity={0.65} stroke="none" />
-            <Area type="stepAfter" dataKey="pensionInvalObl" stackId="1" name="Pension inval. obligatoire"  fill={COL.obligatoire}   fillOpacity={0.7} stroke="none" />
-            <Area type="stepAfter" dataKey="renteInvalColl"  stackId="1" name="Rente inval. collective"     fill={COL.complementaire} fillOpacity={0.95} stroke="none" />
-            <Area type="stepAfter" dataKey="renteInvalInd"   stackId="1" name="Rente inval. individuelle"   fill={COL.complementaire} fillOpacity={0.65} stroke="none" />
+            <Area type="stepAfter" dataKey="ijObl"           stackId="1" name="Régime obligatoire (IJ)"    fill={COL.obligatoire}   fillOpacity={0.9} stroke="none" />
+            <Area type="stepAfter" dataKey="ijColl"          stackId="1" name="Prévoyance collective (employeur)" fill={COL.complementaire} fillOpacity={0.95} stroke="none" />
+            <Area type="stepAfter" dataKey="ijInd"           stackId="1" name="Prévoyance individuelle (Madelin)" fill={COL.individuelle} fillOpacity={0.65} stroke="none" />
+            <Area type="stepAfter" dataKey="pensionInvalObl" stackId="1" name="Régime obligatoire (pension invalidité)" fill={COL.obligatoire} fillOpacity={0.7} stroke="none" />
+            <Area type="stepAfter" dataKey="renteInvalColl"  stackId="1" name="Prévoyance collective (rente invalidité)" fill={COL.complementaire} fillOpacity={0.95} stroke="none" />
+            <Area type="stepAfter" dataKey="renteInvalInd"   stackId="1" name="Prévoyance individuelle (Madelin, rente)" fill={COL.individuelle} fillOpacity={0.65} stroke="none" />
             {hasRenteEnfants && (
-              <Area type="stepAfter" dataKey="renteInvalEnfants" stackId="1" name="Rente enfants (invalidité)" fill={COL.obligatoire} fillOpacity={0.45} stroke="none" />
+              <Area type="stepAfter" dataKey="renteInvalEnfants" stackId="1" name="Régime obligatoire (rente enfants)" fill={COL.obligatoire} fillOpacity={0.45} stroke="none" />
             )}
           </AreaChart>
         </ResponsiveContainer>
