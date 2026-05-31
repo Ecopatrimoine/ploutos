@@ -565,6 +565,25 @@ export function forfaitaireCapitalDeces(caisseRef: any, entree: EntreePerso): nu
 // IJ complémentaire collective et individuelle
 // ────────────────────────────────────────────────────────────────────
 
+// Montant = taux appliqué à une assiette plafonnée, avec plancher optionnel.
+// taux en fraction (0.25 = 25 %). plafond/plancher en euros annuels.
+// assiette en euros annuels. Helper PUR réutilisable par les caisses dont la
+// prestation est « pct × min(revenu, plafond) » (ex. à venir : CAVAMAC).
+// Le plancher ne s'applique que si assiette > 0 — un dossier sans assiette ne
+// doit pas afficher faussement le plancher.
+export function tauxAppliquePlafonne(
+  assiette: number | null | undefined,
+  taux: number,
+  plafond?: number | null,
+  plancher?: number | null
+): number {
+  const a = safeNum(assiette) ?? 0;
+  const base = (plafond != null) ? Math.min(a, plafond) : a;
+  let montant = base * taux;
+  if (plancher != null && montant < plancher && a > 0) montant = plancher;
+  return montant;
+}
+
 // Borne un pourcentage de remplacement à 1.0 (principe indemnitaire :
 // pas de revenu de remplacement > revenu d'activité — décision H11).
 function clampPct(pct: number): number {
