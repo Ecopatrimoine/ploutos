@@ -47,7 +47,8 @@ const STATUTS_PRO: Array<{ value: StatutPro; label: string }> = [
 const CAISSES: Array<{ value: CodeCaisse; label: string }> = [
   { value: "CPAM",      label: "CPAM (régime général)" },
   { value: "SSI",       label: "SSI (indépendants)" },
-  { value: "MSA",       label: "MSA (agricole)" },
+  { value: "MSA",       label: "MSA — exploitant agricole" },
+  { value: "CPAM_AGRI" as CodeCaisse, label: "Salarié agricole (MSA → régime général)" },
   { value: "CARMF",     label: "CARMF (médecins)" },
   { value: "CARCDSF",   label: "CARCDSF (dentistes / sages-femmes)" },
   { value: "CARPV",     label: "CARPV (vétérinaires)" },
@@ -152,7 +153,13 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
         <Field label="Caisse d'affiliation">
           <Select
             value={value.caisseAffiliation ?? ""}
-            onValueChange={(v) => onChange({ caisseAffiliation: (v || null) as CodeCaisse | null })}
+            onValueChange={(v) => {
+              // "CPAM_AGRI" est une étiquette d'affichage (salarié agricole MSA) qui route
+              // vers le régime général : on normalise vers "CPAM" avant de propager (zéro
+              // duplication, CodeCaisse reste l'union fermée, le moteur ne voit que "CPAM").
+              const code = v === "CPAM_AGRI" ? "CPAM" : v;
+              onChange({ caisseAffiliation: (code || null) as CodeCaisse | null });
+            }}
           >
             <SelectTrigger className="rounded-xl"><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
             <SelectContent>
