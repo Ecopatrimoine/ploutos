@@ -50,6 +50,14 @@ import {
 // Paliers temporels phase AM (J0 → J1095).
 const PALIERS_AM = [0, 3, 7, 14, 30, 60, 90, 120, 180, 365, 547, 730, 912, 1095];
 const BASCULE_INVALIDITE = 1095;
+// Âge légal de bascule invalidité → retraite (inaptitude) : la pension
+// d'invalidité cesse à 62 ans, remplacée par la pension de retraite (hors
+// périmètre de cette projection de revenus de remplacement). Règle d'âge
+// LÉGALE commune à TOUTES les caisses — régime général ET libérales,
+// CARPIMKO incluse (« rente d'invalidité incompatible avec la retraite »,
+// carpimko.com). Distincte des cutoffs caisse-spécifiques (ex. CIPAV
+// partielle 67 ans) : ce garde-fou s'y SUPERPOSE, il ne les remplace pas.
+const AGE_BASCULE_RETRAITE = 62;
 const TAUX_MAINTIEN_PARTIEL = 2 / 3; // 66,66 % — convention L.1226-1
 
 // ────────────────────────────────────────────────────────────────────
@@ -1023,6 +1031,10 @@ export function projeterArretMaladie(
 ): ProjectionResult {
   const today = new Date();
   const finJour = Math.max(0, (entree.ageRetraite - entree.age) * 365);
+  // Jour (depuis J0) de bascule invalidité → retraite à 62 ans : au-delà, les
+  // 3 étages d'invalidité tombent à 0 (cf. garde-fou en aval de la boucle).
+  // Pré-calcul hors boucle, clampé à 0 si la personne a déjà ≥ 62 ans à J0.
+  const jourBasculeRetraite = Math.max(0, (AGE_BASCULE_RETRAITE - entree.age) * 365);
   const maintien = getMaintienParams(entree.idccCCN, ref);
   const palier = findPalierMaintien(maintien.paliers, entree.ancienneteMois);
   const caisseRef = lookupCaisse(entree.caisse, ref);
@@ -1385,6 +1397,30 @@ export function projeterArretMaladie(
         dejaPercuInval + etageInval.total > revenuReferenceMensuel * SEUIL_SURCOUVERTURE
       ) {
         surCouvertureForfaitaire = true;
+      }
+
+      // Coupure invalidité → retraite : DEUX seuils distincts (en aval des 3
+      // écritures, pour s'appliquer à toutes les branches sans effet de cascade).
+      //
+      // 1) PENSION OBLIGATOIRE : coupée à max(62, cutoff de la caisse). Les
+      //    branches CIPAV/CARMF zéroïsent DÉJÀ leur pension à leur propre cutoff
+      //    (jourFinInvalCipav = 62 totale / 67 partielle ; jourFinInvalCarmf = 62) ;
+      //    le `max` garantit que ce garde-fou ne re-coupe JAMAIS avant elles —
+      //    la pension CIPAV partielle court donc bien jusqu'à 67. Hors CIPAV/CARMF,
+      //    ces deux variables valent 0 → le seuil retombe sur 62 pour les caisses
+      //    sans cutoff propre (CPAM/SSI/MSA génériques, forfaitaires, CARPIMKO).
+      const jourCoupurePension = Math.max(jourBasculeRetraite, jourFinInvalCarmf, jourFinInvalCipav);
+      if (t >= jourCoupurePension) {
+        series.pensionInvalObligatoire[i] = 0;
+      }
+      // 2) COMPLÉMENTS (collective + Madelin individuelle) : coupés à 62 STRICT
+      //    pour TOUTES les caisses (bascule retraite, règle générale). Les termes
+      //    Madelin varient par contrat → hypothèse PRUDENTE assumée (les compléments
+      //    suivent la bascule légale à 62), TO_VERIFY si besoin d'affiner par contrat.
+      //    renteInvalEnfants non touchée (seule CARMF la produit, déjà coupée à 62).
+      if (t >= jourBasculeRetraite) {
+        series.renteInvalCollective[i] = 0;
+        series.renteInvalIndividuelle[i] = 0;
       }
     }
   }

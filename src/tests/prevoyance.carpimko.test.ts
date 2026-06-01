@@ -185,9 +185,15 @@ describe("CARPIMKO §5 — Cas G (IDEL 45 k€, 1 enfant)", () => {
     expect(r.series.renteInvalEnfants[i]).toBe(0); // rentes CARPIMKO = décès, hors courbe
   });
 
-  it("invalidité maintenue jusqu'à la fin de projection (pas de cutoff 62)", () => {
-    const dernierJour = (e.ageRetraite - e.age) * 365; // 19 ans → 6935
-    expect(r.series.pensionInvalObligatoire[idxJour(r.axe, dernierJour)]).toBeCloseTo(1680, 0);
+  it("invalidité coupée à 62 ans (bascule retraite pour inaptitude)", () => {
+    // La rente d'invalidité CARPIMKO est INCOMPATIBLE avec la retraite : elle
+    // cesse à 62 ans (bascule retraite pour inaptitude). Source carpimko.com.
+    // Règle d'âge légale commune (AGE_BASCULE_RETRAITE) appliquée à toutes les
+    // caisses dans projeterArretMaladie. Ici age 45 → bascule à (62-45)*365.
+    const dernierJour = (e.ageRetraite - e.age) * 365; // 19 ans → 6935 (âge 64 ≥ 62)
+    // Avant 62 ans (J1095 = âge 48) : rente forfaitaire servie ; au-delà : 0.
+    expect(r.series.pensionInvalObligatoire[idxJour(r.axe, 1095)]).toBeCloseTo(1680, 0);
+    expect(r.series.pensionInvalObligatoire[idxJour(r.axe, dernierJour)]).toBe(0);
   });
 
   it("scénario ALD : pas de faux « données indisponibles » (branche dédiée)", () => {
