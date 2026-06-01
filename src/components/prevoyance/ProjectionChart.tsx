@@ -31,6 +31,8 @@ import { BRAND } from "../../constants";
 
 type Props = {
   projection: ProjectionResult;
+  codeCaisse?: string | null;       // ex. "CARMF"
+  publicCaisse?: string | null;     // ex. "Médecins libéraux"
 };
 
 // Palette charte (SPEC_PREVOYANCE_UI_GRAPHIQUE §5). Navy et gold restent
@@ -113,7 +115,7 @@ function TooltipContenu({
   );
 }
 
-export const ProjectionChart = React.memo(function ProjectionChart({ projection }: Props) {
+export const ProjectionChart = React.memo(function ProjectionChart({ projection, codeCaisse, publicCaisse }: Props) {
   const [vueComplete, setVueComplete] = React.useState(false);
 
   const hasSalaire = projection.series.salaire.some((v) => v > 0);
@@ -160,8 +162,16 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection 
     }))
     .filter((x) => x.labelX != null);
 
+  const libelleCaisse =
+    codeCaisse
+      ? (publicCaisse ? `${codeCaisse} · ${publicCaisse}` : codeCaisse)
+      : "Régime non précisé";
+
   return (
     <div style={{ width: "100%" }}>
+      <div className="text-xs mb-2" style={{ color: BRAND.muted }}>
+        Régime obligatoire : <strong style={{ color: BRAND.navy }}>{libelleCaisse}</strong>
+      </div>
       {hasInvalidite && (
         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
           <div className="text-xs" style={{ color: BRAND.muted, fontStyle: "italic" }}>

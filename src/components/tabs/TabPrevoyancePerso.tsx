@@ -488,7 +488,16 @@ function ColonnePerso({
         <div className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: BRAND.sky }}>
           Projection des revenus de remplacement
         </div>
-        <ProjectionChart projection={projection} />
+        <ProjectionChart
+          projection={projection}
+          codeCaisse={entree.caisse}
+          publicCaisse={
+            entree.caisse
+              ? (referentiels.caisses as { caisses?: Record<string, { publicConcerne?: string }> })
+                  .caisses?.[entree.caisse]?.publicConcerne ?? null
+              : null
+          }
+        />
       </div>
 
       {/* Couche pédagogique RDV (ÉL. 2 à 6) — carte dédiée, montage explicite */}
