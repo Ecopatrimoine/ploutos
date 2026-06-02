@@ -14,8 +14,12 @@ type Props = {
   onChange: (next: PayloadContratIndividuel[]) => void;
 };
 
+// Types CRÉABLES (VOIE A — R3) : "deces_capital" RETIRÉ. Le capital décès se
+// saisit désormais UNIQUEMENT dans le bloc « Transmission décès » (bénéficiaires
+// + 990 I), visible dans le même onglet. Les anciens contrats deces_capital déjà
+// enregistrés restent LISIBLES (cf. item legacy désactivé plus bas) et continuent
+// d'alimenter la succession via le pont R2 — on n'en crée simplement plus.
 const TYPES: Array<{ value: PayloadContratIndividuel["type"]; label: string; hint: string }> = [
-  { value: "deces_capital",    label: "Capital décès",                hint: "Capital (€) versé aux bénéficiaires" },
   { value: "deces_rente_conj", label: "Rente conjoint (décès)",       hint: "Rente mensuelle (€) au conjoint" },
   { value: "deces_rente_educ", label: "Rente éducation (décès)",      hint: "Rente mensuelle (€) par enfant" },
   { value: "ij",               label: "IJ complémentaires",           hint: "IJ journalière (€)" },
@@ -25,8 +29,15 @@ const TYPES: Array<{ value: PayloadContratIndividuel["type"]; label: string; hin
   { value: "gav",              label: "Garantie accidents de la vie", hint: "Capital (€)" },
 ];
 
+// Libellés d'AFFICHAGE de TOUS les types, y compris ceux retirés des options de
+// création (deces_capital legacy) — pour qu'un ancien contrat reste lisible.
+const LIBELLES_TOUS: Record<string, { label: string; hint: string }> = {
+  deces_capital: { label: "Capital décès", hint: "Capital (€) versé aux bénéficiaires" },
+  ...Object.fromEntries(TYPES.map((t) => [t.value, { label: t.label, hint: t.hint }])),
+};
+
 function typeMeta(t: PayloadContratIndividuel["type"]): { label: string; hint: string } {
-  return TYPES.find((x) => x.value === t) ?? { label: t, hint: "" };
+  return LIBELLES_TOUS[t] ?? { label: t, hint: "" };
 }
 
 function newContrat(): PayloadContratIndividuel {
@@ -98,6 +109,12 @@ export const BlocContratsIndividuels = React.memo(function BlocContratsIndividue
                       {TYPES.map((t) => (
                         <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                       ))}
+                      {/* Type LEGACY non créable (ex. deces_capital) présent sur un
+                          ancien contrat → item DÉSACTIVÉ : il s'affiche correctement
+                          mais ne peut pas être re-sélectionné. */}
+                      {!TYPES.some((t) => t.value === c.type) && (
+                        <SelectItem value={c.type} disabled>{typeMeta(c.type).label}</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </Field>
