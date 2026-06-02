@@ -216,7 +216,7 @@ export function buildPrevoyancePersoData(p: BuildPrevoyancePersoDataParams): Pre
   };
 
   const projection = projeterArretMaladie(entree, categorie, referentiels, scenarioArret, prevoyancePerso?.tpt);
-  const ctx = buildContexteRegle(data as any, entree, projection);
+  const ctx = buildContexteRegle(data as any, entree, projection, which);
   const constats = evaluerToutesLesRegles(ctx, which);
 
   const anneesAnciennete = Math.floor(entree.ancienneteMois / 12);

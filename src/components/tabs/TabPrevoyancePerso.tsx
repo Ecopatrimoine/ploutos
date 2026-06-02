@@ -317,7 +317,7 @@ function ColonnePerso({
   );
 
   const constats = React.useMemo(() => {
-    const ctx = buildContexteRegle(data, entree, projection);
+    const ctx = buildContexteRegle(data, entree, projection, cible);
     return evaluerToutesLesRegles(ctx, cible);
   }, [data, entree, projection, cible]);
 
