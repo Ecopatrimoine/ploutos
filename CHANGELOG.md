@@ -5,6 +5,28 @@ Format : [Version] — Date · Added / Changed / Fixed / Removed
 
 ---
 
+## [1.8.0] — 2 juin 2026
+
+Affinement du moteur **Prévoyance** : la pension d'invalidité bascule en retraite pour inaptitude à 62 ans.
+
+### Changed
+- Coupure de l'invalidité à 62 ans (bascule retraite pour inaptitude) appliquée à toutes les caisses, selon deux seuils :
+  - **Pension obligatoire** servie jusqu'à `max(62 ans, âge de fin propre à la caisse)` — la CIPAV en invalidité **partielle** court ainsi jusqu'à **67 ans** (source lacipav.fr), les autres caisses jusqu'à 62 ans
+  - **Compléments** (rente collective d'entreprise + rente Madelin individuelle) coupés à **62 ans** dans tous les cas
+- La courbe de projection retombe désormais à zéro au passage en retraite, au lieu de prolonger la pension jusqu'à l'âge de départ saisi
+
+### Fixed
+- CARPIMKO : la rente d'invalidité se prolongeait à tort au-delà de 62 ans (elle est incompatible avec la retraite — source carpimko.com)
+
+### Added
+- Socle de tests d'interface (React Testing Library + jsdom) et test de montage du bloc de saisie des caisses forfaitaires (anti-régression d'un écran blanc)
+- Test verrouillant le comportement à deux seuils de la CIPAV partielle (pension 67 ans / compléments 62 ans)
+
+### Notes
+- L'âge de bascule (62 ans) est une règle légale commune ; les âges de fin propres aux caisses (ex. 67 ans pour la CIPAV partielle) restent pilotés par le référentiel. La coupure des compléments à 62 ans est une hypothèse prudente (les termes Madelin varient par contrat), à affiner si besoin.
+
+---
+
 ## [1.4.0] — 30 mai 2026
 
 Module **Prévoyance personnelle** : projection des revenus de remplacement en cas d'arrêt maladie puis invalidité, par personne du foyer.
