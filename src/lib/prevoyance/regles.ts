@@ -30,6 +30,7 @@ import type {
 import type { ContratTransmissionDeces, StatutPro } from "../../types/patrimoine";
 import { referentiels } from "../../data/prevoyance";
 import { capitalDecesCarmf, pensionInvaliditeBaseAnnuelle } from "./carmf";
+import { TYPE_DECES_CAPITAL_LEGACY } from "./utils";
 
 const TNS_STATUTS: StatutPro[] = [
   "tns_liberal",
@@ -42,9 +43,12 @@ function isTNS(statut: StatutPro | ""): boolean {
   return TNS_STATUTS.includes(statut as StatutPro);
 }
 
+// `type` typé `string` (et non ContratIndividuel["type"]) pour tolérer la valeur
+// HISTORIQUE "deces_capital", retirée des types créables (R4) mais encore lue
+// dans les dossiers existants. Somme pure indexée par valeur.
 function sumContratsParType(
   contrats: ContratIndividuel[],
-  type: ContratIndividuel["type"]
+  type: string
 ): number {
   return contrats
     .filter((c) => c.type === type)
@@ -72,7 +76,7 @@ export function capitalDecesUnifie(
   contratsIndividuels: ContratIndividuel[],
   contratsTransmission: ContratTransmissionDeces[] | undefined
 ): number {
-  const legacy = sumContratsParType(contratsIndividuels, "deces_capital");
+  const legacy = sumContratsParType(contratsIndividuels, TYPE_DECES_CAPITAL_LEGACY);
   const transmission = (contratsTransmission ?? []).reduce(
     (acc, c) => acc + (Number.isFinite(c.capitalTransmis) ? c.capitalTransmis : 0),
     0

@@ -144,6 +144,12 @@ export function getContratsTransmissionDeces(
   return perso.contratsTransmissionDeces ?? [];
 }
 
+// Valeur HISTORIQUE de ContratIndividuel.type retirée des types CRÉABLES (R4) :
+// plus aucune saisie ne la produit, mais des dossiers enregistrés la contiennent
+// encore. Typée `string` (et non littéral) → reconnue à la LECTURE sans être un
+// membre de l'union créable (cf. comparaison tolérée par tsc, comme StatutPro).
+export const TYPE_DECES_CAPITAL_LEGACY: string = "deces_capital";
+
 // ── Pont (read-time) deces_capital legacy → contrat de transmission (VOIE A R2) ──
 // Mappe un ancien ContratIndividuel "deces_capital" vers le type riche
 // ContratTransmissionDeces, SANS réécrire le stockage (lecture seule).
@@ -173,7 +179,7 @@ export function getContratsTransmissionDecesAvecLegacy(
 ): ContratTransmissionDeces[] {
   const reels = perso.contratsTransmissionDeces ?? [];
   const legacy = (perso.contratsIndividuels ?? [])
-    .filter((c) => c.type === "deces_capital")
+    .filter((c) => c.type === TYPE_DECES_CAPITAL_LEGACY)
     .map(mapDecesCapitalLegacy);
   return [...reels, ...legacy];
 }
