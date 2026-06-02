@@ -64,7 +64,7 @@ const TAUX_MAINTIEN_PARTIEL = 2 / 3; // 66,66 % — convention L.1226-1
 // Helpers
 // ────────────────────────────────────────────────────────────────────
 
-function safeNum(v: unknown): number | null {
+export function safeNum(v: unknown): number | null {
   if (typeof v === "number" && Number.isFinite(v)) return v;
   return null;
 }
@@ -518,7 +518,7 @@ export function resolveDiscriminant(caisseRef: any, entree: EntreePerso): string
 // — ces deux modes n'utilisent jamais l'assiette. (Pas de `vars` : le plafond
 // est une valeur en euros littérale dans le JSON, aucun plafond paramétrique
 // PASS requis pour CAVAMAC.)
-function resolveMontant(m: any, cle: string | null, assiette?: number | null): number | null {
+export function resolveMontant(m: any, cle: string | null, assiette?: number | null): number | null {
   if (!m) return null;
   if (m.mode === "uniforme") return safeNum(m.valeur);
   if (m.mode === "parDiscriminant") {
