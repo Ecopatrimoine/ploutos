@@ -1,7 +1,8 @@
 // Calcul succession — droits, AV/PER, legs, démembrement
 import type { PatrimonialData, SuccessionData, TaxBracket, FilledBracket,
   Heir, SuccessionPropertyLine, SuccessionPlacementLine, SuccessionAvLine,
-  SuccessionResult, PieDatum, ContratTransmissionDeces } from '../../types/patrimoine';
+  SuccessionResult, PieDatum, ContratTransmissionDeces,
+  CapitalDecesCaisseRelation, CapitalDecesCaisseSurcharge } from '../../types/patrimoine';
 import { n, getDemembrementPercentages, computeTaxFromBrackets, isAV, isPERType,
   childMatchesDeceased, getAgeFromBirthDate, isSpouseHeirEligible, getAvailableSpouseOptions,
   getQuotiteDisponible, buildCollectedHeirs, euro } from './utils';
@@ -29,7 +30,82 @@ export type CapitalDecesCaisseLine = {
   situationRetenue?: "actif_ou_invalide" | "retraite";
   donneeIndisponible: boolean;
   exonere: true;
+  // Dévolution du capital (P3) : QUI perçoit, en cascade légale auto OU surcharge
+  // manuelle. EXONÉRÉ — aucune fiscalité. Vide = aucun bénéficiaire déterminé.
+  repartition: CapitalDecesRepartitionLigne[];
 };
+
+// Une part de capital décès caisse attribuée à un bénéficiaire (exonérée).
+export type CapitalDecesRepartitionLigne = {
+  beneficiaire: string;
+  relation: CapitalDecesCaisseRelation;
+  montant: number;
+  // capital_principal : soumis à la cascade exclusive (L361-4 CSS).
+  // capital_orphelin  : s'ajoute, par enfant à charge, HORS cascade.
+  origine: "capital_principal" | "capital_orphelin";
+  source: "auto" | "manuel";
+};
+
+// Contexte de dévolution (données du foyer, déjà extraites par l'appelant).
+export type CapitalDecesDevolutionContexte = {
+  conjointPresent: boolean;          // marié OU PACS (concubin EXCLU)
+  conjointNom?: string;
+  conjointRelation?: "conjoint" | "pacs_partner";
+  enfantsACharge: string[];          // noms des enfants à charge du défunt
+  ascendants?: string[];             // noms (souvent absents du dossier)
+  surcharge?: CapitalDecesCaisseSurcharge | null;
+};
+
+// Dévolution PURE du capital décès d'une caisse (art. L361-4 CSS).
+//
+// ⚠️ CASCADE EXCLUSIVE — PAS la succession civile : le 1er rang présent prend
+// TOUT le capital PRINCIPAL, aucun partage entre rangs :
+//   conjoint/PACS  →  à défaut enfants à charge (parts égales)  →  à défaut ascendants.
+// Le CONCUBIN n'est jamais bénéficiaire automatique (surcharge manuelle requise).
+// Le CAPITAL ORPHELIN (ex. SSI 2 403 €/enfant) s'AJOUTE, par enfant à charge,
+// HORS cascade (même en présence d'un conjoint). Tout est EXONÉRÉ : on répartit,
+// on ne taxe rien. Une surcharge manuelle REMPLACE toute la dévolution auto.
+export function devolutionCapitalDecesCaisse(
+  capital: number | null,
+  capitalParEnfant: number | undefined,
+  ctx: CapitalDecesDevolutionContexte
+): CapitalDecesRepartitionLigne[] {
+  // Surcharge manuelle → prime sur la cascade auto (le CGP connaît le cas).
+  if (ctx.surcharge && ctx.surcharge.beneficiaires.length > 0) {
+    return ctx.surcharge.beneficiaires.map((b) => ({
+      beneficiaire: b.name || "Bénéficiaire",
+      relation: b.relation,
+      montant: Math.max(0, n(b.montant)),
+      origine: "capital_principal" as const,
+      source: "manuel" as const,
+    }));
+  }
+
+  const lignes: CapitalDecesRepartitionLigne[] = [];
+  const cap = capital ?? 0;
+
+  // Capital PRINCIPAL — cascade exclusive.
+  if (cap > 0) {
+    if (ctx.conjointPresent && ctx.conjointNom) {
+      lignes.push({ beneficiaire: ctx.conjointNom, relation: ctx.conjointRelation ?? "conjoint", montant: cap, origine: "capital_principal", source: "auto" });
+    } else if (ctx.enfantsACharge.length > 0) {
+      const part = cap / ctx.enfantsACharge.length;
+      for (const e of ctx.enfantsACharge) lignes.push({ beneficiaire: e, relation: "enfant", montant: part, origine: "capital_principal", source: "auto" });
+    } else if (ctx.ascendants && ctx.ascendants.length > 0) {
+      const part = cap / ctx.ascendants.length;
+      for (const a of ctx.ascendants) lignes.push({ beneficiaire: a, relation: "ascendant", montant: part, origine: "capital_principal", source: "auto" });
+    }
+    // sinon : aucun bénéficiaire automatique (concubin seul, ou rien) → l'UI
+    // affichera « bénéficiaire à déterminer » et invitera à la surcharge.
+  }
+
+  // Capital ORPHELIN — par enfant à charge, en plus, hors cascade.
+  if (capitalParEnfant != null && capitalParEnfant > 0 && ctx.enfantsACharge.length > 0) {
+    for (const e of ctx.enfantsACharge) lignes.push({ beneficiaire: e, relation: "enfant", montant: capitalParEnfant, origine: "capital_orphelin", source: "auto" });
+  }
+
+  return lignes;
+}
 
 // Rente de survie / éducation versée par une caisse (montant ANNUEL exonéré).
 export type RenteSurvieAnnuelle = {
@@ -858,6 +934,27 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
     const nbEnfants = Math.max(0, entreeDefunt.nbEnfantsACharge ?? 0);
     const capitalOrphelinTotal =
       cap.capitalParEnfant != null ? cap.capitalParEnfant * nbEnfants : undefined;
+
+    // ── Dévolution (P3) — cascade légale L361-4 CSS ou surcharge manuelle ──
+    // Conjoint/PACS du foyer (concubin EXCLU) = survivant marié/PACSé.
+    const conjointPresent = data.coupleStatus === "married" || data.coupleStatus === "pacs";
+    const conjointRelation: "conjoint" | "pacs_partner" =
+      data.coupleStatus === "pacs" ? "pacs_partner" : "conjoint";
+    const conjointNom = conjointPresent
+      ? (survivorKey === "person1"
+          ? `${data.person1FirstName ?? ""} ${data.person1LastName ?? ""}`
+          : `${data.person2FirstName ?? ""} ${data.person2LastName ?? ""}`).trim() || "Conjoint"
+      : undefined;
+    // Enfants à charge DU DÉFUNT (childMatchesDeceased) ET rattachés au foyer —
+    // même prédicat « à charge » que les parts fiscales (rattached !== false).
+    const enfantsACharge = data.childrenData
+      .filter((c) => childMatchesDeceased(c.parentLink, deceasedKey) && c.rattached !== false)
+      .map((c) => `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() || "Enfant");
+    const surcharge = data.prevoyance?.[whichDefunt]?.capitalDecesCaisseSurcharge;
+    const repartition = devolutionCapitalDecesCaisse(cap.capital, cap.capitalParEnfant, {
+      conjointPresent, conjointNom, conjointRelation, enfantsACharge, surcharge,
+    });
+
     capitalDecesCaisseLines.push({
       source: cap.source,
       capital: cap.capital,
@@ -870,6 +967,7 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
       situationRetenue: cap.situationRetenue,
       donneeIndisponible: cap.donneeIndisponible,
       exonere: true,
+      repartition,
     });
     if (cap.renteConjointAnnuelle != null)
       rentesSurvieAnnuelles.push({ source: cap.source, type: "conjoint", montantAnnuel: cap.renteConjointAnnuelle });

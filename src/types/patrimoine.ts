@@ -477,6 +477,27 @@ export type PayloadPrevoyancePerso = {
   // par le module succession (Lot 3, fiscalité 990 I). Absent → [] (les vieux
   // dossiers restent valides). Cf. module « Capitaux décès dans la succession ».
   contratsTransmissionDeces?: ContratTransmissionDeces[];
+  // Surcharge MANUELLE de la dévolution du capital décès des CAISSES (régimes
+  // obligatoires). Per-personne : le décès de CETTE personne déclenche le
+  // versement. Absent → dévolution AUTOMATIQUE en cascade légale (art. L361-4
+  // CSS : conjoint/PACS, à défaut enfants à charge, à défaut ascendants).
+  // Présente → REMPLACE la cascade auto (le CGP connaît le cas, ex. concubin).
+  capitalDecesCaisseSurcharge?: CapitalDecesCaisseSurcharge;
+};
+
+// Lien du bénéficiaire d'un capital décès caisse (purement descriptif —
+// AUCUNE fiscalité : ces capitaux sont exonérés et hors succession).
+export type CapitalDecesCaisseRelation =
+  | "conjoint" | "pacs_partner" | "enfant" | "ascendant" | "autre";
+
+export type CapitalDecesCaisseSurchargeBeneficiaire = {
+  name: string;
+  relation: CapitalDecesCaisseRelation;
+  montant: number;        // € attribué (exonéré)
+};
+
+export type CapitalDecesCaisseSurcharge = {
+  beneficiaires: CapitalDecesCaisseSurchargeBeneficiaire[];
 };
 
 // Bénéficiaire d'un contrat de transmission décès. Même forme que Beneficiary
