@@ -51,22 +51,23 @@ function sumContratsParType(
     .reduce((acc, c) => acc + (Number.isFinite(c.capitalOuMontant) ? c.capitalOuMontant : 0), 0);
 }
 
-// Capital décès TOUTES SOURCES confondues (VOIE A — R1, pont constats) :
+// Capital décès TOUTES SOURCES confondues (VOIE A — pont constats) :
 //   capital individuel legacy (ContratIndividuel "deces_capital")
-// + capital de transmission (ContratTransmissionDeces.capitalTransmis).
+// vs capital de transmission (ContratTransmissionDeces.capitalTransmis).
 //
-// Stratégie anti-double-comptage = SOMME, choix TRANSITOIRE assumé :
-//   - Objectif premier (présence : règle « TNS sans capital ») : la somme
-//     vaut > 0 dès qu'UNE source porte un capital → le faux constat disparaît
-//     dès qu'un contrat de transmission est saisi. Correct dans tous les cas.
-//   - Montant (règle « capital < dettes ») : la somme additionne les deux
-//     sources. Un même contrat saisi DEUX FOIS (legacy + transmission) serait
-//     compté double — cas transitoire que la migration R2 supprime (le legacy
-//     deces_capital est migré puis retiré → une seule source, somme = total
-//     exact). Il n'existe aucun identifiant commun entre les deux objets pour
-//     dédupliquer en R1 ; la somme est le total honnête « toutes sources ».
+// Stratégie anti-double-comptage = MAX, choix TRANSITOIRE conservateur :
+//   - Présence (règle « TNS sans capital ») : le max vaut > 0 dès qu'UNE
+//     source porte un capital → le faux constat disparaît dès qu'un contrat de
+//     transmission est saisi. Correct dans tous les cas.
+//   - Montant (règle « capital < dettes ») : pendant la fenêtre R1→R2, une
+//     même police peut exister DANS LES DEUX tableaux (saisie en double). Le
+//     max évite le sur-comptage (donc la sous-alerte de la règle dettes) ;
+//     il ne sur-compte JAMAIS. Faute d'identifiant commun entre les deux
+//     objets, c'est le choix prudent. Après R2 (migration du legacy), côté
+//     constats on reste sur les LISTES BRUTES : le max d'une seule source = la
+//     source exacte.
 // Rétro-compat : sans contrat de transmission (cas de TOUS les tests/appels
-// existants), le terme transmission vaut 0 → résultat identique à avant.
+// existants), le terme transmission vaut 0 → max(legacy, 0) = legacy.
 export function capitalDecesUnifie(
   contratsIndividuels: ContratIndividuel[],
   contratsTransmission: ContratTransmissionDeces[] | undefined
@@ -76,7 +77,7 @@ export function capitalDecesUnifie(
     (acc, c) => acc + (Number.isFinite(c.capitalTransmis) ? c.capitalTransmis : 0),
     0
   );
-  return legacy + transmission;
+  return Math.max(legacy, transmission);
 }
 
 function hasContratActif(

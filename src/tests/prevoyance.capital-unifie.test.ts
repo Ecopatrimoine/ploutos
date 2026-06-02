@@ -56,8 +56,11 @@ function makeCtx(over: Partial<ContexteRegle> = {}): ContexteRegle {
 // ─── Helper unifié ───────────────────────────────────────────────────────────
 
 describe("capitalDecesUnifie", () => {
-  it("somme legacy deces_capital + capitalTransmis", () => {
-    expect(capitalDecesUnifie([legacyCapital(80000)], [transmission(120000)])).toBe(200000);
+  it("retient le MAX des deux sources (anti sur-comptage : même police saisie deux fois)", () => {
+    // legacy 80000 vs transmission 120000 → 120000 (pas la somme 200000).
+    expect(capitalDecesUnifie([legacyCapital(80000)], [transmission(120000)])).toBe(120000);
+    // legacy plus grand → legacy.
+    expect(capitalDecesUnifie([legacyCapital(150000)], [transmission(90000)])).toBe(150000);
   });
 
   it("transmission undefined → seul le legacy compte (rétro-compat)", () => {
