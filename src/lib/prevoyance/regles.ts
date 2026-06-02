@@ -27,7 +27,7 @@ import type {
   ContexteRegle,
   Regle,
 } from "./types";
-import type { StatutPro } from "../../types/patrimoine";
+import type { ContratTransmissionDeces, StatutPro } from "../../types/patrimoine";
 import { referentiels } from "../../data/prevoyance";
 import { capitalDecesCarmf, pensionInvaliditeBaseAnnuelle } from "./carmf";
 
@@ -49,6 +49,34 @@ function sumContratsParType(
   return contrats
     .filter((c) => c.type === type)
     .reduce((acc, c) => acc + (Number.isFinite(c.capitalOuMontant) ? c.capitalOuMontant : 0), 0);
+}
+
+// Capital décès TOUTES SOURCES confondues (VOIE A — R1, pont constats) :
+//   capital individuel legacy (ContratIndividuel "deces_capital")
+// + capital de transmission (ContratTransmissionDeces.capitalTransmis).
+//
+// Stratégie anti-double-comptage = SOMME, choix TRANSITOIRE assumé :
+//   - Objectif premier (présence : règle « TNS sans capital ») : la somme
+//     vaut > 0 dès qu'UNE source porte un capital → le faux constat disparaît
+//     dès qu'un contrat de transmission est saisi. Correct dans tous les cas.
+//   - Montant (règle « capital < dettes ») : la somme additionne les deux
+//     sources. Un même contrat saisi DEUX FOIS (legacy + transmission) serait
+//     compté double — cas transitoire que la migration R2 supprime (le legacy
+//     deces_capital est migré puis retiré → une seule source, somme = total
+//     exact). Il n'existe aucun identifiant commun entre les deux objets pour
+//     dédupliquer en R1 ; la somme est le total honnête « toutes sources ».
+// Rétro-compat : sans contrat de transmission (cas de TOUS les tests/appels
+// existants), le terme transmission vaut 0 → résultat identique à avant.
+export function capitalDecesUnifie(
+  contratsIndividuels: ContratIndividuel[],
+  contratsTransmission: ContratTransmissionDeces[] | undefined
+): number {
+  const legacy = sumContratsParType(contratsIndividuels, "deces_capital");
+  const transmission = (contratsTransmission ?? []).reduce(
+    (acc, c) => acc + (Number.isFinite(c.capitalTransmis) ? c.capitalTransmis : 0),
+    0
+  );
+  return legacy + transmission;
 }
 
 function hasContratActif(
@@ -105,7 +133,7 @@ function phraseExplicativeConjoint(ctx: ContexteRegle): string {
 export const regleDcTnsSansCapital: Regle = (ctx, cible) => {
   const e = ctx.entree;
   if (!isTNS(e.statutPro)) return null;
-  const capital = sumContratsParType(e.contratsIndividuels, "deces_capital");
+  const capital = capitalDecesUnifie(e.contratsIndividuels, ctx.contratsTransmissionDeces);
   if (capital > 0) return null;
   // Critère d'alerte : présence de conjoint à charge ou d'enfants mineurs.
   if (!ctx.conjointACharge && ctx.enfantsMineurs === 0) return null;
@@ -146,7 +174,7 @@ export const regleDcCapitalInsuffisantDettes: Regle = (ctx, cible) => {
     ? capitalDecesCarmf(referentiels.carmf, ctx.entree.carmf)
     : 0;
   const capital =
-    sumContratsParType(ctx.entree.contratsIndividuels, "deces_capital") + capitalCarmf;
+    capitalDecesUnifie(ctx.entree.contratsIndividuels, ctx.contratsTransmissionDeces) + capitalCarmf;
   if (capital >= ctx.dettesImmobilieres) return null;
   const trou = ctx.dettesImmobilieres - capital;
 

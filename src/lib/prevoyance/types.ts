@@ -4,7 +4,7 @@
 // et les adapters Pack PDF v2 (Lot 9). Toutes les valeurs monétaires
 // sont en EUROS / MOIS (sauf indication contraire dans les commentaires).
 
-import type { CarmfConfig, CipavConfig, CarpimkoConfig, ForfaitConfig, CodeCaisse, NatureContrat, StatutPro, TptConfig } from "../../types/patrimoine";
+import type { CarmfConfig, CipavConfig, CarpimkoConfig, ForfaitConfig, CodeCaisse, ContratTransmissionDeces, NatureContrat, StatutPro, TptConfig } from "../../types/patrimoine";
 
 export type { TptConfig, CarmfConfig, CipavConfig, CarpimkoConfig, ForfaitConfig };
 
@@ -199,6 +199,11 @@ export type ContexteRegle = {
   // Lot 6 ajustement 2 du 2026-05-27).
   revenuP1Mensuel: number;
   revenuP2Mensuel: number;
+  // Contrats de prévoyance décès PRIVÉS (transmission) de la personne ciblée.
+  // Source unifiée du capital décès côté constats (cf. capitalDecesUnifie,
+  // VOIE A R1). Optionnel : absent (anciens appels / contextes de test) → []
+  // → comportement strictement identique à avant (seul deces_capital compte).
+  contratsTransmissionDeces?: ContratTransmissionDeces[];
 };
 
 export type Regle = (ctx: ContexteRegle, cible: "p1" | "p2") => Constat | null;

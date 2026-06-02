@@ -108,10 +108,15 @@ export function calcRevenuMensuel(
   return total / 12;
 }
 
+// `which` (optionnel) = personne ciblée par l'évaluation des règles : sert à
+// récupérer ses contrats de prévoyance décès privés (data.prevoyance.{which}).
+// Optionnel et rétro-compatible : sans lui, contratsTransmissionDeces = []
+// (anciens appels / contextes de test) → comportement inchangé.
 export function buildContexteRegle(
   data: PatrimonialData,
   entree: EntreePerso,
-  projection: ProjectionResult
+  projection: ProjectionResult,
+  which?: "p1" | "p2"
 ): ContexteRegle {
   return {
     entree,
@@ -121,5 +126,8 @@ export function buildContexteRegle(
     enfantsMineurs: calcEnfantsMineurs(data),
     revenuP1Mensuel: calcRevenuMensuel(data, "p1"),
     revenuP2Mensuel: calcRevenuMensuel(data, "p2"),
+    contratsTransmissionDeces: which
+      ? data.prevoyance?.[which]?.contratsTransmissionDeces ?? []
+      : [],
   };
 }
