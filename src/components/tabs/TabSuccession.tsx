@@ -16,6 +16,7 @@ import type { Child, Property, Placement, PatrimonialData, IrOptions, Succession
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
+import { BlocCapitauxDeces } from "../succession/BlocCapitauxDeces";
 
 // ── Couleurs héritiers ────────────────────────────────────────────────────────
 const HEIR_COLORS = [
@@ -648,6 +649,16 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
           </div>
         );
       })()}
+
+      {/* ── Capitaux décès hors actif successoral (Lot 4) — purement informatif ── */}
+      <BlocCapitauxDeces
+        caisses={succession.capitalDecesLines?.caisses ?? []}
+        prives={succession.capitalDecesLines?.prives ?? []}
+        rentes={succession.rentesSurvieAnnuelles ?? []}
+        totalCaisseExonere={succession.capitalDecesCaisseExonere ?? 0}
+        totalPriveCapital={succession.capitalDecesPriveCapital ?? 0}
+        totalPriveDuties={succession.capitalDecesPriveDuties ?? 0}
+      />
 
       {/* ── Graphiques ── */}
       {visibleHeirs.length > 0 && (() => {
