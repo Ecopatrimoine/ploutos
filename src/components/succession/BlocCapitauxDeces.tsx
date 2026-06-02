@@ -29,6 +29,16 @@ type Props = {
   totalPriveDuties: number;
 };
 
+function relationLabel(rel: string): string {
+  switch (rel) {
+    case "conjoint": return "conjoint";
+    case "pacs_partner": return "partenaire PACS";
+    case "enfant": return "enfant";
+    case "ascendant": return "ascendant";
+    default: return "bénéficiaire désigné";
+  }
+}
+
 function renteLabel(type: RenteSurvieAnnuelle["type"]): string {
   switch (type) {
     case "conjoint": return "Rente de survie du conjoint";
@@ -110,6 +120,37 @@ export function BlocCapitauxDeces({
                       )}
                     </div>
                   )}
+                  {/* Dévolution (P3) — QUI perçoit (cascade légale L361-4 CSS ou
+                      surcharge manuelle). Exonéré : aucun droit. */}
+                  {!l.donneeIndisponible && l.capital != null && (() => {
+                    const rep = l.repartition ?? [];
+                    if (rep.length === 0) {
+                      return (
+                        <div style={{ fontSize: "11px", fontStyle: "italic", color: BRAND.warning, marginTop: "5px" }}>
+                          Bénéficiaire à déterminer — aucun ayant droit automatique (désignation manuelle requise).
+                        </div>
+                      );
+                    }
+                    const manuel = rep.some((r) => r.source === "manuel");
+                    return (
+                      <div style={{ marginTop: "5px", display: "flex", flexDirection: "column", gap: "2px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 600, color: BRAND.sky, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          Bénéficiaires {manuel ? "(désignation manuelle)" : "(dévolution légale)"}
+                        </div>
+                        {rep.map((r, ri) => (
+                          <div key={ri} style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: BRAND.muted }}>
+                            <span>
+                              {r.beneficiaire}{" "}
+                              <span>({relationLabel(r.relation)}{r.origine === "capital_orphelin" ? " · orphelin" : ""})</span>
+                            </span>
+                            <span style={{ color: BRAND.navy, fontWeight: 600 }}>
+                              {euro(r.montant)} <span style={{ color: BRAND.success }}>exonéré</span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
 
