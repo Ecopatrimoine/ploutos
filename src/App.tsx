@@ -677,18 +677,20 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   ]);
   // Succession : biens, placements, enfants, régime, dates de naissance
   // Quand une hypothèse avec donation est chargée, appliquer les donations (vision > 15 ans)
+  // Dépendances = objet `data` ENTIER (et non un sous-ensemble de champs).
+  // Depuis le Lot 3, computeSuccession lit largement data (capitaux décès des
+  // caisses/privés, surcharge P3, et buildEntreePerso qui lit data.travail +
+  // data.salary*/ca*/…). setData renvoie une nouvelle référence de data à chaque
+  // modification → dépendre de `data` garantit le recalcul sur TOUTE modification
+  // et élimine la classe de bugs « dépendance oubliée » (ex. contrat décès
+  // legacy supprimé restant affiché en succession).
   const successionData_effective = useMemo(() =>
     activeDonations.length > 0 ? applyDonationsToData(activeDonations, data) : data,
-    [activeDonations, data.properties, data.placements]
+    [activeDonations, data]
   );
   const succession = useMemo(() => computeSuccession(successionData, successionData_effective), [
     successionData,
     successionData_effective,
-    data.properties, data.placements, data.childrenData,
-    data.coupleStatus, data.matrimonialRegime,
-    data.person1BirthDate, data.person2BirthDate,
-    data.person1FirstName, data.person1LastName,
-    data.person2FirstName, data.person2LastName,
     activeDonations,
   ]);
   const spouseOptions = useMemo(() => getAvailableSpouseOptions(data, successionData.deceasedPerson), [
