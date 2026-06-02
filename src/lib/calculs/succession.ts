@@ -8,6 +8,7 @@ import { n, getDemembrementPercentages, computeTaxFromBrackets, isAV, isPERType,
 import { resolveLoanValuesMulti } from './credit';
 import { buildEntreePerso } from '../prevoyance/mapping';
 import { resolveCapitauxDeces } from '../prevoyance/capitaux-deces';
+import { getContratsTransmissionDecesAvecLegacy, getPrevoyancePerso } from '../prevoyance/utils';
 import { referentiels } from '../../data/prevoyance';
 
 // ─── Capitaux décès HORS actif successoral (module « Capitaux décès dans la
@@ -50,6 +51,9 @@ export type CapitalDecesPriveLine = {
   assiette990I: number;              // assiette du prélèvement 990 I (€)
   before70Taxable: number;           // base taxable après abattement résiduel
   duties: number;                    // droits 990 I marginaux (€)
+  // Option A (R2) : contrat SANS bénéficiaire désigné → capital VISIBLE mais
+  // NON taxé (pas de relation → pas de computeAvTax), à compléter par le CGP.
+  beneficiairesARenseigner?: boolean;
 };
 
 // ─── CALCUL SUCCESSION ────────────────────────────────────────────────────────
@@ -882,7 +886,10 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
   // MARGINALE sur l'abattement résiduel ; les avLines / totalAvRights restent
   // strictement inchangés. share est DÉJÀ un number (Lot 2) : lu tel quel
   // (clamp 0-100), sans conversion string→number.
-  const contratsTransmission = data.prevoyance?.[whichDefunt]?.contratsTransmissionDeces ?? [];
+  // Pont R2 : contrats de transmission RÉELS + anciens deces_capital mappés
+  // (read-time, non destructif). C'est l'UNIQUE source côté succession → pas de
+  // double-comptage (la succession ne lisait jamais le legacy auparavant).
+  const contratsTransmission = getContratsTransmissionDecesAvecLegacy(getPrevoyancePerso(data, whichDefunt));
   type PriveRaw = {
     contrat: string; beneficiary: string; relation: string; sharePct: number;
     montant: number; natureAssiette: ContratTransmissionDeces["natureAssiette"]; assiette990I: number;
@@ -925,7 +932,7 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
     };
   }
   // Pro-rata par ligne (part de l'assiette du bénéficiaire portée par ce contrat).
-  const capitalDecesPriveLines: CapitalDecesPriveLine[] = priveRaw.map((l) => {
+  const capitalDecesPriveLinesTaxees: CapitalDecesPriveLine[] = priveRaw.map((l) => {
     const agg = priveAssietteByBenef[l.beneficiary];
     const tax = priveTaxByBenef[l.beneficiary];
     const ratio = agg.assiette > 0 ? l.assiette990I / agg.assiette : 0;
@@ -936,6 +943,31 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
       duties: tax.duties * ratio,
     };
   });
+  // Option A (R2) — contrats SANS bénéficiaire (deces_capital migré OU contrat de
+  // transmission saisi sans bénéficiaire) : le capital est VISIBLE mais NON taxé
+  // (aucune relation → pas de computeAvTax), marqué beneficiairesARenseigner.
+  // CHANGEMENT DE COMPORTEMENT ASSUMÉ : avant R2, un tel contrat (priveRaw vide)
+  // ne produisait AUCUNE ligne ; il en produit désormais une, à 0 droit.
+  // Les contrats AVEC bénéficiaire passent par le pipeline ci-dessus, inchangé.
+  const capitalDecesPriveLinesSansBenef: CapitalDecesPriveLine[] = contratsTransmission
+    .filter((c) => (c.beneficiaires ?? []).length === 0)
+    .map((c) => {
+      const capitalTransmis = Math.max(0, typeof c.capitalTransmis === "number" ? c.capitalTransmis : 0);
+      const primesAvant70 = Math.max(0, typeof c.primesAvant70 === "number" ? c.primesAvant70 : 0);
+      return {
+        contrat: c.libelle || "Contrat transmission",
+        beneficiary: "",
+        relation: "",
+        sharePct: 0,
+        montant: capitalTransmis,
+        natureAssiette: c.natureAssiette,
+        assiette990I: c.natureAssiette === "capital" ? capitalTransmis : primesAvant70,
+        before70Taxable: 0,
+        duties: 0,
+        beneficiairesARenseigner: true,
+      };
+    });
+  const capitalDecesPriveLines = [...capitalDecesPriveLinesTaxees, ...capitalDecesPriveLinesSansBenef];
   const capitalDecesPriveCapital = capitalDecesPriveLines.reduce((s, l) => s + l.montant, 0);
   const capitalDecesPriveDuties = capitalDecesPriveLines.reduce((s, l) => s + l.duties, 0);
 
