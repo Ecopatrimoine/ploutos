@@ -407,8 +407,10 @@ export type ForfaitConfig = {
 
 export type PayloadContratIndividuel = {
   id: string;
+  // "deces_capital" RETIRÉ des types créables (VOIE A — R4) : le capital décès se
+  // saisit en « Transmission décès ». La valeur historique reste LISIBLE en base
+  // (cf. TYPE_DECES_CAPITAL_LEGACY + pont R2) ; on ne la propose simplement plus.
   type:
-    | "deces_capital"
     | "deces_rente_conj"
     | "deces_rente_educ"
     | "ij"

@@ -24,8 +24,10 @@ export type ScenarioArret = "maladie_ordinaire" | "ald";
 // aux types qui produisent des revenus de remplacement.
 export type ContratIndividuel = {
   id: string;
+  // "deces_capital" RETIRÉ des types créables (VOIE A — R4) — saisie déplacée en
+  // « Transmission décès ». Valeur historique encore LUE en base via
+  // TYPE_DECES_CAPITAL_LEGACY (constats) et le pont R2 (succession).
   type:
-    | "deces_capital"      // capital décès
     | "deces_rente_conj"   // rente conjoint
     | "deces_rente_educ"   // rente éducation
     | "ij"                 // indemnités journalières complémentaires
