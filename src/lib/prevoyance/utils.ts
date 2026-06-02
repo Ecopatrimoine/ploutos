@@ -18,6 +18,7 @@ import type {
   ContratTransmissionDeces,
   EmployeurInfo,
   PatrimonialData,
+  PayloadContratIndividuel,
   PayloadPrevoyance,
   PayloadPrevoyancePerso,
   PayloadTravail,
@@ -141,6 +142,40 @@ export function getContratsTransmissionDeces(
   perso: PayloadPrevoyancePerso
 ): ContratTransmissionDeces[] {
   return perso.contratsTransmissionDeces ?? [];
+}
+
+// ── Pont (read-time) deces_capital legacy → contrat de transmission (VOIE A R2) ──
+// Mappe un ancien ContratIndividuel "deces_capital" vers le type riche
+// ContratTransmissionDeces, SANS réécrire le stockage (lecture seule).
+// Bénéficiaires VIDES : le CGP les complétera (Option A — le capital reste
+// VISIBLE en succession, non taxé tant qu'aucun bénéficiaire n'est désigné).
+// À n'appeler QUE sur un contrat de type "deces_capital".
+export function mapDecesCapitalLegacy(c: PayloadContratIndividuel): ContratTransmissionDeces {
+  const contrat: ContratTransmissionDeces = {
+    id: `legacy_${c.id}`,
+    libelle: "Capital décès",
+    natureAssiette: "capital",
+    capitalTransmis: Number.isFinite(c.capitalOuMontant) ? c.capitalOuMontant : 0,
+    beneficiaires: [],
+  };
+  if (c.conditions) contrat.conditions = c.conditions;
+  return contrat;
+}
+
+// Contrats de transmission décès d'une personne, contrats RÉELS + anciens
+// "deces_capital" mappés à la volée (pont R2, read-time, non destructif).
+// SOURCE UNIQUE pour la succession → cohérence garantie et AUCUN double-comptage :
+// la succession ne lisait que les contrats de transmission (jamais le legacy),
+// donc ajouter le legacy mappé ne double rien. Les CONSTATS, eux, restent sur
+// les listes BRUTES (cf. capitalDecesUnifie) et N'utilisent PAS cette fonction.
+export function getContratsTransmissionDecesAvecLegacy(
+  perso: PayloadPrevoyancePerso
+): ContratTransmissionDeces[] {
+  const reels = perso.contratsTransmissionDeces ?? [];
+  const legacy = (perso.contratsIndividuels ?? [])
+    .filter((c) => c.type === "deces_capital")
+    .map(mapDecesCapitalLegacy);
+  return [...reels, ...legacy];
 }
 
 // Merge pur : renvoie le PayloadPrevoyance suivant après application d'un
