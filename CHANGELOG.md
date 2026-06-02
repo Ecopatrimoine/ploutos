@@ -5,6 +5,23 @@ Format : [Version] — Date · Added / Changed / Fixed / Removed
 
 ---
 
+## [1.9.0] — 2 juin 2026
+
+Module **Capitaux décès dans la succession** : les capitaux décès (régimes obligatoires + contrats privés) sont désormais agrégés dans la succession, avec dévolution et fiscalité dédiées.
+
+### Added
+- Capitaux décès des **régimes obligatoires** et des **contrats de prévoyance décès privés** agrégés dans la succession : résolveur multi-caisses (toutes formes — capital, capital orphelin, rentes de survie / éducation), fiscalité **990 I** pour les contrats privés, capitaux des caisses **exonérés et hors actif successoral**
+- **Dévolution légale automatique** du capital décès des caisses (cascade art. L361-4 CSS : conjoint / PACS → enfants à parts égales → ascendants ; capital orphelin par enfant **en plus**, hors cascade), avec **surcharge manuelle** par le conseiller
+- Nouveau constat « **pas de rente éducation prévue** » lorsque le foyer compte des enfants à charge sans rente éducation souscrite
+
+### Changed
+- **Unification de la saisie du capital décès** : saisie unique côté « Transmission décès » (bénéficiaires + 990 I) ; le capital décès individuel est désormais pris en compte dans la succession
+
+### Fixed
+- La succession se rafraîchit désormais sur **tout changement prévoyance / travail** du défunt (un contrat supprimé ne reste plus affiché à tort)
+
+---
+
 ## [1.8.0] — 2 juin 2026
 
 Affinement du moteur **Prévoyance** : la pension d'invalidité bascule en retraite pour inaptitude à 62 ans.
