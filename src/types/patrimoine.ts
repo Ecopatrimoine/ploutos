@@ -468,6 +468,46 @@ export type PayloadPrevoyancePerso = {
   // présent seulement pour les clients affiliés à une caisse pilotée par le
   // moteur forfaitaire générique (cf. SPEC_PREVOYANCE_CAISSES_FORFAITAIRES).
   forfait?: ForfaitConfig;
+  // Contrats de prévoyance décès PRIVÉS destinés à la TRANSMISSION (capital
+  // versé aux bénéficiaires au décès). DISTINCTS des contratsIndividuels
+  // deces_* (qui alimentent les 9 séries de revenus de remplacement) : ces
+  // contrats-ci ne remplacent pas un revenu, ils transmettent un capital. Lus
+  // par le module succession (Lot 3, fiscalité 990 I). Absent → [] (les vieux
+  // dossiers restent valides). Cf. module « Capitaux décès dans la succession ».
+  contratsTransmissionDeces?: ContratTransmissionDeces[];
+};
+
+// Bénéficiaire d'un contrat de transmission décès. Même forme que Beneficiary
+// (placements AV) — {name, relation, share} — mais `share` est numérique
+// (convention du payload Prévoyance, qui stocke des nombres et non des chaînes
+// de formulaire). `relation` reprend le MÊME vocabulaire que
+// getSuccessionTaxProfile (succession.ts) pour un branchement direct au Lot 3.
+export type ContratTransmissionDecesBeneficiaire = {
+  name: string;
+  relation: string;     // "conjoint" | "pacs_partner" | "enfant" | "parent" |
+                        // "petit-enfant" | "frereSoeur" | "neveuNiece" |
+                        // "enfant_conjoint" | "autre" (vocab. succession.ts)
+  share: number;        // quote-part en % (0-100)
+};
+
+// Contrat de prévoyance décès privé destiné à la transmission. Saisi dans le
+// bloc « Transmission décès » (TabPrevoyancePerso), persisté dans
+// data.prevoyance.{p1|p2}. AUCUNE fiscalité calculée ici (Lot 2 = saisie +
+// affichage) : l'assiette 990 I est tranchée au Lot 3 via computeAvTax.
+export type ContratTransmissionDeces = {
+  id: string;
+  libelle: string;              // nom du contrat (affichage)
+  assureur?: string;            // optionnel, affichage
+  // Assiette fiscale du prélèvement 990 I :
+  //   "primes_avant70" : temporaire décès / fonds perdus → assiette = primes
+  //     versées avant 70 ans (souvent < abattement 152 500 € → exonéré).
+  //   "capital"        : contrat avec valeur de rachat → assiette = capital
+  //     transmis aux bénéficiaires.
+  natureAssiette: "primes_avant70" | "capital";
+  capitalTransmis: number;      // capital versé aux bénéficiaires au décès (€)
+  primesAvant70?: number;       // requis si natureAssiette === "primes_avant70"
+  beneficiaires: ContratTransmissionDecesBeneficiaire[];
+  conditions?: string;          // texte libre, affichage
 };
 
 // ─── Lot 8 — Prévoyance collective d'entreprise (audit conformité) ────

@@ -15,6 +15,7 @@
 
 import type {
   CodeCaisse,
+  ContratTransmissionDeces,
   EmployeurInfo,
   PatrimonialData,
   PayloadPrevoyance,
@@ -132,6 +133,14 @@ export function getPrevoyancePerso(
   which: "p1" | "p2"
 ): PayloadPrevoyancePerso {
   return data.prevoyance?.[which] ?? defaultPrevoyancePerso();
+}
+
+// Lecture rétro-compatible des contrats de transmission décès d'une personne.
+// Champ optionnel introduit après les premiers dossiers → absent => [].
+export function getContratsTransmissionDeces(
+  perso: PayloadPrevoyancePerso
+): ContratTransmissionDeces[] {
+  return perso.contratsTransmissionDeces ?? [];
 }
 
 // Merge pur : renvoie le PayloadPrevoyance suivant après application d'un
