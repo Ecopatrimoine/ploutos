@@ -10,6 +10,10 @@
 // Les capitaux décès sont HORS actif successoral : ce bloc n'influence aucun
 // total de l'actif/droits (purement informatif). Cf. Lot 3.
 
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Trash2 } from "lucide-react";
 import { BRAND, SURFACE } from "../../constants";
 import { euro } from "../../lib/calculs/utils";
 import type {
@@ -17,8 +21,20 @@ import type {
   CapitalDecesPriveLine,
   RenteSurvieAnnuelle,
 } from "../../lib/calculs/succession";
+import type {
+  CapitalDecesCaisseRelation,
+  CapitalDecesCaisseSurcharge,
+} from "../../types/patrimoine";
 
 const ABATTEMENT_990I = 152500;
+
+const RELATIONS_SURCHARGE: Array<{ value: CapitalDecesCaisseRelation; label: string }> = [
+  { value: "conjoint", label: "Conjoint (marié)" },
+  { value: "pacs_partner", label: "Partenaire de PACS" },
+  { value: "enfant", label: "Enfant" },
+  { value: "ascendant", label: "Ascendant" },
+  { value: "autre", label: "Autre (ex. concubin à charge)" },
+];
 
 type Props = {
   caisses: CapitalDecesCaisseLine[];
@@ -27,6 +43,11 @@ type Props = {
   totalCaisseExonere: number;
   totalPriveCapital: number;
   totalPriveDuties: number;
+  // P3 Volet B — surcharge manuelle de la dévolution du capital caisse.
+  // Optionnel : si onSurchargeChange est absent, le bloc est en LECTURE SEULE
+  // (cas des tests présentationnels / PDF). Présent → éditeur auto/manuel.
+  surcharge?: CapitalDecesCaisseSurcharge | null;
+  onSurchargeChange?: (next: CapitalDecesCaisseSurcharge | null) => void;
 };
 
 function relationLabel(rel: string): string {
@@ -64,11 +85,37 @@ export function BlocCapitauxDeces({
   totalCaisseExonere,
   totalPriveCapital,
   totalPriveDuties,
+  surcharge,
+  onSurchargeChange,
 }: Props) {
   // Rétro-compat : rien à afficher pour un dossier sans capitaux décès.
   if (caisses.length === 0 && prives.length === 0) return null;
 
   const priveNet = totalPriveCapital - totalPriveDuties;
+
+  // Éditeur de surcharge (Volet B) actif seulement si un callback est fourni.
+  const editable = typeof onSurchargeChange === "function";
+  const manuelActif = surcharge != null;
+  const benefsSurcharge = surcharge?.beneficiaires ?? [];
+  function setBenefs(beneficiaires: CapitalDecesCaisseSurcharge["beneficiaires"]) {
+    onSurchargeChange?.({ beneficiaires });
+  }
+  function passerEnManuel() {
+    onSurchargeChange?.({ beneficiaires: [] });
+  }
+  function repasserEnAuto() {
+    onSurchargeChange?.(null);
+  }
+  function addBenef() {
+    setBenefs([...benefsSurcharge, { name: "", relation: "autre", montant: 0 }]);
+  }
+  function updateBenef(idx: number, patch: Partial<CapitalDecesCaisseSurcharge["beneficiaires"][number]>) {
+    setBenefs(benefsSurcharge.map((b, i) => (i === idx ? { ...b, ...patch } : b)));
+  }
+  function removeBenef(idx: number) {
+    setBenefs(benefsSurcharge.filter((_, i) => i !== idx));
+  }
+  const sommeSurcharge = benefsSurcharge.reduce((s, b) => s + (Number(b.montant) || 0), 0);
 
   return (
     <div>
@@ -169,6 +216,58 @@ export function BlocCapitauxDeces({
                       <span style={{ fontWeight: 600, color: BRAND.navy }}>{euro(r.montantAnnuel)} /an</span>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* ── Surcharge manuelle de la dévolution (Volet B) ── */}
+              {editable && (
+                <div style={{ marginTop: "10px", borderRadius: "10px", border: `1px solid ${SURFACE.border}`, background: SURFACE.app, padding: "10px 12px" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px", marginBottom: manuelActif ? "8px" : 0 }}>
+                    <div style={{ fontSize: "11px", fontWeight: 600, color: BRAND.sky, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      Dévolution du capital
+                    </div>
+                    <label style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "12px", cursor: "pointer", color: BRAND.navy }}>
+                      <input type="radio" name="devolution-mode" checked={!manuelActif} onChange={repasserEnAuto} />
+                      Automatique (cascade légale)
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "12px", cursor: "pointer", color: BRAND.navy }}>
+                      <input type="radio" name="devolution-mode" checked={manuelActif} onChange={passerEnManuel} />
+                      Manuelle (désigner les bénéficiaires)
+                    </label>
+                  </div>
+
+                  {manuelActif && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {benefsSurcharge.length === 0 && (
+                        <div style={{ fontSize: "11px", fontStyle: "italic", color: BRAND.muted }}>
+                          Aucun bénéficiaire désigné — tant que la liste est vide, la dévolution légale s'applique.
+                        </div>
+                      )}
+                      {benefsSurcharge.map((b, idx) => (
+                        <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 110px 36px", gap: "8px", alignItems: "center" }}>
+                          <Input value={b.name} onChange={(e) => updateBenef(idx, { name: e.target.value })} placeholder="Nom" className="rounded-xl h-8 text-sm" />
+                          <Select value={b.relation} onValueChange={(v) => updateBenef(idx, { relation: v as CapitalDecesCaisseRelation })}>
+                            <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {RELATIONS_SURCHARGE.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          <Input type="number" min={0} value={b.montant} onChange={(e) => updateBenef(idx, { montant: Number(e.target.value) || 0 })} placeholder="€" className="rounded-xl h-8 text-sm" />
+                          <Button type="button" variant="outline" onClick={() => removeBenef(idx)} className="rounded-xl h-8 px-2" title="Supprimer ce bénéficiaire"><Trash2 className="h-3.5 w-3.5" /></Button>
+                        </div>
+                      ))}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <Button type="button" onClick={addBenef} className="rounded-xl text-xs h-8 px-3" style={{ background: BRAND.navy }}>
+                          <Plus className="h-3.5 w-3.5 mr-1" /> Ajouter un bénéficiaire
+                        </Button>
+                        {benefsSurcharge.length > 0 && Math.abs(sommeSurcharge - totalCaisseExonere) > 0.5 && (
+                          <span style={{ fontSize: "11px", color: BRAND.warning }}>
+                            Somme désignée {euro(sommeSurcharge)} ≠ capital {euro(totalCaisseExonere)} (information).
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

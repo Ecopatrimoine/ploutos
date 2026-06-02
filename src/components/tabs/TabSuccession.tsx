@@ -17,6 +17,7 @@ import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, comput
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
 import { BlocCapitauxDeces } from "../succession/BlocCapitauxDeces";
+import { patchPrevoyancePair } from "../../lib/prevoyance/utils";
 
 // ── Couleurs héritiers ────────────────────────────────────────────────────────
 const HEIR_COLORS = [
@@ -34,7 +35,7 @@ function getInitials(name: string) {
 
 // ── TabSuccession ─────────────────────────────────────────────────────────────
 const TabSuccession = React.memo(function TabSuccession(props: any) {
-  const { data, successionData, setSuccessionData, succession, activeDonations, syncCollectedHeirs, getFamilyMembers, importFamilyToTestament, addTestamentHeir, updateTestamentHeir, removeTestamentHeir, addLegsPrecisItem, addLegsPrecisItemFree, addLegsPrecisItemResidual, updateLegsPrecisItem, removeLegsPrecisItem, addLegataire, updateLegataire, removeLegataire, addContrepartieLegataire, updateContrepartieLegataire, removeContrepartieLegataire, addContrepartie, updateContrepartie, removeContrepartie, addContrepartieGlobal, updateContrepartieGlobal, removeContrepartieGlobal, addContrepartieWithBalance, removeContrepartieWithBalance, legsPickerOpen, setLegsPickerOpen, addFamilyMemberToLegsGlobal, addFamilyMemberToLegsPrecis, loanModalIndex, setLoanModalIndex, addLoan, updateLoan, removeLoan, effectiveSpouseOption, spouseOptions, person1, person2 } = props;
+  const { data, setField, successionData, setSuccessionData, succession, activeDonations, syncCollectedHeirs, getFamilyMembers, importFamilyToTestament, addTestamentHeir, updateTestamentHeir, removeTestamentHeir, addLegsPrecisItem, addLegsPrecisItemFree, addLegsPrecisItemResidual, updateLegsPrecisItem, removeLegsPrecisItem, addLegataire, updateLegataire, removeLegataire, addContrepartieLegataire, updateContrepartieLegataire, removeContrepartieLegataire, addContrepartie, updateContrepartie, removeContrepartie, addContrepartieGlobal, updateContrepartieGlobal, removeContrepartieGlobal, addContrepartieWithBalance, removeContrepartieWithBalance, legsPickerOpen, setLegsPickerOpen, addFamilyMemberToLegsGlobal, addFamilyMemberToLegsPrecis, loanModalIndex, setLoanModalIndex, addLoan, updateLoan, removeLoan, effectiveSpouseOption, spouseOptions, person1, person2 } = props;
 
   const [selectedHeir, setSelectedHeir] = React.useState<number | null>(null);
   const [showActifModal, setShowActifModal] = React.useState(false);
@@ -658,6 +659,12 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
         totalCaisseExonere={succession.capitalDecesCaisseExonere ?? 0}
         totalPriveCapital={succession.capitalDecesPriveCapital ?? 0}
         totalPriveDuties={succession.capitalDecesPriveDuties ?? 0}
+        surcharge={data.prevoyance?.[successionData.deceasedPerson === "person1" ? "p1" : "p2"]?.capitalDecesCaisseSurcharge ?? null}
+        onSurchargeChange={setField ? (next) => {
+          const which = successionData.deceasedPerson === "person1" ? "p1" : "p2";
+          const hasP2 = data.coupleStatus !== "single";
+          setField("prevoyance", patchPrevoyancePair(data.prevoyance, which, { capitalDecesCaisseSurcharge: next ?? undefined }, hasP2));
+        } : undefined}
       />
 
       {/* ── Graphiques ── */}

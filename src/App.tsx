@@ -1515,7 +1515,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
           {/* ════ SUCCESSION ════ */}
           <TabSuccession
             activeDonations={activeDonations}
-            data={data} successionData={successionData} setSuccessionData={setSuccessionData}
+            data={data} setField={setField} successionData={successionData} setSuccessionData={setSuccessionData}
             succession={succession} syncCollectedHeirs={syncCollectedHeirs} getFamilyMembers={getFamilyMembers}
             importFamilyToTestament={importFamilyToTestament}
             addTestamentHeir={addTestamentHeir} updateTestamentHeir={updateTestamentHeir} removeTestamentHeir={removeTestamentHeir}
