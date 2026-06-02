@@ -43,6 +43,7 @@ import { TableauJalons } from "../prevoyance/TableauJalons";
 import { BlocConstats } from "../prevoyance/BlocConstats";
 import { BlocCouvertureCollective } from "../prevoyance/BlocCouvertureCollective";
 import { BlocContratsIndividuels } from "../prevoyance/BlocContratsIndividuels";
+import { BlocTransmissionDeces } from "../prevoyance/BlocTransmissionDeces";
 import { BlocTpt } from "../prevoyance/BlocTpt";
 // defaultCarmf/Cipav/Carpimko restent importés : ils seedent les configs
 // injectées dans l'entrée de projection. La SAISIE des blocs caisse a été
@@ -51,7 +52,7 @@ import { defaultCarmf } from "../prevoyance/BlocCarmf";
 import { defaultCipav } from "../prevoyance/BlocCipav";
 import { defaultCarpimko } from "../prevoyance/BlocCarpimko";
 import { BandeauResumeClient, BlocPedagogie } from "../prevoyance/BlocPedagogie";
-import { getPrevoyancePerso, patchPrevoyancePair } from "../../lib/prevoyance/utils";
+import { getContratsTransmissionDeces, getPrevoyancePerso, patchPrevoyancePair } from "../../lib/prevoyance/utils";
 
 type Props = {
   data: PatrimonialData;
@@ -530,6 +531,13 @@ function ColonnePerso({
       <BlocContratsIndividuels
         contrats={prevoyancePerso.contratsIndividuels}
         onChange={(next) => onChangePrevoyance({ contratsIndividuels: next })}
+      />
+
+      {/* Transmission décès — contrats privés versant un capital aux
+          bénéficiaires (hors 9 séries ; lus par la succession au Lot 3). */}
+      <BlocTransmissionDeces
+        contrats={getContratsTransmissionDeces(prevoyancePerso)}
+        onChange={(next) => onChangePrevoyance({ contratsTransmissionDeces: next })}
       />
 
       {/* Constats */}
