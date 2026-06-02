@@ -220,6 +220,39 @@ export const regleDcPasDeRenteConjointEnfantsJeunes: Regle = (ctx, cible) => {
   };
 };
 
+// Constat « pas de rente éducation prévue » (VOIE A — R3, câblage de
+// deces_rente_educ, jusqu'ici code mort).
+//   Déclencheur : enfants à charge (sinon aucune éducation à financer → pas de
+//     sens) ET aucune rente éducation souscrite (sumContratsParType === 0 ; la
+//     rente éducation n'existe que côté contrats individuels — pas d'équivalent
+//     transmission). On s'aligne sur ctx.enfantsMineurs (même signal que la règle
+//     rente conjoint voisine).
+//   Sévérité : « attention » — protection des ENFANTS, distincte (et non
+//     redondante) de la règle rente conjoint (« alerte », qui vise le conjoint
+//     sans revenu). On ne surclasse pas en alerte sans le facteur conjoint.
+//   Pas de référence réglementaire dédiée évidente → champ omis (pas d'invention).
+export const regleDcPasDeRenteEducation: Regle = (ctx, cible) => {
+  if (ctx.enfantsMineurs <= 0) return null;
+  const renteEduc = sumContratsParType(ctx.entree.contratsIndividuels, "deces_rente_educ");
+  if (renteEduc > 0) return null;
+
+  return {
+    id: `dc_pas_de_rente_education_${cible}`,
+    severite: "attention",
+    axe: "deces",
+    cible,
+    titre: "Pas de rente éducation prévue pour les enfants à charge",
+    detail:
+      `Le foyer compte ${ctx.enfantsMineurs} enfant${ctx.enfantsMineurs > 1 ? "s" : ""} à charge, ` +
+      `mais aucune rente éducation n'est prévue. En cas de décès de ${libelleCible(cible)}, les enfants ` +
+      `ne bénéficieraient d'aucun revenu dédié au financement de leur scolarité et de leur éducation, ` +
+      `au-delà du seul capital décès.`,
+    action:
+      "Évaluer l'opportunité d'une rente éducation, versée jusqu'à la fin des études, " +
+      "pour sécuriser le parcours scolaire des enfants en cas de décès.",
+  };
+};
+
 // ────────────────────────────────────────────────────────────────────
 // Axe incapacité — 3 règles
 // ────────────────────────────────────────────────────────────────────
@@ -622,6 +655,7 @@ const REGLES_INDIVIDUELLES: Regle[] = [
   regleDcTnsSansCapital,
   regleDcCapitalInsuffisantDettes,
   regleDcPasDeRenteConjointEnfantsJeunes,
+  regleDcPasDeRenteEducation,
   regleIjCarenceCaisseSansMadelin,
   regleIjPlafondInsuffisant,
   regleIjCcnNonDocumentee,
