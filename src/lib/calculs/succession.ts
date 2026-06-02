@@ -1,11 +1,56 @@
 // Calcul succession — droits, AV/PER, legs, démembrement
 import type { PatrimonialData, SuccessionData, TaxBracket, FilledBracket,
   Heir, SuccessionPropertyLine, SuccessionPlacementLine, SuccessionAvLine,
-  SuccessionResult, PieDatum } from '../../types/patrimoine';
+  SuccessionResult, PieDatum, ContratTransmissionDeces } from '../../types/patrimoine';
 import { n, getDemembrementPercentages, computeTaxFromBrackets, isAV, isPERType,
   childMatchesDeceased, getAgeFromBirthDate, isSpouseHeirEligible, getAvailableSpouseOptions,
   getQuotiteDisponible, buildCollectedHeirs, euro } from './utils';
 import { resolveLoanValuesMulti } from './credit';
+import { buildEntreePerso } from '../prevoyance/mapping';
+import { resolveCapitauxDeces } from '../prevoyance/capitaux-deces';
+import { referentiels } from '../../data/prevoyance';
+
+// ─── Capitaux décès HORS actif successoral (module « Capitaux décès dans la
+//     succession », Lot 3) — types des lignes parallèles à avLines ──────────
+
+// Capital décès d'un régime obligatoire (caisse) du défunt. EXONÉRÉ, hors
+// succession : aucun calcul fiscal. Les montants de RENTE sont ANNUELS (€/an)
+// et ne sont JAMAIS sommés avec des capitaux.
+export type CapitalDecesCaisseLine = {
+  source: string;
+  capital: number | null;            // capital décès (€), null si TO_VERIFY
+  capitalParEnfant?: number;         // capital orphelin par enfant (SSI)
+  nbEnfants: number;                 // enfants à charge retenus (contexte)
+  capitalOrphelinTotal?: number;     // capitalParEnfant × nbEnfants (affichage)
+  renteConjointAnnuelle?: number;    // €/an
+  renteEducationAnnuelle?: number;   // €/an
+  renteSurvieOrphelinAnnuelle?: number; // €/an
+  situationRetenue?: "actif_ou_invalide" | "retraite";
+  donneeIndisponible: boolean;
+  exonere: true;
+};
+
+// Rente de survie / éducation versée par une caisse (montant ANNUEL exonéré).
+export type RenteSurvieAnnuelle = {
+  source: string;
+  type: "conjoint" | "education" | "survie_orphelin";
+  montantAnnuel: number;
+};
+
+// Capital d'un contrat de prévoyance décès PRIVÉ, par bénéficiaire. HORS actif,
+// fiscalité 990 I via computeAvTax. `duties` = taxe MARGINALE (abattement
+// 152 500 € consommé AV-first — cf. note recon #3 dans computeSuccession).
+export type CapitalDecesPriveLine = {
+  contrat: string;
+  beneficiary: string;
+  relation: string;
+  sharePct: number;
+  montant: number;                   // capital reçu par le bénéficiaire (€)
+  natureAssiette: ContratTransmissionDeces["natureAssiette"];
+  assiette990I: number;              // assiette du prélèvement 990 I (€)
+  before70Taxable: number;           // base taxable après abattement résiduel
+  duties: number;                    // droits 990 I marginaux (€)
+};
 
 // ─── CALCUL SUCCESSION ────────────────────────────────────────────────────────
 
@@ -784,9 +829,125 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
     warnings.push(`Réserve héréditaire spoliée : les enfants devraient recevoir au moins ${euro(legalReserveAmount)}, mais la simulation ne leur attribue que ${euro(reserveAllocatedToChildren)}.`);
   }
 
+  // ════════════════════════════════════════════════════════════════════
+  // CAPITAUX DÉCÈS HORS ACTIF SUCCESSORAL (Lot 3). Sortie PARALLÈLE à avLines :
+  // n'entrent PAS dans activeNet / totalRights / totalSuccessionRights /
+  // totalAvRights (qui restent strictement inchangés).
+  // ════════════════════════════════════════════════════════════════════
+
+  // ── Source 1 : capitaux décès des CAISSES (régime obligatoire du défunt) ──
+  // EXONÉRÉS, hors succession (capital décès Sécurité sociale — BOFiP). Aucun
+  // calcul fiscal : capital + capital orphelin + rentes de survie/éducation
+  // (montants ANNUELS, jamais sommés avec des capitaux).
+  const whichDefunt: "p1" | "p2" = deceasedKey === "person1" ? "p1" : "p2";
+  const entreeDefunt = buildEntreePerso(data, whichDefunt);
+  const caissesRef = (referentiels.caisses as { caisses?: Record<string, unknown> }).caisses ?? {};
+  const capitalDecesCaisseLines: CapitalDecesCaisseLine[] = [];
+  const rentesSurvieAnnuelles: RenteSurvieAnnuelle[] = [];
+  if (entreeDefunt && entreeDefunt.caisse) {
+    // buildEntreePerso ne pose pas la config CIPAV par points (injectée live
+    // côté projection) : on la rebranche depuis la saisie persistée si présente,
+    // sinon une caisse CIPAV retombe honnêtement sur donneeIndisponible.
+    const entreeAvecCipav = { ...entreeDefunt, cipav: data.prevoyance?.[whichDefunt]?.cipav };
+    const caisseRef = caissesRef[entreeDefunt.caisse];
+    const cap = resolveCapitauxDeces(caisseRef, entreeAvecCipav, referentiels.cipav);
+    const nbEnfants = Math.max(0, entreeDefunt.nbEnfantsACharge ?? 0);
+    const capitalOrphelinTotal =
+      cap.capitalParEnfant != null ? cap.capitalParEnfant * nbEnfants : undefined;
+    capitalDecesCaisseLines.push({
+      source: cap.source,
+      capital: cap.capital,
+      capitalParEnfant: cap.capitalParEnfant,
+      nbEnfants,
+      capitalOrphelinTotal,
+      renteConjointAnnuelle: cap.renteConjointAnnuelle,
+      renteEducationAnnuelle: cap.renteEducationAnnuelle,
+      renteSurvieOrphelinAnnuelle: cap.renteSurvieOrphelinAnnuelle,
+      situationRetenue: cap.situationRetenue,
+      donneeIndisponible: cap.donneeIndisponible,
+      exonere: true,
+    });
+    if (cap.renteConjointAnnuelle != null)
+      rentesSurvieAnnuelles.push({ source: cap.source, type: "conjoint", montantAnnuel: cap.renteConjointAnnuelle });
+    if (cap.renteEducationAnnuelle != null)
+      rentesSurvieAnnuelles.push({ source: cap.source, type: "education", montantAnnuel: cap.renteEducationAnnuelle });
+    if (cap.renteSurvieOrphelinAnnuelle != null)
+      rentesSurvieAnnuelles.push({ source: cap.source, type: "survie_orphelin", montantAnnuel: cap.renteSurvieOrphelinAnnuelle });
+  }
+  const capitalDecesCaisseExonere = capitalDecesCaisseLines.reduce((s, l) => s + (l.capital ?? 0), 0);
+
+  // ── Source 2 : contrats de prévoyance décès PRIVÉS (transmission) ──
+  // Fiscalité 990 I via computeAvTax. Abattement 152 500 €/bénéficiaire COMMUN
+  // avec les AV (recon #3) : consommé AV-FIRST → le contrat privé porte la taxe
+  // MARGINALE sur l'abattement résiduel ; les avLines / totalAvRights restent
+  // strictement inchangés. share est DÉJÀ un number (Lot 2) : lu tel quel
+  // (clamp 0-100), sans conversion string→number.
+  const contratsTransmission = data.prevoyance?.[whichDefunt]?.contratsTransmissionDeces ?? [];
+  type PriveRaw = {
+    contrat: string; beneficiary: string; relation: string; sharePct: number;
+    montant: number; natureAssiette: ContratTransmissionDeces["natureAssiette"]; assiette990I: number;
+  };
+  const priveRaw: PriveRaw[] = contratsTransmission.flatMap((c) => {
+    const capitalTransmis = Math.max(0, typeof c.capitalTransmis === "number" ? c.capitalTransmis : 0);
+    const primesAvant70 = Math.max(0, typeof c.primesAvant70 === "number" ? c.primesAvant70 : 0);
+    const assietteBase = c.natureAssiette === "capital" ? capitalTransmis : primesAvant70;
+    return (c.beneficiaires ?? []).map((b, index) => {
+      const sharePct = Math.min(100, Math.max(0, typeof b.share === "number" ? b.share : 0));
+      const ratio = sharePct / 100;
+      return {
+        contrat: c.libelle || "Contrat transmission",
+        beneficiary: b.name || `Bénéficiaire ${index + 1}`,
+        relation: b.relation || "autre",
+        sharePct,
+        montant: capitalTransmis * ratio,
+        natureAssiette: c.natureAssiette,
+        assiette990I: assietteBase * ratio,
+      };
+    });
+  });
+  // Agrégation par bénéficiaire (assiette 990 I cumulée tous contrats privés).
+  const priveAssietteByBenef: Record<string, { relation: string; assiette: number }> = {};
+  for (const l of priveRaw) {
+    if (!priveAssietteByBenef[l.beneficiary]) priveAssietteByBenef[l.beneficiary] = { relation: l.relation, assiette: 0 };
+    priveAssietteByBenef[l.beneficiary].assiette += l.assiette990I;
+  }
+  // Taxe MARGINALE par bénéficiaire = 990I(avBefore70 + assiettePrivée) − 990I(avBefore70).
+  // avBefore70 = pool AV avant-70 du même bénéficiaire (benefMap) → l'abattement
+  // 152 500 € déjà consommé par les AV n'est PAS recompté.
+  const priveTaxByBenef: Record<string, { duties: number; taxable: number }> = {};
+  for (const [name, agg] of Object.entries(priveAssietteByBenef)) {
+    const avBefore70 = benefMap[name]?.totalBefore70 ?? 0;
+    const baseline = computeAvTax(agg.relation, avBefore70, 0);
+    const combined = computeAvTax(agg.relation, avBefore70 + agg.assiette, 0);
+    priveTaxByBenef[name] = {
+      duties: Math.max(0, combined.before70Tax - baseline.before70Tax),
+      taxable: Math.max(0, combined.before70Taxable - baseline.before70Taxable),
+    };
+  }
+  // Pro-rata par ligne (part de l'assiette du bénéficiaire portée par ce contrat).
+  const capitalDecesPriveLines: CapitalDecesPriveLine[] = priveRaw.map((l) => {
+    const agg = priveAssietteByBenef[l.beneficiary];
+    const tax = priveTaxByBenef[l.beneficiary];
+    const ratio = agg.assiette > 0 ? l.assiette990I / agg.assiette : 0;
+    return {
+      contrat: l.contrat, beneficiary: l.beneficiary, relation: l.relation, sharePct: l.sharePct,
+      montant: l.montant, natureAssiette: l.natureAssiette, assiette990I: l.assiette990I,
+      before70Taxable: tax.taxable * ratio,
+      duties: tax.duties * ratio,
+    };
+  });
+  const capitalDecesPriveCapital = capitalDecesPriveLines.reduce((s, l) => s + l.montant, 0);
+  const capitalDecesPriveDuties = capitalDecesPriveLines.reduce((s, l) => s + l.duties, 0);
+
   return {
     deceasedKey, survivorKey, spouseEligible, spouseOptions, spouseOption, quotiteDisponible,
     warnings, activeNet, furnitureForfait,
+    // ── Capitaux décès hors actif (Lot 3) — N'IMPACTENT PAS les masses/droits ci-dessus ──
+    capitalDecesLines: { caisses: capitalDecesCaisseLines, prives: capitalDecesPriveLines },
+    capitalDecesCaisseExonere,
+    capitalDecesPriveCapital,
+    capitalDecesPriveDuties,
+    rentesSurvieAnnuelles,
     totalRights: results.reduce((s, r) => s + r.duties, 0),
     totalSuccessionRights: results.reduce((s, r) => s + r.successionDuties, 0),
     totalAvRights: results.reduce((s, r) => s + r.avDuties, 0),
