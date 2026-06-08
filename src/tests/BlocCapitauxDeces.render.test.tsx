@@ -9,6 +9,7 @@ import { BlocCapitauxDeces } from "../components/succession/BlocCapitauxDeces";
 import type {
   CapitalDecesCaisseLine,
   CapitalDecesPriveLine,
+  CapitalDecesBrancheLine,
   RenteSurvieAnnuelle,
 } from "../lib/calculs/succession";
 
@@ -80,5 +81,29 @@ describe("BlocCapitauxDeces — montage", () => {
     expect(t).toContain("9500€");     // droits 990 I
     expect(t).toContain("152500€");   // abattement utilisé (200000 − 47500)
     expect(getAllByText(/Net transmis/).length).toBeGreaterThan(0);
+  });
+});
+
+describe("BlocCapitauxDeces — sous-bloc prévoyance collective de branche (LOT DECES-A)", () => {
+  it("capital de branche exonéré → libellé, montant et badge exonéré", () => {
+    const branche: CapitalDecesBrancheLine = {
+      source: "Syntec", capital: 163404, categorie: "cadres",
+      exonere: true, donneeIndisponible: false, beneficiairesAuContrat: true,
+    };
+    const { container, getByText } = render(<BlocCapitauxDeces {...EMPTY} branche={[branche]} />);
+    expect(getByText(/Prévoyance collective de branche/)).toBeInTheDocument();
+    const t = norm(container.textContent);
+    expect(t).toContain("163404€");
+    expect(t).toContain(norm("Versé aux bénéficiaires désignés au contrat"));
+  });
+
+  it("branche donneeIndisponible=true → mention neutre, jamais « 0 € »", () => {
+    const branche: CapitalDecesBrancheLine = {
+      source: "Métallurgie", capital: null, categorie: "nonCadres",
+      exonere: true, donneeIndisponible: true, beneficiairesAuContrat: true,
+    };
+    const { container, getByText } = render(<BlocCapitauxDeces {...EMPTY} branche={[branche]} />);
+    expect(getByText(/Donnée de branche non disponible/)).toBeInTheDocument();
+    expect(norm(container.textContent)).not.toContain("0€");
   });
 });

@@ -52,14 +52,24 @@
       "prevoyanceCadres": {
         "tauxT1Minimum": 1.50,
         "garantiesMinimum": {
-          "capitalDC": "TO_VERIFY",
+          "capitalDC": { "mode": "pourcentageSalaireRef", "tauxSalaireRef": 1.70, "minimumPass": 3.40 },
           "renteConjoint": "TO_VERIFY",
           "renteEducation": "TO_VERIFY",
           "ij": "TO_VERIFY",
           "invalidite": "TO_VERIFY"
-        }
+        },
+        "note": "capital deces art 3 accord prevoyance Syntec 27/03/1997, Legifrance, verifie 2026-06-08"
       },
-      "prevoyanceNonCadres": null,
+      "prevoyanceNonCadres": {
+        "garantiesMinimum": {
+          "capitalDC": { "mode": "pourcentageSalaireRef", "tauxSalaireRef": 1.70, "minimumPass": 1.70 },
+          "renteConjoint": "TO_VERIFY",
+          "renteEducation": "TO_VERIFY",
+          "ij": "TO_VERIFY",
+          "invalidite": "TO_VERIFY"
+        },
+        "note": "capital deces art 3 accord prevoyance Syntec 27/03/1997, Legifrance, verifie 2026-06-08"
+      },
       "santeMinimum": {
         "panier": "ANI",
         "participationEmployeur": "TO_VERIFY"

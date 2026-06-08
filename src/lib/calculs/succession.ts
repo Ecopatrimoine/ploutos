@@ -9,6 +9,8 @@ import { n, getDemembrementPercentages, computeTaxFromBrackets, isAV, isPERType,
 import { resolveLoanValuesMulti } from './credit';
 import { buildEntreePerso } from '../prevoyance/mapping';
 import { resolveCapitauxDeces } from '../prevoyance/capitaux-deces';
+import { resolveCapitalDecesBranche } from '../prevoyance/capitaux-deces-branche';
+import { categorieMaintien } from '../prevoyance/projection';
 import { getContratsTransmissionDecesAvecLegacy, getPrevoyancePerso } from '../prevoyance/utils';
 import { referentiels } from '../../data/prevoyance';
 
@@ -130,6 +132,19 @@ export type CapitalDecesPriveLine = {
   // Option A (R2) : contrat SANS bénéficiaire désigné → capital VISIBLE mais
   // NON taxé (pas de relation → pas de computeAvTax), à compléter par le CGP.
   beneficiairesARenseigner?: boolean;
+};
+
+// Capital décès de PRÉVOYANCE COLLECTIVE DE BRANCHE (CCN) du défunt (LOT DECES-A).
+// EXONÉRÉ (contrat de groupe professionnel, art. 998 CGI, hors 990 I) → même
+// chemin que les caisses : AUCUN computeAvTax, HORS actif et HORS droits. Versé
+// aux bénéficiaires désignés au contrat (pas de dévolution nominative ce lot).
+export type CapitalDecesBrancheLine = {
+  source: string;
+  capital: number | null;            // capital décès (€), null si non documenté
+  categorie: "cadres" | "nonCadres";
+  exonere: true;
+  donneeIndisponible: boolean;
+  beneficiairesAuContrat: true;
 };
 
 // ─── CALCUL SUCCESSION ────────────────────────────────────────────────────────
@@ -1069,12 +1084,40 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
   const capitalDecesPriveCapital = capitalDecesPriveLines.reduce((s, l) => s + l.montant, 0);
   const capitalDecesPriveDuties = capitalDecesPriveLines.reduce((s, l) => s + l.duties, 0);
 
+  // ── Source 3 : capital décès de PRÉVOYANCE COLLECTIVE DE BRANCHE (CCN) ──
+  // EXONÉRÉ (art. 998 CGI, contrat de groupe professionnel) → chemin "caisse" :
+  // AUCUN computeAvTax, HORS actif et HORS droits (sortie strictement additive).
+  // Résolu seulement pour un défunt porteur d'un IDCC (salarié) ; sinon aucune
+  // ligne. La catégorie cadre/non-cadre est dérivée du statut (LOT 1a-ii).
+  const capitalDecesBrancheLines: CapitalDecesBrancheLine[] = [];
+  if (entreeDefunt && entreeDefunt.idccCCN) {
+    const categorieBranche = categorieMaintien(entreeDefunt.statutPro);
+    const passAnnuel = referentiels.pass.pass.annuel; // PASS du référentiel, jamais en dur
+    const br = resolveCapitalDecesBranche(
+      entreeDefunt.idccCCN,
+      categorieBranche,
+      entreeDefunt.salaireBrutAnnuel,
+      passAnnuel,
+      referentiels
+    );
+    capitalDecesBrancheLines.push({
+      source: br.source,
+      capital: br.capital,
+      categorie: br.categorie,
+      exonere: true,
+      donneeIndisponible: br.donneeIndisponible,
+      beneficiairesAuContrat: true,
+    });
+  }
+  const capitalDecesBrancheExonere = capitalDecesBrancheLines.reduce((s, l) => s + (l.capital ?? 0), 0);
+
   return {
     deceasedKey, survivorKey, spouseEligible, spouseOptions, spouseOption, quotiteDisponible,
     warnings, activeNet, furnitureForfait,
     // ── Capitaux décès hors actif (Lot 3) — N'IMPACTENT PAS les masses/droits ci-dessus ──
-    capitalDecesLines: { caisses: capitalDecesCaisseLines, prives: capitalDecesPriveLines },
+    capitalDecesLines: { caisses: capitalDecesCaisseLines, prives: capitalDecesPriveLines, branche: capitalDecesBrancheLines },
     capitalDecesCaisseExonere,
+    capitalDecesBrancheExonere,
     capitalDecesPriveCapital,
     capitalDecesPriveDuties,
     rentesSurvieAnnuelles,

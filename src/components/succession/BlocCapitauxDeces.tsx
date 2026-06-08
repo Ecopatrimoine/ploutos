@@ -19,6 +19,7 @@ import { euro } from "../../lib/calculs/utils";
 import type {
   CapitalDecesCaisseLine,
   CapitalDecesPriveLine,
+  CapitalDecesBrancheLine,
   RenteSurvieAnnuelle,
 } from "../../lib/calculs/succession";
 import type {
@@ -40,6 +41,10 @@ type Props = {
   caisses: CapitalDecesCaisseLine[];
   prives: CapitalDecesPriveLine[];
   rentes: RenteSurvieAnnuelle[];
+  // LOT DECES-A — capital décès de prévoyance collective de BRANCHE (CCN),
+  // exonéré. Optionnel (défaut []) : les appelants existants (tests / PDF) ne
+  // le passent pas → aucun sous-bloc branche, comportement inchangé.
+  branche?: CapitalDecesBrancheLine[];
   totalCaisseExonere: number;
   totalPriveCapital: number;
   totalPriveDuties: number;
@@ -82,6 +87,7 @@ export function BlocCapitauxDeces({
   caisses,
   prives,
   rentes,
+  branche = [],
   totalCaisseExonere,
   totalPriveCapital,
   totalPriveDuties,
@@ -89,9 +95,11 @@ export function BlocCapitauxDeces({
   onSurchargeChange,
 }: Props) {
   // Rétro-compat : rien à afficher pour un dossier sans capitaux décès.
-  if (caisses.length === 0 && prives.length === 0) return null;
+  if (caisses.length === 0 && prives.length === 0 && branche.length === 0) return null;
 
   const priveNet = totalPriveCapital - totalPriveDuties;
+  // Capital de branche exonéré (somme), calculé localement (pas de prop dédiée).
+  const totalBrancheExonere = branche.reduce((s, l) => s + (l.capital ?? 0), 0);
 
   // Éditeur de surcharge (Volet B) actif seulement si un callback est fourni.
   const editable = typeof onSurchargeChange === "function";
@@ -353,6 +361,54 @@ export function BlocCapitauxDeces({
                   );
                 })}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ════════ Sous-bloc 3 : Prévoyance collective de branche (CCN) ════════ */}
+        {branche.length > 0 && (
+          <div style={{ borderRadius: "18px", overflow: "hidden", border: "1px solid rgba(227,175,100,0.4)", boxShadow: "0 2px 12px rgba(16,27,59,0.07)" }}>
+            {/* Header — calqué sur le sous-bloc régimes obligatoires (exonéré) */}
+            <div style={{ background: `linear-gradient(120deg, ${BRAND.navy} 0%, ${BRAND.sky} 100%)`, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "11px", fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase" }}>Prévoyance collective de branche</div>
+                {/* 0 € serait trompeur quand le capital est indisponible → tiret neutre. */}
+                <div style={{ color: "#fff", fontSize: "20px", fontWeight: 700, marginTop: "2px" }}>{totalBrancheExonere > 0 ? euro(totalBrancheExonere) : "—"}</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ background: "rgba(134,239,172,0.2)", borderRadius: "6px", padding: "3px 8px", fontSize: "11px", color: "#86efac", fontWeight: 600 }}>
+                  Exonéré · hors succession
+                </div>
+              </div>
+            </div>
+
+            {/* Corps : une ligne par garantie de branche */}
+            <div style={{ background: SURFACE.card, padding: "12px 18px" }}>
+              {branche.map((l, i) => (
+                <div key={i} style={{ paddingBottom: "10px", marginBottom: "10px", borderBottom: i < branche.length - 1 ? `1px solid ${SURFACE.border}` : "none" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <div style={{ fontSize: "13px", fontWeight: 600, color: BRAND.navy }}>
+                      {l.source}{" "}
+                      <span style={{ fontSize: "11px", fontWeight: 500, color: BRAND.muted }}>· {l.categorie === "cadres" ? "cadre" : "non-cadre"}</span>
+                    </div>
+                    {l.donneeIndisponible || l.capital == null ? (
+                      <div style={{ fontSize: "12px", fontStyle: "italic", color: BRAND.muted }}>
+                        Donnée de branche non disponible
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: "14px", fontWeight: 700, color: BRAND.navy }}>
+                        {euro(l.capital)}{" "}
+                        <span style={{ fontSize: "11px", fontWeight: 600, color: BRAND.success }}>exonéré</span>
+                      </div>
+                    )}
+                  </div>
+                  {!l.donneeIndisponible && l.capital != null && (
+                    <div style={{ fontSize: "11px", color: BRAND.muted, marginTop: "3px" }}>
+                      Versé aux bénéficiaires désignés au contrat de prévoyance collective.
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
