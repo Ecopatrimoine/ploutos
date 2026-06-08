@@ -233,6 +233,29 @@ function lirePaliersCcn(paliersBruts: unknown): Palier[] {
   return out;
 }
 
+// Lit le maintien LÉGAL Mensualisation (toujours disponible, indépendant de la
+// catégorie et de toute CCN). Bloc TYPÉ via l'import JSON (plus de `any`) : tout
+// renommage de maintienLegal / paliers / segments / jours / pct casse à la
+// COMPILATION. Sert à la fois de FALLBACK (CCN absente) et de PLANCHER permanent
+// (LOT 1a-iii : le maintien réel = max(CCN, légal) jour par jour).
+function lireMaintienLegal(ref: Referentiels): MaintienParams {
+  const legal = ref.ccn.maintienLegal;
+  const paliersLegal = paliersValides(
+    legal.paliers.map((p) => ({
+      ancienneteMois: p.ancienneteMois,
+      segments: p.segments.map((s) => ({ jours: s.jours, pct: s.pct })),
+    }))
+  );
+  if (paliersLegal.length > 0) {
+    return {
+      carenceJours: safeNum(legal.carenceJours) ?? 7,
+      paliers: paliersLegal,
+      source: "legal",
+    };
+  }
+  return { carenceJours: 7, paliers: [], source: "indisponible" };
+}
+
 export function getMaintienParams(
   idcc: string | null,
   ref: Referentiels,
@@ -260,24 +283,10 @@ export function getMaintienParams(
       return { carenceJours: carence, paliers, source: "ccn" };
     }
   }
-  // Fallback légal Mensualisation. Bloc TYPÉ via l'import JSON (plus de `any`) :
-  // tout renommage de maintienLegal / paliers / segments / jours / pct casse
-  // désormais à la COMPILATION, et non plus silencieusement à l'exécution.
-  const legal = ref.ccn.maintienLegal;
-  const paliersLegal = paliersValides(
-    legal.paliers.map((p) => ({
-      ancienneteMois: p.ancienneteMois,
-      segments: p.segments.map((s) => ({ jours: s.jours, pct: s.pct })),
-    }))
-  );
-  if (paliersLegal.length > 0) {
-    return {
-      carenceJours: safeNum(legal.carenceJours) ?? 7,
-      paliers: paliersLegal,
-      source: "legal",
-    };
-  }
-  return { carenceJours: 7, paliers: [], source: "indisponible" };
+  // Pas de CCN documentée pour cette catégorie → maintien légal. La sémantique
+  // source/useLegalDefault est INCHANGÉE (le plancher légal de 1a-iii est un
+  // détail de calcul appliqué en aval, pas un changement de source).
+  return lireMaintienLegal(ref);
 }
 
 function findPalierMaintien(paliers: Palier[], ancienneteMois: number): Palier | null {
@@ -315,31 +324,46 @@ function joursRupturesMaintien(
   return { finPlein, finPartiel };
 }
 
+// Taux de maintien (0..1) applicable au jour t pour UN jeu (params, palier) :
+// pct / 100 du segment couvrant t (cf. LOT 1a-i), ou 0 hors carence / hors
+// fenêtre des segments.
+function tauxMaintienJour(m: MaintienParams, palier: Palier | null, t: number): number {
+  if (!palier || t < m.carenceJours) return 0;
+  const tEffectif = t - m.carenceJours;
+  let debutSegment = 0;
+  for (const seg of palier.segments) {
+    if (tEffectif < debutSegment + seg.jours) return seg.pct / 100;
+    debutSegment += seg.jours;
+  }
+  return 0;
+}
+
+// PLANCHER LÉGAL (LOT 1a-iii). Le maintien réel applique, à CHAQUE jour, le taux
+// le PLUS FAVORABLE parmi les sources fournies (CCN et légal Mensualisation) :
+// taux = max(taux_ccn(t), taux_legal(t)). Fondement : la Mensualisation
+// (L.1226-1 C. trav.) est d'ordre public social — une CCN peut faire mieux,
+// jamais moins ; le salarié bénéficie du plus favorable poste par poste. D'où :
+//   - la CCN gagne tôt (taux plus élevé), le légal gagne tard (durée plus longue) ;
+//   - dans la fenêtre légale mais hors fenêtre CCN, le maintien ne tombe PAS à 0.
+// Comme tout taux ≤ 1 (pct ≤ 100), cible ≤ revenu de référence : le bornage
+// anti-sur-indemnisation (max(0, cible − IJ)) reste appliqué après le max().
 function computeMaintienEmployeur(
   t: number,
-  m: MaintienParams,
-  palier: Palier | null,
+  sources: ReadonlyArray<{ m: MaintienParams; palier: Palier | null }>,
   salaireMensuelCible: number,
   isSalarie: boolean,
   ijObligMensuel: number
 ): number {
-  if (!isSalarie || !palier || t < m.carenceJours) return 0;
-  const tEffectif = t - m.carenceJours;
-
-  // Parcourt les segments dans l'ordre. Chaque segment couvre une fenêtre de
-  // `jours` jours à compter de la fin du précédent ; le taux appliqué vaut
-  // pct / 100 (90/100 = 0,9 exact pour le plein légal ; 66,66.../100 ≈ 2/3).
-  // Hors de tous les segments → plus de maintien (0).
-  let debutSegment = 0;
-  for (const seg of palier.segments) {
-    if (tEffectif < debutSegment + seg.jours) {
-      const cible = salaireMensuelCible * (seg.pct / 100);
-      // Le maintien employeur vient en COMPLÉMENT des IJ obligatoires.
-      return Math.max(0, cible - ijObligMensuel);
-    }
-    debutSegment += seg.jours;
+  if (!isSalarie) return 0;
+  let taux = 0;
+  for (const src of sources) {
+    const tx = tauxMaintienJour(src.m, src.palier, t);
+    if (tx > taux) taux = tx;
   }
-  return 0;
+  if (taux <= 0) return 0;
+  const cible = salaireMensuelCible * taux;
+  // Le maintien employeur vient en COMPLÉMENT des IJ obligatoires.
+  return Math.max(0, cible - ijObligMensuel);
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -1118,6 +1142,16 @@ export function projeterArretMaladie(
     categorieMaintien(entree.statutPro)
   );
   const palier = findPalierMaintien(maintien.paliers, entree.ancienneteMois);
+  // Plancher légal (LOT 1a-iii) : le maintien réel = max(CCN, légal) jour par
+  // jour. On lit aussi le maintien LÉGAL (toujours disponible) et on l'ajoute
+  // comme source de plancher permanent. Si `maintien` est déjà le légal (aucune
+  // CCN), les deux sources coïncident → max(légal, légal) = légal → iso.
+  const maintienLegal = lireMaintienLegal(ref);
+  const palierLegal = findPalierMaintien(maintienLegal.paliers, entree.ancienneteMois);
+  const sourcesMaintien = [
+    { m: maintien, palier },
+    { m: maintienLegal, palier: palierLegal },
+  ];
   const caisseRef = lookupCaisse(entree.caisse, ref);
   const isSalarie = isSalarieOuAssimile(entree.statutPro);
   const isTns = isTNS(entree.statutPro);
@@ -1370,8 +1404,7 @@ export function projeterArretMaladie(
 
       series.maintienEmployeur[i] = computeMaintienEmployeur(
         t,
-        maintien,
-        palier,
+        sourcesMaintien,
         revenuReferenceMensuel,
         isSalarie,
         series.ijObligatoire[i]
