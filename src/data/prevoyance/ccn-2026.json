@@ -32,10 +32,9 @@
       "nom": "Bureaux d'études techniques, cabinets d'ingénieurs-conseils et sociétés de conseils (Syntec)",
       "datesVerification": "2026-05-27",
       "maintienEmployeur": {
-        "carenceJours": "TO_VERIFY",
-        "subrogation": "TO_VERIFY",
-        "paliers": "TO_VERIFY",
-        "note": "TO_VERIFY — paliers Syntec à reprendre intégralement depuis le texte CCN à jour"
+        "cadres": null,
+        "nonCadres": null,
+        "note": "TO_VERIFY — paliers Syntec (cadres ET non-cadres) à reprendre depuis le texte CCN à jour. Forme : { carenceJours, subrogation, paliers:[{ancienneteMois, segments:[{jours,pct}]}] }"
       },
       "prevoyanceCadres": {
         "tauxT1Minimum": 1.50,
@@ -58,7 +57,7 @@
       "idcc": "3248",
       "nom": "Métallurgie (CCN unifiée 2024)",
       "datesVerification": "2026-05-27",
-      "maintienEmployeur": { "TO_FILL": true, "note": "CCN unifiée 2024, barèmes par classes A à I" },
+      "maintienEmployeur": { "cadres": null, "nonCadres": null, "note": "CCN unifiée 2024, barèmes par classes A à I" },
       "prevoyanceCadres": { "TO_FILL": true },
       "prevoyanceNonCadres": { "TO_FILL": true },
       "santeMinimum": { "TO_FILL": true }
@@ -67,7 +66,7 @@
       "idcc": "1979",
       "nom": "Hôtels, cafés, restaurants (HCR)",
       "datesVerification": "2026-05-27",
-      "maintienEmployeur": { "TO_FILL": true },
+      "maintienEmployeur": { "cadres": null, "nonCadres": null },
       "prevoyanceCadres": null,
       "prevoyanceNonCadres": { "TO_FILL": true },
       "santeMinimum": { "TO_FILL": true }
@@ -76,7 +75,7 @@
       "idcc": "1597",
       "nom": "Bâtiment — ouvriers (entreprises occupant plus de 10 salariés)",
       "datesVerification": "2026-05-27",
-      "maintienEmployeur": { "TO_FILL": true },
+      "maintienEmployeur": { "cadres": null, "nonCadres": null },
       "prevoyanceCadres": null,
       "prevoyanceNonCadres": { "TO_FILL": true },
       "santeMinimum": { "TO_FILL": true }
@@ -85,7 +84,7 @@
       "idcc": "1596",
       "nom": "Bâtiment — ouvriers (entreprises occupant jusqu'à 10 salariés)",
       "datesVerification": "2026-05-27",
-      "maintienEmployeur": { "TO_FILL": true },
+      "maintienEmployeur": { "cadres": null, "nonCadres": null },
       "prevoyanceCadres": null,
       "prevoyanceNonCadres": { "TO_FILL": true },
       "santeMinimum": { "TO_FILL": true }
@@ -94,7 +93,7 @@
       "idcc": "2609",
       "nom": "Bâtiment — ETAM (employés, techniciens et agents de maîtrise)",
       "datesVerification": "2026-05-27",
-      "maintienEmployeur": { "TO_FILL": true },
+      "maintienEmployeur": { "cadres": null, "nonCadres": null },
       "prevoyanceCadres": null,
       "prevoyanceNonCadres": { "TO_FILL": true },
       "santeMinimum": { "TO_FILL": true }
@@ -103,7 +102,7 @@
       "idcc": "2420",
       "nom": "Bâtiment — cadres",
       "datesVerification": "2026-05-27",
-      "maintienEmployeur": { "TO_FILL": true },
+      "maintienEmployeur": { "cadres": null, "nonCadres": null },
       "prevoyanceCadres": { "TO_FILL": true },
       "prevoyanceNonCadres": null,
       "santeMinimum": { "TO_FILL": true }
@@ -112,7 +111,7 @@
       "idcc": "1996",
       "nom": "Pharmacie d'officine",
       "datesVerification": "2026-05-27",
-      "maintienEmployeur": { "TO_FILL": true },
+      "maintienEmployeur": { "cadres": null, "nonCadres": null },
       "prevoyanceCadres": { "TO_FILL": true },
       "prevoyanceNonCadres": { "TO_FILL": true },
       "santeMinimum": { "TO_FILL": true }
@@ -121,7 +120,7 @@
       "idcc": "2216",
       "nom": "Commerce de détail et de gros à prédominance alimentaire",
       "datesVerification": "2026-05-27",
-      "maintienEmployeur": { "TO_FILL": true },
+      "maintienEmployeur": { "cadres": null, "nonCadres": null },
       "prevoyanceCadres": { "TO_FILL": true },
       "prevoyanceNonCadres": { "TO_FILL": true },
       "santeMinimum": { "TO_FILL": true }
@@ -130,7 +129,7 @@
       "idcc": "16",
       "nom": "Transports routiers et activités auxiliaires du transport",
       "datesVerification": "2026-05-27",
-      "maintienEmployeur": { "TO_FILL": true },
+      "maintienEmployeur": { "cadres": null, "nonCadres": null },
       "prevoyanceCadres": { "TO_FILL": true },
       "prevoyanceNonCadres": { "TO_FILL": true },
       "santeMinimum": { "TO_FILL": true }

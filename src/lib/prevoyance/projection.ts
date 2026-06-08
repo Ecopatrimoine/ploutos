@@ -87,6 +87,27 @@ function isTNS(s: StatutPro | ""): boolean {
   );
 }
 
+// Catégorie de maintien employeur conventionnel : aiguille vers le sous-bloc
+// maintienEmployeur.cadres ou .nonCadres d'une CCN (LOT 1a-ii). Fonction TOTALE
+// (ne jette jamais) : tout statut non listé retombe sur "nonCadres" — défaut
+// prudent, et de toute façon les non-salariés sont filtrés en amont par
+// isSalarie (le maintien n'est pas calculé pour eux).
+//
+// Choix d'aiguillage des assimilés salariés : president_sas et eurl_unique sont
+// traités comme salariés par isSalarieOuAssimile ; faute de raison contraire
+// dans le code, ils sont routés vers "cadres" par défaut (statut cadre usuel du
+// dirigeant assimilé). fonctionnaire → "nonCadres" (hors CCN privée).
+export function categorieMaintien(statutPro: StatutPro | ""): "cadres" | "nonCadres" {
+  switch (statutPro) {
+    case "salarie_cadre":
+    case "president_sas":
+    case "eurl_unique":
+      return "cadres";
+    default:
+      return "nonCadres";
+  }
+}
+
 function dateAt(start: Date, daysOffset: number): string {
   const d = new Date(start.getTime() + daysOffset * 86400000);
   return d.toISOString().slice(0, 10);
@@ -212,14 +233,27 @@ function lirePaliersCcn(paliersBruts: unknown): Palier[] {
   return out;
 }
 
-function getMaintienParams(idcc: string | null, ref: Referentiels): MaintienParams {
-  // Bloc CCN : données polymorphes (TO_VERIFY / TO_FILL) → lecture défensive.
+export function getMaintienParams(
+  idcc: string | null,
+  ref: Referentiels,
+  categorie: "cadres" | "nonCadres"
+): MaintienParams {
+  // Bloc CCN : données polymorphes (TO_VERIFY / TO_FILL / null) → lecture
+  // défensive. Depuis LOT 1a-ii, maintienEmployeur est différencié par
+  // catégorie : { cadres: <bloc|null>, nonCadres: <bloc|null> }. On lit le
+  // sous-bloc de la catégorie demandée ; s'il est null / absent / sans palier
+  // valide, on retombe sur le maintien légal (useLegalDefault repasse à true).
   if (idcc) {
     const conventions = ref.ccn.conventions as Record<
       string,
-      { maintienEmployeur?: { carenceJours?: unknown; paliers?: unknown } } | undefined
+      {
+        maintienEmployeur?: {
+          cadres?: { carenceJours?: unknown; paliers?: unknown } | null;
+          nonCadres?: { carenceJours?: unknown; paliers?: unknown } | null;
+        };
+      } | undefined
     >;
-    const m = conventions?.[idcc]?.maintienEmployeur;
+    const m = conventions?.[idcc]?.maintienEmployeur?.[categorie];
     const paliers = paliersValides(lirePaliersCcn(m?.paliers));
     const carence = safeNum(m?.carenceJours);
     if (carence !== null && paliers.length > 0) {
@@ -1078,7 +1112,11 @@ export function projeterArretMaladie(
   // 3 étages d'invalidité tombent à 0 (cf. garde-fou en aval de la boucle).
   // Pré-calcul hors boucle, clampé à 0 si la personne a déjà ≥ 62 ans à J0.
   const jourBasculeRetraite = Math.max(0, (AGE_BASCULE_RETRAITE - entree.age) * 365);
-  const maintien = getMaintienParams(entree.idccCCN, ref);
+  const maintien = getMaintienParams(
+    entree.idccCCN,
+    ref,
+    categorieMaintien(entree.statutPro)
+  );
   const palier = findPalierMaintien(maintien.paliers, entree.ancienneteMois);
   const caisseRef = lookupCaisse(entree.caisse, ref);
   const isSalarie = isSalarieOuAssimile(entree.statutPro);

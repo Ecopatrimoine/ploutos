@@ -13,7 +13,11 @@
 
 import { describe, it, expect } from "vitest";
 import { referentiels } from "../data/prevoyance";
-import { projeterArretMaladie } from "../lib/prevoyance/projection";
+import {
+  projeterArretMaladie,
+  categorieMaintien,
+  getMaintienParams,
+} from "../lib/prevoyance/projection";
 import type { EntreePerso } from "../lib/prevoyance/types";
 
 const ccn = referentiels.ccn as any;
@@ -105,6 +109,32 @@ describe("Non-régression maintien légal (segments) — montants au centime", (
     }
     // Garde-fou : le test n'est pas vacant — au moins un maintien > 0 observé.
     expect(vuPositif).toBe(true);
+  });
+});
+
+// ── LOT 1a-ii : maintien employeur différencié par catégorie cadre/non-cadre.
+//    Aucune CCN n'est remplie (tous les sous-blocs maintienEmployeur.{cadres,
+//    nonCadres} = null) → tout le monde retombe sur le maintien légal.
+describe("LOT 1a-ii — catégorie de maintien (cadres / non-cadres)", () => {
+  it("categorieMaintien aiguille les statuts (total, sans throw)", () => {
+    expect(categorieMaintien("salarie_cadre")).toBe("cadres");
+    expect(categorieMaintien("salarie_non_cadre")).toBe("nonCadres");
+    // Assimilés salariés → "cadres" par défaut (choix d'aiguillage 1a-ii).
+    expect(categorieMaintien("president_sas")).toBe("cadres");
+    expect(categorieMaintien("eurl_unique")).toBe("cadres");
+    // Statut non salarié et statut vide → défaut "nonCadres", jamais d'exception.
+    expect(categorieMaintien("tns_liberal")).toBe("nonCadres");
+    expect(categorieMaintien("fonctionnaire")).toBe("nonCadres");
+    expect(categorieMaintien("")).toBe("nonCadres");
+  });
+
+  it("CCN non remplie (cadres/nonCadres = null) → source 'legal' pour les deux catégories", () => {
+    // État actuel de TOUTES les CCN du référentiel : maintienEmployeur.cadres
+    // et .nonCadres valent null → preuve d'iso-comportement (fallback légal).
+    for (const idcc of ["1486", "3248", "1979"]) {
+      expect(getMaintienParams(idcc, referentiels, "cadres").source).toBe("legal");
+      expect(getMaintienParams(idcc, referentiels, "nonCadres").source).toBe("legal");
+    }
   });
 });
 
