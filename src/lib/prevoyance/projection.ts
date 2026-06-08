@@ -58,7 +58,6 @@ const BASCULE_INVALIDITE = 1095;
 // carpimko.com). Distincte des cutoffs caisse-spécifiques (ex. CIPAV
 // partielle 67 ans) : ce garde-fou s'y SUPERPOSE, il ne les remplace pas.
 const AGE_BASCULE_RETRAITE = 62;
-const TAUX_MAINTIEN_PARTIEL = 2 / 3; // 66,66 % — convention L.1226-1
 
 // ────────────────────────────────────────────────────────────────────
 // Helpers
@@ -154,11 +153,14 @@ function insertJoursAxe(axe: AxePoint[], jours: number[], today: Date, finJour: 
 // Maintien employeur (CCN si dispo, sinon maintien légal L.1226-1)
 // ────────────────────────────────────────────────────────────────────
 
+// Segment de maintien à taux libre. `pct` est un POURCENTAGE (0..100) ; le
+// taux réellement appliqué au salaire vaut pct / 100. Les segments d'un palier
+// se suivent dans l'ordre : le 1er couvre [carence, carence + jours0), le 2e
+// la fenêtre suivante, etc. Généralise l'ancien couple plein/66,66 % (LOT 1a-i).
+type SegmentMaintien = { jours: number; pct: number };
 type Palier = {
   ancienneteMois: number;
-  joursA100Pct?: number;   // présent si source = ccn
-  joursA90Pct?: number;    // présent si source = legal
-  joursA6666Pct: number;
+  segments: SegmentMaintien[];
 };
 
 type MaintienParams = {
@@ -167,42 +169,77 @@ type MaintienParams = {
   source: "ccn" | "legal" | "indisponible";
 };
 
+// Garde-fou commun (LOT 1a-i) : un palier n'est retenu que s'il porte ≥ 1
+// segment et que TOUS ses segments sont bien formés — jours fini ≥ 0 et pct
+// dans [0, 100]. Un pct > 100 invalide le palier (on ne sur-indemnise JAMAIS) ;
+// si tous les paliers tombent, le moteur bascule sur le fallback légal — même
+// comportement qu'un ancien palier TO_VERIFY.
+function paliersValides(paliers: Palier[]): Palier[] {
+  return paliers.filter(
+    (p) =>
+      p.segments.length > 0 &&
+      p.segments.every(
+        (s) =>
+          Number.isFinite(s.jours) &&
+          s.jours >= 0 &&
+          Number.isFinite(s.pct) &&
+          s.pct >= 0 &&
+          s.pct <= 100
+      )
+  );
+}
+
+// Lecture défensive d'un tableau de paliers de maintien CCN
+// (conventions[idcc].maintienEmployeur.paliers) — données VOLONTAIREMENT
+// polymorphes tant que les CCN ne sont pas remplies (TO_VERIFY / TO_FILL).
+// Renvoie des paliers candidats, non encore filtrés par paliersValides.
+function lirePaliersCcn(paliersBruts: unknown): Palier[] {
+  if (!Array.isArray(paliersBruts)) return [];
+  const out: Palier[] = [];
+  for (const p of paliersBruts) {
+    const anciennete = safeNum(p?.ancienneteMois);
+    const segs = p?.segments;
+    if (anciennete === null || !Array.isArray(segs)) continue;
+    const segments: SegmentMaintien[] = [];
+    for (const s of segs) {
+      const jours = safeNum(s?.jours);
+      const pct = safeNum(s?.pct);
+      if (jours === null || pct === null) continue;
+      segments.push({ jours, pct });
+    }
+    if (segments.length > 0) out.push({ ancienneteMois: anciennete, segments });
+  }
+  return out;
+}
+
 function getMaintienParams(idcc: string | null, ref: Referentiels): MaintienParams {
-  const ccn = ref.ccn as any;
+  // Bloc CCN : données polymorphes (TO_VERIFY / TO_FILL) → lecture défensive.
   if (idcc) {
-    const conv = ccn?.conventions?.[idcc];
-    const m = conv?.maintienEmployeur;
-    if (m && Array.isArray(m.paliers)) {
-      const paliers: Palier[] = m.paliers
-        .filter(
-          (p: any) =>
-            safeNum(p?.ancienneteMois) !== null &&
-            safeNum(p?.joursA6666Pct) !== null &&
-            (safeNum(p?.joursA100Pct) !== null || safeNum(p?.joursA90Pct) !== null)
-        )
-        .map((p: any) => ({
-          ancienneteMois: p.ancienneteMois,
-          joursA100Pct: safeNum(p.joursA100Pct) ?? undefined,
-          joursA90Pct: safeNum(p.joursA90Pct) ?? undefined,
-          joursA6666Pct: p.joursA6666Pct,
-        }));
-      const carence = safeNum(m.carenceJours);
-      if (carence !== null && paliers.length > 0) {
-        return { carenceJours: carence, paliers, source: "ccn" };
-      }
+    const conventions = ref.ccn.conventions as Record<
+      string,
+      { maintienEmployeur?: { carenceJours?: unknown; paliers?: unknown } } | undefined
+    >;
+    const m = conventions?.[idcc]?.maintienEmployeur;
+    const paliers = paliersValides(lirePaliersCcn(m?.paliers));
+    const carence = safeNum(m?.carenceJours);
+    if (carence !== null && paliers.length > 0) {
+      return { carenceJours: carence, paliers, source: "ccn" };
     }
   }
-  // Fallback légal Mensualisation
-  const legal = ccn?.maintienLegal;
-  if (legal && Array.isArray(legal.paliers)) {
-    const paliers: Palier[] = legal.paliers.map((p: any) => ({
+  // Fallback légal Mensualisation. Bloc TYPÉ via l'import JSON (plus de `any`) :
+  // tout renommage de maintienLegal / paliers / segments / jours / pct casse
+  // désormais à la COMPILATION, et non plus silencieusement à l'exécution.
+  const legal = ref.ccn.maintienLegal;
+  const paliersLegal = paliersValides(
+    legal.paliers.map((p) => ({
       ancienneteMois: p.ancienneteMois,
-      joursA90Pct: p.joursA90Pct,
-      joursA6666Pct: p.joursA6666Pct,
-    }));
+      segments: p.segments.map((s) => ({ jours: s.jours, pct: s.pct })),
+    }))
+  );
+  if (paliersLegal.length > 0) {
     return {
       carenceJours: safeNum(legal.carenceJours) ?? 7,
-      paliers,
+      paliers: paliersLegal,
       source: "legal",
     };
   }
@@ -231,11 +268,16 @@ function joursRupturesMaintien(
   palier: Palier | null,
   isSalarie: boolean
 ): { finPlein: number | null; finPartiel: number | null } {
-  if (!isSalarie || !palier) return { finPlein: null, finPartiel: null };
-  const joursPlein = palier.joursA100Pct ?? palier.joursA90Pct ?? 0;
-  const jours6666 = palier.joursA6666Pct;
+  if (!isSalarie || !palier || palier.segments.length === 0) {
+    return { finPlein: null, finPartiel: null };
+  }
+  // finPlein = fin du 1er segment (taux plein) ; finPartiel = fin du dernier
+  // segment (fin du maintien). Conserve le modèle à 2 ruptures du légal (plein
+  // puis 66,66 %), tout en restant correct pour des paliers à N segments.
+  const joursPlein = palier.segments[0]?.jours ?? 0;
+  const joursTotal = palier.segments.reduce((acc, s) => acc + s.jours, 0);
   const finPlein = joursPlein > 0 ? m.carenceJours + joursPlein : null;
-  const finPartiel = jours6666 > 0 ? m.carenceJours + joursPlein + jours6666 : null;
+  const finPartiel = joursTotal > joursPlein ? m.carenceJours + joursTotal : null;
   return { finPlein, finPartiel };
 }
 
@@ -249,21 +291,21 @@ function computeMaintienEmployeur(
 ): number {
   if (!isSalarie || !palier || t < m.carenceJours) return 0;
   const tEffectif = t - m.carenceJours;
-  const joursPlein = palier.joursA100Pct ?? palier.joursA90Pct ?? 0;
-  const jours6666 = palier.joursA6666Pct;
 
-  let cible = 0;
-  if (tEffectif < joursPlein) {
-    // CCN : 100 % du net. Légal : 90 % du brut (approxé via salaireMensuelCible).
-    const tauxPlein = palier.joursA100Pct !== undefined ? 1.0 : 0.9;
-    cible = salaireMensuelCible * tauxPlein;
-  } else if (tEffectif < joursPlein + jours6666) {
-    cible = salaireMensuelCible * TAUX_MAINTIEN_PARTIEL;
-  } else {
-    return 0;
+  // Parcourt les segments dans l'ordre. Chaque segment couvre une fenêtre de
+  // `jours` jours à compter de la fin du précédent ; le taux appliqué vaut
+  // pct / 100 (90/100 = 0,9 exact pour le plein légal ; 66,66.../100 ≈ 2/3).
+  // Hors de tous les segments → plus de maintien (0).
+  let debutSegment = 0;
+  for (const seg of palier.segments) {
+    if (tEffectif < debutSegment + seg.jours) {
+      const cible = salaireMensuelCible * (seg.pct / 100);
+      // Le maintien employeur vient en COMPLÉMENT des IJ obligatoires.
+      return Math.max(0, cible - ijObligMensuel);
+    }
+    debutSegment += seg.jours;
   }
-  // Le maintien employeur vient en COMPLÉMENT des IJ obligatoires.
-  return Math.max(0, cible - ijObligMensuel);
+  return 0;
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -957,12 +999,13 @@ function detectRuptures(
   // figure → garantit qu'aucune rupture n'est orpheline hors de l'axe.
   const { finPlein, finPartiel } = joursRupturesMaintien(maintien, palier, isSalarie);
   if (finPlein !== null && joursAxe.has(finPlein) && palier) {
+    const pctPlein = palier.segments[0]?.pct ?? 0;
     ruptures.push({
       jour: finPlein,
       libelle:
-        palier.joursA100Pct !== undefined
+        pctPlein >= 100
           ? "Fin du maintien employeur à taux plein (100 %)"
-          : "Fin du maintien employeur à 90 %",
+          : `Fin du maintien employeur à ${pctPlein} %`,
       impactNet: 0,
       type: "fin_maintien_100",
     });

@@ -16,15 +16,15 @@
       "max": 30
     },
     "paliers": [
-      { "ancienneteMois": 12,  "joursA90Pct": 30,  "joursA6666Pct": 30 },
-      { "ancienneteMois": 72,  "joursA90Pct": 40,  "joursA6666Pct": 40 },
-      { "ancienneteMois": 132, "joursA90Pct": 50,  "joursA6666Pct": 50 },
-      { "ancienneteMois": 192, "joursA90Pct": 60,  "joursA6666Pct": 60 },
-      { "ancienneteMois": 252, "joursA90Pct": 70,  "joursA6666Pct": 70 },
-      { "ancienneteMois": 312, "joursA90Pct": 80,  "joursA6666Pct": 80 },
-      { "ancienneteMois": 372, "joursA90Pct": 90,  "joursA6666Pct": 90 }
+      { "ancienneteMois": 12,  "segments": [ { "jours": 30, "pct": 90 }, { "jours": 30, "pct": 66.66666666666667 } ] },
+      { "ancienneteMois": 72,  "segments": [ { "jours": 40, "pct": 90 }, { "jours": 40, "pct": 66.66666666666667 } ] },
+      { "ancienneteMois": 132, "segments": [ { "jours": 50, "pct": 90 }, { "jours": 50, "pct": 66.66666666666667 } ] },
+      { "ancienneteMois": 192, "segments": [ { "jours": 60, "pct": 90 }, { "jours": 60, "pct": 66.66666666666667 } ] },
+      { "ancienneteMois": 252, "segments": [ { "jours": 70, "pct": 90 }, { "jours": 70, "pct": 66.66666666666667 } ] },
+      { "ancienneteMois": 312, "segments": [ { "jours": 80, "pct": 90 }, { "jours": 80, "pct": 66.66666666666667 } ] },
+      { "ancienneteMois": 372, "segments": [ { "jours": 90, "pct": 90 }, { "jours": 90, "pct": 66.66666666666667 } ] }
     ],
-    "note": "Maintien LÉGAL minimal — toute CCN qui fixe mieux s'applique en priorité."
+    "note": "Maintien LÉGAL minimal — toute CCN qui fixe mieux s'applique en priorité. Paliers en SEGMENTS à taux libre : pct en %, taux appliqué = pct/100 (plein 90 %, partiel 66,66666666666667 % = 2/3 au centime) — LOT 1a-i."
   },
   "conventions": {
     "1486": {

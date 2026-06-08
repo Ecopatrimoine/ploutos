@@ -13,6 +13,8 @@
 
 import { describe, it, expect } from "vitest";
 import { referentiels } from "../data/prevoyance";
+import { projeterArretMaladie } from "../lib/prevoyance/projection";
+import type { EntreePerso } from "../lib/prevoyance/types";
 
 const ccn = referentiels.ccn as any;
 const conventions = ccn.conventions;
@@ -28,9 +30,81 @@ describe("G3 — Maintien légal Mensualisation (ferme, actif)", () => {
     expect(p[0].ancienneteMois).toBe(12);
     expect(p[6].ancienneteMois).toBe(372);
   });
-  it("palier 1 an : 30 j à 90 % puis 30 j à 66,66 %", () => {
-    expect(ccn.maintienLegal.paliers[0].joursA90Pct).toBe(30);
-    expect(ccn.maintienLegal.paliers[0].joursA6666Pct).toBe(30);
+  it("palier 1 an : 30 j à 90 % puis 30 j à 66,66 % (segments)", () => {
+    const segments = ccn.maintienLegal.paliers[0].segments;
+    expect(segments).toHaveLength(2);
+    // 1er segment : 30 jours à taux plein 90 % (90/100 = 0,9 exact).
+    expect(segments[0].jours).toBe(30);
+    expect(segments[0].pct).toBe(90);
+    // 2e segment : 30 jours à 66,66 % — pct/100 reproduit 2/3 au centime.
+    expect(segments[1].jours).toBe(30);
+    expect(segments[1].pct / 100).toBeCloseTo(2 / 3, 10);
+  });
+});
+
+// ── Non-régression LOT 1a-i : la migration des paliers légaux vers des
+//    segments à taux libre ne change AUCUN montant de maintien (au centime).
+//    On compare la série produite par le moteur à un calcul de référence
+//    utilisant les taux d'AVANT migration : plein 90 % et partiel 2/3.
+describe("Non-régression maintien légal (segments) — montants au centime", () => {
+  const CARENCE_LEGALE = 7;
+  const TAUX_PLEIN_LEGAL = 0.9;
+  const TAUX_PARTIEL_LEGAL = 2 / 3;
+
+  // Paliers légaux de référence (ccn-2026.json maintienLegal, Mensualisation) :
+  // ancienneté (mois) → [jours plein, jours partiel].
+  function refPalier(ancienneteMois: number): { plein: number; partiel: number } | null {
+    if (ancienneteMois >= 372) return { plein: 90, partiel: 90 };
+    if (ancienneteMois >= 312) return { plein: 80, partiel: 80 };
+    if (ancienneteMois >= 252) return { plein: 70, partiel: 70 };
+    if (ancienneteMois >= 192) return { plein: 60, partiel: 60 };
+    if (ancienneteMois >= 132) return { plein: 50, partiel: 50 };
+    if (ancienneteMois >= 72) return { plein: 40, partiel: 40 };
+    if (ancienneteMois >= 12) return { plein: 30, partiel: 30 };
+    return null; // moins d'un an d'ancienneté → pas de maintien légal
+  }
+
+  // Reproduit le calcul d'AVANT migration : cible = revenu × taux, puis
+  // complément des IJ obligatoires (Math.max(0, cible − IJ)).
+  function maintienAttendu(
+    jour: number,
+    pal: { plein: number; partiel: number } | null,
+    revenuRef: number,
+    ijOblMensuel: number
+  ): number {
+    if (!pal || jour < CARENCE_LEGALE) return 0;
+    const tEff = jour - CARENCE_LEGALE;
+    let cible: number;
+    if (tEff < pal.plein) cible = revenuRef * TAUX_PLEIN_LEGAL;
+    else if (tEff < pal.plein + pal.partiel) cible = revenuRef * TAUX_PARTIEL_LEGAL;
+    else return 0;
+    return Math.max(0, cible - ijOblMensuel);
+  }
+
+  it("LOT 1a-i — montants de maintien légal inchangés au centime (anciennetés 0..120 mois)", () => {
+    let vuPositif = false;
+    for (const ancienneteMois of [0, 6, 12, 60, 120]) {
+      const e: EntreePerso = {
+        age: 40, ageRetraite: 64, statutPro: "salarie_non_cadre", caisse: "CPAM",
+        idccCCN: null, ancienneteMois, salaireBrutAnnuel: 60000,
+        salaireNetMensuel: 0, contratsIndividuels: [], couvertureCollective: null,
+      };
+      const r = projeterArretMaladie(e, "cat2", referentiels);
+      const pal = refPalier(ancienneteMois);
+      for (let i = 0; i < r.axe.length; i++) {
+        if (r.axe[i].phase !== "am") continue; // le maintien n'existe qu'en phase AM
+        const attendu = maintienAttendu(
+          r.axe[i].jour,
+          pal,
+          r.revenuReferenceMensuel,
+          r.series.ijObligatoire[i]
+        );
+        expect(r.series.maintienEmployeur[i]).toBeCloseTo(attendu, 2);
+        if (r.series.maintienEmployeur[i] > 0) vuPositif = true;
+      }
+    }
+    // Garde-fou : le test n'est pas vacant — au moins un maintien > 0 observé.
+    expect(vuPositif).toBe(true);
   });
 });
 

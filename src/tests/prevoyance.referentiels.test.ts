@@ -148,7 +148,8 @@ describe("ccn-2026.json", () => {
     const paliers = k.maintienLegal.paliers;
     for (let i = 1; i < paliers.length; i++) {
       expect(paliers[i].ancienneteMois).toBeGreaterThan(paliers[i - 1].ancienneteMois);
-      expect(paliers[i].joursA90Pct).toBeGreaterThan(paliers[i - 1].joursA90Pct);
+      // Durée du 1er segment (taux plein, ex-joursA90Pct) croissante.
+      expect(paliers[i].segments[0].jours).toBeGreaterThan(paliers[i - 1].segments[0].jours);
     }
   });
 
