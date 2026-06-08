@@ -161,10 +161,11 @@ describe("projeterArretMaladie — fallback maintien légal", () => {
     expect(r.useLegalDefault).toBe(false);
   });
 
-  it("Syntec (1486) actuellement TO_VERIFY → tombe sur le maintien légal en pratique", () => {
-    // Tant que le palier Syntec est TO_VERIFY dans le référentiel, le
-    // moteur retombe sur le maintien légal Mensualisation.
-    const r = projeterArretMaladie(baseEntree({ idccCCN: "1486" }), "cat2", referentiels);
+  it("CCN au maintien non documenté (3248 TO_FILL) → tombe sur le maintien légal en pratique", () => {
+    // Une CCN présente mais dont le maintien n'est pas renseigné (cadres/
+    // nonCadres = null, ex. 3248) retombe sur le maintien légal Mensualisation.
+    // (Syntec/1486 est désormais documenté → produit "ccn", testé ailleurs.)
+    const r = projeterArretMaladie(baseEntree({ idccCCN: "3248" }), "cat2", referentiels);
     expect(r.useLegalDefault).toBe(true);
   });
 

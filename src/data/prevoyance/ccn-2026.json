@@ -30,11 +30,24 @@
     "1486": {
       "idcc": "1486",
       "nom": "Bureaux d'études techniques, cabinets d'ingénieurs-conseils et sociétés de conseils (Syntec)",
-      "datesVerification": "2026-05-27",
+      "datesVerification": "2026-06-08",
       "maintienEmployeur": {
-        "cadres": null,
-        "nonCadres": null,
-        "note": "TO_VERIFY — paliers Syntec (cadres ET non-cadres) à reprendre depuis le texte CCN à jour. Forme : { carenceJours, subrogation, paliers:[{ancienneteMois, segments:[{jours,pct}]}] }"
+        "cadres": {
+          "carenceJours": 0,
+          "subrogation": false,
+          "paliers": [
+            { "ancienneteMois": 12, "segments": [ { "jours": 90, "pct": 100 } ] }
+          ]
+        },
+        "nonCadres": {
+          "carenceJours": 0,
+          "subrogation": false,
+          "paliers": [
+            { "ancienneteMois": 12, "segments": [ { "jours": 30, "pct": 100 }, { "jours": 60, "pct": 80 } ] },
+            { "ancienneteMois": 60, "segments": [ { "jours": 60, "pct": 100 }, { "jours": 30, "pct": 80 } ] }
+          ]
+        },
+        "note": "maintien art 9.2 CCN Syntec, Legifrance avenant 46 16/07/2021 etendu 05/04/2023, verifie 2026-06-08"
       },
       "prevoyanceCadres": {
         "tauxT1Minimum": 1.50,

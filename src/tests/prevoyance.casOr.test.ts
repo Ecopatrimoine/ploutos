@@ -86,8 +86,8 @@ describe("Cas d'or A — Mathieu, salarié cadre Syntec (CPAM / IDCC 1486)", () 
     expect(r.rupturesCles.some((rc) => rc.type === "bascule_invalidite")).toBe(true);
   });
 
-  it("Syntec actuellement TO_VERIFY → fallback maintien légal (useLegalDefault=true)", () => {
-    expect(r.useLegalDefault).toBe(true);
+  it("Syntec (1486) documenté → maintien CCN appliqué (useLegalDefault=false)", () => {
+    expect(r.useLegalDefault).toBe(false);
   });
 
   it("CPAM : IJ obligatoire plafonnée à 41,95 €/j (×30 ≈ 1258,5 €/mois) car brut > 1,4 SMIC", () => {
@@ -103,17 +103,18 @@ describe("Cas d'or A — Mathieu, salarié cadre Syntec (CPAM / IDCC 1486)", () 
     expect(r.donneesCaisseIndisponibles).toBe(false);
   });
 
-  it("maintien Mensualisation actif en phase 90 % (J7) et 66,66 % (J60), terminé après le palier (J90)", () => {
+  it("maintien Syntec cadres : 100 % sur 90 jours (carence 0), terminé à J90", () => {
     const j7 = idxJour(r.axe, 7);
     const j60 = idxJour(r.axe, 60);
     const j90 = idxJour(r.axe, 90);
-    // J7 : phase 90 % → maintien complémentaire > 0 (cible 90 % > IJ obl).
+    // Syntec cadres : 90 j à 100 % dès 1 an, carence 0 → maintien complémentaire
+    // (cible 100 % du revenu de référence − IJ obligatoire plafonnée ≈ 1258,5 €).
     expect(r.series.maintienEmployeur[j7]).toBeGreaterThan(0);
-    // J60 : phase 66,66 % → désormais > 0 (l'IJ CPAM est plafonnée à
-    // ≈ 1258,5 €, sous la cible 66,66 % du revenu de référence 3437,5 €).
-    expect(r.series.maintienEmployeur[j60]).toBeGreaterThan(0);
-    expect(r.series.maintienEmployeur[j60]).toBeLessThan(r.series.maintienEmployeur[j7]);
-    // J90 : palier terminé (fin à J67) → plus de maintien.
+    // Même taux (100 %) à J7 et J60 : plus de marche 90 → 66,66 % (la CCN
+    // domine le légal sur toute la fenêtre).
+    expect(r.series.maintienEmployeur[j60]).toBeCloseTo(r.series.maintienEmployeur[j7], 2);
+    // J90 : fin des 90 jours Syntec ; à l'ancienneté de Mathieu (48 mois) le
+    // légal s'est arrêté avant (palier 12 mois → J67) → plus de maintien.
     expect(r.series.maintienEmployeur[j90]).toBe(0);
   });
 
@@ -505,11 +506,15 @@ describe("Robustesse — variations sur cas A", () => {
   });
 
   it("contrat IJ sans franchise (par défaut 0) actif dès J0", () => {
+    // Syntec cadre couvre déjà 100 % dès J0 (carence 0) ; un contrat IJ
+    // FORFAITAIRE sans franchise est néanmoins versé en plein dès J0 (les
+    // forfaitaires se cumulent au-delà de 100 % — cf. SURCOUV). On vérifie ici
+    // la prise en compte de la franchise par défaut (0 → actif à J0).
     const r = projeterArretMaladie(
       {
         ...casA,
         contratsIndividuels: [
-          { id: "ij1", type: "ij", capitalOuMontant: 50, plafondJoursIJ: 1095 },
+          { id: "ij1", type: "ij", nature: "forfaitaire", capitalOuMontant: 50, plafondJoursIJ: 1095 },
         ],
       },
       "cat2",

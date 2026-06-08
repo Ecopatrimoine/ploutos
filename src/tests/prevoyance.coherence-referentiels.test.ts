@@ -41,11 +41,36 @@ describe("G4 — Cohérence inter-référentiels", () => {
     expect(Math.max(...r.series.maintienEmployeur)).toBeGreaterThan(0);
   });
 
-  // G4a-bis — comparaison paliers CCN >= légal : à activer quand une CCN
-  // aura des paliers fermes dans ccn-2026.json (aujourd'hui TO_VERIFY/TO_FILL).
-  it.skip("G4a-bis — toute CCN documentée offre un maintien >= maintien légal — TO_VERIFY (paliers CCN à remplir)", () => {
-    // À activer après remplissage des paliers Syntec/Métallurgie/etc.
-    expect(true).toBe(true);
+  // G4a-bis — avec le plancher légal (LOT 1a-iii), une CCN documentée offre un
+  // maintien EFFECTIF max(CCN, légal) >= maintien légal seul, JOUR PAR JOUR
+  // (par construction). Vérifié sur Syntec (1486), seule CCN remplie, pour les
+  // deux catégories et plusieurs anciennetés (dont 16 ans, où la durée légale
+  // dépasse la durée CCN → le relais légal garantit l'inégalité).
+  it("G4a-bis — maintien Syntec (effectif) >= maintien légal seul, jour par jour", () => {
+    const cas: Array<{ statutPro: EntreePerso["statutPro"]; ancienneteMois: number }> = [
+      { statutPro: "salarie_cadre", ancienneteMois: 12 },
+      { statutPro: "salarie_cadre", ancienneteMois: 192 },
+      { statutPro: "salarie_non_cadre", ancienneteMois: 24 },
+      { statutPro: "salarie_non_cadre", ancienneteMois: 120 },
+    ];
+    for (const c of cas) {
+      const base: EntreePerso = {
+        age: 40, ageRetraite: 64, statutPro: c.statutPro, caisse: "CPAM",
+        idccCCN: "1486", ancienneteMois: c.ancienneteMois, salaireBrutAnnuel: 60000,
+        salaireNetMensuel: 0, contratsIndividuels: [], couvertureCollective: null,
+      };
+      const rCcn = projeterArretMaladie(base, "cat2", referentiels);
+      const rLegal = projeterArretMaladie({ ...base, idccCCN: null }, "cat2", referentiels);
+      // Axes potentiellement différents (marches CCN) → comparer par jour.
+      const legalParJour = new Map<number, number>();
+      rLegal.axe.forEach((p, i) => legalParJour.set(p.jour, rLegal.series.maintienEmployeur[i]));
+      for (let i = 0; i < rCcn.axe.length; i++) {
+        if (rCcn.axe[i].phase !== "am") continue;
+        const legalVal = legalParJour.get(rCcn.axe[i].jour);
+        if (legalVal === undefined) continue; // jour absent de l'axe légal
+        expect(rCcn.series.maintienEmployeur[i]).toBeGreaterThanOrEqual(legalVal - EPS);
+      }
+    }
   });
 
   // G4b — aucune IJ obligatoire ne dépasse le revenu de référence

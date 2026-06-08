@@ -129,29 +129,121 @@ describe("LOT 1a-ii — catégorie de maintien (cadres / non-cadres)", () => {
   });
 
   it("CCN non remplie (cadres/nonCadres = null) → source 'legal' pour les deux catégories", () => {
-    // État actuel de TOUTES les CCN du référentiel : maintienEmployeur.cadres
-    // et .nonCadres valent null → preuve d'iso-comportement (fallback légal).
-    for (const idcc of ["1486", "3248", "1979"]) {
+    // CCN encore NON remplies (hors Syntec/1486 désormais documenté) :
+    // maintienEmployeur.cadres et .nonCadres valent null → fallback légal.
+    for (const idcc of ["3248", "1979", "1996"]) {
       expect(getMaintienParams(idcc, referentiels, "cadres").source).toBe("legal");
       expect(getMaintienParams(idcc, referentiels, "nonCadres").source).toBe("legal");
     }
   });
 });
 
-// ── Syntec (1486) — référence T1, subrogation ──
-describe.skip("G3 — Syntec (IDCC 1486) (à activer après remplissage paliers)", () => {
+// ── Syntec (1486) — maintien employeur cadres / non-cadres encodé (LOT 1b) ──
+describe("G3 — Syntec (IDCC 1486) — maintien employeur encodé", () => {
   const syntec = conventions["1486"];
+  const me = syntec.maintienEmployeur;
+
   it("taux T1 prévoyance cadres >= 1,50 %", () => {
     expect(syntec.prevoyanceCadres.tauxT1Minimum).toBeGreaterThanOrEqual(1.5);
   });
-  it("carence employeur 0 (subrogation)", () => {
-    expect(syntec.maintienEmployeur.carenceJours).toBe(0);
-    expect(syntec.maintienEmployeur.subrogation).toBe(true);
+
+  it("carence employeur 0 pour les deux catégories", () => {
+    expect(me.cadres.carenceJours).toBe(0);
+    expect(me.nonCadres.carenceJours).toBe(0);
   });
-  it("maintien Syntec >= maintien légal Mensualisation (à ancienneté égale)", () => {
-    // Comparaison palier à palier à activer quand les paliers Syntec
-    // seront renseignés (jours à 100 % et 66 %).
-    expect(Array.isArray(syntec.maintienEmployeur.paliers)).toBe(true);
+
+  it("champ subrogation présent (booléen — non asserté à true)", () => {
+    expect(typeof me.cadres.subrogation).toBe("boolean");
+    expect(typeof me.nonCadres.subrogation).toBe("boolean");
+  });
+
+  it("cadres : 90 jours à 100 % dès 1 an", () => {
+    expect(me.cadres.paliers[0].ancienneteMois).toBe(12);
+    expect(me.cadres.paliers[0].segments).toEqual([{ jours: 90, pct: 100 }]);
+  });
+
+  it("non-cadres : palier 12 mois [30@100, 60@80], palier 60 mois [60@100, 30@80]", () => {
+    const p = me.nonCadres.paliers;
+    expect(p[0].ancienneteMois).toBe(12);
+    expect(p[0].segments).toEqual([{ jours: 30, pct: 100 }, { jours: 60, pct: 80 }]);
+    expect(p[1].ancienneteMois).toBe(60);
+    expect(p[1].segments).toEqual([{ jours: 60, pct: 100 }, { jours: 30, pct: 80 }]);
+  });
+});
+
+// ── Syntec (1486) — maintien effectif côté MOTEUR (valeur + plancher/ruptures) ──
+describe("LOT 1b — Syntec (1486) : maintien effectif (moteur)", () => {
+  function entree(over: Partial<EntreePerso>): EntreePerso {
+    return {
+      age: 40, ageRetraite: 64, statutPro: "salarie_cadre", caisse: "CPAM",
+      idccCCN: "1486", ancienneteMois: 12, salaireBrutAnnuel: 60000,
+      salaireNetMensuel: 0, contratsIndividuels: [], couvertureCollective: null,
+      ...over,
+    };
+  }
+  const jourIdx = (res: ReturnType<typeof projeterArretMaladie>, j: number) =>
+    res.axe.findIndex((p) => p.jour === j);
+
+  it("bascule legal→ccn : cadre 1486 → source 'ccn' carence 0 ; sans idcc → 'legal' carence 7", () => {
+    const ccnCadres = getMaintienParams("1486", referentiels, "cadres");
+    expect(ccnCadres.source).toBe("ccn");
+    expect(ccnCadres.carenceJours).toBe(0);
+    const ccnNonCadres = getMaintienParams("1486", referentiels, "nonCadres");
+    expect(ccnNonCadres.source).toBe("ccn");
+    expect(ccnNonCadres.carenceJours).toBe(0);
+    // Sans idcc → légal (carence 7).
+    const legal = getMaintienParams(null, referentiels, "cadres");
+    expect(legal.source).toBe("legal");
+    expect(legal.carenceJours).toBe(7);
+  });
+
+  it("cadre 1486 : 100 % sur la fenêtre, strictement > au légal seul (66,66 % à J60)", () => {
+    const r = projeterArretMaladie(entree({ statutPro: "salarie_cadre", ancienneteMois: 12 }), "cat2", referentiels);
+    const ref = r.revenuReferenceMensuel;
+    const i60 = jourIdx(r, 60);
+    // Syntec cadre : 90 j à 100 % → maintien = max(0, ref×1 − IJ).
+    expect(r.series.maintienEmployeur[i60]).toBeCloseTo(
+      Math.max(0, ref * 1.0 - r.series.ijObligatoire[i60]), 2
+    );
+    // Comparateur légal seul (sans idcc) : à J60 le légal est à 66,66 % → Syntec > légal.
+    const rLegal = projeterArretMaladie(entree({ statutPro: "salarie_cadre", ancienneteMois: 12, idccCCN: null }), "cat2", referentiels);
+    const i60L = jourIdx(rLegal, 60);
+    expect(r.series.maintienEmployeur[i60]).toBeGreaterThan(rLegal.series.maintienEmployeur[i60L]);
+  });
+
+  it("non-cadre 1486 (anc 24 mois) : 100 % (J14) puis 80 % (J60)", () => {
+    const r = projeterArretMaladie(entree({ statutPro: "salarie_non_cadre", ancienneteMois: 24 }), "cat2", referentiels);
+    const ref = r.revenuReferenceMensuel;
+    const i14 = jourIdx(r, 14), i60 = jourIdx(r, 60);
+    expect(r.series.maintienEmployeur[i14]).toBeCloseTo(
+      Math.max(0, ref * 1.0 - r.series.ijObligatoire[i14]), 2
+    );
+    expect(r.series.maintienEmployeur[i60]).toBeCloseTo(
+      Math.max(0, ref * 0.8 - r.series.ijObligatoire[i60]), 2
+    );
+  });
+
+  it("plancher + ruptures : cadre 1486 ~16 ans → relais légal à J90 (valeur > 0), fin RÉELLE à J127", () => {
+    // Ancienneté 192 mois → palier légal 192 (carence 7 : 60 j @90 %, 60 j @66,66 %
+    // → fin légale J127). CCN cadre : 90 j @100 % (fin J90). Effectif : 100 %
+    // (J0–90) → 66,66 % (J90–127) → 0.
+    const r = projeterArretMaladie(entree({ statutPro: "salarie_cadre", ancienneteMois: 192 }), "cat2", referentiels);
+    const ref = r.revenuReferenceMensuel;
+    // (a) la valeur ne tombe PAS à 0 à J90 : relais légal 66,66 %.
+    const i90 = jourIdx(r, 90);
+    expect(r.series.maintienEmployeur[i90]).toBeGreaterThan(0);
+    expect(r.series.maintienEmployeur[i90]).toBeCloseTo(
+      Math.max(0, ref * (2 / 3) - r.series.ijObligatoire[i90]), 2
+    );
+    // (b) à J90 : marche de baisse (100→66,66), PAS une fin de maintien.
+    const rupt90 = r.rupturesCles.find((rc) => rc.jour === 90);
+    expect(rupt90?.type).toBe("fin_maintien_100");
+    expect(r.rupturesCles.some((rc) => rc.jour === 90 && rc.type === "fin_maintien_6666")).toBe(false);
+    // (c) fin RÉELLE du maintien à J127 (carence 7 + 120 j légaux), pas avant.
+    const fin = r.rupturesCles.find((rc) => rc.type === "fin_maintien_6666");
+    expect(fin?.jour).toBe(7 + 120);
+    const i127 = jourIdx(r, 127);
+    expect(r.series.maintienEmployeur[i127]).toBe(0);
   });
 });
 

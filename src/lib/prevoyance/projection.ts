@@ -303,25 +303,57 @@ function findPalierMaintien(paliers: Palier[], ancienneteMois: number): Palier |
   return best;
 }
 
-// Jours « événements » de fin de maintien employeur (taux plein puis
-// 66,66 %). Calculés une seule fois et partagés entre l'insertion dans
-// l'axe (pour annoter la marche) et detectRuptures (pour le libellé).
-function joursRupturesMaintien(
-  m: MaintienParams,
-  palier: Palier | null,
+// Marche DESCENDANTE de la courbe de maintien EFFECTIVE max(CCN, légal).
+type MarcheMaintien = { jour: number; tauxAvant: number; tauxApres: number };
+
+// Formate un taux (0..1) en pourcentage lisible, virgule française : entier si
+// proche d'un entier (90, 80, 100), sinon 2 décimales tronquées (66,66 pour
+// 2/3). Purement cosmétique (libellés de rupture) — aucun test n'en dépend.
+function formatPctMaintien(taux: number): string {
+  const pct = taux * 100;
+  const arrondi = Math.round(pct);
+  const val = Math.abs(pct - arrondi) < 1e-6 ? arrondi : Math.trunc(pct * 100) / 100;
+  return String(val).replace(".", ",");
+}
+
+// Marches descendantes de la courbe de maintien EFFECTIVE max(CCN, légal)
+// (LOT 1b). Énumère les jours-frontières des DEUX sources (carence + fins de
+// segments cumulées), évalue le taux effectif de part et d'autre, et renvoie
+// chaque BAISSE de taux { jour, tauxAvant, tauxApres }. Réutilisé par
+// detectRuptures (libellés) ET par l'insertion des marches dans l'axe — la
+// logique du max() n'est PAS dupliquée (tauxMaintienEffectif).
+//
+// Réduction au cas légal (aucune CCN) : les frontières sont celles du seul
+// palier légal → on retrouve EXACTEMENT les 2 marches d'avant (fin du plein,
+// puis fin du maintien). La dernière marche (tauxApres === 0) marque la fin
+// RÉELLE de la courbe → jamais de fin prématurée quand le légal relaie la CCN.
+function marchesMaintienEffectif(
+  sources: ReadonlyArray<SourceMaintien>,
   isSalarie: boolean
-): { finPlein: number | null; finPartiel: number | null } {
-  if (!isSalarie || !palier || palier.segments.length === 0) {
-    return { finPlein: null, finPartiel: null };
+): MarcheMaintien[] {
+  if (!isSalarie) return [];
+  const frontieres = new Set<number>();
+  for (const { m, palier } of sources) {
+    if (!palier || palier.segments.length === 0) continue;
+    let cumul = m.carenceJours;
+    frontieres.add(cumul);
+    for (const seg of palier.segments) {
+      cumul += seg.jours;
+      frontieres.add(cumul);
+    }
   }
-  // finPlein = fin du 1er segment (taux plein) ; finPartiel = fin du dernier
-  // segment (fin du maintien). Conserve le modèle à 2 ruptures du légal (plein
-  // puis 66,66 %), tout en restant correct pour des paliers à N segments.
-  const joursPlein = palier.segments[0]?.jours ?? 0;
-  const joursTotal = palier.segments.reduce((acc, s) => acc + s.jours, 0);
-  const finPlein = joursPlein > 0 ? m.carenceJours + joursPlein : null;
-  const finPartiel = joursTotal > joursPlein ? m.carenceJours + joursTotal : null;
-  return { finPlein, finPartiel };
+  const jours = [...frontieres].filter((j) => j >= 0).sort((a, b) => a - b);
+  const marches: MarcheMaintien[] = [];
+  for (const j of jours) {
+    // Courbe constante par morceaux : on échantillonne juste avant (j-1) et à
+    // partir de la frontière (j). On ne retient que les BAISSES.
+    const tauxAvant = tauxMaintienEffectif(sources, j - 1);
+    const tauxApres = tauxMaintienEffectif(sources, j);
+    if (tauxApres < tauxAvant - 1e-9) {
+      marches.push({ jour: j, tauxAvant, tauxApres });
+    }
+  }
+  return marches;
 }
 
 // Taux de maintien (0..1) applicable au jour t pour UN jeu (params, palier) :
@@ -338,6 +370,23 @@ function tauxMaintienJour(m: MaintienParams, palier: Palier | null, t: number): 
   return 0;
 }
 
+// Une source de maintien = un jeu (paramètres, palier applicable). Le moteur en
+// fournit deux : la CCN (si documentée) et le légal Mensualisation (plancher).
+type SourceMaintien = { m: MaintienParams; palier: Palier | null };
+
+// Taux de maintien EFFECTIF (0..1) au jour t = le plus favorable parmi les
+// sources (CCN + légal). Brique COMMUNE à la VALEUR (computeMaintienEmployeur)
+// et aux RUPTURES/axe (marchesMaintienEffectif) — la logique du max() n'existe
+// qu'ici, pas en double.
+function tauxMaintienEffectif(sources: ReadonlyArray<SourceMaintien>, t: number): number {
+  let taux = 0;
+  for (const src of sources) {
+    const tx = tauxMaintienJour(src.m, src.palier, t);
+    if (tx > taux) taux = tx;
+  }
+  return taux;
+}
+
 // PLANCHER LÉGAL (LOT 1a-iii). Le maintien réel applique, à CHAQUE jour, le taux
 // le PLUS FAVORABLE parmi les sources fournies (CCN et légal Mensualisation) :
 // taux = max(taux_ccn(t), taux_legal(t)). Fondement : la Mensualisation
@@ -349,17 +398,13 @@ function tauxMaintienJour(m: MaintienParams, palier: Palier | null, t: number): 
 // anti-sur-indemnisation (max(0, cible − IJ)) reste appliqué après le max().
 function computeMaintienEmployeur(
   t: number,
-  sources: ReadonlyArray<{ m: MaintienParams; palier: Palier | null }>,
+  sources: ReadonlyArray<SourceMaintien>,
   salaireMensuelCible: number,
   isSalarie: boolean,
   ijObligMensuel: number
 ): number {
   if (!isSalarie) return 0;
-  let taux = 0;
-  for (const src of sources) {
-    const tx = tauxMaintienJour(src.m, src.palier, t);
-    if (tx > taux) taux = tx;
-  }
+  const taux = tauxMaintienEffectif(sources, t);
   if (taux <= 0) return 0;
   const cible = salaireMensuelCible * taux;
   // Le maintien employeur vient en COMPLÉMENT des IJ obligatoires.
@@ -996,8 +1041,7 @@ function detectRuptures(
   axe: AxePoint[],
   series: SerieEmpilee,
   basculeJour: number,
-  maintien: MaintienParams,
-  palier: Palier | null,
+  sourcesMaintien: ReadonlyArray<SourceMaintien>,
   isSalarie: boolean,
   donneesIndisponibles: boolean,
   tptRupture: { debut: number; fin: number; guerison: boolean } | null,
@@ -1052,28 +1096,24 @@ function detectRuptures(
     });
   }
 
-  // Ruptures de maintien : les jours ont été insérés dans l'axe en amont
-  // (cf. projeterArretMaladie). On ne crée la rupture que si le jour y
-  // figure → garantit qu'aucune rupture n'est orpheline hors de l'axe.
-  const { finPlein, finPartiel } = joursRupturesMaintien(maintien, palier, isSalarie);
-  if (finPlein !== null && joursAxe.has(finPlein) && palier) {
-    const pctPlein = palier.segments[0]?.pct ?? 0;
+  // Ruptures de maintien : marches DESCENDANTES de la courbe EFFECTIVE
+  // max(CCN, légal) (LOT 1b). Les jours de marche ont été insérés dans l'axe en
+  // amont (cf. projeterArretMaladie) ; on ne crée la rupture que si le jour y
+  // figure → aucune rupture orpheline. Une marche vers 0 (tauxApres === 0)
+  // marque la FIN réelle du maintien → jamais de fin prématurée quand le légal
+  // relaie la CCN.
+  for (const marche of marchesMaintienEffectif(sourcesMaintien, isSalarie)) {
+    if (!joursAxe.has(marche.jour)) continue;
+    const finDuMaintien = marche.tauxApres <= 0;
     ruptures.push({
-      jour: finPlein,
-      libelle:
-        pctPlein >= 100
+      jour: marche.jour,
+      libelle: finDuMaintien
+        ? `Fin du maintien employeur (${formatPctMaintien(marche.tauxAvant)} %)`
+        : marche.tauxAvant >= 1
           ? "Fin du maintien employeur à taux plein (100 %)"
-          : `Fin du maintien employeur à ${pctPlein} %`,
+          : `Fin du maintien employeur à ${formatPctMaintien(marche.tauxAvant)} %`,
       impactNet: 0,
-      type: "fin_maintien_100",
-    });
-  }
-  if (finPartiel !== null && joursAxe.has(finPartiel)) {
-    ruptures.push({
-      jour: finPartiel,
-      libelle: "Fin du maintien employeur (66,66 %)",
-      impactNet: 0,
-      type: "fin_maintien_6666",
+      type: finDuMaintien ? "fin_maintien_6666" : "fin_maintien_100",
     });
   }
 
@@ -1205,10 +1245,8 @@ export function projeterArretMaladie(
   // que le graphique annote la marche d'escalier nette plutôt que
   // d'interpoler en biais). Les bornes du TPT (debut/fin) sont insérées
   // pour la même raison (marche nette à la reprise / fin du mi-temps).
-  const { finPlein, finPartiel } = joursRupturesMaintien(maintien, palier, isSalarie);
   const joursEvenements = [
-    finPlein,
-    finPartiel,
+    ...marchesMaintienEffectif(sourcesMaintien, isSalarie).map((mar) => mar.jour),
     ...(tptActif ? [tptDebut, tptFin] : []),
     ...(isCarmf ? [J_RELAIS_CARMF, jourFinInvalCarmf] : []),
     ...(isCipav ? [J_TROU_CIPAV, jourFinInvalCipav] : []),
@@ -1543,8 +1581,7 @@ export function projeterArretMaladie(
     axe,
     series,
     BASCULE_INVALIDITE,
-    maintien,
-    palier,
+    sourcesMaintien,
     isSalarie,
     donneesIndisponibles,
     tptActif ? { debut: tptDebut, fin: tptFin, guerison: tptGuerison } : null,

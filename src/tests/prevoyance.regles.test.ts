@@ -448,8 +448,10 @@ describe("regleIjCcnNonDocumentee", () => {
   });
 
   it("déclenche en info pour IDCC saisi avec fallback maintien légal", () => {
-    // Syntec encore TO_VERIFY → useLegalDefault = true → info levée.
-    const ctx = makeCtx(entreeSalarie);
+    // CCN présente mais maintien non documenté (3248 cadres/nonCadres = null)
+    // → useLegalDefault = true → info levée. (Syntec/1486 est désormais
+    // documenté → ne déclenche plus, c'est voulu.)
+    const ctx = makeCtx({ ...entreeSalarie, idccCCN: "3248" });
     const c = regleIjCcnNonDocumentee(ctx, "p1");
     expect(c?.id).toBe("ij_ccn_non_documentee_p1");
     expect(c?.severite).toBe("info");
@@ -466,11 +468,11 @@ describe("regleIjCcnNonDocumentee", () => {
   });
 
   it("l'action pointe vers Légifrance / KALI + signalement équipe Ploutos", () => {
-    const ctx = makeCtx({ ...entreeSalarie, idccCCN: "1486" });
+    const ctx = makeCtx({ ...entreeSalarie, idccCCN: "3248" });
     const c = regleIjCcnNonDocumentee(ctx, "p1");
     expect(c?.action).toContain("Légifrance");
     expect(c?.action).toContain("KALI");
-    expect(c?.action).toContain("1486");
+    expect(c?.action).toContain("3248");
     expect(c?.action).toContain("équipe Ploutos");
   });
 });
