@@ -186,18 +186,18 @@ describe("Famille H — Cas limites & pièges métier", () => {
     expect(r3SansMtp.series.pensionInvalObligatoire[idxInval(r3SansMtp)]).toBeCloseTo(p2, 2);
   });
 
-  // H11 — couverture collective > 100 % du brut : bornée (principe
-  // indemnitaire). Décision H11 appliquée : clamp pctSalaire à 1.0.
-  it("H11 — couverture collective pctSalaire 1,5 → bornée à 100 % du brut + flag + constat", () => {
-    const brutMensuel = 60000 / 12;
+  // H11 — couverture collective > 100 % du revenu de référence : bornée (principe
+  // indemnitaire). Décision H11 : clamp pctSalaire à 1.0. LOT BRUT-NET-i : la
+  // cible est un % du REVENU DE RÉFÉRENCE (plus du brut).
+  it("H11 — couverture collective pctSalaire 1,5 → bornée à 100 % du revenu de référence + flag + constat", () => {
     const e = entree({ statutPro: "salarie_non_cadre", caisse: "CPAM", salaireBrutAnnuel: 60000, ancienneteMois: 0,
       couvertureCollective: { ij: { pctSalaire: 1.5, franchise: 0, plafondJours: 1095, baseCalcul: "T1_T2" } } });
     const r = projeterArretMaladie(e, "cat2", referentiels);
     const j180 = r.axe.findIndex((p) => p.jour === 180);
     const total = r.series.ijObligatoire[j180] + r.series.ijComplementaireCollective[j180];
-    // Total borné à 100 % du brut (pctSalaire 1.5 traité comme 1.0).
-    expect(total).toBeLessThanOrEqual(brutMensuel + 1);
-    expect(total).toBeCloseTo(brutMensuel, 0);
+    // Total borné à 100 % du revenu de référence (pctSalaire 1.5 traité comme 1.0).
+    expect(total).toBeLessThanOrEqual(r.revenuReferenceMensuel + 1);
+    expect(total).toBeCloseTo(r.revenuReferenceMensuel, 0);
     expect(r.surCouvertureBornee).toBe(true);
     // Constat info présent
     const constats = evaluerToutesLesRegles(ctxFromProjection(e, r), "p1");

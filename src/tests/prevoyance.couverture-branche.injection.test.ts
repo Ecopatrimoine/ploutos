@@ -30,12 +30,12 @@ describe("IJ-INV-ii — injection CCN (cadre Syntec sans saisie)", () => {
     expect(r.series.ijComplementaireCollective[idxJ(r, 60)]).toBe(0);
     expect(r.series.ijComplementaireCollective[idxJ(r, 120)]).toBeGreaterThan(0);
     expect(r.series.ijComplementaireCollective[idxJ(r, 180)]).toBeGreaterThan(0);
-    // Rente invalidité cat2 = complément à 80 % du brut au-delà de l'obligatoire.
+    // Rente invalidité cat2 = complément à 80 % du REVENU DE RÉFÉRENCE au-delà
+    // de l'obligatoire (LOT BRUT-NET-i : assiette = revenuRef, plus le brut).
     const i1095 = idxJ(r, 1095);
-    const brutMensuel = 60000 / 12; // 5000
     expect(r.series.renteInvalCollective[i1095]).toBeGreaterThan(0);
     expect(r.series.renteInvalCollective[i1095]).toBeCloseTo(
-      Math.max(0, 0.80 * brutMensuel - r.series.pensionInvalObligatoire[i1095]), 2
+      Math.max(0, 0.80 * r.revenuReferenceMensuel - r.series.pensionInvalObligatoire[i1095]), 2
     );
   });
 
@@ -52,17 +52,51 @@ describe("IJ-INV-ii — la saisie manuelle prime (CCN n'injecte rien)", () => {
     const manuelle = { ij: { pctSalaire: 0.5, franchise: 30, plafondJours: 800, baseCalcul: "T1_T2" as const } };
     const r = projeterArretMaladie(entree({ couvertureCollective: manuelle }), "cat2", referentiels);
     expect(r.couvertureIssueDeLaCcn).toBe(false);
-    // Le complément collectif reflète la SAISIE (cible = 0,5 × brut), pas la CCN
-    // (qui aurait donné 0,80 × brut). Preuve que la saisie prime et que la CCN
-    // n'a pas été injectée. (NB : on ne compare PAS aux séries sans-idcc, qui
-    // diffèrent par le maintien CCN vs légal — LOT 1b, hors périmètre.)
+    // Le complément collectif reflète la SAISIE (cible = 0,5 × revenuRef), pas la
+    // CCN (qui aurait donné 0,80 × revenuRef). Preuve que la saisie prime et que
+    // la CCN n'a pas été injectée. (NB : on ne compare PAS aux séries sans-idcc,
+    // qui diffèrent par le maintien CCN vs légal — LOT 1b, hors périmètre.)
     const i180 = idxJ(r, 180);
-    const brutMensuel = 60000 / 12;
     expect(r.series.ijComplementaireCollective[i180]).toBeCloseTo(
-      Math.max(0, 0.5 * brutMensuel - r.series.maintienEmployeur[i180] - r.series.ijObligatoire[i180]), 2
+      Math.max(0, 0.5 * r.revenuReferenceMensuel - r.series.maintienEmployeur[i180] - r.series.ijObligatoire[i180]), 2
     );
   });
 });
+
+// ─── LOT BRUT-NET-i — verrou anti-sur-indemnisation : le total ne dépasse
+//     JAMAIS 100 % du revenu de référence (la collective cible désormais le
+//     revenuRef, plus le brut) ──────────────────────────────────────────────
+describe("BRUT-NET-i — total <= 100 % du revenu de référence (cadre Syntec sans saisie)", () => {
+  it("phase arrêt maladie J90→J1095 : sumAtIdx <= revenuRef à chaque point", () => {
+    const r = projeterArretMaladie(entree(), "cat2", referentiels);
+    const EPS = 0.5;
+    for (let i = 0; i < r.axe.length; i++) {
+      const t = r.axe[i].jour;
+      if (t < 90 || t > 1095) continue;
+      expect(sumAtIdx(r.series, i)).toBeLessThanOrEqual(r.revenuReferenceMensuel + EPS);
+    }
+  });
+
+  it("phase invalidité (>= J1095) : sumAtIdx <= revenuRef (cat2)", () => {
+    const r = projeterArretMaladie(entree(), "cat2", referentiels);
+    const EPS = 0.5;
+    const points = r.axe.map((p, i) => ({ t: p.jour, i })).filter((p) => p.t >= 1095);
+    expect(points.length).toBeGreaterThan(0);
+    for (const { i } of points) {
+      expect(sumAtIdx(r.series, i)).toBeLessThanOrEqual(r.revenuReferenceMensuel + EPS);
+    }
+  });
+});
+
+// Total empilé à l'index i (réplique locale de la somme des 9 séries).
+function sumAtIdx(s: ReturnType<typeof projeterArretMaladie>["series"], i: number): number {
+  return (
+    s.salaire[i] + s.maintienEmployeur[i] + s.ijObligatoire[i] +
+    s.ijComplementaireCollective[i] + s.ijComplementaireIndividuelle[i] +
+    s.pensionInvalObligatoire[i] + s.renteInvalCollective[i] +
+    s.renteInvalIndividuelle[i] + s.renteInvalEnfants[i]
+  );
+}
 
 describe("IJ-INV-ii — exclusion TNS H7 (aucune injection)", () => {
   it("TNS avec idcc 1486 + saisie → couvertureEffective null, ignorée TNS, pas d'injection CCN", () => {

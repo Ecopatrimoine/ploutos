@@ -125,32 +125,30 @@ describe("Cas d'or A — Mathieu, salarié cadre Syntec (CPAM / IDCC 1486)", () 
     expect(r.series.ijComplementaireCollective[j90]).toBeGreaterThan(0);
   });
 
-  it("rente invalidité collective cat2 = COMPLÉMENT à 80 % du brut (au-dessus de la pension obligatoire)", () => {
+  it("rente invalidité collective cat2 = COMPLÉMENT à 80 % du revenu de référence (au-dessus de la pension obligatoire)", () => {
     const j1095 = idxJour(r.axe, 1095);
-    const brutMensuel = 55000 / 12;
-    const cible80 = brutMensuel * 0.8;
+    // LOT BRUT-NET-i : cible = 80 % du revenu de référence (plus du brut).
+    const cible80 = r.revenuReferenceMensuel * 0.8;
     // Relation invariante : rente coll = max(0, cible − pension obligatoire).
     // On LIT la pension obligatoire du résultat (au lieu de la recalculer)
     // pour rester résilient aux évolutions du référentiel (plafond renseigné).
     const pensionObl = r.series.pensionInvalObligatoire[j1095];
     // Pension obligatoire cat2 = 50 % du SAM plafonné PASS = 50 % × 4005
-    // = 2002,50 € (brut 55 000 → 4583 €/mois > PMSS 4005).
+    // = 2002,50 € (brut 55 000 → 4583 €/mois > PMSS 4005). INCHANGÉE (sur brut).
     expect(pensionObl).toBeCloseTo(2002.50, 1);
     expect(r.series.renteInvalCollective[j1095]).toBeCloseTo(Math.max(0, cible80 - pensionObl), 0);
   });
 
-  it("revenu total à J180 (compl. Syntec activée) ≈ 80 % du brut mensuel", () => {
+  it("revenu total à J180 (compl. Syntec activée) ≈ 80 % du revenu de référence", () => {
     const j180 = idxJour(r.axe, 180);
-    const brutMensuel = 55000 / 12;
-    // maintien=0 (fin J67), IJ_obl + IJ_coll = brut × 0.8 (par construction
-    // de la complémentaire qui complète jusqu'à pctSalaire).
-    expect(totalAtIdx(r.series, j180)).toBeCloseTo(brutMensuel * 0.8, 0);
+    // maintien=0 (fin J67), IJ_obl + IJ_coll = revenuRef × 0.8 (par construction
+    // de la complémentaire qui complète jusqu'à pctSalaire du revenu de référence).
+    expect(totalAtIdx(r.series, j180)).toBeCloseTo(r.revenuReferenceMensuel * 0.8, 0);
   });
 
-  it("revenu total à J1095 (invalidité cat2) ≈ 80 % du brut mensuel", () => {
+  it("revenu total à J1095 (invalidité cat2) ≈ 80 % du revenu de référence", () => {
     const j1095 = idxJour(r.axe, 1095);
-    const brutMensuel = 55000 / 12;
-    expect(totalAtIdx(r.series, j1095)).toBeCloseTo(brutMensuel * 0.8, 0);
+    expect(totalAtIdx(r.series, j1095)).toBeCloseTo(r.revenuReferenceMensuel * 0.8, 0);
   });
 });
 
@@ -459,28 +457,27 @@ describe("LOT ALD — Léa (cas C, CPAM sans complémentaire) : trou J361-J1095 
 describe("LOT ALD — Mathieu (cas A, collective Syntec jusqu'à 1095) : total inchangé, recomposition interne", () => {
   const rOrd = projeterArretMaladie(casA, "cat2", referentiels, "maladie_ordinaire");
   const rAld = projeterArretMaladie(casA, "cat2", referentiels, "ald");
-  const brutMensuel = 55000 / 12;
 
-  it("au-delà de J360, le total reste à 80 % du brut (la collective absorbe l'écart d'IJ obl.)", () => {
+  it("au-delà de J360, le total reste à 80 % du revenu de référence (la collective absorbe l'écart d'IJ obl.)", () => {
     for (const j of [365, 730, 912]) {
       const iOrd = idxJour(rOrd.axe, j);
       const iAld = idxJour(rAld.axe, j);
       // IJ obligatoire : 0 en ordinaire (>360), maintenue en ALD.
       expect(rOrd.series.ijObligatoire[iOrd]).toBe(0);
       expect(rAld.series.ijObligatoire[iAld]).toBeGreaterThan(0);
-      // Total identique : la complémentaire Syntec complète jusqu'à 80 %.
-      expect(totalAtIdx(rOrd.series, iOrd)).toBeCloseTo(brutMensuel * 0.8, 0);
-      expect(totalAtIdx(rAld.series, iAld)).toBeCloseTo(brutMensuel * 0.8, 0);
+      // Total identique : la complémentaire Syntec complète jusqu'à 80 % du revenuRef.
+      expect(totalAtIdx(rOrd.series, iOrd)).toBeCloseTo(rOrd.revenuReferenceMensuel * 0.8, 0);
+      expect(totalAtIdx(rAld.series, iAld)).toBeCloseTo(rAld.revenuReferenceMensuel * 0.8, 0);
     }
   });
 });
 
 describe("Robustesse — variations sur cas A", () => {
-  it("cat3 : rente coll cat3 = COMPLÉMENT à 100 % du brut (au-dessus de la pension obligatoire)", () => {
+  it("cat3 : rente coll cat3 = COMPLÉMENT à 100 % du revenu de référence (au-dessus de la pension obligatoire)", () => {
     const r = projeterArretMaladie(casA, "cat3", referentiels);
     const j1095 = idxJour(r.axe, 1095);
-    const brutMensuel = 55000 / 12;
-    const cible100 = brutMensuel * 1.0;
+    // LOT BRUT-NET-i : cible = 100 % du revenu de référence (plus du brut).
+    const cible100 = r.revenuReferenceMensuel * 1.0;
     // Relation invariante : rente coll = max(0, cible − pension obligatoire).
     // Pension lue du résultat (résilient aux évolutions du référentiel).
     const pensionObl = r.series.pensionInvalObligatoire[j1095];

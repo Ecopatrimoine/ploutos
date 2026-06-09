@@ -158,19 +158,19 @@ describe("Famille B — Cohérence mathématique interne", () => {
     expect(r.series.ijComplementaireIndividuelle[idx(r, 60)]).toBe(200 * 30);
   });
 
-  // B7 — complémentaire collective = complément, jamais négatif ni sur-couverture
-  it("B7 — ijColl = max(0, cible_pct × brut − (ijObl + maintien)) à chaque point AM", () => {
+  // B7 — complémentaire collective = complément, jamais négatif ni sur-couverture.
+  // LOT BRUT-NET-i : la cible est un % du REVENU DE RÉFÉRENCE (plus du brut).
+  it("B7 — ijColl = max(0, cible_pct × revenuRef − (ijObl + maintien)) à chaque point AM", () => {
     const pct = 0.8;
     const r = projeterArretMaladie(
       baseSalarie({ ancienneteMois: 120, couvertureCollective: { ij: { pctSalaire: pct, franchise: 0, plafondJours: 1095, baseCalcul: "T1_T2" } } }),
       "cat2", referentiels
     );
-    const brutMensuel = 55000 / 12;
     for (const p of r.axe) {
       if (p.jour >= 1095) continue;
       const i = idx(r, p.jour);
       const dejaCouvert = r.series.maintienEmployeur[i] + r.series.ijObligatoire[i];
-      const attendu = Math.max(0, brutMensuel * pct - dejaCouvert);
+      const attendu = Math.max(0, r.revenuReferenceMensuel * pct - dejaCouvert);
       expect(r.series.ijComplementaireCollective[i]).toBeCloseTo(attendu, 2);
     }
   });

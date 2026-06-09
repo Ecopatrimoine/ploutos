@@ -863,10 +863,15 @@ function detecteSurCouverture(
   return false;
 }
 
+// `assietteMensuelle` = REVENU DE RÉFÉRENCE (LOT BRUT-NET-i) : la cible de
+// remplacement est un % du revenu de référence (même assiette que le maintien
+// et que la ligne « 100 % » du graphe), et NON du salaire brut. Évite la
+// sur-indemnisation à ~107 % (0,80 brut / 0,75 net) ; le total se plafonne
+// naturellement à 100 % du revenu de référence.
 function computeIJCollective(
   t: number,
   cov: CouvertureCollective | null,
-  salaireBrutMensuel: number,
+  assietteMensuelle: number,
   dejaCouvertMensuel: number
 ): number {
   if (!cov?.ij) return 0;
@@ -874,7 +879,7 @@ function computeIJCollective(
   const plafond = cov.ij.plafondJours;
   if (t < f) return 0;
   if (t > f + plafond) return 0;
-  const cible = salaireBrutMensuel * clampPct(cov.ij.pctSalaire);
+  const cible = assietteMensuelle * clampPct(cov.ij.pctSalaire);
   return Math.max(0, cible - dejaCouvertMensuel);
 }
 
@@ -992,16 +997,19 @@ export function computeInvalObligatoireMensuel(
   return null;
 }
 
+// `assietteMensuelle` = REVENU DE RÉFÉRENCE (LOT BRUT-NET-i), comme pour l'IJ
+// collective : la cible d'invalidité est un % du revenu de référence (non du
+// brut) → le total ne dépasse plus 100 % du revenu de référence.
 function computeRenteInvalCollective(
   cov: CouvertureCollective | null,
   categorie: CategorieInvalidite,
-  salaireBrutMensuel: number,
+  assietteMensuelle: number,
   pensionOblig: number
 ): number {
   if (!cov?.invalidite) return 0;
   const c = cov.invalidite[categorie];
   if (!c) return 0;
-  const cible = salaireBrutMensuel * clampPct(c.pctSalaire);
+  const cible = assietteMensuelle * clampPct(c.pctSalaire);
   return Math.max(0, cible - pensionOblig);
 }
 
@@ -1424,7 +1432,7 @@ export function projeterArretMaladie(
       series.ijComplementaireCollective[i] = computeIJCollective(
         t,
         couvertureEffective,
-        salaireBrutMensuel,
+        revenuReferenceMensuel,
         salairePartiel + ijTPT
       );
       // Individuel : bornage SURCOUV inchangé (déjà-perçu = salaire partiel
@@ -1472,7 +1480,7 @@ export function projeterArretMaladie(
       series.ijComplementaireCollective[i] = computeIJCollective(
         t,
         couvertureEffective,
-        salaireBrutMensuel,
+        revenuReferenceMensuel,
         series.maintienEmployeur[i] + series.ijObligatoire[i]
       );
 
@@ -1549,7 +1557,7 @@ export function projeterArretMaladie(
       series.renteInvalCollective[i] = computeRenteInvalCollective(
         couvertureEffective,
         categorie,
-        salaireBrutMensuel,
+        revenuReferenceMensuel,
         series.pensionInvalObligatoire[i]
       );
 
