@@ -49,6 +49,16 @@
         },
         "note": "maintien art 9.2 CCN Syntec, Legifrance avenant 46 16/07/2021 etendu 05/04/2023, verifie 2026-06-08"
       },
+      "devolutionCapitalDeces": {
+        "mode": "cascadeExclusive",
+        "rangs": [
+          { "qualites": ["conjoint", "pacs", "concubin"] },
+          { "qualites": ["enfants"], "representation": true },
+          { "qualites": ["ascendants"] },
+          { "qualites": ["devolutionSuccessorale"] }
+        ],
+        "note": "clause type Syntec art 3.3 accord prevoyance 27/03/1997 ; cascade exclusive ; reproduit le comportement v1.12.0 (concubin admis rang 1) ; representation portee mais INERTE (aucun petit-enfant dans le modele) ; verifie 2026-06-09"
+      },
       "prevoyanceCadres": {
         "tauxT1Minimum": 1.50,
         "garantiesMinimum": {

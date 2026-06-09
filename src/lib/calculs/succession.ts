@@ -12,7 +12,7 @@ import { resolveCapitauxDeces } from '../prevoyance/capitaux-deces';
 import { resolveCapitalDecesBranche, resolveRenteEducationBranche } from '../prevoyance/capitaux-deces-branche';
 import { categorieMaintien } from '../prevoyance/projection';
 import { getContratsTransmissionDecesAvecLegacy, getPrevoyancePerso } from '../prevoyance/utils';
-import { referentiels } from '../../data/prevoyance';
+import { referentiels, type Referentiels } from '../../data/prevoyance';
 
 // ─── Capitaux décès HORS actif successoral (module « Capitaux décès dans la
 //     succession », Lot 3) — types des lignes parallèles à avLines ──────────
@@ -177,6 +177,10 @@ export type CapitalDecesBrancheDevolutionContexte = {
   // (marié → "conjoint", PACS → "pacs_partner", concubin → "autre").
   partenaireNom?: string;
   partenaireRelation?: CapitalDecesCaisseRelation;
+  // Qualité (DEVOL-1) du partenaire, servant à tester son admission par un rang :
+  // "conjoint" | "pacs" | "concubin". L'adaptateur la pose explicitement ;
+  // absente (appels directs « legacy »), la cascade la dérive du LABEL de relation.
+  partenaireQualite?: DevolutionQualite;
   // Rang 2 — enfants (parts égales). Clause bénéficiaire : TOUS les enfants du
   // défunt (pas le filtre fiscal « à charge » propre au capital caisse).
   enfants: string[];
@@ -187,14 +191,117 @@ export type CapitalDecesBrancheDevolutionContexte = {
   surcharge?: CapitalDecesCaisseSurcharge | null;
 };
 
-// Cascade PURE de la clause type Syntec (art. 3.3). EXCLUSIVE : on s'arrête au
-// 1er rang non vide, qui reçoit 100 % du capital (parts égales si plusieurs au
-// même rang). Une surcharge manuelle REMPLACE toute la cascade. Tout est
-// EXONÉRÉ : on répartit, on ne taxe rien. Aucune exception : un rang sans
-// donnée est proprement sauté ; rien de déterminé → [] (désignation manuelle).
+// ─── LOT DEVOL-1 — Dévolution du capital décès de branche, DATA-DRIVEN ──────
+//
+// L'ordre de dévolution est désormais piloté par ccn-2026.json (clé
+// `devolutionCapitalDeces` au niveau branche). Pour Syntec (1486) la config
+// reproduit À L'IDENTIQUE l'ancienne chaîne de `if` (iso-comportement v1.12.0) ;
+// le SEUL axe de variation par branche est l'ensemble des qualités admises au
+// 1er rang (Syntec admet le concubin notoire, HCR — étape 3 — ne l'admettra pas).
+
+// Qualités de bénéficiaire reconnues par un rang. Toute autre chaîne lue dans le
+// JSON est ignorée (filtrée à la lecture).
+export type DevolutionQualite =
+  | "conjoint" | "pacs" | "concubin" | "enfants" | "ascendants" | "devolutionSuccessorale";
+
+// Un rang de la cascade : les qualités admises (collectées ensemble, réparties en
+// parts égales si le rang est non vide). `representation` est PORTÉE depuis le
+// JSON mais reste INERTE — le modèle de données ne contient aucun petit-enfant,
+// donc aucune représentation n'est simulée (à activer dans un lot ultérieur).
+export type DevolutionRang = {
+  qualites: DevolutionQualite[];
+  representation?: boolean;
+};
+
+// Configuration data-driven lue au niveau branche. Seul `mode: "cascadeExclusive"`
+// est supporté ; toute config absente / malformée / de mode inconnu → repli sur
+// l'ordre par défaut (DEFAULT_DEVOLUTION_RANGS).
+export type DevolutionConfig = {
+  mode: "cascadeExclusive";
+  rangs: DevolutionRang[];
+};
+
+// Ordre PAR DÉFAUT = clause type Syntec (v1.12.0). FILET DE SÉCURITÉ appliqué dès
+// que la config CCN est absente, malformée ou de mode inconnu : {conjoint, pacs,
+// concubin} → enfants → ascendants → dévolution successorale. Reproduit À
+// L'IDENTIQUE l'ancienne chaîne de `if` codée en dur.
+const DEFAULT_DEVOLUTION_RANGS: DevolutionRang[] = [
+  { qualites: ["conjoint", "pacs", "concubin"] },
+  { qualites: ["enfants"], representation: true },
+  { qualites: ["ascendants"] },
+  { qualites: ["devolutionSuccessorale"] },
+];
+
+const DEVOLUTION_QUALITES_VALIDES: ReadonlySet<string> = new Set([
+  "conjoint", "pacs", "concubin", "enfants", "ascendants", "devolutionSuccessorale",
+]);
+
+// Lecteur DÉFENSIF de la config depuis l'entrée CCN (idcc + référentiels). Même
+// discipline que resolveCapitalDecesBranche : cast Record, typeof === "object",
+// garde sur les tableaux, qualités inconnues filtrées, JAMAIS d'exception.
+// Retourne null si la clé est absente, malformée ou de mode != "cascadeExclusive"
+// → l'appelant retombe alors sur DEFAULT_DEVOLUTION_RANGS (ordre Syntec).
+type DevolutionRangBrut = { qualites?: unknown; representation?: unknown };
+type DevolutionConfigBrut = { mode?: unknown; rangs?: unknown };
+export function resolveDevolutionCapitalDecesConfig(
+  idcc: string | null,
+  ref: Referentiels
+): DevolutionConfig | null {
+  if (!idcc) return null;
+  const conventions = ref.ccn.conventions as Record<
+    string,
+    { devolutionCapitalDeces?: unknown } | undefined
+  >;
+  const raw = conventions?.[idcc]?.devolutionCapitalDeces;
+  if (raw == null || typeof raw !== "object") return null;
+  const d = raw as DevolutionConfigBrut;
+  if (d.mode !== "cascadeExclusive" || !Array.isArray(d.rangs)) return null;
+  const rangs: DevolutionRang[] = [];
+  for (const r of d.rangs as unknown[]) {
+    if (r == null || typeof r !== "object") continue;
+    const rb = r as DevolutionRangBrut;
+    if (!Array.isArray(rb.qualites)) continue;
+    const qualites = (rb.qualites as unknown[]).filter(
+      (q): q is DevolutionQualite => typeof q === "string" && DEVOLUTION_QUALITES_VALIDES.has(q)
+    );
+    rangs.push({ qualites, representation: rb.representation === true });
+  }
+  if (rangs.length === 0) return null;
+  return { mode: "cascadeExclusive", rangs };
+}
+
+// Rangs effectifs : la config si elle est exploitable, sinon le repli Syntec.
+function rangsEffectifs(config: DevolutionConfig | null | undefined): DevolutionRang[] {
+  if (config && config.mode === "cascadeExclusive" && Array.isArray(config.rangs) && config.rangs.length > 0) {
+    return config.rangs;
+  }
+  return DEFAULT_DEVOLUTION_RANGS;
+}
+
+// Qualité effective du partenaire de 1er rang. L'adaptateur la fournit
+// explicitement (partenaireQualite) ; pour les appels directs « legacy » qui ne
+// la portent pas, on la dérive du LABEL de relation (rétro-compat des tests de
+// cascade pure). Toujours l'une de conjoint / pacs / concubin si un partenaire
+// est présent → admise par le rang 1 par défaut, donc iso-comportement.
+function qualitePartenaire(ctx: CapitalDecesBrancheDevolutionContexte): DevolutionQualite | undefined {
+  if (!ctx.partenaireNom) return undefined;
+  if (ctx.partenaireQualite) return ctx.partenaireQualite;
+  if (ctx.partenaireRelation === "pacs_partner") return "pacs";
+  if (ctx.partenaireRelation === "autre") return "concubin";
+  return "conjoint";
+}
+
+// Cascade EXCLUSIVE pilotée par les `rangs` (data-driven, repli Syntec). Pour
+// chaque rang dans l'ordre, on collecte les bénéficiaires PRÉSENTS dont la qualité
+// est admise par ce rang ; le 1er rang non vide prend 100 % du capital (parts
+// égales si plusieurs), return immédiat ; un rang vide est sauté ; tous les rangs
+// vides → [] (« bénéficiaire à déterminer »). La surcharge manuelle REMPLACE toute
+// la cascade. Tout est EXONÉRÉ : on répartit, on ne taxe rien. Jamais d'exception.
+// `config` absente/null → DEFAULT_DEVOLUTION_RANGS (filet de sécurité Syntec).
 export function devolutionCapitalDecesBrancheCascade(
   capital: number | null,
-  ctx: CapitalDecesBrancheDevolutionContexte
+  ctx: CapitalDecesBrancheDevolutionContexte,
+  config?: DevolutionConfig | null
 ): CapitalDecesRepartitionLigne[] {
   // Surcharge manuelle → prime (le salarié a modifié la clause au contrat).
   if (ctx.surcharge && ctx.surcharge.beneficiaires.length > 0) {
@@ -210,58 +317,80 @@ export function devolutionCapitalDecesBrancheCascade(
   const cap = capital ?? 0;
   if (cap <= 0) return [];
 
-  // Rang 1 — partenaire (conjoint / PACS / concubin notoire).
-  if (ctx.partenaireNom) {
-    return [{ beneficiaire: ctx.partenaireNom, relation: ctx.partenaireRelation ?? "conjoint", montant: cap, origine: "capital_principal", source: "auto" }];
+  const partnerQualite = qualitePartenaire(ctx);
+  for (const rang of rangsEffectifs(config)) {
+    if (!rang || !Array.isArray(rang.qualites)) continue;
+    const candidats: { beneficiaire: string; relation: CapitalDecesCaisseRelation }[] = [];
+    for (const q of rang.qualites) {
+      if (q === "conjoint" || q === "pacs" || q === "concubin") {
+        // Le partenaire n'est retenu que si SA qualité figure dans ce rang
+        // (seul axe de variation Syntec/HCR). Le LABEL de relation reste celui
+        // posé par l'adaptateur (conjoint / pacs_partner / autre).
+        if (ctx.partenaireNom && partnerQualite === q) {
+          candidats.push({ beneficiaire: ctx.partenaireNom, relation: ctx.partenaireRelation ?? "conjoint" });
+        }
+      } else if (q === "enfants") {
+        for (const e of ctx.enfants) candidats.push({ beneficiaire: e, relation: "enfant" });
+      } else if (q === "ascendants") {
+        // Rang déclaratif : le modèle ne porte pas les ascendants → souvent vide.
+        for (const a of ctx.ascendants ?? []) candidats.push({ beneficiaire: a, relation: "ascendant" });
+      } else if (q === "devolutionSuccessorale") {
+        // Rang déclaratif : héritiers selon dévolution successorale, non portés
+        // par le modèle → souvent vide. Label de relation "autre" (inchangé).
+        for (const h of ctx.heritiers ?? []) candidats.push({ beneficiaire: h, relation: "autre" });
+      }
+      // toute autre qualité (déjà filtrée à la lecture) est ignorée.
+    }
+    if (candidats.length > 0) {
+      const part = cap / candidats.length;
+      return candidats.map((c) => ({
+        beneficiaire: c.beneficiaire,
+        relation: c.relation,
+        montant: part,
+        origine: "capital_principal" as const,
+        source: "auto" as const,
+      }));
+    }
   }
-  // Rang 2 — enfants, parts égales.
-  if (ctx.enfants.length > 0) {
-    const part = cap / ctx.enfants.length;
-    return ctx.enfants.map((e) => ({ beneficiaire: e, relation: "enfant" as const, montant: part, origine: "capital_principal" as const, source: "auto" as const }));
-  }
-  // Rang 3 — ascendants, parts égales.
-  if (ctx.ascendants && ctx.ascendants.length > 0) {
-    const part = cap / ctx.ascendants.length;
-    return ctx.ascendants.map((a) => ({ beneficiaire: a, relation: "ascendant" as const, montant: part, origine: "capital_principal" as const, source: "auto" as const }));
-  }
-  // Rang 4 — héritiers selon dévolution successorale, parts égales.
-  if (ctx.heritiers && ctx.heritiers.length > 0) {
-    const part = cap / ctx.heritiers.length;
-    return ctx.heritiers.map((h) => ({ beneficiaire: h, relation: "autre" as const, montant: part, origine: "capital_principal" as const, source: "auto" as const }));
-  }
-  // Sinon : célibataire sans enfant, ascendants/héritiers inconnus → aucun
-  // bénéficiaire automatique. L'UI affichera « bénéficiaire à déterminer ».
+  // Aucun rang alimenté → aucun bénéficiaire automatique (désignation invitée).
   return [];
 }
 
 // Dévolution du capital décès de BRANCHE pour le défunt `whichDefunt`, depuis le
-// dossier. Construit le contexte Syntec à partir de coupleStatus (rang 1 :
-// marié/PACS/concubin) et des enfants du défunt (rang 2), lit la surcharge
-// éventuelle au READ-TIME (jamais écrite ici), puis applique la cascade. Les
-// rangs 3-4 (ascendants/héritiers) ne sont pas portés par le modèle de données
-// → cascade dégradée proprement (rang sauté). Fonction PURE.
+// dossier. Construit le contexte à partir de coupleStatus (rang partenaire) et
+// des enfants du défunt, lit la surcharge éventuelle au READ-TIME (jamais écrite
+// ici), résout la config data-driven (idcc + référentiels, DEVOL-1), puis applique
+// la cascade. `idcc`/`ref` sont optionnels : absents (appels legacy à 3 arguments),
+// la config est null → repli sur l'ordre Syntec par défaut (iso-comportement). Les
+// rangs ascendants/dévolution successorale ne sont pas portés par le modèle de
+// données → rang sauté proprement. Fonction PURE.
 export function devolutionCapitalDecesBranche(
   capital: number | null,
   data: PatrimonialData,
-  whichDefunt: "p1" | "p2"
+  whichDefunt: "p1" | "p2",
+  idcc: string | null = null,
+  ref: Referentiels = referentiels
 ): CapitalDecesRepartitionLigne[] {
   const deceasedKey = whichDefunt === "p1" ? "person1" : "person2";
   const survivorKey = deceasedKey === "person1" ? "person2" : "person1";
 
-  // Rang 1 Syntec — conjoint (marié), à défaut PACS, à défaut concubin notoire.
+  // Rang partenaire — conjoint (marié), à défaut PACS, à défaut concubin notoire.
   // coupleStatus porte la distinction (married / pacs / cohab) ; divorced /
-  // single → aucun partenaire de 1er rang.
+  // single → aucun partenaire. Le LABEL de relation (conjoint / pacs_partner /
+  // autre) reste celui d'aujourd'hui ; la QUALITÉ (conjoint / pacs / concubin)
+  // sert à tester l'admission par le rang selon la branche.
   const survivorNom = (survivorKey === "person1"
     ? `${data.person1FirstName ?? ""} ${data.person1LastName ?? ""}`
     : `${data.person2FirstName ?? ""} ${data.person2LastName ?? ""}`).trim();
   let partenaireNom: string | undefined;
   let partenaireRelation: CapitalDecesCaisseRelation | undefined;
-  if (data.coupleStatus === "married") { partenaireNom = survivorNom || "Conjoint"; partenaireRelation = "conjoint"; }
-  else if (data.coupleStatus === "pacs") { partenaireNom = survivorNom || "Partenaire PACS"; partenaireRelation = "pacs_partner"; }
-  else if (data.coupleStatus === "cohab") { partenaireNom = survivorNom || "Concubin"; partenaireRelation = "autre"; }
+  let partenaireQualite: DevolutionQualite | undefined;
+  if (data.coupleStatus === "married") { partenaireNom = survivorNom || "Conjoint"; partenaireRelation = "conjoint"; partenaireQualite = "conjoint"; }
+  else if (data.coupleStatus === "pacs") { partenaireNom = survivorNom || "Partenaire PACS"; partenaireRelation = "pacs_partner"; partenaireQualite = "pacs"; }
+  else if (data.coupleStatus === "cohab") { partenaireNom = survivorNom || "Concubin"; partenaireRelation = "autre"; partenaireQualite = "concubin"; }
 
-  // Rang 2 — enfants DU DÉFUNT (clause bénéficiaire : tous les enfants, sans le
-  // filtre « à charge » propre au capital caisse L361-4 CSS).
+  // Rang enfants — enfants DU DÉFUNT (clause bénéficiaire : tous les enfants, sans
+  // le filtre « à charge » propre au capital caisse L361-4 CSS).
   const enfants = data.childrenData
     .filter((c) => childMatchesDeceased(c.parentLink, deceasedKey))
     .map((c) => `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() || "Enfant");
@@ -269,9 +398,12 @@ export function devolutionCapitalDecesBranche(
   // Surcharge lue au READ-TIME — jamais persistée pendant la consultation.
   const surcharge = data.prevoyance?.[whichDefunt]?.capitalDecesBrancheSurcharge;
 
+  // Config de dévolution data-driven (DEVOL-1). null → repli Syntec par défaut.
+  const config = resolveDevolutionCapitalDecesConfig(idcc, ref);
+
   return devolutionCapitalDecesBrancheCascade(capital, {
-    partenaireNom, partenaireRelation, enfants, surcharge,
-  });
+    partenaireNom, partenaireRelation, partenaireQualite, enfants, surcharge,
+  }, config);
 }
 
 // ─── CALCUL SUCCESSION ────────────────────────────────────────────────────────
@@ -1234,9 +1366,10 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
       exonere: true,
       donneeIndisponible: br.donneeIndisponible,
       beneficiairesAuContrat: true,
-      // Dévolution (LOT DECES-A bis) — clause type Syntec OU surcharge manuelle.
-      // Read-time : ne mute jamais le dossier. EXONÉRÉ, additif, hors actif/droits.
-      repartition: devolutionCapitalDecesBranche(br.capital, data, whichDefunt),
+      // Dévolution (LOT DECES-A bis + DEVOL-1) — ordre data-driven (config CCN via
+      // idcc), repli Syntec si absente, OU surcharge manuelle. Read-time : ne mute
+      // jamais le dossier. EXONÉRÉ, additif, hors actif/droits.
+      repartition: devolutionCapitalDecesBranche(br.capital, data, whichDefunt, entreeDefunt.idccCCN, referentiels),
     });
   }
   const capitalDecesBrancheExonere = capitalDecesBrancheLines.reduce((s, l) => s + (l.capital ?? 0), 0);

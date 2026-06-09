@@ -8,8 +8,11 @@ import {
   computeSuccession,
   devolutionCapitalDecesBranche,
   devolutionCapitalDecesBrancheCascade,
+  resolveDevolutionCapitalDecesConfig,
 } from "../lib/calculs/succession";
-import type { CapitalDecesBrancheDevolutionContexte } from "../lib/calculs/succession";
+import type { CapitalDecesBrancheDevolutionContexte, DevolutionConfig } from "../lib/calculs/succession";
+import { referentiels } from "../data/prevoyance";
+import type { Referentiels } from "../data/prevoyance";
 import type {
   EmployeurInfo,
   PatrimonialData,
@@ -234,5 +237,177 @@ describe("computeSuccession — répartition du capital de branche (Syntec)", ()
       .toBe(JSON.stringify(sSans.capitalDecesLines.caisses.map((c) => c.repartition)));
     // ... alors que la branche, elle, porte désormais une répartition non vide.
     expect(sAvec.capitalDecesLines.branche[0].repartition.length).toBeGreaterThan(0);
+  });
+});
+
+// ─── LOT DEVOL-1 : dévolution data-driven (iso-comportement Syntec) ──────────
+
+// VERROU ISO-COMPORTEMENT : la résolution via la config CCN 1486 doit produire
+// EXACTEMENT la dévolution d'avant (chaîne de `if` codée en dur, v1.12.0).
+describe("DEVOL-1 — Syntec (1486) via config CCN : iso-comportement", () => {
+  const cap = 10000;
+  it("marié → 1 ligne conjoint, 100 % du capital", () => {
+    const r = devolutionCapitalDecesBranche(cap, data({ coupleStatus: "married" }), "p1", "1486", referentiels);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ relation: "conjoint", montant: cap, origine: "capital_principal", source: "auto" });
+    expect(r[0].beneficiaire).toContain("Marie");
+  });
+
+  it("PACS → 1 ligne pacs_partner, 100 %", () => {
+    const r = devolutionCapitalDecesBranche(cap, data({ coupleStatus: "pacs" }), "p1", "1486", referentiels);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ relation: "pacs_partner", montant: cap });
+  });
+
+  it("concubin (cohab) → 1 ligne relation autre, 100 % (concubin admis rang 1 Syntec)", () => {
+    const r = devolutionCapitalDecesBranche(cap, data({ coupleStatus: "cohab" }), "p1", "1486", referentiels);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ relation: "autre", montant: cap });
+  });
+
+  it("célibataire + 2 enfants du défunt → 2 lignes à 5000 chacune", () => {
+    const r = devolutionCapitalDecesBranche(
+      cap,
+      data({ coupleStatus: "single", childrenData: [child("Léa"), child("Tom")] as PatrimonialData["childrenData"] }),
+      "p1", "1486", referentiels
+    );
+    expect(r).toHaveLength(2);
+    expect(r.every((l) => l.relation === "enfant" && l.montant === 5000 && l.source === "auto")).toBe(true);
+  });
+
+  it("célibataire + 0 enfant → [] (à déterminer)", () => {
+    const r = devolutionCapitalDecesBranche(cap, data({ coupleStatus: "single" }), "p1", "1486", referentiels);
+    expect(r).toEqual([]);
+  });
+
+  it("surcharge présente → répartition = surcharge (source manuel), cascade auto ignorée", () => {
+    const d = data({
+      coupleStatus: "married",
+      prevoyance: {
+        version: 1,
+        p1: {
+          contratsIndividuels: [], couvertureCollective: null, categorieInvaliditeProjetee: "cat2",
+          capitalDecesBrancheSurcharge: { beneficiaires: [{ name: "Association X", relation: "autre", montant: cap }] },
+        },
+        p2: null,
+      } as unknown as PatrimonialData["prevoyance"],
+    });
+    const r = devolutionCapitalDecesBranche(cap, d, "p1", "1486", referentiels);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ beneficiaire: "Association X", relation: "autre", source: "manuel" });
+  });
+});
+
+// ORDRE HCR (étape 3) simulé par une config INLINE SANS concubin — le HCR JSON
+// reste vide dans ce lot. Seul axe de variation : le 1er rang n'admet pas le
+// concubin notoire.
+const HCR_CONFIG: DevolutionConfig = {
+  mode: "cascadeExclusive",
+  rangs: [
+    { qualites: ["conjoint", "pacs"] },
+    { qualites: ["enfants"] },
+    { qualites: ["ascendants"] },
+    { qualites: ["devolutionSuccessorale"] },
+  ],
+};
+
+describe("DEVOL-1 — ordre HCR (config inline sans concubin)", () => {
+  const cap = 10000;
+  it("marié → partenaire 100 %", () => {
+    const r = devolutionCapitalDecesBrancheCascade(cap, ctx({
+      partenaireNom: "Marie", partenaireRelation: "conjoint", partenaireQualite: "conjoint",
+    }), HCR_CONFIG);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ beneficiaire: "Marie", relation: "conjoint", montant: cap });
+  });
+
+  it("PACS → partenaire 100 %", () => {
+    const r = devolutionCapitalDecesBrancheCascade(cap, ctx({
+      partenaireNom: "Marie", partenaireRelation: "pacs_partner", partenaireQualite: "pacs",
+    }), HCR_CONFIG);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ relation: "pacs_partner", montant: cap });
+  });
+
+  it("concubin (non admis) + 1 enfant → retombe sur l'enfant (1 ligne enfant 100 %)", () => {
+    const r = devolutionCapitalDecesBrancheCascade(cap, ctx({
+      partenaireNom: "Marie", partenaireRelation: "autre", partenaireQualite: "concubin",
+      enfants: ["Léa"],
+    }), HCR_CONFIG);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ beneficiaire: "Léa", relation: "enfant", montant: cap });
+  });
+
+  it("concubin (non admis) sans enfant → [] (à déterminer)", () => {
+    const r = devolutionCapitalDecesBrancheCascade(cap, ctx({
+      partenaireNom: "Marie", partenaireRelation: "autre", partenaireQualite: "concubin",
+    }), HCR_CONFIG);
+    expect(r).toEqual([]);
+  });
+});
+
+// REPLI (filet de sécurité) : config absente OU malformée → ordre Syntec par
+// défaut (les rangs codés en dur). On rejoue quelques cas du verrou.
+describe("DEVOL-1 — repli sur l'ordre Syntec par défaut", () => {
+  function stubRef(devolutionCapitalDeces: unknown): Referentiels {
+    return { ccn: { conventions: { "0001": { nom: "Test", devolutionCapitalDeces } } } } as unknown as Referentiels;
+  }
+
+  it("idcc sans clé devolutionCapitalDeces (3248) → comportement = ordre Syntec", () => {
+    const marie = devolutionCapitalDecesBranche(10000, data({ coupleStatus: "married" }), "p1", "3248", referentiels);
+    expect(marie).toHaveLength(1);
+    expect(marie[0]).toMatchObject({ relation: "conjoint", montant: 10000 });
+    const enfants = devolutionCapitalDecesBranche(
+      10000,
+      data({ coupleStatus: "single", childrenData: [child("Léa"), child("Tom")] as PatrimonialData["childrenData"] }),
+      "p1", "3248", referentiels
+    );
+    expect(enfants).toHaveLength(2);
+    expect(enfants.every((l) => l.relation === "enfant" && l.montant === 5000)).toBe(true);
+  });
+
+  it("config malformée (mode inconnu) → repli Syntec (concubin admis rang 1)", () => {
+    const ref = stubRef({ mode: "autreChose", rangs: [{ qualites: ["conjoint"] }] });
+    const r = devolutionCapitalDecesBranche(10000, data({ coupleStatus: "cohab" }), "p1", "0001", ref);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ relation: "autre", montant: 10000 });
+  });
+
+  it("config malformée (rangs non tableau) → repli Syntec", () => {
+    const ref = stubRef({ mode: "cascadeExclusive", rangs: "TO_FILL" });
+    const r = devolutionCapitalDecesBranche(10000, data({ coupleStatus: "married" }), "p1", "0001", ref);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ relation: "conjoint", montant: 10000 });
+  });
+});
+
+// Lecteur défensif : la résolution de la config CCN, isolée.
+describe("DEVOL-1 — resolveDevolutionCapitalDecesConfig (lecteur défensif)", () => {
+  it("1486 → config cascadeExclusive à 4 rangs, rang 1 admet le concubin", () => {
+    const cfg = resolveDevolutionCapitalDecesConfig("1486", referentiels);
+    expect(cfg).not.toBeNull();
+    expect(cfg?.mode).toBe("cascadeExclusive");
+    expect(cfg?.rangs).toHaveLength(4);
+    expect(cfg?.rangs[0].qualites).toEqual(["conjoint", "pacs", "concubin"]);
+    expect(cfg?.rangs[1].qualites).toEqual(["enfants"]);
+    expect(cfg?.rangs[1].representation).toBe(true);
+  });
+
+  it("idcc null / inconnu / sans clé → null (déclenche le repli)", () => {
+    expect(resolveDevolutionCapitalDecesConfig(null, referentiels)).toBeNull();
+    expect(resolveDevolutionCapitalDecesConfig("9999", referentiels)).toBeNull();
+    expect(resolveDevolutionCapitalDecesConfig("3248", referentiels)).toBeNull();
+  });
+
+  it("qualités inconnues filtrées ; rang conservé (vide) sera sauté à l'exécution", () => {
+    const ref = {
+      ccn: { conventions: { "0001": { nom: "Test", devolutionCapitalDeces: {
+        mode: "cascadeExclusive",
+        rangs: [{ qualites: ["conjoint", "extraterrestre"] }, { qualites: ["enfants"] }],
+      } } } },
+    } as unknown as Referentiels;
+    const cfg = resolveDevolutionCapitalDecesConfig("0001", ref);
+    expect(cfg?.rangs[0].qualites).toEqual(["conjoint"]);
+    expect(cfg?.rangs[1].qualites).toEqual(["enfants"]);
   });
 });
