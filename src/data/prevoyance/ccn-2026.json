@@ -108,10 +108,49 @@
     "1979": {
       "idcc": "1979",
       "nom": "Hôtels, cafés, restaurants (HCR)",
-      "datesVerification": "2026-05-27",
+      "datesVerification": "2026-06-09",
       "maintienEmployeur": { "cadres": null, "nonCadres": null },
-      "prevoyanceCadres": null,
-      "prevoyanceNonCadres": { "TO_FILL": true },
+      "devolutionCapitalDeces": {
+        "mode": "cascadeExclusive",
+        "rangs": [
+          { "qualites": ["conjoint", "pacs"] },
+          { "qualites": ["enfants"], "representation": true },
+          { "qualites": ["ascendants"] },
+          { "qualites": ["devolutionSuccessorale"] }
+        ],
+        "note": "art 18.2.1 accord prevoyance HCR 02/11/2004 Legifrance ; conjoint OU PACS rang 1 (PAS de concubin) ; representation INERTE ; verifie 2026-06-09"
+      },
+      "plafondSalaireRefPass": 1,
+      "_plafondSalaireRefPass_commentaire": "plafond du salaire de reference (capital deces + rente education) = 1 PASS (art 18.2.1 HCR) ; verifie 2026-06-09",
+      "prevoyanceCadres": {
+        "tauxT1Minimum": 1.50,
+        "garantiesMinimum": {
+          "capitalDC": { "mode": "pourcentageSalaireRef", "tauxSalaireRef": 1.50, "minimumPass": 0, "_commentaire": "art 18.2.1 ; 150% salaire ref ; pas de plancher PASS" },
+          "renteConjoint": null,
+          "_renteConjoint_commentaire": "rente conjoint SUBSTITUTIVE art 18.2.4bis (5% SR, 5 ans, conditionnelle absence enfant) -> nouveau mode lot 3.5 ; null = placeholder provisoire",
+          "renteEducation": { "mode": "trancheAge", "tranches": [
+            { "deAge": 0, "aAge": 8, "tauxSalaireRef": 0.12, "minimumPass": 0 },
+            { "deAge": 8, "aAge": 26, "tauxSalaireRef": 0.18, "minimumPass": 0 }
+          ], "_commentaire": "art 18.2.4 ; 12% <8 ans, 18% de 8 a 26 ans ; pas de plancher PASS ; doublement orphelin pere+mere (raffinement A) DIFFERE" },
+          "ij": { "mode": "complementSecu", "pctSalaire": 0.70, "franchise": 90, "plafondJours": 1005, "baseCalcul": "T1_seul", "_commentaire": "art 18.2.5 ; 70% sous deduction SS ; franchise 90j ; cesse au 1095e jour EXPLICITE = 1005 j apres franchise ; baseCalcul T1_seul (tranche A) DOCUMENTAIRE - plafond TA NON applique par le moteur en 3.3a (raffinement B differe)" },
+          "invalidite": { "cat1": { "pctSalaire": 0.45 }, "cat2": { "pctSalaire": 0.70 }, "cat3": { "pctSalaire": 0.70 }, "_commentaire": "art 18.2.6 ; cat1 45%, cat2/3 70% ; identique cadres/non-cadres" }
+        },
+        "note": "regime prevoyance HCR art 18 accord 02/11/2004 (avenant 1 du 13/07/2004, modifie avenant 27 du 13/10/2017), Legifrance ; garanties identiques cadres/non-cadres ; verifie 2026-06-09"
+      },
+      "prevoyanceNonCadres": {
+        "garantiesMinimum": {
+          "capitalDC": { "mode": "pourcentageSalaireRef", "tauxSalaireRef": 1.50, "minimumPass": 0, "_commentaire": "art 18.2.1 ; 150% salaire ref ; pas de plancher PASS" },
+          "renteConjoint": null,
+          "_renteConjoint_commentaire": "rente conjoint SUBSTITUTIVE art 18.2.4bis (5% SR, 5 ans, conditionnelle absence enfant) -> nouveau mode lot 3.5 ; null = placeholder provisoire",
+          "renteEducation": { "mode": "trancheAge", "tranches": [
+            { "deAge": 0, "aAge": 8, "tauxSalaireRef": 0.12, "minimumPass": 0 },
+            { "deAge": 8, "aAge": 26, "tauxSalaireRef": 0.18, "minimumPass": 0 }
+          ], "_commentaire": "art 18.2.4 ; 12% <8 ans, 18% de 8 a 26 ans ; pas de plancher PASS ; doublement orphelin pere+mere (raffinement A) DIFFERE" },
+          "ij": { "mode": "complementSecu", "pctSalaire": 0.70, "franchise": 90, "plafondJours": 1005, "baseCalcul": "T1_seul", "_commentaire": "art 18.2.5 ; 70% sous deduction SS ; franchise 90j ; cesse au 1095e jour EXPLICITE = 1005 j apres franchise ; baseCalcul T1_seul (tranche A) DOCUMENTAIRE - plafond TA NON applique par le moteur en 3.3a (raffinement B differe)" },
+          "invalidite": { "cat1": { "pctSalaire": 0.45 }, "cat2": { "pctSalaire": 0.70 }, "cat3": { "pctSalaire": 0.70 }, "_commentaire": "art 18.2.6 ; cat1 45%, cat2/3 70% ; identique cadres/non-cadres" }
+        },
+        "note": "regime prevoyance HCR art 18 accord 02/11/2004 (avenant 1 du 13/07/2004, modifie avenant 27 du 13/10/2017), Legifrance ; garanties identiques cadres/non-cadres ; verifie 2026-06-09"
+      },
       "santeMinimum": { "TO_FILL": true }
     },
     "1597": {
