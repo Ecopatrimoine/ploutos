@@ -14,6 +14,7 @@ import {
 } from "../lib/prevoyance/capitaux-deces-branche";
 import { resolveCouvertureBranche } from "../lib/prevoyance/couverture-branche";
 import { devolutionCapitalDecesBranche } from "../lib/calculs/succession";
+import { getMaintienParams } from "../lib/prevoyance/projection";
 import { referentiels } from "../data/prevoyance";
 import type { PatrimonialData } from "../types/patrimoine";
 
@@ -145,3 +146,83 @@ describe("HCR (1979) — NON-RÉGRESSION : Syntec (1486) inchangé", () => {
     expect(r[0]).toMatchObject({ relation: "autre", montant: 100000 });
   });
 });
+
+// ─── LOT HCR-3.4 — maintien employeur HCR = plancher légal (Option A) ────────
+//
+// HCR (1979) ne documente pas de maintien conventionnel plus favorable
+// (maintienEmployeur.cadres = nonCadres = null, cf. note JSON). getMaintienParams
+// retombe donc sur le maintien LÉGAL de mensualisation, appliqué génériquement
+// par le moteur. Aucune touche moteur dans ce lot : on VERROUILLE la résolution.
+
+describe("HCR (1979) — maintien employeur = plancher légal (Option A)", () => {
+  it("non-cadre → retombe sur le légal (source legal, carence 7, table légale)", () => {
+    const p = getMaintienParams("1979", referentiels, "nonCadres");
+    expect(p.source).toBe("legal");
+    expect(p.carenceJours).toBe(7);
+    // 1er palier légal : ancienneté 12 mois, segments 30 j à 90 % puis 30 j à 66,67 %.
+    const palier12 = p.paliers.find((x) => x.ancienneteMois === 12);
+    expect(palier12).toBeDefined();
+    expect(palier12!.segments[0]).toEqual({ jours: 30, pct: 90 });
+    expect(palier12!.segments[1].jours).toBe(30);
+    expect(palier12!.segments[1].pct).toBeCloseTo(66.6667, 3);
+  });
+
+  it("cadre → retombe aussi sur le légal", () => {
+    const p = getMaintienParams("1979", referentiels, "cadres");
+    expect(p.source).toBe("legal");
+    expect(p.carenceJours).toBe(7);
+  });
+
+  it("NON-RÉGRESSION Syntec (1486) non-cadre → source ccn, carence 0 (inchangé)", () => {
+    const p = getMaintienParams("1486", referentiels, "nonCadres");
+    expect(p.source).toBe("ccn");
+    expect(p.carenceJours).toBe(0);
+  });
+});
+
+// VERROU TAUX PAR JOUR. `tauxMaintienJour` n'est PAS exporté (fonction moteur
+// privée, projection.ts:363-372) et ce lot interdit toute touche moteur : on
+// reproduit donc À L'IDENTIQUE sa logique dans ce helper local, ALIMENTÉ par les
+// params LÉGAUX RÉELS résolus par getMaintienParams("1979") — aucune valeur en
+// dur. Verrou de la courbe HCR (palier 12 mois : carence 7, 90 % puis 66,67 %).
+function tauxJour(
+  params: ReturnType<typeof getMaintienParams>,
+  ancienneteMois: number,
+  t: number
+): number {
+  const palier = params.paliers
+    .filter((p) => ancienneteMois >= p.ancienneteMois)
+    .sort((a, b) => b.ancienneteMois - a.ancienneteMois)[0] ?? null;
+  if (!palier || t < params.carenceJours) return 0;
+  let debut = 0;
+  const tEff = t - params.carenceJours;
+  for (const seg of palier.segments) {
+    if (tEff < debut + seg.jours) return seg.pct / 100;
+    debut += seg.jours;
+  }
+  return 0;
+}
+
+describe("HCR (1979) — taux de maintien par jour (palier 12 mois, fenêtre 30/30)", () => {
+  const params = getMaintienParams("1979", referentiels, "nonCadres");
+  const ANC = 12; // 1 an d'ancienneté → palier légal 30 j / 30 j
+
+  it("jour 3 (< carence 7) → 0", () => {
+    expect(tauxJour(params, ANC, 3)).toBe(0);
+  });
+  it("jour 10 (fenêtre 90 %) → 0,90", () => {
+    expect(tauxJour(params, ANC, 10)).toBeCloseTo(0.90, 4);
+  });
+  it("jour 40 (fenêtre 66,67 %) → ~0,6667", () => {
+    expect(tauxJour(params, ANC, 40)).toBeCloseTo(0.6667, 3);
+  });
+  it("jour 70 (au-delà de 7 + 30 + 30 = 67) → 0 (fin du maintien légal faible ancienneté)", () => {
+    expect(tauxJour(params, ANC, 70)).toBe(0);
+  });
+});
+
+// GARDE TNS (documentée, non testable en isolation sans toucher le moteur) :
+// computeMaintienEmployeur (projection.ts:407 `if (!isSalarie) return 0;`) et
+// marchesMaintienEffectif (projection.ts:335 `if (!isSalarie) return []`) annulent
+// tout maintien pour un statut TNS. Ces fonctions ne sont pas exportées ; les
+// tests d'isolement nécessiteraient un export moteur, hors périmètre de ce lot.

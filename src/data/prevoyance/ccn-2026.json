@@ -109,7 +109,11 @@
       "idcc": "1979",
       "nom": "Hôtels, cafés, restaurants (HCR)",
       "datesVerification": "2026-06-09",
-      "maintienEmployeur": { "cadres": null, "nonCadres": null },
+      "maintienEmployeur": {
+        "cadres": null,
+        "nonCadres": null,
+        "note": "Option A : pas de maintien conventionnel plus favorable retenu. Le maintien art 29 CCN HCR exige 3 ans d'anciennete (moins favorable que le legal, 1 an) -> plancher legal de mensualisation applique generiquement par le moteur. Art 29 (carence, taux, durees) TO_VERIFY (Legifrance bloque) ; impact faible car domine par le legal. verifie 2026-06-09"
+      },
       "devolutionCapitalDeces": {
         "mode": "cascadeExclusive",
         "rangs": [
