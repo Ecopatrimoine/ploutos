@@ -117,6 +117,10 @@ export function BlocCapitauxDeces({
   const priveNet = totalPriveCapital - totalPriveDuties;
   // Capital de branche exonéré (somme), calculé localement (pas de prop dédiée).
   const totalBrancheExonere = branche.reduce((s, l) => s + (l.capital ?? 0), 0);
+  // LOT LABEL-CCN — nom de CCN pour le titre de la rente éducation : toutes les
+  // lignes partagent la même branche → 1er `source` non vide. Garde défensive :
+  // "" si indisponible → aucune parenthèse affichée.
+  const renteEducationSource = renteEducationBranche.find((r) => r.source)?.source ?? "";
 
   // Éditeur de surcharge (Volet B) actif seulement si un callback est fourni.
   const editable = typeof onSurchargeChange === "function";
@@ -435,7 +439,7 @@ export function BlocCapitauxDeces({
                     return (
                       <div style={{ marginTop: "5px", display: "flex", flexDirection: "column", gap: "2px" }}>
                         <div style={{ fontSize: "10px", fontWeight: 600, color: BRAND.sky, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                          Bénéficiaires {manuel ? "(répartition personnalisée)" : "(clause type Syntec)"}
+                          Bénéficiaires {manuel ? "(répartition personnalisée)" : (l.source ? `(clause type ${l.source})` : "(clause type de branche)")}
                         </div>
                         {rep.map((r, ri) => (
                           <div key={ri} style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: BRAND.muted }}>
@@ -459,7 +463,7 @@ export function BlocCapitauxDeces({
               {renteEducationBranche.length > 0 && (
                 <div style={{ marginTop: "4px", borderRadius: "10px", border: `1px solid ${SURFACE.border}`, background: SURFACE.app, padding: "10px 12px" }}>
                   <div style={{ fontSize: "11px", fontWeight: 600, color: BRAND.sky, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>
-                    Rente éducation de branche (Syntec)
+                    Rente éducation de branche{renteEducationSource ? ` (${renteEducationSource})` : ""}
                   </div>
                   <div style={{ fontSize: "11px", color: BRAND.muted, marginBottom: "8px" }}>
                     Versée chaque année à chaque enfant à charge (moins de 26 ans) — cumulative avec le capital, jamais additionnée à celui-ci.

@@ -164,6 +164,8 @@ export type RenteEducationBrancheLine = {
   phases: { deAge: number; aAge: number; montantAnnuel: number }[];
   donneeIndisponible: boolean;
   exonere: true;
+  // LOT LABEL-CCN — nom de la CCN (conv.nom ?? idcc), pour un libellé dynamique.
+  source: string;
 };
 
 // Contexte de dévolution du capital décès de BRANCHE (clause type Syntec,
@@ -1400,6 +1402,7 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
         phases: re.phases.map((p) => ({ deAge: p.deAge, aAge: p.aAge, montantAnnuel: p.montantAnnuel })),
         donneeIndisponible: re.donneeIndisponible || ageEnfant === null,
         exonere: true,
+        source: re.source,
       });
     }
   }

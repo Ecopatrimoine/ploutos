@@ -148,7 +148,7 @@ describe("BlocCapitauxDeces — sous-section rente éducation de branche (LOT DE
         { deAge: 0, aAge: 18, montantAnnuel: 11534.4 },
         { deAge: 18, aAge: 26, montantAnnuel: 14418 },
       ],
-      donneeIndisponible: false, exonere: true,
+      donneeIndisponible: false, exonere: true, source: "Syntec",
     };
     const { container, getByText } = render(
       <BlocCapitauxDeces {...EMPTY} branche={[brancheCapital]} renteEducationBranche={[rente]} />
@@ -169,7 +169,7 @@ describe("BlocCapitauxDeces — sous-section rente éducation de branche (LOT DE
         { deAge: 0, aAge: 18, montantAnnuel: 11534.4 },
         { deAge: 18, aAge: 26, montantAnnuel: 14418 },
       ],
-      donneeIndisponible: false, exonere: true,
+      donneeIndisponible: false, exonere: true, source: "Syntec",
     };
     const { container } = render(
       <BlocCapitauxDeces {...EMPTY} branche={[brancheCapital]} renteEducationBranche={[rente]} />
@@ -182,12 +182,58 @@ describe("BlocCapitauxDeces — sous-section rente éducation de branche (LOT DE
   it("donneeIndisponible (âge inconnu) → mention neutre, jamais « 0 € »", () => {
     const rente: RenteEducationBrancheLine = {
       enfantPrenom: "Sans", ageActuel: null, montantAnnuelCourant: null,
-      phases: [], donneeIndisponible: true, exonere: true,
+      phases: [], donneeIndisponible: true, exonere: true, source: "Syntec",
     };
     const { container, getByText } = render(
       <BlocCapitauxDeces {...EMPTY} branche={[brancheCapital]} renteEducationBranche={[rente]} />
     );
     expect(getByText(/Donnée de branche non disponible/)).toBeInTheDocument();
     expect(norm(container.textContent)).not.toContain("0€/an");
+  });
+});
+
+describe("BlocCapitauxDeces — libellés CCN dynamiques (LOT LABEL-CCN)", () => {
+  const NOM_HCR = "Hôtels, cafés, restaurants (HCR)";
+
+  it("dossier HCR → clause de dévolution + titre rente portent le nom HCR, jamais « Syntec »", () => {
+    const branche: CapitalDecesBrancheLine = {
+      source: NOM_HCR, capital: 45000, categorie: "nonCadres",
+      exonere: true, donneeIndisponible: false, beneficiairesAuContrat: true,
+      repartition: [{ beneficiaire: "Lea Perry", relation: "enfant", montant: 45000, origine: "capital_principal", source: "auto" }],
+    };
+    const rente: RenteEducationBrancheLine = {
+      enfantPrenom: "Lea", ageActuel: 6, montantAnnuelCourant: 3600,
+      phases: [{ deAge: 0, aAge: 8, montantAnnuel: 3600 }, { deAge: 8, aAge: 26, montantAnnuel: 5400 }],
+      donneeIndisponible: false, exonere: true, source: NOM_HCR,
+    };
+    const { container } = render(
+      <BlocCapitauxDeces {...EMPTY} branche={[branche]} renteEducationBranche={[rente]} />
+    );
+    const t = norm(container.textContent);
+    // Clause de dévolution dynamique : "clause type Hôtels..." (et plus le Syntec figé).
+    expect(t).toContain(norm("clause type Hôtels"));
+    // Titre du poste rente éducation : nom HCR injecté.
+    expect(t).toContain(norm("Rente éducation de branche (Hôtels"));
+    // Aucune trace du libellé figé d'avant.
+    expect(t).not.toContain("Syntec");
+  });
+
+  it("source de branche vide → titre rente éducation SANS parenthèse (garde défensive)", () => {
+    const branche: CapitalDecesBrancheLine = {
+      source: "", capital: null, categorie: "nonCadres",
+      exonere: true, donneeIndisponible: true, beneficiairesAuContrat: true,
+      repartition: [],
+    };
+    const rente: RenteEducationBrancheLine = {
+      enfantPrenom: "Lea", ageActuel: 6, montantAnnuelCourant: 3600,
+      phases: [{ deAge: 0, aAge: 8, montantAnnuel: 3600 }],
+      donneeIndisponible: false, exonere: true, source: "",
+    };
+    const { container, getByText } = render(
+      <BlocCapitauxDeces {...EMPTY} branche={[branche]} renteEducationBranche={[rente]} />
+    );
+    expect(getByText(/Rente éducation de branche/)).toBeInTheDocument();
+    // Pas de parenthèse vide accolée au titre ("... branche (" interdit).
+    expect(norm(container.textContent)).not.toContain(norm("Rente éducation de branche ("));
   });
 });

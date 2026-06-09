@@ -101,6 +101,14 @@ describe("HCR (1979) — rente éducation (12 % < 8 ans, 18 % de 8 à 26 ans)", 
     const r = resolveRenteEducationBranche("1979", "nonCadres", 30000, PASS, 26, referentiels);
     expect(r.montantAnnuelCourant).toBe(0);
   });
+
+  it("source = nom de CCN dynamique (LOT LABEL-CCN) : 1979 → HCR, 1486 → Syntec", () => {
+    const hcr = resolveRenteEducationBranche("1979", "nonCadres", 30000, PASS, 5, referentiels);
+    expect(hcr.source).toContain("Hôtels");
+    expect(hcr.source).not.toContain("Syntec");
+    const syntec = resolveRenteEducationBranche("1486", "cadres", 60000, PASS, 10, referentiels);
+    expect(syntec.source).toContain("Syntec");
+  });
 });
 
 describe("HCR (1979) — IJ / invalidité (resolveCouvertureBranche)", () => {
