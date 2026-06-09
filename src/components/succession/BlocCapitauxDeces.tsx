@@ -402,11 +402,38 @@ export function BlocCapitauxDeces({
                       </div>
                     )}
                   </div>
-                  {!l.donneeIndisponible && l.capital != null && (
-                    <div style={{ fontSize: "11px", color: BRAND.muted, marginTop: "3px" }}>
-                      Versé aux bénéficiaires désignés au contrat de prévoyance collective.
-                    </div>
-                  )}
+                  {/* Dévolution (LOT DECES-A bis) — QUI perçoit (clause type
+                      Syntec ou répartition personnalisée). Exonéré : aucun droit.
+                      Répartition vide → ligne générique de repli. */}
+                  {!l.donneeIndisponible && l.capital != null && (() => {
+                    const rep = l.repartition ?? [];
+                    if (rep.length === 0) {
+                      return (
+                        <div style={{ fontSize: "11px", color: BRAND.muted, marginTop: "3px" }}>
+                          Versé aux bénéficiaires désignés au contrat de prévoyance collective.
+                        </div>
+                      );
+                    }
+                    const manuel = rep.some((r) => r.source === "manuel");
+                    return (
+                      <div style={{ marginTop: "5px", display: "flex", flexDirection: "column", gap: "2px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 600, color: BRAND.sky, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          Bénéficiaires {manuel ? "(répartition personnalisée)" : "(clause type Syntec)"}
+                        </div>
+                        {rep.map((r, ri) => (
+                          <div key={ri} style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: BRAND.muted }}>
+                            <span>
+                              {r.beneficiaire}{" "}
+                              <span>({relationLabel(r.relation)})</span>
+                            </span>
+                            <span style={{ color: BRAND.navy, fontWeight: 600 }}>
+                              {euro(r.montant)} <span style={{ color: BRAND.success }}>exonéré</span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>

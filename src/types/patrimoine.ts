@@ -483,6 +483,13 @@ export type PayloadPrevoyancePerso = {
   // CSS : conjoint/PACS, à défaut enfants à charge, à défaut ascendants).
   // Présente → REMPLACE la cascade auto (le CGP connaît le cas, ex. concubin).
   capitalDecesCaisseSurcharge?: CapitalDecesCaisseSurcharge;
+  // Surcharge MANUELLE de la dévolution du capital décès de PRÉVOYANCE DE
+  // BRANCHE (CCN). MÊME modèle que la surcharge caisse (réutilise le type), mais
+  // CASCADE DISTINCTE : clause type Syntec (art. 3.3, 27/03/1997) — conjoint, à
+  // défaut PACS/concubin notoire, à défaut enfants, à défaut ascendants, à
+  // défaut héritiers (cf. LOT DECES-A bis). Absent → cascade par défaut.
+  // Présente → REMPLACE la cascade (le salarié a modifié la clause au contrat).
+  capitalDecesBrancheSurcharge?: CapitalDecesCaisseSurcharge;
 };
 
 // Lien du bénéficiaire d'un capital décès caisse (purement descriptif —

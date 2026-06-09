@@ -145,7 +145,119 @@ export type CapitalDecesBrancheLine = {
   exonere: true;
   donneeIndisponible: boolean;
   beneficiairesAuContrat: true;
+  // Dévolution (LOT DECES-A bis) : QUI perçoit, clause type Syntec (cascade
+  // EXCLUSIVE) OU surcharge manuelle. EXONÉRÉ — informatif, aucun droit calculé.
+  // Vide = aucun bénéficiaire déterminé (désignation manuelle invitée).
+  repartition: CapitalDecesRepartitionLigne[];
 };
+
+// Contexte de dévolution du capital décès de BRANCHE (clause type Syntec,
+// art. 3.3 accord prévoyance 27/03/1997). DISTINCT du contexte CAISSE (ordre
+// L361-4 CSS) sur deux points : le 1er rang admet AUSSI le concubin notoire, et
+// un 4e rang « héritiers » clôt la cascade. EXCLUSIVE : le 1er rang non vide
+// prend 100 % (le conjoint EXCLUT les enfants).
+export type CapitalDecesBrancheDevolutionContexte = {
+  // Rang 1 — conjoint non séparé de corps ; à défaut partenaire de PACS ou
+  // concubin notoire. L'appelant place ici le survivant selon coupleStatus
+  // (marié → "conjoint", PACS → "pacs_partner", concubin → "autre").
+  partenaireNom?: string;
+  partenaireRelation?: CapitalDecesCaisseRelation;
+  // Rang 2 — enfants (parts égales). Clause bénéficiaire : TOUS les enfants du
+  // défunt (pas le filtre fiscal « à charge » propre au capital caisse).
+  enfants: string[];
+  // Rang 3 — ascendants (parts égales). Souvent absent du modèle → rang sauté.
+  ascendants?: string[];
+  // Rang 4 — héritiers selon dévolution successorale. Souvent indéterminé → sauté.
+  heritiers?: string[];
+  surcharge?: CapitalDecesCaisseSurcharge | null;
+};
+
+// Cascade PURE de la clause type Syntec (art. 3.3). EXCLUSIVE : on s'arrête au
+// 1er rang non vide, qui reçoit 100 % du capital (parts égales si plusieurs au
+// même rang). Une surcharge manuelle REMPLACE toute la cascade. Tout est
+// EXONÉRÉ : on répartit, on ne taxe rien. Aucune exception : un rang sans
+// donnée est proprement sauté ; rien de déterminé → [] (désignation manuelle).
+export function devolutionCapitalDecesBrancheCascade(
+  capital: number | null,
+  ctx: CapitalDecesBrancheDevolutionContexte
+): CapitalDecesRepartitionLigne[] {
+  // Surcharge manuelle → prime (le salarié a modifié la clause au contrat).
+  if (ctx.surcharge && ctx.surcharge.beneficiaires.length > 0) {
+    return ctx.surcharge.beneficiaires.map((b) => ({
+      beneficiaire: b.name || "Bénéficiaire",
+      relation: b.relation,
+      montant: Math.max(0, n(b.montant)),
+      origine: "capital_principal" as const,
+      source: "manuel" as const,
+    }));
+  }
+
+  const cap = capital ?? 0;
+  if (cap <= 0) return [];
+
+  // Rang 1 — partenaire (conjoint / PACS / concubin notoire).
+  if (ctx.partenaireNom) {
+    return [{ beneficiaire: ctx.partenaireNom, relation: ctx.partenaireRelation ?? "conjoint", montant: cap, origine: "capital_principal", source: "auto" }];
+  }
+  // Rang 2 — enfants, parts égales.
+  if (ctx.enfants.length > 0) {
+    const part = cap / ctx.enfants.length;
+    return ctx.enfants.map((e) => ({ beneficiaire: e, relation: "enfant" as const, montant: part, origine: "capital_principal" as const, source: "auto" as const }));
+  }
+  // Rang 3 — ascendants, parts égales.
+  if (ctx.ascendants && ctx.ascendants.length > 0) {
+    const part = cap / ctx.ascendants.length;
+    return ctx.ascendants.map((a) => ({ beneficiaire: a, relation: "ascendant" as const, montant: part, origine: "capital_principal" as const, source: "auto" as const }));
+  }
+  // Rang 4 — héritiers selon dévolution successorale, parts égales.
+  if (ctx.heritiers && ctx.heritiers.length > 0) {
+    const part = cap / ctx.heritiers.length;
+    return ctx.heritiers.map((h) => ({ beneficiaire: h, relation: "autre" as const, montant: part, origine: "capital_principal" as const, source: "auto" as const }));
+  }
+  // Sinon : célibataire sans enfant, ascendants/héritiers inconnus → aucun
+  // bénéficiaire automatique. L'UI affichera « bénéficiaire à déterminer ».
+  return [];
+}
+
+// Dévolution du capital décès de BRANCHE pour le défunt `whichDefunt`, depuis le
+// dossier. Construit le contexte Syntec à partir de coupleStatus (rang 1 :
+// marié/PACS/concubin) et des enfants du défunt (rang 2), lit la surcharge
+// éventuelle au READ-TIME (jamais écrite ici), puis applique la cascade. Les
+// rangs 3-4 (ascendants/héritiers) ne sont pas portés par le modèle de données
+// → cascade dégradée proprement (rang sauté). Fonction PURE.
+export function devolutionCapitalDecesBranche(
+  capital: number | null,
+  data: PatrimonialData,
+  whichDefunt: "p1" | "p2"
+): CapitalDecesRepartitionLigne[] {
+  const deceasedKey = whichDefunt === "p1" ? "person1" : "person2";
+  const survivorKey = deceasedKey === "person1" ? "person2" : "person1";
+
+  // Rang 1 Syntec — conjoint (marié), à défaut PACS, à défaut concubin notoire.
+  // coupleStatus porte la distinction (married / pacs / cohab) ; divorced /
+  // single → aucun partenaire de 1er rang.
+  const survivorNom = (survivorKey === "person1"
+    ? `${data.person1FirstName ?? ""} ${data.person1LastName ?? ""}`
+    : `${data.person2FirstName ?? ""} ${data.person2LastName ?? ""}`).trim();
+  let partenaireNom: string | undefined;
+  let partenaireRelation: CapitalDecesCaisseRelation | undefined;
+  if (data.coupleStatus === "married") { partenaireNom = survivorNom || "Conjoint"; partenaireRelation = "conjoint"; }
+  else if (data.coupleStatus === "pacs") { partenaireNom = survivorNom || "Partenaire PACS"; partenaireRelation = "pacs_partner"; }
+  else if (data.coupleStatus === "cohab") { partenaireNom = survivorNom || "Concubin"; partenaireRelation = "autre"; }
+
+  // Rang 2 — enfants DU DÉFUNT (clause bénéficiaire : tous les enfants, sans le
+  // filtre « à charge » propre au capital caisse L361-4 CSS).
+  const enfants = data.childrenData
+    .filter((c) => childMatchesDeceased(c.parentLink, deceasedKey))
+    .map((c) => `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() || "Enfant");
+
+  // Surcharge lue au READ-TIME — jamais persistée pendant la consultation.
+  const surcharge = data.prevoyance?.[whichDefunt]?.capitalDecesBrancheSurcharge;
+
+  return devolutionCapitalDecesBrancheCascade(capital, {
+    partenaireNom, partenaireRelation, enfants, surcharge,
+  });
+}
 
 // ─── CALCUL SUCCESSION ────────────────────────────────────────────────────────
 
@@ -1107,6 +1219,9 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
       exonere: true,
       donneeIndisponible: br.donneeIndisponible,
       beneficiairesAuContrat: true,
+      // Dévolution (LOT DECES-A bis) — clause type Syntec OU surcharge manuelle.
+      // Read-time : ne mute jamais le dossier. EXONÉRÉ, additif, hors actif/droits.
+      repartition: devolutionCapitalDecesBranche(br.capital, data, whichDefunt),
     });
   }
   const capitalDecesBrancheExonere = capitalDecesBrancheLines.reduce((s, l) => s + (l.capital ?? 0), 0);
