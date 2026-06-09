@@ -246,12 +246,18 @@ describe("Cas d'or C — Léa, salariée non-cadre Métallurgie (CPAM / IDCC 324
     expect(r.revenuReferenceMensuel).toBeCloseTo((28000 * 0.78) / 12, 2);
   });
 
-  it("aucune couverture collective → IJ et rente invalidité collectives = 0 partout", () => {
+  it("Métallurgie sans saisie : IJ collective = 0 (3248 sans IJ de branche), invalidité de branche injectée", () => {
+    // 3248 ne documente pas d'IJ de branche (ij: null) → IJ complémentaire collective = 0 partout.
     for (const v of r.series.ijComplementaireCollective) expect(v).toBe(0);
-    for (const v of r.series.renteInvalCollective) expect(v).toBe(0);
+    // L'invalidité de branche (non-cadre, cat2 70 %, art 17.2.c) EST injectée : 0 en phase AM,
+    // > 0 en phase invalidité (valeur précise vérifiée à J1095 plus bas).
+    const idxAM = r.axe.findIndex((p) => p.jour < 1095);
+    expect(r.series.renteInvalCollective[idxAM]).toBe(0);
+    const idxInval = r.axe.findIndex((p) => p.jour >= 1095);
+    expect(r.series.renteInvalCollective[idxInval]).toBeGreaterThan(0);
   });
 
-  it("3248 TO_FILL → fallback maintien légal Mensualisation (useLegalDefault=true)", () => {
+  it("3248 maintien non documenté (Option A) → fallback maintien légal Mensualisation (useLegalDefault=true)", () => {
     expect(r.useLegalDefault).toBe(true);
   });
 
@@ -287,7 +293,7 @@ describe("Cas d'or C — Léa, salariée non-cadre Métallurgie (CPAM / IDCC 324
     expect(totalAtIdx(r.series, j180)).toBe(r.series.ijObligatoire[j180]);
   });
 
-  it("bascule invalidité à J1095 : pension obligatoire cat2 = 50 % SAM (sous plafond), aucune coll/ind", () => {
+  it("bascule invalidité à J1095 : pension cat2 50 % SAM + invalidité de branche cat2 70 % (cible sous déduction), aucun contrat individuel", () => {
     const j1095 = idxJour(r.axe, 1095);
     const brutMensuel = 28000 / 12;
     // SAM (2333 €/mois) < PASS mensuel (4005) → pas de plafonnement :
@@ -295,7 +301,12 @@ describe("Cas d'or C — Léa, salariée non-cadre Métallurgie (CPAM / IDCC 324
     // → 1166,67 € (le plafond ne mord pas).
     expect(r.series.pensionInvalObligatoire[j1095]).toBeCloseTo(brutMensuel * 0.5, 1);
     expect(r.series.pensionInvalObligatoire[j1095]).toBeCloseTo(1166.67, 1);
-    expect(r.series.renteInvalCollective[j1095]).toBe(0);
+    // Invalidité de branche Métallurgie (non-cadre cat2 70 %, art 17.2.c) injectée :
+    // CIBLE 70 % du revenu de référence SOUS DÉDUCTION de la pension Secu (art 17.2.a).
+    // Attendu DÉRIVÉ des sorties RÉELLES du moteur (revenu de référence + pension), non hardcodé (≈ 107 €/mois).
+    const cibleInval = Math.max(0, r.revenuReferenceMensuel * 0.70 - r.series.pensionInvalObligatoire[j1095]);
+    expect(cibleInval).toBeGreaterThan(0); // la couverture de branche mord réellement
+    expect(r.series.renteInvalCollective[j1095]).toBeCloseTo(cibleInval, 2);
     expect(r.series.renteInvalIndividuelle[j1095]).toBe(0);
     // CPAM cat2 documenté (taux 0,5) → pas de flag indisponible pour cas C.
     expect(r.donneesCaisseIndisponibles).toBe(false);

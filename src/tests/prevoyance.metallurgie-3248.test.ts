@@ -102,18 +102,16 @@ describe("Métallurgie (3248) — rente éducation (4 % / 6 % / 8 % par âge)", 
   });
 });
 
-describe("Métallurgie (3248) — invalidité (TO_VERIFY art 17.2)", () => {
-  // Valeurs corroborées FO + CFDT (signataires) mais NON confirmées par source
-  // primaire (art 17.2). VOLONTAIREMENT non posées dans le JSON : le moteur de
-  // projection injecterait l'invalidité de branche dans le calcul du vivant
-  // (renteInvalCollective) — on ne diffuse pas de valeur non confirmée. À activer
-  // dans un lot dédié une fois la source primaire lue.
-  it.skip("cadre → cat1 45 %, cat2/3 75 % (TO_VERIFY art 17.2 — invalidité à poser dans le JSON)", () => {
+describe("Métallurgie (3248) — invalidité (PRIMARY art 17.2.c avenant n1)", () => {
+  // Valeurs PRIMARY (art 17.2.c annexe 9, avenant n1) : cadre 45/75/75,
+  // non-cadre 42/70/70. Sémantique = cible sous déduction Secu (identique HCR/
+  // Syntec). Assiette NON plafonnée 8 PASS (art 17.2.b — raffinement différé).
+  it("cadre → cat1 45 %, cat2/3 75 % (PRIMARY art 17.2.c avenant n1)", () => {
     const r = resolveCouvertureBranche("3248", "cadres", referentiels);
     expect(r.invalidite).toEqual({ cat1: { pctSalaire: 0.45 }, cat2: { pctSalaire: 0.75 }, cat3: { pctSalaire: 0.75 } });
   });
 
-  it.skip("non-cadre → cat1 42 %, cat2/3 70 % (TO_VERIFY art 17.2 — invalidité à poser dans le JSON)", () => {
+  it("non-cadre → cat1 42 %, cat2/3 70 % (PRIMARY art 17.2.c avenant n1)", () => {
     const r = resolveCouvertureBranche("3248", "nonCadres", referentiels);
     expect(r.invalidite).toEqual({ cat1: { pctSalaire: 0.42 }, cat2: { pctSalaire: 0.70 }, cat3: { pctSalaire: 0.70 } });
   });

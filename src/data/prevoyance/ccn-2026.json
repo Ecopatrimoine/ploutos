@@ -131,7 +131,7 @@
           ], "_commentaire": "Art 17.4.c. 4/6/8% par age, identique cadres/non-cadres. PRIMARY. Prolongation handicap >25 ans NON modelisee (gap)." },
           "ij": null,
           "_ij_commentaire": "IJ branche a paliers temporels (cadre 100% jusqu'a 180j puis 75%) - mode moteur DIFFERE (perimetre reduit).",
-          "_invalidite_commentaire": "Invalidite VALEURS TO_VERIFY art 17.2 (cadre 45/75/75) VOLONTAIREMENT NON posee dans le JSON : le moteur de projection (projection.ts) injecte automatiquement l'invalidite de branche dans le calcul du vivant -> on ne diffuse PAS de valeur non confirmee. A poser apres confirmation source primaire (lot dedie). Tests en it.skip."
+          "invalidite": { "cat1": { "pctSalaire": 0.45 }, "cat2": { "pctSalaire": 0.75 }, "cat3": { "pctSalaire": 0.75 }, "_commentaire": "Art 17.2.c annexe 9 (avenant n1). Cible sous deduction Secu. PRIMARY. Assiette NON plafonnee 8 PASS (art 17.2.b - raffinement differe). Rente IPP AT/MP de l'art 17.2 NON modelisee (gap)." }
         },
         "note": "Metallurgie cadres (groupes E-I, art 166.1) - aiguillage via statutPro proxy."
       },
@@ -145,7 +145,7 @@
             { "deAge": 19, "aAge": 26, "tauxSalaireRef": 0.08, "minimumPass": 0 }
           ], "_commentaire": "Art 17.4.c. Identique cadres. PRIMARY." },
           "ij": null,
-          "_invalidite_commentaire": "Invalidite VALEURS TO_VERIFY art 17.2 (non-cadre 42/70/70) VOLONTAIREMENT NON posee dans le JSON (cf. prevoyanceCadres). Tests en it.skip."
+          "invalidite": { "cat1": { "pctSalaire": 0.42 }, "cat2": { "pctSalaire": 0.70 }, "cat3": { "pctSalaire": 0.70 }, "_commentaire": "Art 17.2.c. PRIMARY. Memes reserves que cadres." }
         },
         "note": "Metallurgie non-cadres (groupes A-D)."
       },
