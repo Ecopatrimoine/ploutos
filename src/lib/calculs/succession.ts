@@ -9,7 +9,7 @@ import { n, getDemembrementPercentages, computeTaxFromBrackets, isAV, isPERType,
 import { resolveLoanValuesMulti } from './credit';
 import { buildEntreePerso } from '../prevoyance/mapping';
 import { resolveCapitauxDeces } from '../prevoyance/capitaux-deces';
-import { resolveCapitalDecesBranche } from '../prevoyance/capitaux-deces-branche';
+import { resolveCapitalDecesBranche, resolveRenteEducationBranche } from '../prevoyance/capitaux-deces-branche';
 import { categorieMaintien } from '../prevoyance/projection';
 import { getContratsTransmissionDecesAvecLegacy, getPrevoyancePerso } from '../prevoyance/utils';
 import { referentiels } from '../../data/prevoyance';
@@ -149,6 +149,21 @@ export type CapitalDecesBrancheLine = {
   // EXCLUSIVE) OU surcharge manuelle. EXONÉRÉ — informatif, aucun droit calculé.
   // Vide = aucun bénéficiaire déterminé (désignation manuelle invitée).
   repartition: CapitalDecesRepartitionLigne[];
+};
+
+// Rente éducation de PRÉVOYANCE COLLECTIVE DE BRANCHE (CCN), PAR ENFANT à charge
+// (LOT DECES-B-ii). EXONÉRÉE, hors actif/droits, CUMULATIVE avec le capital —
+// JAMAIS additionnée à lui (poste séparé). Évolutive : `phases` porte la grille
+// (12 %/15 % du salaire de référence), `montantAnnuelCourant` le montant à l'âge
+// actuel de l'enfant. donneeIndisponible si la CCN ne documente pas la rente OU
+// si la date de naissance manque (âge inconnu).
+export type RenteEducationBrancheLine = {
+  enfantPrenom: string;
+  ageActuel: number | null;
+  montantAnnuelCourant: number | null;     // €/an à l'âge actuel (null si âge inconnu)
+  phases: { deAge: number; aAge: number; montantAnnuel: number }[];
+  donneeIndisponible: boolean;
+  exonere: true;
 };
 
 // Contexte de dévolution du capital décès de BRANCHE (clause type Syntec,
@@ -1226,11 +1241,41 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
   }
   const capitalDecesBrancheExonere = capitalDecesBrancheLines.reduce((s, l) => s + (l.capital ?? 0), 0);
 
+  // ── Source 3b : RENTE ÉDUCATION de branche (CCN), PAR ENFANT à charge ──
+  // EXONÉRÉE, CUMULATIVE avec le capital (poste SÉPARÉ, JAMAIS additionnée au
+  // capital). « À charge » = âge SEUL < 26 ans (décision actée — rattached
+  // ignoré). Bloc STRICTEMENT additif : ne touche ni le capital, ni la
+  // dévolution, ni les masses, ni les rentes caisses. Le résolveur de branche
+  // n'est appelé QUE d'ici (jamais depuis projection.ts → hors 9 séries).
+  const renteEducationBrancheLines: RenteEducationBrancheLine[] = [];
+  if (entreeDefunt && entreeDefunt.idccCCN) {
+    const categorieBranche = categorieMaintien(entreeDefunt.statutPro);
+    const passAnnuel = referentiels.pass.pass.annuel;
+    for (const child of data.childrenData) {
+      if (!childMatchesDeceased(child.parentLink, deceasedKey)) continue;
+      const ageEnfant = getAgeFromBirthDate(child.birthDate);
+      // Âge >= 26 → hors charge, aucune ligne. Âge inconnu (birthDate absent) →
+      // on ne peut exclure l'enfant : ligne produite, marquée donneeIndisponible.
+      if (ageEnfant !== null && ageEnfant >= 26) continue;
+      const re = resolveRenteEducationBranche(
+        entreeDefunt.idccCCN, categorieBranche, entreeDefunt.salaireBrutAnnuel, passAnnuel, ageEnfant, referentiels
+      );
+      renteEducationBrancheLines.push({
+        enfantPrenom: child.firstName || "Enfant",
+        ageActuel: ageEnfant,
+        montantAnnuelCourant: re.montantAnnuelCourant,
+        phases: re.phases.map((p) => ({ deAge: p.deAge, aAge: p.aAge, montantAnnuel: p.montantAnnuel })),
+        donneeIndisponible: re.donneeIndisponible || ageEnfant === null,
+        exonere: true,
+      });
+    }
+  }
+
   return {
     deceasedKey, survivorKey, spouseEligible, spouseOptions, spouseOption, quotiteDisponible,
     warnings, activeNet, furnitureForfait,
     // ── Capitaux décès hors actif (Lot 3) — N'IMPACTENT PAS les masses/droits ci-dessus ──
-    capitalDecesLines: { caisses: capitalDecesCaisseLines, prives: capitalDecesPriveLines, branche: capitalDecesBrancheLines },
+    capitalDecesLines: { caisses: capitalDecesCaisseLines, prives: capitalDecesPriveLines, branche: capitalDecesBrancheLines, renteEducationBranche: renteEducationBrancheLines },
     capitalDecesCaisseExonere,
     capitalDecesBrancheExonere,
     capitalDecesPriveCapital,

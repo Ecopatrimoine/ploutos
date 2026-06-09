@@ -10,6 +10,7 @@ import type {
   CapitalDecesCaisseLine,
   CapitalDecesPriveLine,
   CapitalDecesBrancheLine,
+  RenteEducationBrancheLine,
   RenteSurvieAnnuelle,
 } from "../lib/calculs/succession";
 
@@ -130,5 +131,63 @@ describe("BlocCapitauxDeces — sous-bloc prévoyance collective de branche (LOT
     const { getByText } = render(<BlocCapitauxDeces {...EMPTY} branche={[branche]} />);
     expect(getByText(/répartition personnalisée/)).toBeInTheDocument();
     expect(getByText(/Fondation Y/)).toBeInTheDocument();
+  });
+});
+
+describe("BlocCapitauxDeces — sous-section rente éducation de branche (LOT DECES-B-ii)", () => {
+  const brancheCapital: CapitalDecesBrancheLine = {
+    source: "Syntec", capital: 163404, categorie: "cadres",
+    exonere: true, donneeIndisponible: false, beneficiairesAuContrat: true,
+    repartition: [],
+  };
+
+  it("1 enfant à charge → prénom, montant courant, projection des phases, cumul + exonéré", () => {
+    const rente: RenteEducationBrancheLine = {
+      enfantPrenom: "Léa", ageActuel: 10, montantAnnuelCourant: 11534.4,
+      phases: [
+        { deAge: 0, aAge: 18, montantAnnuel: 11534.4 },
+        { deAge: 18, aAge: 26, montantAnnuel: 14418 },
+      ],
+      donneeIndisponible: false, exonere: true,
+    };
+    const { container, getByText } = render(
+      <BlocCapitauxDeces {...EMPTY} branche={[brancheCapital]} renteEducationBranche={[rente]} />
+    );
+    expect(getByText(/Rente éducation de branche/)).toBeInTheDocument();
+    expect(getByText(/Léa/)).toBeInTheDocument();
+    const t = norm(container.textContent);
+    expect(t).toContain("11534"); // montant courant (phase active 0-18)
+    expect(t).toContain(norm("jusqu'à 18 ans"));
+    expect(t).toContain(norm("jusqu'à 26 ans"));
+    expect(t).toContain(norm("cumulative avec le capital"));
+  });
+
+  it("enfant > 18 → seule la phase restante (jusqu'à 26 ans) est projetée", () => {
+    const rente: RenteEducationBrancheLine = {
+      enfantPrenom: "Tom", ageActuel: 20, montantAnnuelCourant: 14418,
+      phases: [
+        { deAge: 0, aAge: 18, montantAnnuel: 11534.4 },
+        { deAge: 18, aAge: 26, montantAnnuel: 14418 },
+      ],
+      donneeIndisponible: false, exonere: true,
+    };
+    const { container } = render(
+      <BlocCapitauxDeces {...EMPTY} branche={[brancheCapital]} renteEducationBranche={[rente]} />
+    );
+    const t = norm(container.textContent);
+    expect(t).toContain(norm("jusqu'à 26 ans"));
+    expect(t).not.toContain(norm("jusqu'à 18 ans")); // phase 0-18 écoulée → masquée
+  });
+
+  it("donneeIndisponible (âge inconnu) → mention neutre, jamais « 0 € »", () => {
+    const rente: RenteEducationBrancheLine = {
+      enfantPrenom: "Sans", ageActuel: null, montantAnnuelCourant: null,
+      phases: [], donneeIndisponible: true, exonere: true,
+    };
+    const { container, getByText } = render(
+      <BlocCapitauxDeces {...EMPTY} branche={[brancheCapital]} renteEducationBranche={[rente]} />
+    );
+    expect(getByText(/Donnée de branche non disponible/)).toBeInTheDocument();
+    expect(norm(container.textContent)).not.toContain("0€/an");
   });
 });

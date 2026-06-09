@@ -20,6 +20,7 @@ import type {
   CapitalDecesCaisseLine,
   CapitalDecesPriveLine,
   CapitalDecesBrancheLine,
+  RenteEducationBrancheLine,
   RenteSurvieAnnuelle,
 } from "../../lib/calculs/succession";
 import type {
@@ -45,6 +46,10 @@ type Props = {
   // exonéré. Optionnel (défaut []) : les appelants existants (tests / PDF) ne
   // le passent pas → aucun sous-bloc branche, comportement inchangé.
   branche?: CapitalDecesBrancheLine[];
+  // LOT DECES-B-ii — rente éducation de branche, PAR ENFANT à charge, exonérée
+  // et CUMULATIVE avec le capital (jamais additionnée). Optionnel (défaut []) :
+  // les appelants existants (tests / PDF) ne la passent pas → aucune sous-section.
+  renteEducationBranche?: RenteEducationBrancheLine[];
   totalCaisseExonere: number;
   totalPriveCapital: number;
   totalPriveDuties: number;
@@ -83,11 +88,23 @@ function initials(name: string): string {
   return name.split(" ").map((w) => w[0] || "").join("").toUpperCase().slice(0, 2) || "?";
 }
 
+// Projection lisible des bascules d'une rente éducation (dérivée des phases).
+// N'affiche que les phases encore à venir : une phase déjà écoulée (l'enfant a
+// dépassé sa borne haute) est masquée. Ex. « 11 534 €/an jusqu'à 18 ans, puis
+// 14 418 €/an jusqu'à 26 ans » ; à 20 ans → « 14 418 €/an jusqu'à 26 ans ».
+function phasesProjection(phases: RenteEducationBrancheLine["phases"], ageActuel: number | null): string {
+  return phases
+    .filter((p) => ageActuel === null || p.aAge > ageActuel)
+    .map((p) => `${euro(p.montantAnnuel)}/an jusqu'à ${p.aAge} ans`)
+    .join(", puis ");
+}
+
 export function BlocCapitauxDeces({
   caisses,
   prives,
   rentes,
   branche = [],
+  renteEducationBranche = [],
   totalCaisseExonere,
   totalPriveCapital,
   totalPriveDuties,
@@ -436,6 +453,42 @@ export function BlocCapitauxDeces({
                   })()}
                 </div>
               ))}
+
+              {/* ── Rente éducation de branche (LOT DECES-B-ii) — PAR ENFANT à
+                  charge, exonérée, CUMULATIVE avec le capital (jamais ajoutée). ── */}
+              {renteEducationBranche.length > 0 && (
+                <div style={{ marginTop: "4px", borderRadius: "10px", border: `1px solid ${SURFACE.border}`, background: SURFACE.app, padding: "10px 12px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 600, color: BRAND.sky, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>
+                    Rente éducation de branche (Syntec)
+                  </div>
+                  <div style={{ fontSize: "11px", color: BRAND.muted, marginBottom: "8px" }}>
+                    Versée chaque année à chaque enfant à charge (moins de 26 ans) — cumulative avec le capital, jamais additionnée à celui-ci.
+                  </div>
+                  {renteEducationBranche.map((r, i) => (
+                    <div key={i} style={{ paddingTop: i > 0 ? "6px" : 0, marginTop: i > 0 ? "6px" : 0, borderTop: i > 0 ? `1px solid ${SURFACE.border}` : "none" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                        <span style={{ fontSize: "12px", fontWeight: 600, color: BRAND.navy }}>
+                          {r.enfantPrenom}
+                          {r.ageActuel != null && <span style={{ fontWeight: 500, color: BRAND.muted }}> · {r.ageActuel} ans</span>}
+                        </span>
+                        {r.donneeIndisponible || r.montantAnnuelCourant == null ? (
+                          <span style={{ fontSize: "11px", fontStyle: "italic", color: BRAND.muted }}>Donnée de branche non disponible</span>
+                        ) : (
+                          <span style={{ fontSize: "13px", fontWeight: 700, color: BRAND.navy }}>
+                            {euro(r.montantAnnuelCourant)} /an{" "}
+                            <span style={{ fontSize: "11px", fontWeight: 600, color: BRAND.success }}>exonéré</span>
+                          </span>
+                        )}
+                      </div>
+                      {!r.donneeIndisponible && r.montantAnnuelCourant != null && r.phases.length > 0 && (
+                        <div style={{ fontSize: "11px", color: BRAND.muted, marginTop: "2px" }}>
+                          {phasesProjection(r.phases, r.ageActuel)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
