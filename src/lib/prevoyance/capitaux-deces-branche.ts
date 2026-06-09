@@ -27,6 +27,23 @@ export type CapitalDecesBranche = {
 type GarantieCapitalDC = { mode?: unknown; tauxSalaireRef?: unknown; minimumPass?: unknown };
 type BlocPrevoyanceBranche = { garantiesMinimum?: { capitalDC?: unknown } | null } | null;
 
+// LOT PASS-CAP — plafond du salaire de référence (multiplicateur de PASS), lu au
+// NIVEAU BRANCHE de ccn-2026.json (clé `plafondSalaireRefPass`). Commun au capital
+// décès ET à la rente éducation. Lecture défensive (cast Record + safeNum + garde) :
+// clé absente / non numérique / <= 0 → REPLI sur 8 (= comportement Syntec actuel).
+// JAMAIS d'exception. Le PASS lui-même reste lu du référentiel par l'appelant.
+const PLAFOND_SALAIRE_REF_PASS_DEFAUT = 8;
+function resolvePlafondSalaireRefPass(idcc: string | null, ref: Referentiels): number {
+  if (!idcc) return PLAFOND_SALAIRE_REF_PASS_DEFAUT;
+  const conventions = ref.ccn.conventions as Record<
+    string,
+    { plafondSalaireRefPass?: unknown } | undefined
+  >;
+  const v = safeNum(conventions?.[idcc]?.plafondSalaireRefPass);
+  if (v === null || v <= 0) return PLAFOND_SALAIRE_REF_PASS_DEFAUT;
+  return v;
+}
+
 export function resolveCapitalDecesBranche(
   idcc: string | null,
   categorie: "cadres" | "nonCadres",
@@ -72,9 +89,11 @@ export function resolveCapitalDecesBranche(
     return indispo(source);
   }
 
-  // Salaire de référence plafonné à 8 PASS ; capital = max(taux × salaireRef,
-  // minimumPass × PASS). Le plancher PASS garantit une couverture minimale.
-  const salaireRef = Math.min(brut, 8 * passNum);
+  // Salaire de référence plafonné à `plafondPass` PASS (configurable par branche,
+  // défaut 8 = Syntec) ; capital = max(taux × salaireRef, minimumPass × PASS). Le
+  // plancher PASS garantit une couverture minimale.
+  const plafondPass = resolvePlafondSalaireRefPass(idcc, ref);
+  const salaireRef = Math.min(brut, plafondPass * passNum);
   const capital = Math.max(taux * salaireRef, minPass * passNum);
   return { capital, donneeIndisponible: false, source, categorie };
 }
@@ -162,9 +181,11 @@ export function resolveRenteEducationBranche(
   const brut = safeNum(salaireBrutAnnuel);
   if (passNum === null || brut === null) return indispo(source);
 
-  // Salaire de référence plafonné à 8 PASS — IDENTIQUE au capital (recalcul
-  // local : on NE modifie PAS resolveCapitalDecesBranche).
-  const salaireRef = Math.min(brut, 8 * passNum);
+  // Salaire de référence plafonné à `plafondPass` PASS (configurable par branche,
+  // défaut 8 = Syntec) — IDENTIQUE au capital (recalcul local : on NE modifie PAS
+  // resolveCapitalDecesBranche).
+  const plafondPass = resolvePlafondSalaireRefPass(idcc, ref);
+  const salaireRef = Math.min(brut, plafondPass * passNum);
 
   const phases: RenteEducationBranchePhase[] = [];
   for (const t of g.tranches as unknown[]) {
