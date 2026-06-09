@@ -58,8 +58,10 @@ describe("resolveCapitalDecesBranche — Syntec (1486)", () => {
     expect(r.donneeIndisponible).toBe(true);
   });
 
-  it("CCN présente mais capitalDC non documenté (3248 TO_FILL) → null + donneeIndisponible", () => {
-    const r = resolveCapitalDecesBranche("3248", "cadres", 60000, PASS, referentiels);
+  it("CCN présente mais capitalDC non documenté (1996 TO_FILL) → null + donneeIndisponible", () => {
+    // 3248 (Métallurgie) est désormais documenté → on prend une autre CCN encore
+    // TO_FILL (1996 Pharmacie) pour garder le verrou « branche non documentée ».
+    const r = resolveCapitalDecesBranche("1996", "cadres", 60000, PASS, referentiels);
     expect(r.capital).toBeNull();
     expect(r.donneeIndisponible).toBe(true);
   });

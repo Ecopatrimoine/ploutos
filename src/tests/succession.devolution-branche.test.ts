@@ -353,14 +353,16 @@ describe("DEVOL-1 — repli sur l'ordre Syntec par défaut", () => {
     return { ccn: { conventions: { "0001": { nom: "Test", devolutionCapitalDeces } } } } as unknown as Referentiels;
   }
 
-  it("idcc sans clé devolutionCapitalDeces (3248) → comportement = ordre Syntec", () => {
-    const marie = devolutionCapitalDecesBranche(10000, data({ coupleStatus: "married" }), "p1", "3248", referentiels);
+  it("idcc sans clé devolutionCapitalDeces (1996 TO_FILL) → comportement = ordre Syntec", () => {
+    // 3248 (Métallurgie) porte désormais une config → on prend 1996 (Pharmacie,
+    // sans clé devolutionCapitalDeces) pour tester le VRAI repli sur l'ordre défaut.
+    const marie = devolutionCapitalDecesBranche(10000, data({ coupleStatus: "married" }), "p1", "1996", referentiels);
     expect(marie).toHaveLength(1);
     expect(marie[0]).toMatchObject({ relation: "conjoint", montant: 10000 });
     const enfants = devolutionCapitalDecesBranche(
       10000,
       data({ coupleStatus: "single", childrenData: [child("Léa"), child("Tom")] as PatrimonialData["childrenData"] }),
-      "p1", "3248", referentiels
+      "p1", "1996", referentiels
     );
     expect(enfants).toHaveLength(2);
     expect(enfants.every((l) => l.relation === "enfant" && l.montant === 5000)).toBe(true);
@@ -396,7 +398,9 @@ describe("DEVOL-1 — resolveDevolutionCapitalDecesConfig (lecteur défensif)", 
   it("idcc null / inconnu / sans clé → null (déclenche le repli)", () => {
     expect(resolveDevolutionCapitalDecesConfig(null, referentiels)).toBeNull();
     expect(resolveDevolutionCapitalDecesConfig("9999", referentiels)).toBeNull();
-    expect(resolveDevolutionCapitalDecesConfig("3248", referentiels)).toBeNull();
+    // 3248 (Métallurgie) porte désormais une config de dévolution → on prend 1996
+    // (Pharmacie, sans clé devolutionCapitalDeces) pour le verrou « repli par défaut ».
+    expect(resolveDevolutionCapitalDecesConfig("1996", referentiels)).toBeNull();
   });
 
   it("qualités inconnues filtrées ; rang conservé (vide) sera sauté à l'exécution", () => {

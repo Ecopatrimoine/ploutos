@@ -125,8 +125,11 @@ describe("LOT DECES-A — capital décès de branche dans la succession", () => 
     expect(s.capitalDecesLines.branche).toHaveLength(0);
   });
 
-  it("CCN documentée sans capitalDC (3248) → ligne présente mais donneeIndisponible", () => {
-    const data = baseData({ travail: travailDefunt("salarie_cadre", employeurSyntec("3248")) });
+  it("CCN documentée sans capitalDC (1996 TO_FILL) → ligne présente mais donneeIndisponible", () => {
+    // 3248 (Métallurgie) porte désormais un capitalDC → on prend 1996 (Pharmacie,
+    // CCN présente mais prévoyance TO_FILL) pour garder le verrou « ligne produite
+    // mais capital indisponible ».
+    const data = baseData({ travail: travailDefunt("salarie_cadre", employeurSyntec("1996")) });
     const s = computeSuccession(baseSuccession(), data);
     expect(s.capitalDecesLines.branche).toHaveLength(1);
     expect(s.capitalDecesLines.branche[0].capital).toBeNull();

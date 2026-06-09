@@ -59,8 +59,11 @@ describe("resolveCouvertureBranche — cas indisponibles (jamais d'exception)", 
     expect(r.donneeIndisponible).toBe(true);
   });
 
-  it("CCN sans garanties IJ/invalidité documentées (3248 TO_FILL) → donneeIndisponible", () => {
-    const r = resolveCouvertureBranche("3248", "cadres", referentiels);
+  it("CCN sans garanties IJ/invalidité documentées (1996 TO_FILL) → donneeIndisponible", () => {
+    // 3248 (Métallurgie) porte désormais capital/rente éducation (mais ni IJ ni
+    // invalidité) → on prend 1996 (Pharmacie, entièrement TO_FILL) comme exemple
+    // non ambigu de branche sans aucune garantie documentée.
+    const r = resolveCouvertureBranche("1996", "cadres", referentiels);
     expect(r.donneeIndisponible).toBe(true);
     expect(r.ij).toBeUndefined();
     expect(r.invalidite).toBeUndefined();

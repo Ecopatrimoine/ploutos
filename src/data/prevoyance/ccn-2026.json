@@ -98,11 +98,57 @@
     },
     "3248": {
       "idcc": "3248",
-      "nom": "Métallurgie (CCN unifiée 2024)",
-      "datesVerification": "2026-05-27",
-      "maintienEmployeur": { "cadres": null, "nonCadres": null, "note": "CCN unifiée 2024, barèmes par classes A à I" },
-      "prevoyanceCadres": { "TO_FILL": true },
-      "prevoyanceNonCadres": { "TO_FILL": true },
+      "nom": "Métallurgie",
+      "datesVerification": "2026-06-09",
+      "source": "CCN metallurgie 7 fevrier 2022, annexe 9, art 17.3 (capital/deces) et 17.4 (rente education). Legifrance KALITEXT000046971135.",
+      "maintienEmployeur": {
+        "cadres": null,
+        "nonCadres": null,
+        "note": "Option A (plancher legal) en attendant. La metallurgie prevoit un GMS plus favorable (jusqu'a 100% pendant 90 a 180 jours selon anciennete) - TO_VERIFY table exacte - gap documente."
+      },
+      "devolutionCapitalDeces": {
+        "mode": "cascadeExclusive",
+        "rangs": [
+          { "qualites": ["conjoint", "pacs", "concubin"] },
+          { "qualites": ["enfants"], "representation": true },
+          { "qualites": ["ascendants"] },
+          { "qualites": ["devolutionSuccessorale"] }
+        ],
+        "note": "Art 17.3.d annexe 9. Rang 1 conjoint/pacs/concubin (concubin ADMIS, contrairement a HCR). Rang 'descendants' du texte fondu dans 'enfants' + representation. 'autres heritiers' = devolutionSuccessorale."
+      },
+      "plafondSalaireRefPass": 8,
+      "_plafondSalaireRefPass_commentaire": "Salaire de reference = brut 12 mois, assiette T1+T2 (0 a 8 PASS), art 17.3.b.",
+      "prevoyanceCadres": {
+        "tauxT1Minimum": null,
+        "_tauxT1Minimum_commentaire": "Metallurgie deroge a l'ANI cadres : cotisation 1,12% T1+T2 (documentaire, non modelise).",
+        "garantiesMinimum": {
+          "capitalDC": { "mode": "pourcentageSalaireRef", "tauxSalaireRef": 2.00, "minimumPass": 0, "_commentaire": "Art 17.3.c cadre 200% salaire ref brut. PRIMARY." },
+          "renteConjoint": null,
+          "renteEducation": { "mode": "trancheAge", "tranches": [
+            { "deAge": 0,  "aAge": 16, "tauxSalaireRef": 0.04, "minimumPass": 0 },
+            { "deAge": 16, "aAge": 19, "tauxSalaireRef": 0.06, "minimumPass": 0 },
+            { "deAge": 19, "aAge": 26, "tauxSalaireRef": 0.08, "minimumPass": 0 }
+          ], "_commentaire": "Art 17.4.c. 4/6/8% par age, identique cadres/non-cadres. PRIMARY. Prolongation handicap >25 ans NON modelisee (gap)." },
+          "ij": null,
+          "_ij_commentaire": "IJ branche a paliers temporels (cadre 100% jusqu'a 180j puis 75%) - mode moteur DIFFERE (perimetre reduit).",
+          "_invalidite_commentaire": "Invalidite VALEURS TO_VERIFY art 17.2 (cadre 45/75/75) VOLONTAIREMENT NON posee dans le JSON : le moteur de projection (projection.ts) injecte automatiquement l'invalidite de branche dans le calcul du vivant -> on ne diffuse PAS de valeur non confirmee. A poser apres confirmation source primaire (lot dedie). Tests en it.skip."
+        },
+        "note": "Metallurgie cadres (groupes E-I, art 166.1) - aiguillage via statutPro proxy."
+      },
+      "prevoyanceNonCadres": {
+        "garantiesMinimum": {
+          "capitalDC": { "mode": "pourcentageSalaireRef", "tauxSalaireRef": 1.00, "minimumPass": 0, "_commentaire": "Art 17.3.c non-cadre 100% salaire ref brut. PRIMARY." },
+          "renteConjoint": null,
+          "renteEducation": { "mode": "trancheAge", "tranches": [
+            { "deAge": 0,  "aAge": 16, "tauxSalaireRef": 0.04, "minimumPass": 0 },
+            { "deAge": 16, "aAge": 19, "tauxSalaireRef": 0.06, "minimumPass": 0 },
+            { "deAge": 19, "aAge": 26, "tauxSalaireRef": 0.08, "minimumPass": 0 }
+          ], "_commentaire": "Art 17.4.c. Identique cadres. PRIMARY." },
+          "ij": null,
+          "_invalidite_commentaire": "Invalidite VALEURS TO_VERIFY art 17.2 (non-cadre 42/70/70) VOLONTAIREMENT NON posee dans le JSON (cf. prevoyanceCadres). Tests en it.skip."
+        },
+        "note": "Metallurgie non-cadres (groupes A-D)."
+      },
       "santeMinimum": { "TO_FILL": true }
     },
     "1979": {
