@@ -65,9 +65,28 @@ function formatEuro(v: number): string {
   return `${Math.round(v).toLocaleString("fr-FR")} €`;
 }
 
+// Qualification SOCIALE qualitative par étage (LOT TOOLTIP-SOCIAL). Explique
+// pourquoi le net réellement perçu reste proche du net d'activité : les
+// prestations (IJ, rentes) ne supportent que la CSG/CRDS, pas les cotisations
+// salariales, alors que le salaire maintenu reste cotisé comme un salaire.
+// QUALITATIF, sans aucun taux chiffré. Sources : URSSAF (revenus de
+// remplacement), Previssima (régime social de la prévoyance). La clé est l'alias
+// dataKey du graphe ; `salaire` n'y figure pas (revenu d'activité, pas une
+// prestation) → aucune mention. Toute clé absente → pas de sous-ligne.
+const QUALIF_SOCIALE: Record<string, string> = {
+  maintien: "Soumis aux cotisations comme un salaire",
+  ijObl: "Soumise à CSG/CRDS",
+  ijColl: "Soumise à CSG/CRDS",
+  ijInd: "Soumise à CSG/CRDS",
+  pensionInvalObl: "Soumise à CSG/CRDS",
+  renteInvalColl: "Soumise à CSG/CRDS",
+  renteInvalInd: "Soumise à CSG/CRDS",
+  renteInvalEnfants: "Soumise à CSG/CRDS",
+};
+
 // Tooltip filtré (SPEC §4) : n'affiche que les étages > 0 au point survolé,
 // puis toujours le revenu de référence et le total avec son pourcentage.
-function TooltipContenu({
+export function TooltipContenu({
   active,
   payload,
   label,
@@ -95,12 +114,19 @@ function TooltipContenu({
     >
       <div style={{ fontWeight: 700, color: BRAND.navy, marginBottom: 4 }}>{`Échéance : ${label}`}</div>
       {visibles.map((p) => (
-        <div key={p.dataKey} style={{ color: BRAND.navy, display: "flex", justifyContent: "space-between", gap: 12 }}>
-          <span>
-            <span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 2, background: p.color, marginRight: 5 }} />
-            {p.name}
-          </span>
-          <span>{formatEuro(Number(p.value))}</span>
+        <div key={p.dataKey}>
+          <div style={{ color: BRAND.navy, display: "flex", justifyContent: "space-between", gap: 12 }}>
+            <span>
+              <span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 2, background: p.color, marginRight: 5 }} />
+              {p.name}
+            </span>
+            <span>{formatEuro(Number(p.value))}</span>
+          </div>
+          {QUALIF_SOCIALE[p.dataKey ?? ""] && (
+            <div style={{ fontSize: 10, color: BRAND.muted, fontStyle: "italic", marginTop: 1, marginLeft: 14 }}>
+              {QUALIF_SOCIALE[p.dataKey ?? ""]}
+            </div>
+          )}
         </div>
       ))}
       <div style={{ color: BRAND.muted, display: "flex", justifyContent: "space-between", gap: 12, marginTop: 4 }}>
