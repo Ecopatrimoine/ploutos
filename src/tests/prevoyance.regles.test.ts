@@ -448,10 +448,10 @@ describe("regleIjCcnNonDocumentee", () => {
   });
 
   it("déclenche en info pour IDCC saisi avec fallback maintien légal", () => {
-    // CCN présente mais maintien non documenté (3248 cadres/nonCadres = null)
-    // → useLegalDefault = true → info levée. (Syntec/1486 est désormais
-    // documenté → ne déclenche plus, c'est voulu.)
-    const ctx = makeCtx({ ...entreeSalarie, idccCCN: "3248" });
+    // CCN présente mais maintien non documenté (1996 Pharmacie, cadres/nonCadres
+    // = null) → useLegalDefault = true → info levée. (1486 Syntec ET 3248
+    // Métallurgie sont désormais documentés → ne déclenchent plus, c'est voulu.)
+    const ctx = makeCtx({ ...entreeSalarie, idccCCN: "1996" });
     const c = regleIjCcnNonDocumentee(ctx, "p1");
     expect(c?.id).toBe("ij_ccn_non_documentee_p1");
     expect(c?.severite).toBe("info");
@@ -468,11 +468,11 @@ describe("regleIjCcnNonDocumentee", () => {
   });
 
   it("l'action pointe vers Légifrance / KALI + signalement équipe Ploutos", () => {
-    const ctx = makeCtx({ ...entreeSalarie, idccCCN: "3248" });
+    const ctx = makeCtx({ ...entreeSalarie, idccCCN: "1996" });
     const c = regleIjCcnNonDocumentee(ctx, "p1");
     expect(c?.action).toContain("Légifrance");
     expect(c?.action).toContain("KALI");
-    expect(c?.action).toContain("3248");
+    expect(c?.action).toContain("1996");
     expect(c?.action).toContain("équipe Ploutos");
   });
 });

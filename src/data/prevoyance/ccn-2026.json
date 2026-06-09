@@ -102,9 +102,27 @@
       "datesVerification": "2026-06-09",
       "source": "CCN metallurgie 7 fevrier 2022, annexe 9, art 17.3 (capital/deces) et 17.4 (rente education). Legifrance KALITEXT000046971135.",
       "maintienEmployeur": {
-        "cadres": null,
-        "nonCadres": null,
-        "note": "Option A (plancher legal) en attendant. La metallurgie prevoit un GMS plus favorable (jusqu'a 100% pendant 90 a 180 jours selon anciennete) - TO_VERIFY table exacte - gap documente."
+        "cadres": {
+          "carenceJours": 0,
+          "subrogation": false,
+          "paliers": [
+            { "ancienneteMois": 12,  "segments": [ { "jours": 90,  "pct": 100 }, { "jours": 90,  "pct": 50 } ] },
+            { "ancienneteMois": 60,  "segments": [ { "jours": 120, "pct": 100 }, { "jours": 120, "pct": 50 } ] },
+            { "ancienneteMois": 120, "segments": [ { "jours": 150, "pct": 100 }, { "jours": 150, "pct": 50 } ] },
+            { "ancienneteMois": 180, "segments": [ { "jours": 180, "pct": 100 }, { "jours": 180, "pct": 50 } ] }
+          ]
+        },
+        "nonCadres": {
+          "carenceJours": 0,
+          "subrogation": false,
+          "paliers": [
+            { "ancienneteMois": 12,  "segments": [ { "jours": 90,  "pct": 100 } ] },
+            { "ancienneteMois": 60,  "segments": [ { "jours": 120, "pct": 100 } ] },
+            { "ancienneteMois": 120, "segments": [ { "jours": 150, "pct": 100 } ] },
+            { "ancienneteMois": 180, "segments": [ { "jours": 180, "pct": 100 } ] }
+          ]
+        },
+        "note": "Art 91.1.2.1 (non-cadres A-E, 100% seul) et 91.1.2.2 (cadres F-I, 100% puis 50%), carence 0. PRIMARY (Code du travail numerique / Legifrance KALICONT000046993250). max(CCN, legal) releve le 50% cadre au plancher legal la ou il est superieur. Gaps : frontiere groupes GMS (A-E / F-I) != prevoyance annexe 9 (A-D / E-I) - proxy statutPro ; AT/MP des 3 mois anciennete non modelise."
       },
       "devolutionCapitalDeces": {
         "mode": "cascadeExclusive",

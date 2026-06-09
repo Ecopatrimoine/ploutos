@@ -257,24 +257,24 @@ describe("Cas d'or C — Léa, salariée non-cadre Métallurgie (CPAM / IDCC 324
     expect(r.series.renteInvalCollective[idxInval]).toBeGreaterThan(0);
   });
 
-  it("3248 maintien non documenté (Option A) → fallback maintien légal Mensualisation (useLegalDefault=true)", () => {
-    expect(r.useLegalDefault).toBe(true);
+  it("3248 maintien GMS documenté (carence 0) → plus de fallback légal (useLegalDefault=false)", () => {
+    expect(r.useLegalDefault).toBe(false);
   });
 
-  it("ancienneté 12 mois → palier 1 (carence 7 + 30 j à 90 % + 30 j à 66,66 %)", () => {
+  it("ancienneté 12 mois → GMS Métallurgie non-cadre : 100 % carence 0, plateau J0-89 puis fin à J90", () => {
+    const j3 = idxJour(r.axe, 3);
     const j7 = idxJour(r.axe, 7);
-    const j14 = idxJour(r.axe, 14);
     const j30 = idxJour(r.axe, 30);
     const j60 = idxJour(r.axe, 60);
     const j90 = idxJour(r.axe, 90);
-    // J7-J37 : maintien 90% actif
+    // Carence 0 : indemnisé dès les premiers jours (le légal, carence 7, donnerait 0 à J3).
+    expect(r.series.maintienEmployeur[j3]).toBeGreaterThan(0);
     expect(r.series.maintienEmployeur[j7]).toBeGreaterThan(0);
-    expect(r.series.maintienEmployeur[j14]).toBeGreaterThan(0);
     expect(r.series.maintienEmployeur[j30]).toBeGreaterThan(0);
-    // J37-J67 : maintien 66.66% actif (mais inférieur à 90%)
-    expect(r.series.maintienEmployeur[j60]).toBeGreaterThan(0);
-    expect(r.series.maintienEmployeur[j60]).toBeLessThan(r.series.maintienEmployeur[j30]);
-    // J90 : fin du maintien
+    // Plateau 100 % (complément à 100 % du revenu de référence) : J30 et J60 IDENTIQUES
+    // (même taux 100 %, IJ obligatoire constante) — plus de descente 90 %→66,67 % (c'était le légal).
+    expect(r.series.maintienEmployeur[j60]).toBeCloseTo(r.series.maintienEmployeur[j30], 2);
+    // Non-cadre = 100 % SEUL (pas de palier 50 %) : fin du maintien à J90 (légal épuisé à J67).
     expect(r.series.maintienEmployeur[j90]).toBe(0);
   });
 
@@ -312,10 +312,14 @@ describe("Cas d'or C — Léa, salariée non-cadre Métallurgie (CPAM / IDCC 324
     expect(r.donneesCaisseIndisponibles).toBe(false);
   });
 
-  it("rupture 'fin_maintien_100' (ici 90 %) est présente vers J37", () => {
-    const rupture = r.rupturesCles.find((rc) => rc.type === "fin_maintien_100");
+  it("rupture de fin de maintien à J90 (fin du 100 % non-cadre, carence 0 + 90 j)", () => {
+    // GMS non-cadre = 100 % sur 90 jours puis 0 → une seule marche, vers 0, à J90.
+    // Le moteur type une chute vers 0 en 'fin_maintien_6666' (fin réelle du maintien).
+    const rupture = r.rupturesCles.find((rc) => rc.type === "fin_maintien_6666");
     expect(rupture).toBeDefined();
-    expect(rupture?.jour).toBe(7 + 30); // carence légale 7 + 30 jours du palier 12 mois
+    expect(rupture?.jour).toBe(90); // carence 0 + 90 j à 100 %
+    // Pas de chute intermédiaire (non-cadre sans palier 50 %) → aucun 'fin_maintien_100'.
+    expect(r.rupturesCles.find((rc) => rc.type === "fin_maintien_100")).toBeUndefined();
   });
 });
 

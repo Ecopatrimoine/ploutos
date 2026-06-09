@@ -161,11 +161,11 @@ describe("projeterArretMaladie — fallback maintien légal", () => {
     expect(r.useLegalDefault).toBe(false);
   });
 
-  it("CCN au maintien non documenté (3248 TO_FILL) → tombe sur le maintien légal en pratique", () => {
+  it("CCN au maintien non documenté (1996 TO_FILL) → tombe sur le maintien légal en pratique", () => {
     // Une CCN présente mais dont le maintien n'est pas renseigné (cadres/
-    // nonCadres = null, ex. 3248) retombe sur le maintien légal Mensualisation.
-    // (Syntec/1486 est désormais documenté → produit "ccn", testé ailleurs.)
-    const r = projeterArretMaladie(baseEntree({ idccCCN: "3248" }), "cat2", referentiels);
+    // nonCadres = null, ex. 1996 Pharmacie) retombe sur le maintien légal.
+    // (1486 Syntec ET 3248 Métallurgie sont désormais documentés → produisent "ccn".)
+    const r = projeterArretMaladie(baseEntree({ idccCCN: "1996" }), "cat2", referentiels);
     expect(r.useLegalDefault).toBe(true);
   });
 

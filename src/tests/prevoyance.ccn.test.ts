@@ -129,9 +129,10 @@ describe("LOT 1a-ii — catégorie de maintien (cadres / non-cadres)", () => {
   });
 
   it("CCN non remplie (cadres/nonCadres = null) → source 'legal' pour les deux catégories", () => {
-    // CCN encore NON remplies (hors Syntec/1486 désormais documenté) :
-    // maintienEmployeur.cadres et .nonCadres valent null → fallback légal.
-    for (const idcc of ["3248", "1979", "1996"]) {
+    // CCN encore NON remplies pour le maintien (hors 1486 Syntec ET 3248
+    // Métallurgie désormais documentés) : maintienEmployeur.cadres/.nonCadres
+    // valent null → fallback légal. (1979 HCR = Option A, maintien null.)
+    for (const idcc of ["1979", "1996"]) {
       expect(getMaintienParams(idcc, referentiels, "cadres").source).toBe("legal");
       expect(getMaintienParams(idcc, referentiels, "nonCadres").source).toBe("legal");
     }
