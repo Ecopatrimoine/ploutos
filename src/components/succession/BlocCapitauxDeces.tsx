@@ -21,6 +21,7 @@ import type {
   CapitalDecesPriveLine,
   CapitalDecesBrancheLine,
   RenteEducationBrancheLine,
+  RenteConjointBrancheLine,
   RenteSurvieAnnuelle,
 } from "../../lib/calculs/succession";
 import type {
@@ -50,6 +51,10 @@ type Props = {
   // et CUMULATIVE avec le capital (jamais additionnée). Optionnel (défaut []) :
   // les appelants existants (tests / PDF) ne la passent pas → aucune sous-section.
   renteEducationBranche?: RenteEducationBrancheLine[];
+  // LOT HCR-3.5 — rente conjoint substitutive de branche, exonérée, additive,
+  // versée au partenaire survivant en l'absence d'enfant ouvrant droit à la rente
+  // éducation. Optionnel (défaut []) : les appelants existants ne la passent pas.
+  renteConjointBranche?: RenteConjointBrancheLine[];
   totalCaisseExonere: number;
   totalPriveCapital: number;
   totalPriveDuties: number;
@@ -105,6 +110,7 @@ export function BlocCapitauxDeces({
   rentes,
   branche = [],
   renteEducationBranche = [],
+  renteConjointBranche = [],
   totalCaisseExonere,
   totalPriveCapital,
   totalPriveDuties,
@@ -489,6 +495,34 @@ export function BlocCapitauxDeces({
                           {phasesProjection(r.phases, r.ageActuel)}
                         </div>
                       )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Rente conjoint substitutive de branche (LOT HCR-3.5) — versée
+                  au partenaire survivant en l'absence d'enfant ouvrant droit à la
+                  rente éducation, exonérée, plafonnée en durée. Garde défensive :
+                  donneeIndisponible / liste vide → aucune section. ── */}
+              {renteConjointBranche.filter((r) => !r.donneeIndisponible).length > 0 && (
+                <div style={{ marginTop: "4px", borderRadius: "10px", border: `1px solid ${SURFACE.border}`, background: SURFACE.app, padding: "10px 12px" }}>
+                  {renteConjointBranche.filter((r) => !r.donneeIndisponible).map((r, i) => (
+                    <div key={i} style={{ paddingTop: i > 0 ? "6px" : 0, marginTop: i > 0 ? "6px" : 0, borderTop: i > 0 ? `1px solid ${SURFACE.border}` : "none" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 600, color: BRAND.sky, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>
+                        Rente de conjoint substitutive{r.source ? ` (${r.source})` : ""}
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                        <span style={{ fontSize: "12px", color: BRAND.muted }}>
+                          Bénéficiaire : <span style={{ fontWeight: 600, color: BRAND.navy }}>{r.beneficiaireNom}</span>
+                        </span>
+                        <span style={{ fontSize: "13px", fontWeight: 700, color: BRAND.navy }}>
+                          {euro(r.montantAnnuel)} /an{" "}
+                          <span style={{ fontSize: "11px", fontWeight: 600, color: BRAND.success }}>exonéré</span>
+                        </span>
+                      </div>
+                      <div style={{ fontSize: "11px", color: BRAND.muted, marginTop: "2px" }}>
+                        pendant {r.dureeMaxAnnees} ans max — versée en l'absence d'enfant ouvrant droit à la rente éducation.
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -11,6 +11,7 @@ import type {
   CapitalDecesPriveLine,
   CapitalDecesBrancheLine,
   RenteEducationBrancheLine,
+  RenteConjointBrancheLine,
   RenteSurvieAnnuelle,
 } from "../lib/calculs/succession";
 
@@ -235,5 +236,40 @@ describe("BlocCapitauxDeces — libellés CCN dynamiques (LOT LABEL-CCN)", () =>
     expect(getByText(/Rente éducation de branche/)).toBeInTheDocument();
     // Pas de parenthèse vide accolée au titre ("... branche (" interdit).
     expect(norm(container.textContent)).not.toContain(norm("Rente éducation de branche ("));
+  });
+});
+
+describe("BlocCapitauxDeces — rente conjoint substitutive de branche (LOT HCR-3.5)", () => {
+  const NOM_HCR = "Hôtels, cafés, restaurants (HCR)";
+  const brancheCap: CapitalDecesBrancheLine = {
+    source: NOM_HCR, capital: 45000, categorie: "nonCadres",
+    exonere: true, donneeIndisponible: false, beneficiairesAuContrat: true, repartition: [],
+  };
+
+  it("ligne substitutive → libellé branche dynamique, montant /an, durée et bénéficiaire", () => {
+    const rc: RenteConjointBrancheLine = {
+      montantAnnuel: 1500, dureeMaxAnnees: 5, beneficiaireNom: "Marie Martin",
+      source: NOM_HCR, exonere: true, donneeIndisponible: false,
+    };
+    const { container, getByText } = render(
+      <BlocCapitauxDeces {...EMPTY} branche={[brancheCap]} renteConjointBranche={[rc]} />
+    );
+    const t = norm(container.textContent);
+    expect(getByText(/Rente de conjoint substitutive/)).toBeInTheDocument();
+    expect(t).toContain(norm("Hôtels"));            // nom CCN dynamique
+    expect(t).toContain("1500€");                    // montant annuel
+    expect(t).toContain(norm("pendant 5 ans max"));  // durée plafonnée
+    expect(t).toContain(norm("Marie Martin"));       // bénéficiaire
+  });
+
+  it("donneeIndisponible → aucune section orpheline (garde défensive)", () => {
+    const rc: RenteConjointBrancheLine = {
+      montantAnnuel: 0, dureeMaxAnnees: 0, beneficiaireNom: "",
+      source: "", exonere: true, donneeIndisponible: true,
+    };
+    const { container } = render(
+      <BlocCapitauxDeces {...EMPTY} branche={[brancheCap]} renteConjointBranche={[rc]} />
+    );
+    expect(norm(container.textContent)).not.toContain(norm("Rente de conjoint substitutive"));
   });
 });

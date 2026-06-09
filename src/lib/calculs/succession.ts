@@ -9,7 +9,7 @@ import { n, getDemembrementPercentages, computeTaxFromBrackets, isAV, isPERType,
 import { resolveLoanValuesMulti } from './credit';
 import { buildEntreePerso } from '../prevoyance/mapping';
 import { resolveCapitauxDeces } from '../prevoyance/capitaux-deces';
-import { resolveCapitalDecesBranche, resolveRenteEducationBranche } from '../prevoyance/capitaux-deces-branche';
+import { resolveCapitalDecesBranche, resolveRenteEducationBranche, resolveRenteConjointSubstitutiveBranche } from '../prevoyance/capitaux-deces-branche';
 import { categorieMaintien } from '../prevoyance/projection';
 import { getContratsTransmissionDecesAvecLegacy, getPrevoyancePerso } from '../prevoyance/utils';
 import { referentiels, type Referentiels } from '../../data/prevoyance';
@@ -166,6 +166,21 @@ export type RenteEducationBrancheLine = {
   exonere: true;
   // LOT LABEL-CCN — nom de la CCN (conv.nom ?? idcc), pour un libellé dynamique.
   source: string;
+};
+
+// Rente conjoint SUBSTITUTIVE de PRÉVOYANCE COLLECTIVE DE BRANCHE (CCN) — LOT
+// HCR-3.5. EXONÉRÉE, hors actif/droits, additive. Versée au partenaire survivant
+// (conjoint/PACS/concubin selon la liste de la branche) UNIQUEMENT si AUCUN enfant
+// n'ouvre droit à la rente éducation, plafonnée à dureeMaxAnnees. DISTINCTE du
+// canal caisse rentesSurvieAnnuelles (ligne et rendu propres). La borne « retraite
+// taux plein du bénéficiaire » n'est PAS modélisée (TO_VERIFY, cf. note JSON).
+export type RenteConjointBrancheLine = {
+  montantAnnuel: number;
+  dureeMaxAnnees: number;
+  beneficiaireNom: string;
+  source: string;
+  exonere: true;
+  donneeIndisponible: boolean;
 };
 
 // Contexte de dévolution du capital décès de BRANCHE (clause type Syntec,
@@ -1407,11 +1422,62 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
     }
   }
 
+  // ── Source 3c : RENTE CONJOINT SUBSTITUTIVE de branche (CCN) — LOT HCR-3.5 ──
+  // EXONÉRÉE, additive (hors actif/droits, comme 3b). Versée au partenaire
+  // survivant (conjoint/PACS/concubin selon la liste de la branche) UNIQUEMENT si
+  // AUCUN enfant n'ouvre droit à la rente éducation (négation exacte du filtre 3b :
+  // enfant du défunt, âge inconnu OU < 26 ans). Plafonnée à dureeMaxAnnees. Le
+  // canal caisse rentesSurvieAnnuelles n'est PAS touché (ligne/rendu propres).
+  const renteConjointBrancheLines: RenteConjointBrancheLine[] = [];
+  if (entreeDefunt && entreeDefunt.idccCCN) {
+    const ouvreRenteEducation = data.childrenData.some((child) => {
+      if (!childMatchesDeceased(child.parentLink, deceasedKey)) return false;
+      const age = getAgeFromBirthDate(child.birthDate);
+      return age === null || age < 26;
+    });
+    if (!ouvreRenteEducation) {
+      // Qualité du partenaire survivant (mapping IDENTIQUE à DEVOL-1). Le concubin
+      // est ICI admissible si la branche l'inscrit dans `beneficiaires` (la liste
+      // JSON décide — distinct de la dévolution du capital où il est exclu).
+      let partenaireQualite: "conjoint" | "pacs" | "concubin" | null = null;
+      if (data.coupleStatus === "married") partenaireQualite = "conjoint";
+      else if (data.coupleStatus === "pacs") partenaireQualite = "pacs";
+      else if (data.coupleStatus === "cohab") partenaireQualite = "concubin";
+
+      const rc = resolveRenteConjointSubstitutiveBranche(
+        entreeDefunt.idccCCN,
+        categorieMaintien(entreeDefunt.statutPro),
+        entreeDefunt.salaireBrutAnnuel,
+        referentiels.pass.pass.annuel,
+        referentiels
+      );
+      if (
+        !rc.donneeIndisponible &&
+        rc.montantAnnuel != null &&
+        rc.dureeMaxAnnees != null &&
+        partenaireQualite != null &&
+        rc.beneficiairesQualites.includes(partenaireQualite)
+      ) {
+        const beneficiaireNom = (survivorKey === "person1"
+          ? `${data.person1FirstName ?? ""} ${data.person1LastName ?? ""}`
+          : `${data.person2FirstName ?? ""} ${data.person2LastName ?? ""}`).trim() || "Conjoint survivant";
+        renteConjointBrancheLines.push({
+          montantAnnuel: rc.montantAnnuel,
+          dureeMaxAnnees: rc.dureeMaxAnnees,
+          beneficiaireNom,
+          source: rc.source,
+          exonere: true,
+          donneeIndisponible: false,
+        });
+      }
+    }
+  }
+
   return {
     deceasedKey, survivorKey, spouseEligible, spouseOptions, spouseOption, quotiteDisponible,
     warnings, activeNet, furnitureForfait,
     // ── Capitaux décès hors actif (Lot 3) — N'IMPACTENT PAS les masses/droits ci-dessus ──
-    capitalDecesLines: { caisses: capitalDecesCaisseLines, prives: capitalDecesPriveLines, branche: capitalDecesBrancheLines, renteEducationBranche: renteEducationBrancheLines },
+    capitalDecesLines: { caisses: capitalDecesCaisseLines, prives: capitalDecesPriveLines, branche: capitalDecesBrancheLines, renteEducationBranche: renteEducationBrancheLines, renteConjointBranche: renteConjointBrancheLines },
     capitalDecesCaisseExonere,
     capitalDecesBrancheExonere,
     capitalDecesPriveCapital,

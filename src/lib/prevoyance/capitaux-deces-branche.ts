@@ -216,3 +216,90 @@ export function resolveRenteEducationBranche(
 
   return { phases, montantAnnuelCourant, donneeIndisponible: false, source, categorie };
 }
+
+// ─── Résolveur de la RENTE CONJOINT SUBSTITUTIVE de branche (CCN) ────────────
+//
+// LOT HCR-3.5 : nouveau mode renteConjoint "substitutive" (HCR art 18.2.4bis) :
+// un pourcentage du salaire de référence (plafonné par plafondSalaireRefPass,
+// comme le capital et la rente éducation), versé au partenaire survivant
+// UNIQUEMENT en l'absence d'enfant ouvrant droit à la rente éducation (condition
+// portée par l'appelant, cf. succession.ts), plafonné à dureeMaxAnnees. Donnée de
+// RÉFÉRENCE destinée au module succession — n'alimente PAS les 9 séries.
+//
+// Même discipline défensive : null / absent (« non prévu », ex. Syntec) /
+// "TO_VERIFY" / mode != "substitutive" / valeur aberrante → donneeIndisponible.
+// JAMAIS d'exception, JAMAIS de valeur inventée. C'est la liste `beneficiaires` du
+// JSON qui décide des qualités admises (le concubin PEUT y figurer — distinct de
+// la dévolution du capital, où il est exclu).
+export type RenteConjointSubstitutiveBranche = {
+  montantAnnuel: number | null;                            // €/an (null si non prévu)
+  dureeMaxAnnees: number | null;                           // plafond temporel (années)
+  beneficiairesQualites: ("conjoint" | "pacs" | "concubin")[];
+  source: string;                                          // libellé de la CCN (traçabilité)
+  donneeIndisponible: boolean;
+};
+
+type GarantieRenteConjoint = { mode?: unknown; tauxSalaireRef?: unknown; dureeMaxAnnees?: unknown; beneficiaires?: unknown };
+type BlocPrevoyanceRenteConjoint = { garantiesMinimum?: { renteConjoint?: unknown } | null } | null;
+
+const QUALITES_BENEF_CONNUES = ["conjoint", "pacs", "concubin"] as const;
+
+export function resolveRenteConjointSubstitutiveBranche(
+  idcc: string | null,
+  categorie: "cadres" | "nonCadres",
+  salaireBrutAnnuel: number,
+  pass: number,
+  ref: Referentiels
+): RenteConjointSubstitutiveBranche {
+  const indispo = (src: string): RenteConjointSubstitutiveBranche => ({
+    montantAnnuel: null,
+    dureeMaxAnnees: null,
+    beneficiairesQualites: [],
+    source: src,
+    donneeIndisponible: true,
+  });
+
+  if (!idcc) return indispo("");
+
+  const conventions = ref.ccn.conventions as Record<
+    string,
+    {
+      nom?: string;
+      prevoyanceCadres?: BlocPrevoyanceRenteConjoint;
+      prevoyanceNonCadres?: BlocPrevoyanceRenteConjoint;
+    } | undefined
+  >;
+  const conv = conventions?.[idcc];
+  if (!conv) return indispo("");
+  const source = String(conv.nom ?? idcc);
+
+  // null (« non prévu par la branche », ex. Syntec) / "TO_VERIFY" / absent /
+  // non-objet → indispo. Le null est une donnée manquante, JAMAIS une erreur.
+  const bloc = categorie === "cadres" ? conv.prevoyanceCadres : conv.prevoyanceNonCadres;
+  const renteConjoint = bloc?.garantiesMinimum?.renteConjoint;
+  if (renteConjoint == null || typeof renteConjoint !== "object") return indispo(source);
+
+  const g = renteConjoint as GarantieRenteConjoint;
+  if (g.mode !== "substitutive") return indispo(source);
+
+  const passNum = safeNum(pass);
+  const brut = safeNum(salaireBrutAnnuel);
+  const taux = safeNum(g.tauxSalaireRef);
+  const duree = safeNum(g.dureeMaxAnnees);
+  if (passNum === null || brut === null || taux === null || duree === null) return indispo(source);
+  // Gardes de cohérence : taux en pourcentage [0,1], durée strictement positive.
+  if (taux < 0 || taux > 1 || duree <= 0) return indispo(source);
+
+  // Bénéficiaires admis = liste JSON filtrée aux qualités connues. Aucune qualité
+  // reconnue → indispo (la branche n'a pas désigné de bénéficiaire exploitable).
+  const beneficiairesQualites = (Array.isArray(g.beneficiaires) ? g.beneficiaires : []).filter(
+    (q): q is "conjoint" | "pacs" | "concubin" =>
+      typeof q === "string" && (QUALITES_BENEF_CONNUES as readonly string[]).includes(q)
+  );
+  if (beneficiairesQualites.length === 0) return indispo(source);
+
+  // Salaire de référence plafonné — MÊME plafond que capital / rente éducation.
+  const salaireRef = Math.min(brut, resolvePlafondSalaireRefPass(idcc, ref) * passNum);
+  const montantAnnuel = taux * salaireRef;
+  return { montantAnnuel, dureeMaxAnnees: duree, beneficiairesQualites, source, donneeIndisponible: false };
+}

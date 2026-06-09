@@ -11,12 +11,14 @@ import { describe, it, expect } from "vitest";
 import {
   resolveCapitalDecesBranche,
   resolveRenteEducationBranche,
+  resolveRenteConjointSubstitutiveBranche,
 } from "../lib/prevoyance/capitaux-deces-branche";
 import { resolveCouvertureBranche } from "../lib/prevoyance/couverture-branche";
-import { devolutionCapitalDecesBranche } from "../lib/calculs/succession";
+import { computeSuccession, devolutionCapitalDecesBranche } from "../lib/calculs/succession";
 import { getMaintienParams } from "../lib/prevoyance/projection";
 import { referentiels } from "../data/prevoyance";
-import type { PatrimonialData } from "../types/patrimoine";
+import type { EmployeurInfo, PatrimonialData, PayloadTravail, SuccessionData } from "../types/patrimoine";
+import { EMPTY_CHARGES_DETAIL } from "../constants";
 
 const PASS = 48060;
 
@@ -226,3 +228,121 @@ describe("HCR (1979) — taux de maintien par jour (palier 12 mois, fenêtre 30/
 // marchesMaintienEffectif (projection.ts:335 `if (!isSalarie) return []`) annulent
 // tout maintien pour un statut TNS. Ces fonctions ne sont pas exportées ; les
 // tests d'isolement nécessiteraient un export moteur, hors périmètre de ce lot.
+
+// ─── LOT HCR-3.5 — rente conjoint substitutive de branche (art 18.2.4bis) ────
+
+describe("HCR (1979) — rente conjoint substitutive (résolveur)", () => {
+  it("non-cadre brut 30 000 → 0,05 × 30 000 = 1 500 ; durée 5 ans ; bénéf [conjoint,pacs,concubin]", () => {
+    const r = resolveRenteConjointSubstitutiveBranche("1979", "nonCadres", 30000, PASS, referentiels);
+    expect(r.donneeIndisponible).toBe(false);
+    expect(r.montantAnnuel).toBeCloseTo(1500, 2);
+    expect(r.dureeMaxAnnees).toBe(5);
+    expect(r.beneficiairesQualites).toEqual(["conjoint", "pacs", "concubin"]);
+  });
+
+  it("cadre brut 60 000 (> 1 PASS) → 0,05 × 48 060 = 2 403 (plafond 1 PASS mord)", () => {
+    const r = resolveRenteConjointSubstitutiveBranche("1979", "cadres", 60000, PASS, referentiels);
+    expect(r.montantAnnuel).toBeCloseTo(0.05 * PASS, 2); // 2 403
+  });
+
+  it("Syntec (1486) renteConjoint null → non prévu (donneeIndisponible, montant null)", () => {
+    const r = resolveRenteConjointSubstitutiveBranche("1486", "cadres", 60000, PASS, referentiels);
+    expect(r.donneeIndisponible).toBe(true);
+    expect(r.montantAnnuel).toBeNull();
+  });
+});
+
+// Builders computeSuccession (calqués sur succession.devolution-branche.test.ts).
+function employeurCcn(idcc: string | null, nom: string): EmployeurInfo {
+  return {
+    siret: null, siren: null, nom: "TEST", formeJuridique: null, codeNAF: null,
+    idccCCN: idcc, nomCCN: nom, sourceCCN: "manuel", effectif: null,
+    adresseEtablissement: null, dateCreation: null,
+  } as unknown as EmployeurInfo;
+}
+function travailDefunt(statut: string, employeur: EmployeurInfo | null, brut: number): { p1: PayloadTravail; p2: null } {
+  return {
+    p1: {
+      statutPro: statut, caisseAffiliation: "CPAM", employeur,
+      dateEmbauche: "2010-01-01", dateDebutActivite: "2010-01-01",
+      tempsTravail: { type: "plein" }, salaireBrutAnnuel: brut,
+      primeAnnuelle: null, revenuBNC: null, revenuBIC: null, optionMadelin: false,
+    } as unknown as PayloadTravail,
+    p2: null,
+  };
+}
+function childAge(firstName: string, age: number): PatrimonialData["childrenData"][number] {
+  // birthDate calé au 1er janvier pour donner `age` ans révolus en 2026.
+  return {
+    firstName, lastName: "Martin", birthDate: `${2026 - age}-01-01`,
+    parentLink: "common_child", custody: "full", rattached: true, handicap: false,
+  } as unknown as PatrimonialData["childrenData"][number];
+}
+function baseData(over: Partial<PatrimonialData> = {}): PatrimonialData {
+  return {
+    person1FirstName: "Pierre", person1LastName: "Martin", person1BirthDate: "1980-01-01",
+    person1JobTitle: "", person1Csp: "47", person1PcsGroupe: "5",
+    person2FirstName: "Marie", person2LastName: "Martin", person2BirthDate: "1982-01-01",
+    person2JobTitle: "", person2Csp: "47", person2PcsGroupe: "5",
+    coupleStatus: "married", matrimonialRegime: "communaute_legale", singleParent: false,
+    person1Handicap: false, person2Handicap: false,
+    childrenData: [],
+    salary1: "0", salary2: "0", pensions: "0",
+    perDeduction: "0", pensionDeductible: "0", otherDeductible: "0", perRentes: [],
+    ca1: "", bicType1: "services", microRegime1: true, chargesReelles1: "", baRevenue1: "",
+    chargesDetail1: { ...EMPTY_CHARGES_DETAIL },
+    ca2: "", bicType2: "services", microRegime2: true, chargesReelles2: "", baRevenue2: "",
+    chargesDetail2: { ...EMPTY_CHARGES_DETAIL },
+    properties: [], placements: [], otherLoans: [],
+    ...over,
+  } as unknown as PatrimonialData;
+}
+function baseSuccession(): SuccessionData {
+  return {
+    deceasedPerson: "person1", spouseOption: "legal_quarter_full",
+    heirs: [], testamentHeirs: [], legsPrecisItems: [], spousePresent: true,
+    useTestament: false, legsMode: "global",
+  } as unknown as SuccessionData;
+}
+const HCR = () => employeurCcn("1979", "HCR");
+
+describe("HCR (1979) — rente conjoint substitutive (computeSuccession, conditions)", () => {
+  it("marié, 0 enfant, brut 30 000 → 1 ligne 1 500/an au conjoint (5 ans) ; 0 rente éducation", () => {
+    const s = computeSuccession(baseSuccession(), baseData({ coupleStatus: "married", travail: travailDefunt("salarie_non_cadre", HCR(), 30000) }));
+    const rc = s.capitalDecesLines.renteConjointBranche;
+    expect(rc).toHaveLength(1);
+    expect(rc[0].montantAnnuel).toBeCloseTo(1500, 2);
+    expect(rc[0].dureeMaxAnnees).toBe(5);
+    expect(rc[0].beneficiaireNom).toContain("Marie");
+    expect(s.capitalDecesLines.renteEducationBranche).toHaveLength(0);
+  });
+
+  it("concubin (cohab), 0 enfant → 1 ligne au CONCUBIN (concubin ADMIS pour la substitutive)", () => {
+    const s = computeSuccession(baseSuccession(), baseData({ coupleStatus: "cohab", travail: travailDefunt("salarie_non_cadre", HCR(), 30000) }));
+    const rc = s.capitalDecesLines.renteConjointBranche;
+    expect(rc).toHaveLength(1);
+    expect(rc[0].montantAnnuel).toBeCloseTo(1500, 2);
+    expect(rc[0].beneficiaireNom).toContain("Marie");
+  });
+
+  it("marié, 1 enfant 10 ans (ouvre droit) → AUCUNE rente conjoint substitutive ; rente éducation présente", () => {
+    const s = computeSuccession(baseSuccession(), baseData({ coupleStatus: "married", childrenData: [childAge("Lea", 10)], travail: travailDefunt("salarie_non_cadre", HCR(), 30000) }));
+    expect(s.capitalDecesLines.renteConjointBranche).toHaveLength(0);
+    expect(s.capitalDecesLines.renteEducationBranche.length).toBeGreaterThan(0);
+  });
+
+  it("marié, 1 enfant 30 ans (≥ 26, n'ouvre pas droit) → rente conjoint substitutive PRÉSENTE", () => {
+    const s = computeSuccession(baseSuccession(), baseData({ coupleStatus: "married", childrenData: [childAge("Max", 30)], travail: travailDefunt("salarie_non_cadre", HCR(), 30000) }));
+    expect(s.capitalDecesLines.renteConjointBranche).toHaveLength(1);
+  });
+
+  it("célibataire, 0 enfant → aucune rente conjoint substitutive (pas de bénéficiaire)", () => {
+    const s = computeSuccession(baseSuccession(), baseData({ coupleStatus: "single", travail: travailDefunt("salarie_non_cadre", HCR(), 30000) }));
+    expect(s.capitalDecesLines.renteConjointBranche).toHaveLength(0);
+  });
+
+  it("NON-RÉGRESSION Syntec (1486) → aucune rente conjoint substitutive", () => {
+    const s = computeSuccession(baseSuccession(), baseData({ coupleStatus: "married", travail: travailDefunt("salarie_cadre", employeurCcn("1486", "Syntec"), 60000) }));
+    expect(s.capitalDecesLines.renteConjointBranche).toHaveLength(0);
+  });
+});

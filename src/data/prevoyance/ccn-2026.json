@@ -130,8 +130,13 @@
         "tauxT1Minimum": 1.50,
         "garantiesMinimum": {
           "capitalDC": { "mode": "pourcentageSalaireRef", "tauxSalaireRef": 1.50, "minimumPass": 0, "_commentaire": "art 18.2.1 ; 150% salaire ref ; pas de plancher PASS" },
-          "renteConjoint": null,
-          "_renteConjoint_commentaire": "rente conjoint SUBSTITUTIVE art 18.2.4bis (5% SR, 5 ans, conditionnelle absence enfant) -> nouveau mode lot 3.5 ; null = placeholder provisoire",
+          "renteConjoint": {
+            "mode": "substitutive",
+            "tauxSalaireRef": 0.05,
+            "dureeMaxAnnees": 5,
+            "beneficiaires": ["conjoint", "pacs", "concubin"],
+            "note": "art 18.2.4bis ; 5% SR ; SI aucun enfant ouvrant droit rente education ; concubin ADMIS (preuve 2 ans) ; cesse a la retraite taux plein du beneficiaire = TO_VERIFY non modelise ; verifie 2026-06-09"
+          },
           "renteEducation": { "mode": "trancheAge", "tranches": [
             { "deAge": 0, "aAge": 8, "tauxSalaireRef": 0.12, "minimumPass": 0 },
             { "deAge": 8, "aAge": 26, "tauxSalaireRef": 0.18, "minimumPass": 0 }
@@ -144,8 +149,13 @@
       "prevoyanceNonCadres": {
         "garantiesMinimum": {
           "capitalDC": { "mode": "pourcentageSalaireRef", "tauxSalaireRef": 1.50, "minimumPass": 0, "_commentaire": "art 18.2.1 ; 150% salaire ref ; pas de plancher PASS" },
-          "renteConjoint": null,
-          "_renteConjoint_commentaire": "rente conjoint SUBSTITUTIVE art 18.2.4bis (5% SR, 5 ans, conditionnelle absence enfant) -> nouveau mode lot 3.5 ; null = placeholder provisoire",
+          "renteConjoint": {
+            "mode": "substitutive",
+            "tauxSalaireRef": 0.05,
+            "dureeMaxAnnees": 5,
+            "beneficiaires": ["conjoint", "pacs", "concubin"],
+            "note": "art 18.2.4bis ; 5% SR ; SI aucun enfant ouvrant droit rente education ; concubin ADMIS (preuve 2 ans) ; cesse a la retraite taux plein du beneficiaire = TO_VERIFY non modelise ; verifie 2026-06-09"
+          },
           "renteEducation": { "mode": "trancheAge", "tranches": [
             { "deAge": 0, "aAge": 8, "tauxSalaireRef": 0.12, "minimumPass": 0 },
             { "deAge": 8, "aAge": 26, "tauxSalaireRef": 0.18, "minimumPass": 0 }

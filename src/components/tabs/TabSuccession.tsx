@@ -657,6 +657,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
         prives={succession.capitalDecesLines?.prives ?? []}
         branche={succession.capitalDecesLines?.branche ?? []}
         renteEducationBranche={succession.capitalDecesLines?.renteEducationBranche ?? []}
+        renteConjointBranche={succession.capitalDecesLines?.renteConjointBranche ?? []}
         rentes={succession.rentesSurvieAnnuelles ?? []}
         totalCaisseExonere={succession.capitalDecesCaisseExonere ?? 0}
         totalPriveCapital={succession.capitalDecesPriveCapital ?? 0}
