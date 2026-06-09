@@ -30,7 +30,7 @@
     "1486": {
       "idcc": "1486",
       "nom": "Bureaux d'études techniques, cabinets d'ingénieurs-conseils et sociétés de conseils (Syntec)",
-      "datesVerification": "2026-06-08",
+      "datesVerification": "2026-06-09",
       "maintienEmployeur": {
         "cadres": {
           "carenceJours": 0,
@@ -53,22 +53,30 @@
         "tauxT1Minimum": 1.50,
         "garantiesMinimum": {
           "capitalDC": { "mode": "pourcentageSalaireRef", "tauxSalaireRef": 1.70, "minimumPass": 3.40 },
-          "renteConjoint": "TO_VERIFY",
-          "renteEducation": "TO_VERIFY",
+          "renteConjoint": null,
+          "_renteConjoint_commentaire": "Syntec : pas de rente conjoint (art. 5 accord prevoyance 27/03/1997)",
+          "renteEducation": { "mode": "trancheAge", "tranches": [
+            { "deAge": 0, "aAge": 18, "tauxSalaireRef": 0.12, "minimumPass": 0.24 },
+            { "deAge": 18, "aAge": 26, "tauxSalaireRef": 0.15, "minimumPass": 0.30 }
+          ] },
           "ij": "TO_VERIFY",
           "invalidite": "TO_VERIFY"
         },
-        "note": "capital deces art 3 accord prevoyance Syntec 27/03/1997, Legifrance, verifie 2026-06-08"
+        "note": "capital deces art 3 + rente education art 5 accord prevoyance Syntec 27/03/1997, Legifrance, verifie 2026-06-09"
       },
       "prevoyanceNonCadres": {
         "garantiesMinimum": {
           "capitalDC": { "mode": "pourcentageSalaireRef", "tauxSalaireRef": 1.70, "minimumPass": 1.70 },
-          "renteConjoint": "TO_VERIFY",
-          "renteEducation": "TO_VERIFY",
+          "renteConjoint": null,
+          "_renteConjoint_commentaire": "Syntec : pas de rente conjoint (art. 5 accord prevoyance 27/03/1997)",
+          "renteEducation": { "mode": "trancheAge", "tranches": [
+            { "deAge": 0, "aAge": 18, "tauxSalaireRef": 0.12, "minimumPass": 0.12 },
+            { "deAge": 18, "aAge": 26, "tauxSalaireRef": 0.15, "minimumPass": 0.15 }
+          ] },
           "ij": "TO_VERIFY",
           "invalidite": "TO_VERIFY"
         },
-        "note": "capital deces art 3 accord prevoyance Syntec 27/03/1997, Legifrance, verifie 2026-06-08"
+        "note": "capital deces art 3 + rente education art 5 accord prevoyance Syntec 27/03/1997, Legifrance, verifie 2026-06-09"
       },
       "santeMinimum": {
         "panier": "ANI",
