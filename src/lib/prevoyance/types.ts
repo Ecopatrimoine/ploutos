@@ -266,6 +266,11 @@ export type ProjectionResult = {
   // true si la couverture collective a été ignorée car le statut est un
   // TNS pur (pas d'accès au contrat collectif d'entreprise — décision H7).
   couvertureCollectiveIgnoreeTNS: boolean;
+  // true si la couverture effective provient des MINIMA DE BRANCHE (CCN) injectés
+  // à défaut de saisie manuelle (LOT IJ-INV-ii). Trace l'origine pour l'UI/PDF ;
+  // n'altère aucune sémantique de calcul (la couverture traverse les étages
+  // collectifs et le bornage H11 à l'identique).
+  couvertureIssueDeLaCcn: boolean;
   // Scénario d'arrêt ayant produit cette projection (durée IJ 360 vs 1095).
   scenarioArret: ScenarioArret;
 };
