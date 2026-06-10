@@ -26,18 +26,21 @@ export type CapitalDecesBranche = {
 // polymorphes tant que les CCN ne sont pas remplies → champs `unknown`.
 type GarantieCapitalDC = {
   mode?: unknown;
+  // Mode historique "pourcentageSalaireRef" :
   tauxSalaireRef?: unknown;
-  minimumPass?: unknown;
-  // Mode "situationFamiliale" (LOT BTP-1) — capital fonction de la situation
-  // conjugale + des enfants à charge, exprimé en % du salaire, en euros, ou en SR.
-  unite?: unknown;                  // "pourcentageSalaireRef" | "euros" | "SR"
-  valeurSREuros?: unknown;          // valeur unitaire du SR en euros (requis si unite="SR")
-  sansConjoint?: unknown;           // base célibataire / veuf / divorcé
-  avecConjoint?: unknown;           // base avec conjoint
+  minimumPass?: unknown;            // historique : plancher FINAL ; situationFamiliale : plancher de la BASE
+  // Mode "situationFamiliale" (LOT BTP-1bis) — blocs PAR situation, chacun avec sa
+  // PROPRE unité et ses PROPRES majorations ; valeurSREuros partagé (requis si une
+  // unité "sr" est utilisée), conjointInclutConcubin inchangé.
+  valeurSREuros?: unknown;
   conjointInclutConcubin?: unknown; // bool — concubin assimilé au conjoint (RNPO art 8.1)
-  majorationParEnfant?: unknown;    // paliers par RANG d'enfant : [{ deRang, aRang?, valeur }]
+  sansConjoint?: unknown;           // bloc SituationCapital (célibataire / veuf / divorcé)
+  avecConjoint?: unknown;           // bloc SituationCapital (avec conjoint)
 };
-type MajorationRang = { deRang?: unknown; aRang?: unknown; valeur?: unknown };
+// Un bloc de situation : valeur + unité + majorations par rang d'enfant.
+type SituationCapital = { valeur?: unknown; unite?: unknown; majorationParEnfant?: unknown };
+// Une majoration par rang : unité OPTIONNELLE (défaut = unité du bloc parent).
+type MajorationRang = { deRang?: unknown; aRang?: unknown; valeur?: unknown; unite?: unknown };
 type BlocPrevoyanceBranche = { garantiesMinimum?: { capitalDC?: unknown } | null } | null;
 
 // Contexte famille du défunt, requis par le mode "situationFamiliale". Tous les
@@ -134,18 +137,21 @@ export function resolveCapitalDecesBranche(
   return indispo(source);
 }
 
-// ─── Mode "situationFamiliale" (LOT BTP-1) ───────────────────────────────────
+// ─── Mode "situationFamiliale" (LOT BTP-1bis) — blocs PAR situation ──────────
 //
-// base = sansConjoint OU avecConjoint selon la présence d'un conjoint (le
-// concubin est assimilé SI la convention pose conjointInclutConcubin = true) ;
-// on ajoute la majoration par enfant (somme des paliers par RANG, pour les rangs
-// 1..nbEnfants). Le total (exprimé dans l'unité de la branche) est converti en € :
-//   "pourcentageSalaireRef" → total × salaireRef (plafonné PASS, comme l'historique)
-//   "euros"                 → total (montant direct)
-//   "SR"                    → total × valeurSREuros
-// minimumPass appliqué EN DERNIER comme plancher (max), comme l'historique.
-// Lecture défensive : tout champ requis manquant / mal formé / unité inconnue →
-// null (= indispo), JAMAIS d'exception, JAMAIS de valeur inventée.
+// La situation retenue (avecConjoint si conjoint présent — concubin assimilé si
+// conjointInclutConcubin —, sinon sansConjoint) fournit UN bloc
+// { valeur, unite, majorationParEnfant }. Chaque montant (base ET chaque
+// majoration) est converti en euros selon SON unité :
+//   "euros"                 → valeur (montant direct)
+//   "pourcentageSalaireRef" → valeur/100 × salaireRef (plafonné PASS)
+//   "sr"                    → valeur × valeurSREuros (partagé au niveau capitalDC)
+// L'unité d'une majoration défaut sur celle du bloc. Le plancher minimumPass
+// (fraction de PASS) s'applique à la BASE convertie, AVANT les majorations :
+//   capital = max(baseConvertie, minimumPass × PASS) + Σ majorations
+// Lecture défensive : unité inconnue, valeur négative, bloc de la situation
+// manquant, "sr" sans valeurSREuros, paliers mal formés → null (= indispo),
+// JAMAIS d'exception, JAMAIS de valeur inventée.
 function computeCapitalSituationFamiliale(
   g: GarantieCapitalDC,
   salaireBrutAnnuel: number,
@@ -154,15 +160,9 @@ function computeCapitalSituationFamiliale(
   ref: Referentiels,
   famille: FamilleCapitalDeces | undefined
 ): number | null {
-  const unite = g.unite;
-  if (unite !== "pourcentageSalaireRef" && unite !== "euros" && unite !== "SR") return null;
-
   const passNum = safeNum(pass);
-  if (passNum === null) return null;
-
-  const sansConjoint = safeNum(g.sansConjoint);
-  const avecConjoint = safeNum(g.avecConjoint);
-  if (sansConjoint === null || avecConjoint === null) return null;
+  const brut = safeNum(salaireBrutAnnuel);
+  if (passNum === null || brut === null) return null;
 
   // Conjoint effectif : conjoint (marié/PACS), OU concubin SI la convention
   // l'assimile (conjointInclutConcubin === true ; défaut false).
@@ -170,55 +170,69 @@ function computeCapitalSituationFamiliale(
   const conjointPresent = famille?.conjointPresent === true;
   const concubinPresent = famille?.concubinPresent === true;
   const conjointEffectif = conjointPresent || (concubinPresent && conjointInclutConcubin);
-  const base = conjointEffectif ? avecConjoint : sansConjoint;
 
-  // Majoration par enfant : paliers par RANG (deRang..aRang ; aRang absent =
-  // illimité). On somme la majoration applicable au rang de chaque enfant.
+  // Bloc de la situation retenue. Manquant / non-objet → indispo.
+  const blocRaw = conjointEffectif ? g.avecConjoint : g.sansConjoint;
+  if (blocRaw == null || typeof blocRaw !== "object") return null;
+  const bloc = blocRaw as SituationCapital;
+
+  // Assiette des conversions en pourcentage (plafonnée comme l'historique).
+  const salaireRef = Math.min(brut, resolvePlafondSalaireRefPass(idcc, ref) * passNum);
+  const valeurSR = safeNum(g.valeurSREuros); // null si la branche n'utilise pas "sr"
+
+  // Conversion (valeur, unité) → euros. null si unité inconnue, valeur négative,
+  // ou "sr" sans valeurSREuros exploitable.
+  const enEuros = (valeurRaw: unknown, unite: unknown): number | null => {
+    const v = safeNum(valeurRaw);
+    if (v === null || v < 0) return null;
+    if (unite === "euros") return v;
+    if (unite === "pourcentageSalaireRef") return (v / 100) * salaireRef;
+    if (unite === "sr") {
+      if (valeurSR === null || valeurSR <= 0) return null;
+      return v * valeurSR;
+    }
+    return null; // unité inconnue
+  };
+
+  // Base de la situation, convertie en euros.
+  const baseEuros = enEuros(bloc.valeur, bloc.unite);
+  if (baseEuros === null) return null;
+
+  // Plancher minimumPass sur la BASE (après conversion, AVANT majorations).
+  // Absent → pas de plancher ; présent mais invalide / négatif → indispo.
+  let base = baseEuros;
+  if (g.minimumPass != null) {
+    const minPass = safeNum(g.minimumPass);
+    if (minPass === null || minPass < 0) return null;
+    base = Math.max(base, minPass * passNum);
+  }
+
+  // Majorations par enfant : paliers par RANG (deRang..aRang ; aRang absent =
+  // illimité), unité héritée du bloc si absente. Somme des majorations applicables
+  // au rang de chaque enfant 1..nbEnfants. AJOUTÉES APRÈS le plancher de base.
   const nbEnfants = Math.max(0, Math.floor(safeNum(famille?.nbEnfantsACharge) ?? 0));
   let majorationTotale = 0;
-  if (g.majorationParEnfant != null) {
-    if (!Array.isArray(g.majorationParEnfant)) return null; // mal formé → indispo
-    const paliers: { deRang: number; aRang: number | null; valeur: number }[] = [];
-    for (const raw of g.majorationParEnfant as unknown[]) {
+  if (bloc.majorationParEnfant != null) {
+    if (!Array.isArray(bloc.majorationParEnfant)) return null; // mal formé → indispo
+    const paliers: { deRang: number; aRang: number | null; valeurEuros: number }[] = [];
+    for (const raw of bloc.majorationParEnfant as unknown[]) {
       if (raw == null || typeof raw !== "object") return null;
       const p = raw as MajorationRang;
       const deRang = safeNum(p.deRang);
-      const valeur = safeNum(p.valeur);
       const aRang = safeNum(p.aRang); // null si absent → illimité
-      if (deRang === null || valeur === null || deRang < 1) return null;
+      if (deRang === null || deRang < 1) return null;
       if (aRang !== null && aRang < deRang) return null;
-      paliers.push({ deRang, aRang, valeur });
+      const valeurEuros = enEuros(p.valeur, p.unite ?? bloc.unite); // unité héritée si absente
+      if (valeurEuros === null) return null;
+      paliers.push({ deRang, aRang, valeurEuros });
     }
     for (let rang = 1; rang <= nbEnfants; rang++) {
       const palier = paliers.find((pp) => rang >= pp.deRang && (pp.aRang === null || rang <= pp.aRang));
-      if (palier) majorationTotale += palier.valeur;
+      if (palier) majorationTotale += palier.valeurEuros;
     }
   }
 
-  const totalUnite = base + majorationTotale;
-
-  // Conversion selon l'unité.
-  let montant: number;
-  if (unite === "pourcentageSalaireRef") {
-    const brut = safeNum(salaireBrutAnnuel);
-    if (brut === null) return null;
-    const plafondPass = resolvePlafondSalaireRefPass(idcc, ref);
-    const salaireRef = Math.min(brut, plafondPass * passNum);
-    montant = totalUnite * salaireRef;
-  } else if (unite === "euros") {
-    montant = totalUnite;
-  } else {
-    // SR : valeur unitaire en euros requise et strictement positive.
-    const valeurSR = safeNum(g.valeurSREuros);
-    if (valeurSR === null || valeurSR <= 0) return null;
-    montant = totalUnite * valeurSR;
-  }
-
-  // Plancher PASS appliqué en dernier (comme l'historique). minimumPass absent
-  // → 0 (pas de plancher) ; présent mais invalide / négatif → indispo.
-  const minPass = g.minimumPass == null ? 0 : safeNum(g.minimumPass);
-  if (minPass === null || minPass < 0) return null;
-  return Math.max(montant, minPass * passNum);
+  return base + majorationTotale;
 }
 
 // ─── Résolveur de la RENTE ÉDUCATION de PRÉVOYANCE COLLECTIVE DE BRANCHE (CCN) ─

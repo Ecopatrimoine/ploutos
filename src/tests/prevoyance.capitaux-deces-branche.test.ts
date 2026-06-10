@@ -147,13 +147,13 @@ describe("resolveRenteEducationBranche — plafond salaire de référence (PASS-
   });
 });
 
-// ─── LOT BTP-1 — capital décès mode "situationFamiliale" (euros / SR / %) ─────
+// ─── LOT BTP-1bis — capital décès "situationFamiliale" par BLOCS de situation ─
 //
-// Capital fonction de la situation conjugale + des enfants à charge. Aucune CCN
-// réelle ne porte ce mode (BTP non rempli) → tout est simulé par stub inline.
-describe("resolveCapitalDecesBranche — mode situationFamiliale (LOT BTP-1)", () => {
-  // Stub : convention "0002" cadres portant un capitalDC arbitraire + plafond
-  // optionnel (utile au mode % seulement). Seul prevoyanceCadres est peuplé.
+// Schéma imbriqué : chaque situation (sansConjoint / avecConjoint) porte sa propre
+// unité et ses propres majorations ; conversions euros / pourcentageSalaireRef / sr
+// par montant ; plancher minimumPass sur la BASE avant majorations. Aucune CCN
+// réelle ne porte ce mode → tout est simulé par stub inline.
+describe("resolveCapitalDecesBranche — mode situationFamiliale par blocs (LOT BTP-1bis)", () => {
   function stubRefSF(capitalDC: unknown, plafondSalaireRefPass?: unknown): Referentiels {
     const conv: Record<string, unknown> = {
       nom: "Stub SF",
@@ -163,110 +163,119 @@ describe("resolveCapitalDecesBranche — mode situationFamiliale (LOT BTP-1)", (
     return { ccn: { conventions: { "0002": conv } } } as unknown as Referentiels;
   }
 
-  // Barème SR type ouvrier : 750 SR célib, 3500 SR conjoint, +250 SR/enfant
-  // (rangs 1-2), +500 SR/enfant (rang 3+). Valeur du SR = 100 €.
-  const capSR = {
+  // Ouvriers (RNPO) — unité SR, majorations identiques dans les DEUX blocs :
+  // base 750/3500 SR ; +1000 SR (rangs 1-2) / +2000 SR (rang 3+). SR = 100 €.
+  const majoOuvrier = [
+    { deRang: 1, aRang: 2, valeur: 1000, unite: "sr" },
+    { deRang: 3, valeur: 2000, unite: "sr" },
+  ];
+  const capOuvrierSR = {
     mode: "situationFamiliale",
-    unite: "SR",
     valeurSREuros: 100,
-    sansConjoint: 750,
-    avecConjoint: 3500,
-    majorationParEnfant: [
-      { deRang: 1, aRang: 2, valeur: 250 },
-      { deRang: 3, valeur: 500 },
-    ],
+    sansConjoint: { valeur: 750, unite: "sr", majorationParEnfant: majoOuvrier },
+    avecConjoint: { valeur: 3500, unite: "sr", majorationParEnfant: majoOuvrier },
   };
 
   it("SR — célibataire sans enfant → 750 SR × 100 = 75 000", () => {
-    const r = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF(capSR), {});
+    const r = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF(capOuvrierSR), {});
     expect(r.donneeIndisponible).toBe(false);
     expect(r.capital).toBeCloseTo(75000, 2);
   });
 
   it("SR — conjoint sans enfant → 3 500 SR × 100 = 350 000", () => {
-    const r = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF(capSR), { conjointPresent: true });
+    const r = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF(capOuvrierSR), { conjointPresent: true });
     expect(r.capital).toBeCloseTo(350000, 2);
   });
 
-  it("SR — conjoint + 2 enfants → (3500 + 250 + 250) × 100 = 400 000", () => {
-    const r = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF(capSR), { conjointPresent: true, nbEnfantsACharge: 2 });
-    expect(r.capital).toBeCloseTo(400000, 2);
+  it("SR — conjoint + 2 enfants → (3500 + 1000 + 1000) × 100 = 550 000", () => {
+    const r = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF(capOuvrierSR), { conjointPresent: true, nbEnfantsACharge: 2 });
+    expect(r.capital).toBeCloseTo(550000, 2);
   });
 
-  it("SR — conjoint + 4 enfants → palier rang 3+ sur enfants 3 et 4 : (3500 + 250×2 + 500×2) × 100 = 500 000", () => {
-    const r = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF(capSR), { conjointPresent: true, nbEnfantsACharge: 4 });
-    expect(r.capital).toBeCloseTo(500000, 2);
+  it("SR — conjoint + 4 enfants → palier rang 3+ sur enfants 3 et 4 : (3500 + 1000×2 + 2000×2) × 100 = 950 000", () => {
+    const r = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF(capOuvrierSR), { conjointPresent: true, nbEnfantsACharge: 4 });
+    expect(r.capital).toBeCloseTo(950000, 2);
   });
 
-  it("unité euros — conjoint + 2 enfants (10 000 €/enfant) → 80 000 + 20 000 = 100 000 (indépendant du salaire)", () => {
-    const capEuros = {
-      mode: "situationFamiliale", unite: "euros",
-      sansConjoint: 50000, avecConjoint: 80000,
-      majorationParEnfant: [{ deRang: 1, valeur: 10000 }],
-    };
-    const r = resolveCapitalDecesBranche("0002", "cadres", 999999, PASS, stubRefSF(capEuros), { conjointPresent: true, nbEnfantsACharge: 2 });
-    expect(r.capital).toBeCloseTo(100000, 2);
+  // ETAM (RNPE) — unités DIFFÉRENTES par situation + croisement euros/% dans le
+  // même bloc : célib 6000 € + 100 % SB/enfant ; conjoint 200 % SB + 50 %/enfant.
+  const capETAM = {
+    mode: "situationFamiliale",
+    sansConjoint: { valeur: 6000, unite: "euros", majorationParEnfant: [{ deRang: 1, valeur: 100, unite: "pourcentageSalaireRef" }] },
+    avecConjoint: { valeur: 200, unite: "pourcentageSalaireRef", majorationParEnfant: [{ deRang: 1, valeur: 50, unite: "pourcentageSalaireRef" }] },
+  };
+
+  it("ETAM — célibataire + 2 enfants : 6000 € + 2 × (100 % × 30 000) = 66 000 (base euros, majo %)", () => {
+    const r = resolveCapitalDecesBranche("0002", "cadres", 30000, PASS, stubRefSF(capETAM, 8), { nbEnfantsACharge: 2 });
+    expect(r.capital).toBeCloseTo(6000 + 2 * 30000, 2); // 66 000
   });
 
-  it("unité % — conjoint + 2 enfants : (2,50 + 0,40 + 0,40) × salaire 100 000 = 330 000", () => {
-    const capPct = {
-      mode: "situationFamiliale", unite: "pourcentageSalaireRef",
-      sansConjoint: 2.0, avecConjoint: 2.5, minimumPass: 1.0,
-      majorationParEnfant: [{ deRang: 1, aRang: 2, valeur: 0.4 }, { deRang: 3, valeur: 0.6 }],
-    };
-    const r = resolveCapitalDecesBranche("0002", "cadres", 100000, PASS, stubRefSF(capPct, 8), { conjointPresent: true, nbEnfantsACharge: 2 });
-    expect(r.capital).toBeCloseTo(3.3 * 100000, 2);
+  it("ETAM — conjoint + 2 enfants : 200 % × 30 000 + 2 × (50 % × 30 000) = 90 000", () => {
+    const r = resolveCapitalDecesBranche("0002", "cadres", 30000, PASS, stubRefSF(capETAM, 8), { conjointPresent: true, nbEnfantsACharge: 2 });
+    expect(r.capital).toBeCloseTo(60000 + 2 * 15000, 2); // 90 000
   });
 
-  it("unité % — plancher minimumPass mord (célibataire, salaire 10 000 → max(2×10000 ; 1×PASS) = PASS)", () => {
-    const capPct = {
-      mode: "situationFamiliale", unite: "pourcentageSalaireRef",
-      sansConjoint: 2.0, avecConjoint: 2.5, minimumPass: 1.0,
-    };
-    const r = resolveCapitalDecesBranche("0002", "cadres", 10000, PASS, stubRefSF(capPct, 8), {});
-    expect(r.capital).toBeCloseTo(1.0 * PASS, 2); // 48 060 > 20 000
+  // Plancher minimumPass sur la BASE (1,3 PMSS = 1,3/12 PASS ≈ 0,108333 PASS).
+  const capPlancher = {
+    mode: "situationFamiliale",
+    minimumPass: 0.108333,
+    sansConjoint: { valeur: 200, unite: "pourcentageSalaireRef" },
+    avecConjoint: { valeur: 200, unite: "pourcentageSalaireRef", majorationParEnfant: [{ deRang: 1, valeur: 50, unite: "pourcentageSalaireRef" }] },
+  };
+
+  it("plancher — petit salaire : base 200 % < 1,3 PMSS → plancher, PUIS majoration ajoutée APRÈS", () => {
+    // brut 2000 → salaireRef 2000 ; base 200 % = 4000 < plancher (0,108333 × PASS ≈ 5206)
+    // → base relevée au plancher ; + majo 50 % × 2000 = 1000 AJOUTÉE APRÈS le plancher.
+    const r = resolveCapitalDecesBranche("0002", "cadres", 2000, PASS, stubRefSF(capPlancher, 8), { conjointPresent: true, nbEnfantsACharge: 1 });
+    expect(r.capital).toBeCloseTo(0.108333 * PASS + 0.50 * 2000, 1);
   });
 
-  it("unité % — plafondSalaireRefPass mord (célibataire, salaire 500 000 → 2 × 8 PASS)", () => {
-    const capPct = {
-      mode: "situationFamiliale", unite: "pourcentageSalaireRef",
-      sansConjoint: 2.0, avecConjoint: 2.5, minimumPass: 0,
-    };
-    const r = resolveCapitalDecesBranche("0002", "cadres", 500000, PASS, stubRefSF(capPct, 8), {});
-    expect(r.capital).toBeCloseTo(2.0 * 8 * PASS, 2);
+  it("plancher — salaire suffisant : base 200 % > plancher → plancher inerte (60 000 + 15 000)", () => {
+    const r = resolveCapitalDecesBranche("0002", "cadres", 30000, PASS, stubRefSF(capPlancher, 8), { conjointPresent: true, nbEnfantsACharge: 1 });
+    expect(r.capital).toBeCloseTo(75000, 2);
   });
 
-  it("concubin — conjointInclutConcubin true → base avecConjoint (3 500 SR)", () => {
-    const r = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF({ ...capSR, conjointInclutConcubin: true }), { concubinPresent: true });
+  it("concubin — conjointInclutConcubin true → bloc avecConjoint (3 500 SR)", () => {
+    const r = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF({ ...capOuvrierSR, conjointInclutConcubin: true }), { concubinPresent: true });
     expect(r.capital).toBeCloseTo(350000, 2);
   });
 
-  it("concubin — conjointInclutConcubin false/absent → base sansConjoint (750 SR)", () => {
-    const rFalse = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF({ ...capSR, conjointInclutConcubin: false }), { concubinPresent: true });
+  it("concubin — conjointInclutConcubin false/absent → bloc sansConjoint (750 SR)", () => {
+    const rFalse = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF({ ...capOuvrierSR, conjointInclutConcubin: false }), { concubinPresent: true });
     expect(rFalse.capital).toBeCloseTo(75000, 2);
-    const rAbsent = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF(capSR), { concubinPresent: true });
+    const rAbsent = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF(capOuvrierSR), { concubinPresent: true });
     expect(rAbsent.capital).toBeCloseTo(75000, 2);
   });
 
-  it("défensif — unité inconnue → indispo (pas de throw)", () => {
-    const r = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF({ ...capSR, unite: "bitcoin" }), { conjointPresent: true });
+  it("défensif — unité de bloc inconnue → indispo (pas de throw)", () => {
+    const cap = { mode: "situationFamiliale", sansConjoint: { valeur: 1000, unite: "bitcoin" }, avecConjoint: { valeur: 1000, unite: "euros" } };
+    const r = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF(cap), {});
     expect(r.capital).toBeNull();
     expect(r.donneeIndisponible).toBe(true);
   });
 
-  it("défensif — unité SR sans valeurSREuros → indispo", () => {
-    const r = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF({
-      mode: "situationFamiliale", unite: "SR", sansConjoint: 750, avecConjoint: 3500,
-    }), { conjointPresent: true });
+  it("défensif — bloc de la situation du défunt manquant → indispo", () => {
+    // Seul avecConjoint fourni ; défunt célibataire → sansConjoint absent → indispo.
+    const cap = { mode: "situationFamiliale", avecConjoint: { valeur: 200, unite: "pourcentageSalaireRef" } };
+    const r = resolveCapitalDecesBranche("0002", "cadres", 30000, PASS, stubRefSF(cap, 8), {});
     expect(r.capital).toBeNull();
     expect(r.donneeIndisponible).toBe(true);
   });
 
-  it("défensif — majorationParEnfant mal formé (non-tableau / rang < 1) → indispo", () => {
-    const rNotArray = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF({ ...capSR, majorationParEnfant: "oops" }), { conjointPresent: true, nbEnfantsACharge: 1 });
-    expect(rNotArray.capital).toBeNull();
-    const rBadRang = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF({ ...capSR, majorationParEnfant: [{ deRang: 0, valeur: 5 }] }), { conjointPresent: true, nbEnfantsACharge: 1 });
-    expect(rBadRang.capital).toBeNull();
+  it("défensif — unité sr sans valeurSREuros → indispo", () => {
+    const cap = { mode: "situationFamiliale", sansConjoint: { valeur: 750, unite: "sr" }, avecConjoint: { valeur: 3500, unite: "sr" } };
+    const r = resolveCapitalDecesBranche("0002", "cadres", 60000, PASS, stubRefSF(cap), {});
+    expect(r.capital).toBeNull();
+    expect(r.donneeIndisponible).toBe(true);
+  });
+
+  it("défensif — majoration : unité inconnue / valeur négative / mal formé → indispo", () => {
+    const majoUniteInconnue = { mode: "situationFamiliale", sansConjoint: { valeur: 6000, unite: "euros", majorationParEnfant: [{ deRang: 1, valeur: 100, unite: "bitcoin" }] }, avecConjoint: { valeur: 6000, unite: "euros" } };
+    expect(resolveCapitalDecesBranche("0002", "cadres", 30000, PASS, stubRefSF(majoUniteInconnue, 8), { nbEnfantsACharge: 1 }).capital).toBeNull();
+    const valeurNegative = { mode: "situationFamiliale", sansConjoint: { valeur: -100, unite: "euros" }, avecConjoint: { valeur: 6000, unite: "euros" } };
+    expect(resolveCapitalDecesBranche("0002", "cadres", 30000, PASS, stubRefSF(valeurNegative, 8), {}).capital).toBeNull();
+    const malForme = { mode: "situationFamiliale", sansConjoint: { valeur: 6000, unite: "euros", majorationParEnfant: "oops" }, avecConjoint: { valeur: 6000, unite: "euros" } };
+    expect(resolveCapitalDecesBranche("0002", "cadres", 30000, PASS, stubRefSF(malForme, 8), { nbEnfantsACharge: 1 }).capital).toBeNull();
   });
 
   it("ISO — mode pourcentageSalaireRef inchangé, le contexte famille est INERTE", () => {
