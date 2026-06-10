@@ -57,6 +57,13 @@ export type CouvertureCollective = {
     baseCalcul: "T1_T2" | "T1_seul" | "brut_total";
   };
   invalidite?: {
+    // mode (LOT BTP-2) : "cibleInclSecu" (défaut si absent) = la rente complète
+    // jusqu'à la cible, déduction faite de la pension Secu ; "additif" = prestation
+    // versée EN PLUS de la pension Secu, sans déduction (ouvriers BTP, RNPO).
+    mode?: "cibleInclSecu" | "additif";
+    // base (LOT BTP-2) : assiette du % — "revenuReference" (défaut) ou "brut"
+    // (= MÊME assiette mensuelle que la pension Secu ; surtout pour l'additif).
+    base?: "revenuReference" | "brut";
     cat1: { pctSalaire: number };
     cat2: { pctSalaire: number };
     cat3: { pctSalaire: number };

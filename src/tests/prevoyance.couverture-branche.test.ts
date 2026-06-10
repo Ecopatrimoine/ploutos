@@ -108,3 +108,43 @@ describe("resolveCouvertureBranche — lecture défensive (stubs)", () => {
     expect(r.donneeIndisponible).toBe(true);
   });
 });
+
+// ─── LOT BTP-2 — invalidité mode "additif" / base (passthrough + défensif) ────
+describe("resolveCouvertureBranche — invalidité mode additif (LOT BTP-2)", () => {
+  function stub(prevoyanceCadres: unknown): Referentiels {
+    return { ccn: { conventions: { "0001": { nom: "Test", prevoyanceCadres } } } } as unknown as Referentiels;
+  }
+  const cats = { cat1: { pctSalaire: 0.10 }, cat2: { pctSalaire: 0.10 }, cat3: { pctSalaire: 0.10 } };
+
+  it("mode additif + base brut → mode/base portés tels quels", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: {
+      invalidite: { mode: "additif", base: "brut", ...cats },
+    } }));
+    expect(r.donneeIndisponible).toBe(false);
+    expect(r.invalidite?.mode).toBe("additif");
+    expect(r.invalidite?.base).toBe("brut");
+  });
+
+  it("mode/base absents → clés OMISES du résultat (forme historique inchangée)", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: {
+      invalidite: { ...cats },
+    } }));
+    expect(r.invalidite).toEqual(cats); // ni mode ni base
+  });
+
+  it("mode inconnu → invalidité indisponible (pas de fallback silencieux sur la cible)", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: {
+      invalidite: { mode: "forfaitaire", ...cats },
+    } }));
+    expect(r.invalidite).toBeUndefined();
+    expect(r.donneeIndisponible).toBe(true);
+  });
+
+  it("base inconnue → invalidité indisponible", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: {
+      invalidite: { mode: "additif", base: "net", ...cats },
+    } }));
+    expect(r.invalidite).toBeUndefined();
+    expect(r.donneeIndisponible).toBe(true);
+  });
+});

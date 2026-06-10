@@ -32,7 +32,7 @@ export type CouvertureBranche = {
 // lus ici → indépendant des blocs capital/rente, qu'on ne touche pas.
 type GarantieIJ = { mode?: unknown; pctSalaire?: unknown; franchise?: unknown; plafondJours?: unknown; baseCalcul?: unknown };
 type CategorieInval = { pctSalaire?: unknown };
-type GarantieInvalidite = { cat1?: unknown; cat2?: unknown; cat3?: unknown };
+type GarantieInvalidite = { mode?: unknown; base?: unknown; cat1?: unknown; cat2?: unknown; cat3?: unknown };
 type BlocPrevoyanceCouverture = { garantiesMinimum?: { ij?: unknown; invalidite?: unknown } | null } | null;
 
 // IJ : mode "complementSecu" attendu. safeNum + garde de cohérence (pctSalaire
@@ -61,6 +61,10 @@ function mapCategorieInval(raw: unknown): { pctSalaire: number } | null {
 }
 
 // Invalidité : les 3 catégories doivent être lisibles, sinon undefined (champ omis).
+// mode / base (LOT BTP-2) : ABSENTS → défauts historiques (cibleInclSecu /
+// revenuReference) ET clés OMISES du résultat (forme inchangée pour les CCN sans
+// additif → iso). PRÉSENTS mais inconnus → garantie OMISE (jamais de fallback
+// silencieux sur la cible, jamais d'exception).
 function mapInvalidite(raw: unknown): CouvertureCollective["invalidite"] | undefined {
   if (raw == null || typeof raw !== "object") return undefined; // "TO_VERIFY" (string) / absent
   const g = raw as GarantieInvalidite;
@@ -68,7 +72,17 @@ function mapInvalidite(raw: unknown): CouvertureCollective["invalidite"] | undef
   const cat2 = mapCategorieInval(g.cat2);
   const cat3 = mapCategorieInval(g.cat3);
   if (cat1 === null || cat2 === null || cat3 === null) return undefined;
-  return { cat1, cat2, cat3 };
+
+  const out: NonNullable<CouvertureCollective["invalidite"]> = { cat1, cat2, cat3 };
+  if (g.mode !== undefined) {
+    if (g.mode !== "cibleInclSecu" && g.mode !== "additif") return undefined;
+    out.mode = g.mode;
+  }
+  if (g.base !== undefined) {
+    if (g.base !== "revenuReference" && g.base !== "brut") return undefined;
+    out.base = g.base;
+  }
+  return out;
 }
 
 export function resolveCouvertureBranche(

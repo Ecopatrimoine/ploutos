@@ -998,20 +998,40 @@ export function computeInvalObligatoireMensuel(
   return null;
 }
 
-// `assietteMensuelle` = REVENU DE RÉFÉRENCE (LOT BRUT-NET-i), comme pour l'IJ
-// collective : la cible d'invalidité est un % du revenu de référence (non du
-// brut) → le total ne dépasse plus 100 % du revenu de référence.
+// `assietteRevenuRef` = REVENU DE RÉFÉRENCE (LOT BRUT-NET-i) : assiette historique
+// du % d'invalidité (la cible ne dépasse plus 100 % du revenu de référence).
+// LOT BTP-2 — deux sémantiques portées par le bloc invalidité de branche :
+//   mode "cibleInclSecu" (défaut, absent) : la rente complète jusqu'à la cible,
+//     sous déduction de la pension Secu → max(0, assiette × pct − pensionOblig) ;
+//   mode "additif" : la prestation (assiette × pct) est versée EN PLUS de la
+//     pension Secu, SANS déduction (ouvriers BTP, RNPO : +X % du brut au-dessus
+//     de la pension de base).
+// `base` choisit l'assiette : "revenuReference" (défaut) ou "brut" = la MÊME
+// assiette mensuelle que la pension Secu (salaireBrutMensuel, cf. l'appelant) →
+// cohérence d'assiette obligatoire pour l'additif.
+// Le bornage H11 (100 % du revenu de référence) s'applique EN AVAL et reste
+// INCHANGÉ : l'additif y passe comme les autres séries (l'étage individuel comble
+// la marge restante jusqu'à 100 % du revenu de référence). H11 (≈ 78 % du brut,
+// via le coef brut→net) est PLUS restrictif que le plafond de cumul réel BTP
+// (85 % du brut) → approximation conservatrice ; le plafond 85 % est un gap
+// documenté du chantier BTP (différé).
 function computeRenteInvalCollective(
   cov: CouvertureCollective | null,
   categorie: CategorieInvalidite,
-  assietteMensuelle: number,
-  pensionOblig: number
+  assietteRevenuRef: number,
+  pensionOblig: number,
+  salaireBrutMensuel: number
 ): number {
   if (!cov?.invalidite) return 0;
-  const c = cov.invalidite[categorie];
+  const inv = cov.invalidite;
+  const c = inv[categorie];
   if (!c) return 0;
-  const cible = assietteMensuelle * clampPct(c.pctSalaire);
-  return Math.max(0, cible - pensionOblig);
+  const assiette = inv.base === "brut" ? salaireBrutMensuel : assietteRevenuRef;
+  const prestation = assiette * clampPct(c.pctSalaire);
+  // Additif : versé EN PLUS de la pension (aucune déduction).
+  if (inv.mode === "additif") return prestation;
+  // Cible (défaut) : complément jusqu'à la cible, déduction faite de la Secu.
+  return Math.max(0, prestation - pensionOblig);
 }
 
 function computeRenteInvalIndividuelle(
@@ -1559,7 +1579,8 @@ export function projeterArretMaladie(
         couvertureEffective,
         categorie,
         revenuReferenceMensuel,
-        series.pensionInvalObligatoire[i]
+        series.pensionInvalObligatoire[i],
+        salaireBrutMensuel
       );
 
       const dejaPercuInval =
