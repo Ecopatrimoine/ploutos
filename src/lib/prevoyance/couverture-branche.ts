@@ -30,8 +30,8 @@ export type CouvertureBranche = {
 // Formes attendues dans le référentiel (champs `unknown` tant que les CCN ne
 // sont pas toutes remplies). BlocPrevoyanceCouverture ne déclare QUE les champs
 // lus ici → indépendant des blocs capital/rente, qu'on ne touche pas.
-type GarantieIJ = { mode?: unknown; pctSalaire?: unknown; franchise?: unknown; plafondJours?: unknown; baseCalcul?: unknown };
-type CategorieInval = { pctSalaire?: unknown };
+type GarantieIJ = { mode?: unknown; pctSalaire?: unknown; franchise?: unknown; plafondJours?: unknown; baseCalcul?: unknown; majorationParEnfantPct?: unknown };
+type CategorieInval = { pctSalaire?: unknown; majorationParEnfantPct?: unknown };
 type GarantieInvalidite = { mode?: unknown; base?: unknown; cat1?: unknown; cat2?: unknown; cat3?: unknown };
 type BlocPrevoyanceCouverture = { garantiesMinimum?: { ij?: unknown; invalidite?: unknown } | null } | null;
 
@@ -49,15 +49,26 @@ function mapIJ(raw: unknown): CouvertureCollective["ij"] | undefined {
   if (pctSalaire === null || franchise === null || plafondJours === null) return undefined;
   if (pctSalaire < 0 || pctSalaire > 1 || franchise < 0 || plafondJours <= 0) return undefined;
   if (baseCalcul !== "T1_T2" && baseCalcul !== "T1_seul" && baseCalcul !== "brut_total") return undefined;
-  return { pctSalaire, franchise, plafondJours, baseCalcul };
+  const out: NonNullable<CouvertureCollective["ij"]> = { pctSalaire, franchise, plafondJours, baseCalcul };
+  // LOT BTP-3 — majoration par enfant : numérique >= 0 → portée ; sinon IGNORÉE
+  // (champ omis), la garantie IJ principale reste servie. Clé absente → omise (iso).
+  const majo = safeNum(g.majorationParEnfantPct);
+  if (majo !== null && majo >= 0) out.majorationParEnfantPct = majo;
+  return out;
 }
 
-// Une catégorie d'invalidité : { pctSalaire } dans [0,1]. safeNum + clamp.
-function mapCategorieInval(raw: unknown): { pctSalaire: number } | null {
+// Une catégorie d'invalidité : { pctSalaire } dans [0,1]. safeNum + clamp. LOT
+// BTP-3 — majorationParEnfantPct numérique >= 0 → portée ; sinon IGNORÉE (clé
+// omise), la catégorie principale reste servie.
+function mapCategorieInval(raw: unknown): { pctSalaire: number; majorationParEnfantPct?: number } | null {
   if (raw == null || typeof raw !== "object") return null;
-  const pct = safeNum((raw as CategorieInval).pctSalaire);
+  const r = raw as CategorieInval;
+  const pct = safeNum(r.pctSalaire);
   if (pct === null || pct < 0 || pct > 1) return null;
-  return { pctSalaire: pct };
+  const out: { pctSalaire: number; majorationParEnfantPct?: number } = { pctSalaire: pct };
+  const majo = safeNum(r.majorationParEnfantPct);
+  if (majo !== null && majo >= 0) out.majorationParEnfantPct = majo;
+  return out;
 }
 
 // Invalidité : les 3 catégories doivent être lisibles, sinon undefined (champ omis).

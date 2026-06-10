@@ -869,18 +869,35 @@ function detecteSurCouverture(
 // et que la ligne « 100 % » du graphe), et NON du salaire brut. Évite la
 // sur-indemnisation à ~107 % (0,80 brut / 0,75 net) ; le total se plafonne
 // naturellement à 100 % du revenu de référence.
-function computeIJCollective(
+// LOT BTP-3 — majoration par enfant à charge : fraction supplémentaire de
+// l'assiette = nbEnfants × majorationParEnfantPct. Lecture défensive : pct non
+// numérique ou négatif → 0 (champ ignoré, la garantie principale reste servie) ;
+// nbEnfants non fini → 0.
+function majorationParEnfant(majorationParEnfantPct: number | undefined, nbEnfantsACharge: number): number {
+  if (typeof majorationParEnfantPct !== "number" || !Number.isFinite(majorationParEnfantPct) || majorationParEnfantPct < 0) {
+    return 0;
+  }
+  const n = Number.isFinite(nbEnfantsACharge) ? Math.max(0, Math.floor(nbEnfantsACharge)) : 0;
+  return n * majorationParEnfantPct;
+}
+
+export function computeIJCollective(
   t: number,
   cov: CouvertureCollective | null,
   assietteMensuelle: number,
-  dejaCouvertMensuel: number
+  dejaCouvertMensuel: number,
+  nbEnfantsACharge: number = 0
 ): number {
   if (!cov?.ij) return 0;
   const f = cov.ij.franchise;
   const plafond = cov.ij.plafondJours;
   if (t < f) return 0;
   if (t > f + plafond) return 0;
-  const cible = assietteMensuelle * clampPct(cov.ij.pctSalaire);
+  // Majoration par enfant à charge (LOT BTP-3) sur la MÊME assiette que le
+  // principal (revenuReference) — approximation conservatrice, cohérente avec le
+  // gap d'assiette IJ déjà documenté. Champ absent/invalide → 0.
+  const majo = majorationParEnfant(cov.ij.majorationParEnfantPct, nbEnfantsACharge);
+  const cible = assietteMensuelle * (clampPct(cov.ij.pctSalaire) + majo);
   return Math.max(0, cible - dejaCouvertMensuel);
 }
 
@@ -1015,19 +1032,24 @@ export function computeInvalObligatoireMensuel(
 // via le coef brut→net) est PLUS restrictif que le plafond de cumul réel BTP
 // (85 % du brut) → approximation conservatrice ; le plafond 85 % est un gap
 // documenté du chantier BTP (différé).
-function computeRenteInvalCollective(
+export function computeRenteInvalCollective(
   cov: CouvertureCollective | null,
   categorie: CategorieInvalidite,
   assietteRevenuRef: number,
   pensionOblig: number,
-  salaireBrutMensuel: number
+  salaireBrutMensuel: number,
+  nbEnfantsACharge: number = 0
 ): number {
   if (!cov?.invalidite) return 0;
   const inv = cov.invalidite;
   const c = inv[categorie];
   if (!c) return 0;
   const assiette = inv.base === "brut" ? salaireBrutMensuel : assietteRevenuRef;
-  const prestation = assiette * clampPct(c.pctSalaire);
+  // Majoration par enfant à charge (LOT BTP-3), PROPRE à la catégorie, sur la MÊME
+  // assiette que le principal (revenuReference en cible, brut en additif si
+  // base=brut). Champ absent/invalide → 0.
+  const pct = clampPct(c.pctSalaire) + majorationParEnfant(c.majorationParEnfantPct, nbEnfantsACharge);
+  const prestation = assiette * pct;
   // Additif : versé EN PLUS de la pension (aucune déduction).
   if (inv.mode === "additif") return prestation;
   // Cible (défaut) : complément jusqu'à la cible, déduction faite de la Secu.
@@ -1285,6 +1307,7 @@ export function projeterArretMaladie(
   const axe = insertJoursAxe(buildAxe(entree, today), joursEvenements, today, finJour);
 
   const salaireBrutMensuel = entree.salaireBrutAnnuel / 12;
+  const nbEnfantsACharge = entree.nbEnfantsACharge ?? 0; // LOT BTP-3 — majorations IJ / invalidité de branche
   // Revenu de référence TNS = bénéfice professionnel / 12. Le mapping
   // (buildEntreePerso) alimente revenuTNSAnnuel avec le BÉNÉFICE (assiette
   // IR : CA − charges), pas le CA brut. Distinct de l'assiette de
@@ -1454,7 +1477,8 @@ export function projeterArretMaladie(
         t,
         couvertureEffective,
         revenuReferenceMensuel,
-        salairePartiel + ijTPT
+        salairePartiel + ijTPT,
+        nbEnfantsACharge
       );
       // Individuel : bornage SURCOUV inchangé (déjà-perçu = salaire partiel
       // + IJ TPT + collective) → cumul plafonné au revenu de référence.
@@ -1502,7 +1526,8 @@ export function projeterArretMaladie(
         t,
         couvertureEffective,
         revenuReferenceMensuel,
-        series.maintienEmployeur[i] + series.ijObligatoire[i]
+        series.maintienEmployeur[i] + series.ijObligatoire[i],
+        nbEnfantsACharge
       );
 
       const dejaPercuIJ =
@@ -1580,7 +1605,8 @@ export function projeterArretMaladie(
         categorie,
         revenuReferenceMensuel,
         series.pensionInvalObligatoire[i],
-        salaireBrutMensuel
+        salaireBrutMensuel,
+        nbEnfantsACharge
       );
 
       const dejaPercuInval =

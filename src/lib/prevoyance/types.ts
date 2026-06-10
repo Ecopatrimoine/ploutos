@@ -55,6 +55,9 @@ export type CouvertureCollective = {
     franchise: number;         // jours
     plafondJours: number;
     baseCalcul: "T1_T2" | "T1_seul" | "brut_total";
+    // LOT BTP-3 : +% de l'assiette IJ PAR enfant à charge (IJ cadres BTP, RNPC).
+    // Absent/invalide → 0 (la garantie principale reste servie).
+    majorationParEnfantPct?: number;
   };
   invalidite?: {
     // mode (LOT BTP-2) : "cibleInclSecu" (défaut si absent) = la rente complète
@@ -64,9 +67,11 @@ export type CouvertureCollective = {
     // base (LOT BTP-2) : assiette du % — "revenuReference" (défaut) ou "brut"
     // (= MÊME assiette mensuelle que la pension Secu ; surtout pour l'additif).
     base?: "revenuReference" | "brut";
-    cat1: { pctSalaire: number };
-    cat2: { pctSalaire: number };
-    cat3: { pctSalaire: number };
+    // majorationParEnfantPct (LOT BTP-3) : +% PAR enfant à charge, PROPRE à chaque
+    // catégorie (chacune peut en porter une, une autre, ou aucune). Absent/invalide → 0.
+    cat1: { pctSalaire: number; majorationParEnfantPct?: number };
+    cat2: { pctSalaire: number; majorationParEnfantPct?: number };
+    cat3: { pctSalaire: number; majorationParEnfantPct?: number };
   };
   capitalDeces?: {
     montant: number;

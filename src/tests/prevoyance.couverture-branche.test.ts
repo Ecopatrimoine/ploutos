@@ -148,3 +148,51 @@ describe("resolveCouvertureBranche — invalidité mode additif (LOT BTP-2)", ()
     expect(r.donneeIndisponible).toBe(true);
   });
 });
+
+// ─── LOT BTP-3 — majoration par enfant (passthrough + défensif côté résolveur) ─
+describe("resolveCouvertureBranche — majoration par enfant (LOT BTP-3)", () => {
+  function stub(prevoyanceCadres: unknown): Referentiels {
+    return { ccn: { conventions: { "0001": { nom: "Test", prevoyanceCadres } } } } as unknown as Referentiels;
+  }
+
+  it("ij : majorationParEnfantPct valide (>= 0) → portée", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: {
+      ij: { mode: "complementSecu", pctSalaire: 0.70, franchise: 90, plafondJours: 1005, baseCalcul: "brut_total", majorationParEnfantPct: 0.0333 },
+    } }));
+    expect(r.ij?.majorationParEnfantPct).toBeCloseTo(0.0333, 4);
+  });
+
+  it("ij : majoration négative → IGNORÉE, garantie IJ principale intacte", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: {
+      ij: { mode: "complementSecu", pctSalaire: 0.70, franchise: 90, plafondJours: 1005, baseCalcul: "brut_total", majorationParEnfantPct: -0.05 },
+    } }));
+    expect(r.ij).toBeDefined();
+    expect(r.ij?.pctSalaire).toBe(0.70);
+    expect(r.ij?.majorationParEnfantPct).toBeUndefined();
+  });
+
+  it("invalidité : majoration par catégorie (cat2 portée, cat3 absente → omise)", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: {
+      invalidite: {
+        cat1: { pctSalaire: 0.40 },
+        cat2: { pctSalaire: 0.65, majorationParEnfantPct: 0.05 },
+        cat3: { pctSalaire: 0.75 },
+      },
+    } }));
+    expect(r.invalidite?.cat2.majorationParEnfantPct).toBeCloseTo(0.05, 4);
+    expect(r.invalidite?.cat3.majorationParEnfantPct).toBeUndefined();
+  });
+
+  it("invalidité : majoration non numérique → IGNORÉE, catégorie principale intacte", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: {
+      invalidite: {
+        cat1: { pctSalaire: 0.40 },
+        cat2: { pctSalaire: 0.65, majorationParEnfantPct: "TO_VERIFY" },
+        cat3: { pctSalaire: 0.75 },
+      },
+    } }));
+    expect(r.invalidite).toBeDefined();
+    expect(r.invalidite?.cat2.pctSalaire).toBe(0.65);
+    expect(r.invalidite?.cat2.majorationParEnfantPct).toBeUndefined();
+  });
+});
