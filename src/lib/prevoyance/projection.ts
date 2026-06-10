@@ -893,6 +893,21 @@ function majorationSiAuMoinsUnEnfant(majorationSiAuMoinsUnEnfantPct: number | un
   return n >= 1 ? majorationSiAuMoinsUnEnfantPct : 0;
 }
 
+// LOT ASSUR-0 — taux d'IJ au jour t pour une garantie à PALIERS temporels :
+// pctSalaire du segment [deJour, aJour) (half-open, borne haute exclusive) qui
+// contient t, ou null si t tombe hors de tout segment (avant le 1er deJour ou
+// au-delà du dernier aJour → plus de complément). Segments validés en amont par
+// le résolveur (ordonnés, contigus, fractions ]0,1]).
+function tauxPalierIJ(
+  paliers: ReadonlyArray<{ deJour: number; aJour: number; pctSalaire: number }>,
+  t: number
+): number | null {
+  for (const seg of paliers) {
+    if (t >= seg.deJour && t < seg.aJour) return seg.pctSalaire;
+  }
+  return null;
+}
+
 export function computeIJCollective(
   t: number,
   cov: CouvertureCollective | null,
@@ -902,14 +917,24 @@ export function computeIJCollective(
 ): number {
   if (!cov?.ij) return 0;
   const f = cov.ij.franchise;
-  const plafond = cov.ij.plafondJours;
-  if (t < f) return 0;
-  if (t > f + plafond) return 0;
+  if (t < f) return 0; // franchise commune (inchangée)
+  // Taux applicable au jour t. LOT ASSUR-0 : si `paliers` est présent, le taux
+  // vient du segment temporel courant (et la fenêtre est bornée par le dernier
+  // aJour) ; sinon comportement historique mono-taux borné par [f, f + plafond].
+  let taux: number;
+  if (cov.ij.paliers && cov.ij.paliers.length > 0) {
+    const tp = tauxPalierIJ(cov.ij.paliers, t);
+    if (tp === null) return 0; // hors de tout palier → plus de complément
+    taux = tp;
+  } else {
+    if (t > f + cov.ij.plafondJours) return 0;
+    taux = cov.ij.pctSalaire;
+  }
   // Majoration par enfant à charge (LOT BTP-3) sur la MÊME assiette que le
   // principal (revenuReference) — approximation conservatrice, cohérente avec le
   // gap d'assiette IJ déjà documenté. Champ absent/invalide → 0.
   const majo = majorationParEnfant(cov.ij.majorationParEnfantPct, nbEnfantsACharge);
-  const cible = assietteMensuelle * (clampPct(cov.ij.pctSalaire) + majo);
+  const cible = assietteMensuelle * (clampPct(taux) + majo);
   return Math.max(0, cible - dejaCouvertMensuel);
 }
 

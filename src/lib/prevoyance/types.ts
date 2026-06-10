@@ -51,13 +51,24 @@ export type ContratIndividuel = {
 // à partir de sa notice.
 export type CouvertureCollective = {
   ij?: {
-    pctSalaire: number;        // ex 0.80 = 80 % du brut
+    pctSalaire: number;        // ex 0.80 = 80 % du brut (taux unique si `paliers` absent)
     franchise: number;         // jours
-    plafondJours: number;
+    plafondJours: number;      // jours indemnisés APRÈS la franchise (fin servie = franchise + plafondJours)
     baseCalcul: "T1_T2" | "T1_seul" | "brut_total";
     // LOT BTP-3 : +% de l'assiette IJ PAR enfant à charge (IJ cadres BTP, RNPC).
     // Absent/invalide → 0 (la garantie principale reste servie).
     majorationParEnfantPct?: number;
+    // LOT ASSUR-0 — IJ à PALIERS temporels : taux qui change dans le temps
+    // (ex. RPP assurance 85 % du 4e au 12e mois puis 70 % du 13e au 36e ; métallurgie
+    // 100 % puis 75 % cadres). Présent → REMPLACE le couple pctSalaire/plafondJours :
+    // le taux servi au jour t (= jour calendaire depuis le début de l'arrêt, MÊME axe
+    // que franchise + plafondJours) est celui du segment [deJour, aJour) (half-open,
+    // borne haute exclusive — comme les tranches d'âge de la rente éducation) qui
+    // contient t ; au-delà du dernier segment, plus de complément. Segments ordonnés,
+    // contigus (aJour[n] == deJour[n+1]), pctSalaire en FRACTION dans ]0, 1].
+    // franchise/baseCalcul/majorationParEnfantPct restent communs et s'appliquent
+    // inchangés. Resolver (mapIJ) : paliers malformés → IJ omise (jamais dégradée).
+    paliers?: Array<{ deJour: number; aJour: number; pctSalaire: number }>;
   };
   invalidite?: {
     // mode (LOT BTP-2) : "cibleInclSecu" (défaut si absent) = la rente complète

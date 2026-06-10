@@ -8,9 +8,10 @@
 
 import { describe, it, expect } from "vitest";
 import { resolveCouvertureBranche } from "../lib/prevoyance/couverture-branche";
+import { computeIJCollective, projeterArretMaladie } from "../lib/prevoyance/projection";
 import type { Referentiels } from "../data/prevoyance";
 import { referentiels } from "../data/prevoyance";
-import type { CouvertureCollective } from "../lib/prevoyance/types";
+import type { CouvertureCollective, EntreePerso } from "../lib/prevoyance/types";
 
 describe("resolveCouvertureBranche — Syntec (1486)", () => {
   it("cadre → IJ complément 80 % (franchise 90, plafond 1005, brut_total)", () => {
@@ -194,5 +195,164 @@ describe("resolveCouvertureBranche — majoration par enfant (LOT BTP-3)", () =>
     expect(r.invalidite).toBeDefined();
     expect(r.invalidite?.cat2.pctSalaire).toBe(0.65);
     expect(r.invalidite?.cat2.majorationParEnfantPct).toBeUndefined();
+  });
+});
+
+// ─── LOT ASSUR-0 — IJ à PALIERS temporels (resolver) ──────────────────────────
+describe("resolveCouvertureBranche — IJ paliers temporels (LOT ASSUR-0)", () => {
+  function stub(prevoyanceCadres: unknown): Referentiels {
+    return { ccn: { conventions: { "0001": { nom: "Test", prevoyanceCadres } } } } as unknown as Referentiels;
+  }
+  // RPP assurance (1672) : 85 % du 4e au 12e mois, 70 % du 13e au 36e — segments
+  // contigus sur l'axe « jours depuis le début de l'arrêt » (franchise 90).
+  const ijPaliers = {
+    mode: "complementSecu", franchise: 90, baseCalcul: "brut_total",
+    paliers: [
+      { deJour: 90, aJour: 360, pctSalaire: 0.85 },
+      { deJour: 360, aJour: 1080, pctSalaire: 0.70 },
+    ],
+  };
+
+  it("paliers valides → portés tels quels ; pctSalaire/plafondJours dérivés cohérents", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: { ij: ijPaliers } }));
+    expect(r.donneeIndisponible).toBe(false);
+    expect(r.ij?.paliers).toEqual([
+      { deJour: 90, aJour: 360, pctSalaire: 0.85 },
+      { deJour: 360, aJour: 1080, pctSalaire: 0.70 },
+    ]);
+    expect(r.ij?.franchise).toBe(90);
+    expect(r.ij?.baseCalcul).toBe("brut_total");
+    // pctSalaire dérivé = 1er segment ; plafondJours dérivé = dernier aJour − franchise.
+    expect(r.ij?.pctSalaire).toBe(0.85);
+    expect(r.ij?.plafondJours).toBe(1080 - 90);
+  });
+
+  it("paliers NON contigus (trou 360→400) → IJ omise (échec explicite, donneeIndisponible)", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: { ij: {
+      ...ijPaliers, paliers: [
+        { deJour: 90, aJour: 360, pctSalaire: 0.85 },
+        { deJour: 400, aJour: 1080, pctSalaire: 0.70 },
+      ],
+    } } }));
+    expect(r.ij).toBeUndefined();
+    expect(r.donneeIndisponible).toBe(true);
+  });
+
+  it("pctSalaire en ENTIER (85 au lieu de 0.85) → IJ omise (garde fraction ]0,1])", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: { ij: {
+      ...ijPaliers, paliers: [{ deJour: 90, aJour: 360, pctSalaire: 85 }],
+    } } }));
+    expect(r.ij).toBeUndefined();
+    expect(r.donneeIndisponible).toBe(true);
+  });
+
+  it("paliers vide → IJ omise", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: { ij: { ...ijPaliers, paliers: [] } } }));
+    expect(r.ij).toBeUndefined();
+  });
+
+  it("segment mal ordonné (aJour <= deJour) → IJ omise", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: { ij: {
+      ...ijPaliers, paliers: [{ deJour: 360, aJour: 360, pctSalaire: 0.85 }],
+    } } }));
+    expect(r.ij).toBeUndefined();
+  });
+
+  it("rétro-compat : `paliers` ABSENT → mode mono-taux strictement inchangé (aucune clé paliers)", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: { ij: {
+      mode: "complementSecu", pctSalaire: 0.80, franchise: 90, plafondJours: 1005, baseCalcul: "brut_total",
+    } } }));
+    expect(r.ij).toEqual({ pctSalaire: 0.80, franchise: 90, plafondJours: 1005, baseCalcul: "brut_total" });
+    expect(r.ij?.paliers).toBeUndefined();
+  });
+});
+
+// ─── LOT ASSUR-0 — consommation du taux par palier (computeIJCollective) ───────
+describe("computeIJCollective — taux par palier temporel (LOT ASSUR-0)", () => {
+  // 2 paliers contigus : 0.85 sur [90,365), 0.70 sur [365,730) ; extinction à 730.
+  const cov: CouvertureCollective = {
+    ij: {
+      pctSalaire: 0.85, franchise: 90, plafondJours: 640, baseCalcul: "brut_total",
+      paliers: [
+        { deJour: 90, aJour: 365, pctSalaire: 0.85 },
+        { deJour: 365, aJour: 730, pctSalaire: 0.70 },
+      ],
+    },
+  };
+  // Sans déjà-perçu, le complément = assiette × taux (assiette 1000 → € directs).
+  const ij = (t: number, deja = 0) => computeIJCollective(t, cov, 1000, deja);
+
+  it("palier 1 (0.85) : début, milieu, dernier jour (aJour−1) → 850", () => {
+    expect(ij(90)).toBeCloseTo(850);   // début (= franchise)
+    expect(ij(200)).toBeCloseTo(850);  // milieu
+    expect(ij(364)).toBeCloseTo(850);  // dernier jour inclus (aJour − 1)
+  });
+
+  it("frontière half-open : jour aJour de p1 (365) bascule sur p2 (0.70), pas 0.85", () => {
+    expect(ij(365)).toBeCloseTo(700);  // premier jour EXCLU de p1 → p2
+  });
+
+  it("palier 2 (0.70) : milieu et dernier jour → 700", () => {
+    expect(ij(547)).toBeCloseTo(700);
+    expect(ij(729)).toBeCloseTo(700);  // dernier jour inclus (aJour − 1)
+  });
+
+  it("extinction : dès le dernier aJour (730) et au-delà → 0 complément", () => {
+    expect(ij(730)).toBe(0);
+    expect(ij(5000)).toBe(0);
+  });
+
+  it("avant la franchise (t < 90) → 0 (franchise commune appliquée)", () => {
+    expect(ij(89)).toBe(0);
+  });
+
+  it("complément = cible − déjà-perçu, dans chaque palier", () => {
+    // assiette 2000, déjà perçu 1000 (maintien + IJSS).
+    expect(computeIJCollective(200, cov, 2000, 1000)).toBeCloseTo(700); // 2000×0.85 − 1000
+    expect(computeIJCollective(547, cov, 2000, 1000)).toBeCloseTo(400); // 2000×0.70 − 1000
+    expect(computeIJCollective(730, cov, 2000, 1000)).toBe(0);          // éteint
+  });
+});
+
+// ─── LOT ASSUR-0 — intégration projection (9 séries) ──────────────────────────
+describe("projeterArretMaladie — IJ branche à 2 paliers (0.85 puis 0.70)", () => {
+  function entreePaliers(): EntreePerso {
+    return {
+      age: 40, ageRetraite: 64, statutPro: "salarie_cadre", caisse: "CPAM",
+      idccCCN: null, ancienneteMois: 120, salaireBrutAnnuel: 60000,
+      salaireNetMensuel: 0, contratsIndividuels: [],
+      couvertureCollective: {
+        ij: {
+          pctSalaire: 0.85, franchise: 90, plafondJours: 640, baseCalcul: "brut_total",
+          paliers: [
+            { deJour: 90, aJour: 365, pctSalaire: 0.85 },
+            { deJour: 365, aJour: 730, pctSalaire: 0.70 },
+          ],
+        },
+      },
+    };
+  }
+
+  it("total porté à 85 % du réf en palier 1, 70 % en palier 2, complément éteint après le dernier aJour", () => {
+    const r = projeterArretMaladie(entreePaliers(), "cat2", referentiels);
+    const ref = r.revenuReferenceMensuel;
+    let p1 = false, p2 = false, eteint = false;
+    for (let i = 0; i < r.axe.length; i++) {
+      if (r.axe[i].phase !== "am") continue;
+      const j = r.axe[i].jour;
+      const total =
+        r.series.maintienEmployeur[i] + r.series.ijObligatoire[i] + r.series.ijComplementaireCollective[i];
+      if (j === 120 || j === 180) {
+        expect(total).toBeCloseTo(0.85 * ref, 0); // palier 1
+        p1 = true;
+      } else if (j === 365 || j === 547) {
+        expect(total).toBeCloseTo(0.70 * ref, 0); // palier 2
+        p2 = true;
+      } else if (j === 730 || j === 912) {
+        expect(r.series.ijComplementaireCollective[i]).toBe(0); // au-delà du dernier aJour
+        eteint = true;
+      }
+    }
+    expect(p1 && p2 && eteint).toBe(true);
   });
 });

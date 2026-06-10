@@ -30,25 +30,79 @@ export type CouvertureBranche = {
 // Formes attendues dans le référentiel (champs `unknown` tant que les CCN ne
 // sont pas toutes remplies). BlocPrevoyanceCouverture ne déclare QUE les champs
 // lus ici → indépendant des blocs capital/rente, qu'on ne touche pas.
-type GarantieIJ = { mode?: unknown; pctSalaire?: unknown; franchise?: unknown; plafondJours?: unknown; baseCalcul?: unknown; majorationParEnfantPct?: unknown };
+type GarantieIJ = { mode?: unknown; pctSalaire?: unknown; franchise?: unknown; plafondJours?: unknown; baseCalcul?: unknown; majorationParEnfantPct?: unknown; paliers?: unknown };
+type SegmentIJ = { deJour?: unknown; aJour?: unknown; pctSalaire?: unknown };
 type CategorieInval = { pctSalaire?: unknown; majorationParEnfantPct?: unknown; majorationSiAuMoinsUnEnfantPct?: unknown };
 type GarantieInvalidite = { mode?: unknown; base?: unknown; cat1?: unknown; cat2?: unknown; cat3?: unknown };
 type BlocPrevoyanceCouverture = { garantiesMinimum?: { ij?: unknown; invalidite?: unknown } | null } | null;
 
+// LOT ASSUR-0 — paliers temporels d'IJ. Trois retours distincts :
+//   undefined : champ `paliers` ABSENT → mode mono-taux historique (rien à valider)
+//   null      : champ PRÉSENT mais MALFORMÉ → l'appelant OMET l'IJ (échec explicite ;
+//               jamais de dégradation silencieuse vers un taux ou une fenêtre faux)
+//   tableau   : segments validés — ordonnés, contigus (aJour[n] == deJour[n+1]),
+//               non vides (aJour > deJour), pctSalaire en FRACTION dans ]0, 1].
+// Bornes en jours depuis le début de l'arrêt (même axe que franchise + plafondJours).
+function mapPaliersIJ(raw: unknown): Array<{ deJour: number; aJour: number; pctSalaire: number }> | null | undefined {
+  if (raw === undefined) return undefined;
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const out: Array<{ deJour: number; aJour: number; pctSalaire: number }> = [];
+  let bornePrecedente: number | null = null;
+  for (const item of raw) {
+    if (item == null || typeof item !== "object") return null;
+    const s = item as SegmentIJ;
+    const deJour = safeNum(s.deJour);
+    const aJour = safeNum(s.aJour);
+    const pct = safeNum(s.pctSalaire);
+    if (deJour === null || aJour === null || pct === null) return null;
+    if (deJour < 0 || aJour <= deJour) return null;            // bornes valides, segment non vide
+    if (pct <= 0 || pct > 1) return null;                      // fraction ]0,1] (rejette un entier 85)
+    if (bornePrecedente !== null && deJour !== bornePrecedente) return null; // contigu
+    out.push({ deJour, aJour, pctSalaire: pct });
+    bornePrecedente = aJour;
+  }
+  return out;
+}
+
 // IJ : mode "complementSecu" attendu. safeNum + garde de cohérence (pctSalaire
 // dans [0,1], franchise >= 0, plafondJours > 0, baseCalcul parmi les valeurs du
-// type). Tout écart → undefined (champ omis).
+// type). Tout écart → undefined (champ omis). LOT ASSUR-0 : si `paliers` est
+// présent, il REMPLACE pctSalaire/plafondJours (taux par segment temporel) ;
+// franchise/baseCalcul/majorationParEnfantPct restent communs.
 function mapIJ(raw: unknown): CouvertureCollective["ij"] | undefined {
   if (raw == null || typeof raw !== "object") return undefined; // "TO_VERIFY" (string) / absent
   const g = raw as GarantieIJ;
   if (g.mode !== "complementSecu") return undefined;
-  const pctSalaire = safeNum(g.pctSalaire);
   const franchise = safeNum(g.franchise);
-  const plafondJours = safeNum(g.plafondJours);
   const baseCalcul = g.baseCalcul;
-  if (pctSalaire === null || franchise === null || plafondJours === null) return undefined;
-  if (pctSalaire < 0 || pctSalaire > 1 || franchise < 0 || plafondJours <= 0) return undefined;
+  if (franchise === null || franchise < 0) return undefined;
   if (baseCalcul !== "T1_T2" && baseCalcul !== "T1_seul" && baseCalcul !== "brut_total") return undefined;
+
+  // Mode PALIERS (prioritaire). Présent mais malformé → IJ omise (échec explicite).
+  const paliers = mapPaliersIJ(g.paliers);
+  if (paliers === null) return undefined;
+  if (paliers !== undefined) {
+    // `paliers` porte le taux servi ; on renseigne aussi pctSalaire (1er segment,
+    // ≤ 1 par validation) et plafondJours (= dernier aJour − franchise, soit fin
+    // servie = dernier aJour) pour garder la forme du type cohérente.
+    const dernierAJour = paliers[paliers.length - 1].aJour;
+    const out: NonNullable<CouvertureCollective["ij"]> = {
+      pctSalaire: paliers[0].pctSalaire,
+      franchise,
+      plafondJours: dernierAJour - franchise,
+      baseCalcul,
+      paliers,
+    };
+    const majo = safeNum(g.majorationParEnfantPct);
+    if (majo !== null && majo >= 0) out.majorationParEnfantPct = majo;
+    return out;
+  }
+
+  // Mode MONO-TAUX historique (inchangé) : pctSalaire + plafondJours requis.
+  const pctSalaire = safeNum(g.pctSalaire);
+  const plafondJours = safeNum(g.plafondJours);
+  if (pctSalaire === null || plafondJours === null) return undefined;
+  if (pctSalaire < 0 || pctSalaire > 1 || plafondJours <= 0) return undefined;
   const out: NonNullable<CouvertureCollective["ij"]> = { pctSalaire, franchise, plafondJours, baseCalcul };
   // LOT BTP-3 — majoration par enfant : numérique >= 0 → portée ; sinon IGNORÉE
   // (champ omis), la garantie IJ principale reste servie. Clé absente → omise (iso).
