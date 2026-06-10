@@ -881,6 +881,18 @@ function majorationParEnfant(majorationParEnfantPct: number | undefined, nbEnfan
   return n * majorationParEnfantPct;
 }
 
+// LOT BTP-3bis — majoration FORFAITAIRE d'invalidité : fraction UNIQUE ajoutée
+// (une seule fois) dès qu'il y a AU MOINS un enfant à charge — PAS multipliée par
+// le nombre d'enfants. Sémantique parallèle à majorationParEnfant (même unité,
+// même point d'ajout). Lecture défensive : pct non numérique / négatif → 0.
+function majorationSiAuMoinsUnEnfant(majorationSiAuMoinsUnEnfantPct: number | undefined, nbEnfantsACharge: number): number {
+  if (typeof majorationSiAuMoinsUnEnfantPct !== "number" || !Number.isFinite(majorationSiAuMoinsUnEnfantPct) || majorationSiAuMoinsUnEnfantPct < 0) {
+    return 0;
+  }
+  const n = Number.isFinite(nbEnfantsACharge) ? Math.max(0, Math.floor(nbEnfantsACharge)) : 0;
+  return n >= 1 ? majorationSiAuMoinsUnEnfantPct : 0;
+}
+
 export function computeIJCollective(
   t: number,
   cov: CouvertureCollective | null,
@@ -1045,10 +1057,14 @@ export function computeRenteInvalCollective(
   const c = inv[categorie];
   if (!c) return 0;
   const assiette = inv.base === "brut" ? salaireBrutMensuel : assietteRevenuRef;
-  // Majoration par enfant à charge (LOT BTP-3), PROPRE à la catégorie, sur la MÊME
-  // assiette que le principal (revenuReference en cible, brut en additif si
-  // base=brut). Champ absent/invalide → 0.
-  const pct = clampPct(c.pctSalaire) + majorationParEnfant(c.majorationParEnfantPct, nbEnfantsACharge);
+  // Majorations PROPRES à la catégorie, sur la MÊME assiette que le principal
+  // (revenuReference en cible, brut en additif si base=brut) : par enfant (LOT
+  // BTP-3, linéaire) ET forfait "si au moins un enfant" (LOT BTP-3bis, unique).
+  // Cumulables ; champ absent/invalide → 0.
+  const pct =
+    clampPct(c.pctSalaire) +
+    majorationParEnfant(c.majorationParEnfantPct, nbEnfantsACharge) +
+    majorationSiAuMoinsUnEnfant(c.majorationSiAuMoinsUnEnfantPct, nbEnfantsACharge);
   const prestation = assiette * pct;
   // Additif : versé EN PLUS de la pension (aucune déduction).
   if (inv.mode === "additif") return prestation;

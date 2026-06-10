@@ -134,3 +134,66 @@ describe("Majoration par enfant — bornage H11 (LOT BTP-3)", () => {
     expect(r.series.renteInvalCollective[i]).toBeGreaterThan(0);
   });
 });
+
+// ─── LOT BTP-3bis — forfait invalidité "si au moins un enfant" (unique) ───────
+describe("computeRenteInvalCollective — forfait si au moins un enfant (LOT BTP-3bis)", () => {
+  // cat1 cible 40 % + forfait 5 % (0,05) dès le 1er enfant ; assiette 2000, pension 0.
+  const covForfait: CouvertureCollective = {
+    invalidite: {
+      cat1: { pctSalaire: 0.40, majorationSiAuMoinsUnEnfantPct: 0.05 },
+      cat2: { pctSalaire: 0.65 },
+      cat3: { pctSalaire: 0.75 },
+    },
+  };
+
+  it("1 enfant → cible effective 45 % : (0,40 + 0,05) × 2000 = 900", () => {
+    expect(computeRenteInvalCollective(covForfait, "cat1", 2000, 0, 2000, 1)).toBeCloseTo(900, 2);
+  });
+
+  it("3 enfants → toujours 45 % (forfait UNIQUE, non multiplié) = 900", () => {
+    expect(computeRenteInvalCollective(covForfait, "cat1", 2000, 0, 2000, 3)).toBeCloseTo(900, 2);
+  });
+
+  it("0 enfant → 40 % (forfait non déclenché) = 800", () => {
+    expect(computeRenteInvalCollective(covForfait, "cat1", 2000, 0, 2000, 0)).toBeCloseTo(800, 2);
+  });
+
+  it("cumul forfait + parEnfant : 0,40 + 2×0,02 + 0,05 = 0,49 × 2000 = 980", () => {
+    const cov: CouvertureCollective = {
+      invalidite: {
+        cat1: { pctSalaire: 0.40, majorationParEnfantPct: 0.02, majorationSiAuMoinsUnEnfantPct: 0.05 },
+        cat2: { pctSalaire: 0.65 }, cat3: { pctSalaire: 0.75 },
+      },
+    };
+    expect(computeRenteInvalCollective(cov, "cat1", 2000, 0, 2000, 2)).toBeCloseTo(980, 2);
+  });
+
+  it("défensif — forfait négatif → ignoré (garantie principale intacte, 40 % = 800)", () => {
+    const cov: CouvertureCollective = {
+      invalidite: {
+        cat1: { pctSalaire: 0.40, majorationSiAuMoinsUnEnfantPct: -0.05 },
+        cat2: { pctSalaire: 0.65 }, cat3: { pctSalaire: 0.75 },
+      },
+    };
+    expect(computeRenteInvalCollective(cov, "cat1", 2000, 0, 2000, 3)).toBeCloseTo(800, 2);
+  });
+
+  it("mode additif + forfait : prestation = brut × (pct + forfait), sans déduction", () => {
+    const cov: CouvertureCollective = {
+      invalidite: {
+        mode: "additif", base: "brut",
+        cat1: { pctSalaire: 0.10, majorationSiAuMoinsUnEnfantPct: 0.05 },
+        cat2: { pctSalaire: 0.10 }, cat3: { pctSalaire: 0.10 },
+      },
+    };
+    // brut 2000 × (0,10 + 0,05) = 300 ; pension 1000 ignorée (additif).
+    expect(computeRenteInvalCollective(cov, "cat1", 2000, 1000, 2000, 1)).toBeCloseTo(300, 2);
+  });
+
+  it("ISO — champ absent → calcul inchangé (cat1 0,40 × 2000 = 800, quel que soit nbEnfants)", () => {
+    const cov: CouvertureCollective = {
+      invalidite: { cat1: { pctSalaire: 0.40 }, cat2: { pctSalaire: 0.65 }, cat3: { pctSalaire: 0.75 } },
+    };
+    expect(computeRenteInvalCollective(cov, "cat1", 2000, 0, 2000, 5)).toBeCloseTo(800, 2);
+  });
+});

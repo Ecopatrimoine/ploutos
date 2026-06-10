@@ -67,11 +67,12 @@ export type CouvertureCollective = {
     // base (LOT BTP-2) : assiette du % — "revenuReference" (défaut) ou "brut"
     // (= MÊME assiette mensuelle que la pension Secu ; surtout pour l'additif).
     base?: "revenuReference" | "brut";
-    // majorationParEnfantPct (LOT BTP-3) : +% PAR enfant à charge, PROPRE à chaque
-    // catégorie (chacune peut en porter une, une autre, ou aucune). Absent/invalide → 0.
-    cat1: { pctSalaire: number; majorationParEnfantPct?: number };
-    cat2: { pctSalaire: number; majorationParEnfantPct?: number };
-    cat3: { pctSalaire: number; majorationParEnfantPct?: number };
+    // majorationParEnfantPct (LOT BTP-3) : +% PAR enfant à charge (linéaire) ;
+    // majorationSiAuMoinsUnEnfantPct (LOT BTP-3bis) : forfait UNIQUE +% si ≥ 1 enfant
+    // à charge (ETAM/cadres BTP). PROPRES à chaque catégorie, cumulables. Absent/invalide → 0.
+    cat1: { pctSalaire: number; majorationParEnfantPct?: number; majorationSiAuMoinsUnEnfantPct?: number };
+    cat2: { pctSalaire: number; majorationParEnfantPct?: number; majorationSiAuMoinsUnEnfantPct?: number };
+    cat3: { pctSalaire: number; majorationParEnfantPct?: number; majorationSiAuMoinsUnEnfantPct?: number };
   };
   capitalDeces?: {
     montant: number;

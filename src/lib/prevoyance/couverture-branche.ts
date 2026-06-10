@@ -31,7 +31,7 @@ export type CouvertureBranche = {
 // sont pas toutes remplies). BlocPrevoyanceCouverture ne déclare QUE les champs
 // lus ici → indépendant des blocs capital/rente, qu'on ne touche pas.
 type GarantieIJ = { mode?: unknown; pctSalaire?: unknown; franchise?: unknown; plafondJours?: unknown; baseCalcul?: unknown; majorationParEnfantPct?: unknown };
-type CategorieInval = { pctSalaire?: unknown; majorationParEnfantPct?: unknown };
+type CategorieInval = { pctSalaire?: unknown; majorationParEnfantPct?: unknown; majorationSiAuMoinsUnEnfantPct?: unknown };
 type GarantieInvalidite = { mode?: unknown; base?: unknown; cat1?: unknown; cat2?: unknown; cat3?: unknown };
 type BlocPrevoyanceCouverture = { garantiesMinimum?: { ij?: unknown; invalidite?: unknown } | null } | null;
 
@@ -57,17 +57,20 @@ function mapIJ(raw: unknown): CouvertureCollective["ij"] | undefined {
   return out;
 }
 
-// Une catégorie d'invalidité : { pctSalaire } dans [0,1]. safeNum + clamp. LOT
-// BTP-3 — majorationParEnfantPct numérique >= 0 → portée ; sinon IGNORÉE (clé
+// Une catégorie d'invalidité : { pctSalaire } dans [0,1]. safeNum + clamp.
+// majorationParEnfantPct (LOT BTP-3, linéaire) et majorationSiAuMoinsUnEnfantPct
+// (LOT BTP-3bis, forfait unique) : numériques >= 0 → portées ; sinon IGNORÉES (clé
 // omise), la catégorie principale reste servie.
-function mapCategorieInval(raw: unknown): { pctSalaire: number; majorationParEnfantPct?: number } | null {
+function mapCategorieInval(raw: unknown): { pctSalaire: number; majorationParEnfantPct?: number; majorationSiAuMoinsUnEnfantPct?: number } | null {
   if (raw == null || typeof raw !== "object") return null;
   const r = raw as CategorieInval;
   const pct = safeNum(r.pctSalaire);
   if (pct === null || pct < 0 || pct > 1) return null;
-  const out: { pctSalaire: number; majorationParEnfantPct?: number } = { pctSalaire: pct };
+  const out: { pctSalaire: number; majorationParEnfantPct?: number; majorationSiAuMoinsUnEnfantPct?: number } = { pctSalaire: pct };
   const majo = safeNum(r.majorationParEnfantPct);
   if (majo !== null && majo >= 0) out.majorationParEnfantPct = majo;
+  const majoForfait = safeNum(r.majorationSiAuMoinsUnEnfantPct);
+  if (majoForfait !== null && majoForfait >= 0) out.majorationSiAuMoinsUnEnfantPct = majoForfait;
   return out;
 }
 
