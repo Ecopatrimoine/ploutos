@@ -659,11 +659,27 @@
       "idcc": "2120",
       "nom": "Banque (AFB)",
       "datesVerification": "2026-06-10",
-      "source": "CCN de la banque du 10/01/2000 (AFB). Entree DOCUMENTAIRE.",
-      "maintienEmployeur": { "cadres": null, "nonCadres": null },
+      "source": "CCN de la banque du 10/01/2000 (AFB), art. 54 maintien de salaire (avenant 26/10/2009) ; aucun regime de prevoyance assure de branche.",
+      "maintienEmployeur": {
+        "cadres": {
+          "carenceJours": 0,
+          "subrogation": false,
+          "paliers": [
+            { "ancienneteMois": 12, "segments": [ { "jours": 60, "pct": 100 }, { "jours": 60, "pct": 50 } ] }
+          ]
+        },
+        "nonCadres": {
+          "carenceJours": 0,
+          "subrogation": false,
+          "paliers": [
+            { "ancienneteMois": 12, "segments": [ { "jours": 60, "pct": 100 }, { "jours": 60, "pct": 50 } ] }
+          ]
+        },
+        "note": "Plancher du bareme art. 54 (anciennete 1-5 ans), conservateur, applique aux DEUX colleges (art. 54 couvre tous les salaries, cadres inclus). pct en ENTIERS (100, 50). Bareme reel par anciennete : 2/2, 3/3, 4/4, 5/5, 6/6 mois (100%/50%) ; demi-salaire porte a 5/6/8 mois avec enfant a charge ; ALD >= 10 ans d'anciennete : 12 mois 100% + 12 mois 50% (art. 56). Des le 1er jour d'absence (1er et 2e arrets). Condition : >= 1 an d'anciennete (hypothese). Sous deduction IJSS, plafond salaire net (art. 54.2)."
+      },
       "prevoyanceCadres": null,
       "prevoyanceNonCadres": null,
-      "_comment": "CCN du 10/01/2000 : AUCUN regime de prevoyance assure de branche (ni capital deces, ni rentes, ni IJ, ni invalidite). Obligations reelles : maintien de salaire employeur art. 54 (avenant 26/10/2009), bareme par anciennete (jusqu'a 12 mois a 100% + 12 mois a 50% en longue maladie >= 10 ans) - non modelisable sans saisie d'anciennete ; cadres : financement ANI 1,50% TA sans prestations definies. Les garanties reelles relevent des accords d'ENTREPRISE (BNP, SG, LCL...) : interroger le contrat collectif du client. Perimetre : banques AFB ; CA, BPCE, Credit Mutuel = autres CCN. PAS un TO_FILL.",
+      "_comment": "CCN du 10/01/2000 : AUCUN regime de prevoyance assure de branche (ni capital deces, ni rentes, ni IJ, ni invalidite). Obligations reelles : maintien de salaire employeur art. 54 (avenant 26/10/2009) - PLANCHER conservateur pose (cf. maintienEmployeur.note), bareme complet par anciennete non modelisable sans saisie fiable ; cadres : financement ANI 1,50% TA sans prestations definies. Les garanties reelles relevent des accords d'ENTREPRISE (BNP, SG, LCL...) : interroger le contrat collectif du client. Perimetre : banques AFB ; CA, BPCE, Credit Mutuel = autres CCN. PAS un TO_FILL. Verifie le 10/06/2026 (Legifrance, titre VII art. 50-60 + liste des textes attaches) : aucun regime de prevoyance assure de branche pour l'IDCC 2120.",
       "santeMinimum": { "TO_FILL": true }
     },
     "2216": {
