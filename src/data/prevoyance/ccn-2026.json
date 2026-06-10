@@ -815,6 +815,119 @@
         "note": "Regime de prevoyance des transports routiers (CARCEPT-Prevoyance), perimetre TRM et auxiliaires. CCN multi-colleges : garanties NON-CADRES uniquement, PAS de collegeImpose (un cadre sur IDCC 16 retombe sur prevoyanceCadres null -> aucune garantie de branche, routage statutPro normal). Gaps non encodes : IPRIAC (rente inaptitude conduite, conducteurs, 0,35%), garantie ALD AVC/Cancer TRV (capital 250% PMSS), regime sanitaire propre, double effet (capital 200% aux enfants si deces du conjoint < 2 ans), IAD = versement anticipe."
       },
       "santeMinimum": { "TO_FILL": true }
+    },
+    "1672": {
+      "idcc": "1672",
+      "nom": "Sociétés d'assurances (CCN du 27 mai 1992)",
+      "datesVerification": "2026-06-10",
+      "source": "RPP des societes d'assurances (accord 24/06/2013 revisant le reglement du 05/03/1962), Legifrance KALITEXT000028269637, conteneur KALICONT000005635572 ; art. 82 CCN 1672 (etendue) renvoie au RPP. Verifie le 10/06/2026.",
+      "maintienEmployeur": {
+        "cadres": {
+          "carenceJours": 0,
+          "subrogation": false,
+          "paliers": [
+            { "ancienneteMois": 12, "segments": [ { "jours": 90, "pct": 100 } ] }
+          ]
+        },
+        "nonCadres": {
+          "carenceJours": 0,
+          "subrogation": false,
+          "paliers": [
+            { "ancienneteMois": 12, "segments": [ { "jours": 90, "pct": 100 } ] }
+          ]
+        },
+        "note": "Art. 82 CCN 1672 (ETENDU), statut unique : complement au salaire NET pendant 3 mois (90 j), carence 0, identique cadres/non-cadres. Condition reelle = presence effective (art. 75), plus courte que le palier 12 mois pose (plancher conservateur). Enveloppe 3 mois par annee civile pour une meme maladie. pct en ENTIER (100). Escalier projete : 100% (j1-90) -> RPP 85% (j90-360) -> RPP 70% (j360-1080) -> invalidite 70%."
+      },
+      "devolutionCapitalDeces": {
+        "mode": "cascadeExclusive",
+        "rangs": [
+          { "qualites": ["conjoint", "pacs"] },
+          { "qualites": ["enfants"], "representation": true },
+          { "qualites": ["ascendants"] },
+          { "qualites": ["devolutionSuccessorale"] }
+        ],
+        "note": "RPP art. 7 : conjoint/PACS rang 1 (concubin EXCLU, contrairement au RNPO/Metallurgie) -> enfants (parts egales, representation des predecedes) -> ascendants -> autres heritiers (devolution successorale)."
+      },
+      "plafondSalaireRefPass": 8,
+      "_plafondSalaireRefPass_commentaire": "Salaire de reference = traitement de base brut (fixe + variable) des 12 derniers mois, limite a 8 PASS (RPP art. 6). Commun au capital deces et a la rente education.",
+      "prevoyanceCadres": {
+        "garantiesMinimum": {
+          "capitalDC": {
+            "mode": "situationFamiliale",
+            "conjointInclutConcubin": false,
+            "sansConjoint": { "valeur": 50, "unite": "pourcentageSalaireRef", "majorationParEnfant": [ { "deRang": 1, "aRang": 1, "valeur": 100 }, { "deRang": 2, "valeur": 50 } ] },
+            "avecConjoint": { "valeur": 175, "unite": "pourcentageSalaireRef", "majorationParEnfant": [ { "deRang": 1, "valeur": 50 } ] },
+            "_comment": "RPP art. 7 : isole (celibataire/veuf/divorce) 50% SR, +100% SR pour le 1er descendant a charge puis +50% SR par descendant suivant ; marie/PACS 175% SR (base 50 + 125 conjoint), +50% SR par descendant a charge. Concubin JAMAIS assimile (conjointInclutConcubin false). Controles : isole 0/1/2 enf = 50/150/200% ; marie 0/2 enf = 175/275%. Veuf : 1er descendant +100% (non modelise, sous-estime). Ascendants a charge et beneficiaire designe hors famille (capital reduit a 50%) non modelises."
+          },
+          "renteConjoint": null,
+          "renteEducation": {
+            "mode": "trancheAge",
+            "tranches": [
+              { "deAge": 0,  "aAge": 6,  "tauxSalaireRef": 0.05, "minimumPass": 0 },
+              { "deAge": 6,  "aAge": 14, "tauxSalaireRef": 0.10, "minimumPass": 0 },
+              { "deAge": 14, "aAge": 26, "tauxSalaireRef": 0.15, "minimumPass": 0 }
+            ],
+            "_comment": "RPP art. 8 : 5% SR avant 6 ans, 10% de 6 a 14 ans, 15% de 14 a 26 ans (tranches contigues, aAge exclusif). Borne 26 = convention maison alignee sur les autres entrees (decision David 10/06/2026) ; le texte vise un 'descendant a charge' NON borne en age. Minimum 1715 EUR (2016, art. 37) NON pose. Doublement orphelin pere+mere (si les deux parents du personnel de la profession) DIFFERE (lot transverse)."
+          },
+          "ij": {
+            "mode": "complementSecu",
+            "franchise": 90,
+            "baseCalcul": "brut_total",
+            "paliers": [
+              { "deJour": 90,  "aJour": 360,  "pctSalaire": 0.85 },
+              { "deJour": 360, "aJour": 1080, "pctSalaire": 0.70 }
+            ],
+            "_comment": "RPP art. 14, premier usage du mode paliers (ASSUR-0) : complement a 85% du brut du 4e au 12e mois (j90-360), puis 70% du 13e au 36e mois (j360-1080). Franchise 90 j (3 mois meme maladie). Annee de 360 jours du reglement (1/360 par jour). Mi-temps therapeutique 85% (art. 15) et rechute < 12 mois sans nouvelle franchise (art. 17) hors perimetre. FRACTIONS (jamais d'entiers)."
+          },
+          "invalidite": {
+            "cat1": { "pctSalaire": 0.70 },
+            "cat2": { "pctSalaire": 0.70 },
+            "cat3": { "pctSalaire": 0.70 },
+            "_comment": "RPP art. 16 : invalidite partielle (cat1, art. 16.1) et totale (cat2/cat3, art. 16.2) = cible 70% du SR sous deduction Secu. Le texte deduit aussi tiers/activite/chomage/retraites (approximation moteur identique aux autres branches)."
+          }
+        },
+        "note": "RPP des societes d'assurances - garanties identiques cadres/non-cadres (regime de branche unique, art. 82 + reglement RPP)."
+      },
+      "prevoyanceNonCadres": {
+        "garantiesMinimum": {
+          "capitalDC": {
+            "mode": "situationFamiliale",
+            "conjointInclutConcubin": false,
+            "sansConjoint": { "valeur": 50, "unite": "pourcentageSalaireRef", "majorationParEnfant": [ { "deRang": 1, "aRang": 1, "valeur": 100 }, { "deRang": 2, "valeur": 50 } ] },
+            "avecConjoint": { "valeur": 175, "unite": "pourcentageSalaireRef", "majorationParEnfant": [ { "deRang": 1, "valeur": 50 } ] },
+            "_comment": "RPP art. 7 : isole (celibataire/veuf/divorce) 50% SR, +100% SR pour le 1er descendant a charge puis +50% SR par descendant suivant ; marie/PACS 175% SR (base 50 + 125 conjoint), +50% SR par descendant a charge. Concubin JAMAIS assimile (conjointInclutConcubin false). Controles : isole 0/1/2 enf = 50/150/200% ; marie 0/2 enf = 175/275%. Identique cadres."
+          },
+          "renteConjoint": null,
+          "renteEducation": {
+            "mode": "trancheAge",
+            "tranches": [
+              { "deAge": 0,  "aAge": 6,  "tauxSalaireRef": 0.05, "minimumPass": 0 },
+              { "deAge": 6,  "aAge": 14, "tauxSalaireRef": 0.10, "minimumPass": 0 },
+              { "deAge": 14, "aAge": 26, "tauxSalaireRef": 0.15, "minimumPass": 0 }
+            ],
+            "_comment": "RPP art. 8 : 5/10/15% SR (tranches contigues, aAge exclusif). Borne 26 = convention maison (decision David 10/06/2026). Identique cadres."
+          },
+          "ij": {
+            "mode": "complementSecu",
+            "franchise": 90,
+            "baseCalcul": "brut_total",
+            "paliers": [
+              { "deJour": 90,  "aJour": 360,  "pctSalaire": 0.85 },
+              { "deJour": 360, "aJour": 1080, "pctSalaire": 0.70 }
+            ],
+            "_comment": "RPP art. 14 (mode paliers ASSUR-0) : 85% du brut mois 4-12 (j90-360) puis 70% mois 13-36 (j360-1080), franchise 90 j. Identique cadres. FRACTIONS."
+          },
+          "invalidite": {
+            "cat1": { "pctSalaire": 0.70 },
+            "cat2": { "pctSalaire": 0.70 },
+            "cat3": { "pctSalaire": 0.70 },
+            "_comment": "RPP art. 16 : cible 70% du SR toutes categories sous deduction Secu. Identique cadres."
+          }
+        },
+        "note": "RPP des societes d'assurances - garanties identiques cadres/non-cadres (regime de branche unique, art. 82 + reglement RPP)."
+      },
+      "_comment": "RPP accord 24/06/2013 (revision reglement 05/03/1962), Legifrance KALITEXT000028269637, conteneur KALICONT000005635572. Reglement NON ETENDU mais art. 82 CCN 1672 (ETENDU) y renvoie expressement ; FFA = quasi-totalite de la branche. Capital art. 7 : base 50, 100 si isole avec descendant, +125 marie/PACS, +50/personne a charge (veuf : 1er descendant +100, non modelise, sous-estime ; ascendants a charge non modelises ; beneficiaire designe hors famille -> capital reduit a 50, non modelise). PTIA art. 11 : capital par anticipation (+125 pour isole), hors perimetre. Rente educ art. 8 : minimum 1715 EUR (2016) revalorise art. 37, non pose ; borne 26 ans = convention maison (texte : 'descendant a charge' non borne) ; orphelin pere+mere cumule deux rentes SI les deux parents sont du personnel de la profession (lot transverse doublement orphelin). IJ art. 14 : paliers 85 % (mois 4-12) / 70 % (mois 13-36) ; mi-temps therapeutique 85 % (art. 15) et rechute <12 mois sans nouvelle franchise (art. 17) hors perimetre. Invalidite art. 16 : cible 70 % toutes cats sous deduction Secu (le texte deduit aussi tiers/activite/chomage/retraites - approximation moteur identique aux autres branches). Maintien art. 82 : complement au salaire NET 3 mois, carence 0, condition reelle = presence effective art. 75 (plus courte que le palier 12 mois pose, plancher conservateur) ; enveloppe 3 mois/annee civile meme maladie. Assurance deplacement professionnel (arts. 24-29, double capital) et frais de soins (RPS) hors perimetre. Avenants 2022/2023/2024 = cotisations seules (02/10/2024 verifie in extenso) ; avenant 20/10/2025 a survoler (probable cotisations). Le RPP couvre aussi IDCC 1679 (inspection) : entree dediee apres sourcing de son maintien propre.",
+      "santeMinimum": { "TO_FILL": true }
     }
   }
 }
