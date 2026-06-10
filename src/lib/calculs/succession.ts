@@ -1449,44 +1449,54 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
   // canal caisse rentesSurvieAnnuelles n'est PAS touché (ligne/rendu propres).
   const renteConjointBrancheLines: RenteConjointBrancheLine[] = [];
   if (entreeDefunt && entreeDefunt.idccCCN) {
-    // Condition substitutive : un enfant ouvre droit à la rente éducation
-    // (même prédicat « à charge » que 3b — factorisé en enfantsBrancheACharge).
-    const ouvreRenteEducation = enfantsBrancheACharge.length > 0;
-    if (!ouvreRenteEducation) {
-      // Qualité du partenaire survivant (mapping IDENTIQUE à DEVOL-1). Le concubin
-      // est ICI admissible si la branche l'inscrit dans `beneficiaires` (la liste
-      // JSON décide — distinct de la dévolution du capital où il est exclu).
-      let partenaireQualite: "conjoint" | "pacs" | "concubin" | null = null;
-      if (data.coupleStatus === "married") partenaireQualite = "conjoint";
-      else if (data.coupleStatus === "pacs") partenaireQualite = "pacs";
-      else if (data.coupleStatus === "cohab") partenaireQualite = "concubin";
+    // Qualité du partenaire survivant (mapping IDENTIQUE à DEVOL-1). Le concubin
+    // est ICI admissible si la branche l'inscrit dans `beneficiaires` (la liste
+    // JSON décide — distinct de la dévolution du capital où il est exclu).
+    let partenaireQualite: "conjoint" | "pacs" | "concubin" | null = null;
+    if (data.coupleStatus === "married") partenaireQualite = "conjoint";
+    else if (data.coupleStatus === "pacs") partenaireQualite = "pacs";
+    else if (data.coupleStatus === "cohab") partenaireQualite = "concubin";
 
-      const rc = resolveRenteConjointSubstitutiveBranche(
-        entreeDefunt.idccCCN,
-        categorieBranche(entreeDefunt.idccCCN, entreeDefunt.statutPro, referentiels),
-        entreeDefunt.salaireBrutAnnuel,
-        referentiels.pass.pass.annuel,
-        referentiels
-      );
-      if (
-        !rc.donneeIndisponible &&
-        rc.montantAnnuel != null &&
-        rc.dureeMaxAnnees != null &&
-        partenaireQualite != null &&
-        rc.beneficiairesQualites.includes(partenaireQualite)
-      ) {
-        const beneficiaireNom = (survivorKey === "person1"
-          ? `${data.person1FirstName ?? ""} ${data.person1LastName ?? ""}`
-          : `${data.person2FirstName ?? ""} ${data.person2LastName ?? ""}`).trim() || "Conjoint survivant";
-        renteConjointBrancheLines.push({
-          montantAnnuel: rc.montantAnnuel,
-          dureeMaxAnnees: rc.dureeMaxAnnees,
-          beneficiaireNom,
-          source: rc.source,
-          exonere: true,
-          donneeIndisponible: false,
-        });
-      }
+    // Âge du défunt au décès (réutilise getAgeFromBirthDate) — requis par le mode
+    // "cibleCumulable" (durée = âge légal − âge). Inerte pour le mode substitutive.
+    const ageDefunt = getAgeFromBirthDate(
+      deceasedKey === "person1" ? data.person1BirthDate : data.person2BirthDate
+    );
+
+    const rc = resolveRenteConjointSubstitutiveBranche(
+      entreeDefunt.idccCCN,
+      categorieBranche(entreeDefunt.idccCCN, entreeDefunt.statutPro, referentiels),
+      entreeDefunt.salaireBrutAnnuel,
+      referentiels.pass.pass.annuel,
+      referentiels,
+      ageDefunt
+    );
+
+    // Exclusivité : le mode "substitutive" (HCR) n'est versé QUE si aucun enfant
+    // n'ouvre droit à la rente éducation. Le mode "cibleCumulable" (BTP) est
+    // CUMULABLE → cette condition ne s'applique PAS (rc.cumulableAvecRenteEducation).
+    const ouvreRenteEducation = enfantsBrancheACharge.length > 0;
+    const bloqueParExclusivite = !rc.cumulableAvecRenteEducation && ouvreRenteEducation;
+
+    if (
+      !rc.donneeIndisponible &&
+      rc.montantAnnuel != null &&
+      rc.dureeMaxAnnees != null &&
+      partenaireQualite != null &&
+      rc.beneficiairesQualites.includes(partenaireQualite) &&
+      !bloqueParExclusivite
+    ) {
+      const beneficiaireNom = (survivorKey === "person1"
+        ? `${data.person1FirstName ?? ""} ${data.person1LastName ?? ""}`
+        : `${data.person2FirstName ?? ""} ${data.person2LastName ?? ""}`).trim() || "Conjoint survivant";
+      renteConjointBrancheLines.push({
+        montantAnnuel: rc.montantAnnuel,
+        dureeMaxAnnees: rc.dureeMaxAnnees,
+        beneficiaireNom,
+        source: rc.source,
+        exonere: true,
+        donneeIndisponible: false,
+      });
     }
   }
 

@@ -8,6 +8,7 @@ import { describe, it, expect } from "vitest";
 import {
   resolveCapitalDecesBranche,
   resolveRenteEducationBranche,
+  resolveRenteConjointSubstitutiveBranche,
 } from "../lib/prevoyance/capitaux-deces-branche";
 import { referentiels } from "../data/prevoyance";
 import type { Referentiels } from "../data/prevoyance";
@@ -273,5 +274,65 @@ describe("resolveCapitalDecesBranche — mode situationFamiliale (LOT BTP-1)", (
     const avec = resolveCapitalDecesBranche("1486", "cadres", 120000, PASS, referentiels, { conjointPresent: true, concubinPresent: true, nbEnfantsACharge: 3 });
     expect(sans.capital).toBeCloseTo(204000, 2);
     expect(avec.capital).toBe(sans.capital);
+  });
+});
+
+// ─── LOT BTP-4 — rente conjoint mode "cibleCumulable" (résolveur) ─────────────
+describe("resolveRenteConjointSubstitutiveBranche — mode cibleCumulable (LOT BTP-4)", () => {
+  function stubRefRC(renteConjoint: unknown, plafondSalaireRefPass?: unknown): Referentiels {
+    const conv: Record<string, unknown> = {
+      nom: "Stub RC",
+      prevoyanceCadres: { garantiesMinimum: { renteConjoint } },
+    };
+    if (plafondSalaireRefPass !== undefined) conv.plafondSalaireRefPass = plafondSalaireRefPass;
+    return { ccn: { conventions: { "0003": conv } } } as unknown as Referentiels;
+  }
+  const benef = ["conjoint", "pacs", "concubin"];
+  const cible = { mode: "cibleCumulable", tauxSalaireRef: 0.12, finAgeDefunt: 64, beneficiaires: benef };
+
+  it("nominal : 12 % × assiette ; durée = finAge − âge (défunt 40 → 24 ans) ; cumulable", () => {
+    const r = resolveRenteConjointSubstitutiveBranche("0003", "cadres", 60000, PASS, stubRefRC(cible, 8), 40);
+    expect(r.donneeIndisponible).toBe(false);
+    expect(r.montantAnnuel).toBeCloseTo(0.12 * 60000, 2); // 7200 (salaireRef = 60000 < 8 PASS)
+    expect(r.dureeMaxAnnees).toBe(24);                     // 64 − 40
+    expect(r.cumulableAvecRenteEducation).toBe(true);
+    expect(r.beneficiairesQualites).toEqual(["conjoint", "pacs", "concubin"]);
+  });
+
+  it("plancher d'assiette : salaire faible → assiette relevée à assietteMinimumEuros", () => {
+    const r = resolveRenteConjointSubstitutiveBranche(
+      "0003", "cadres", 20000, PASS, stubRefRC({ ...cible, assietteMinimumEuros: 50000 }, 8), 40
+    );
+    // assiette = max(salaireRef 20000 ; plancher 50000) = 50000 → 0,12 × 50000 = 6000.
+    expect(r.montantAnnuel).toBeCloseTo(0.12 * 50000, 2);
+  });
+
+  it("âge >= finAgeDefunt → indisponible (durée nulle)", () => {
+    expect(resolveRenteConjointSubstitutiveBranche("0003", "cadres", 60000, PASS, stubRefRC(cible, 8), 64).donneeIndisponible).toBe(true);
+    expect(resolveRenteConjointSubstitutiveBranche("0003", "cadres", 60000, PASS, stubRefRC(cible, 8), 70).donneeIndisponible).toBe(true);
+  });
+
+  it("âge du défunt inconnu (null) → indisponible", () => {
+    expect(resolveRenteConjointSubstitutiveBranche("0003", "cadres", 60000, PASS, stubRefRC(cible, 8), null).donneeIndisponible).toBe(true);
+  });
+
+  it("défensif : mode inconnu / finAge aberrant / taux invalide / plancher négatif → indispo", () => {
+    const bad = (rc: unknown, age: number | null = 40) =>
+      resolveRenteConjointSubstitutiveBranche("0003", "cadres", 60000, PASS, stubRefRC(rc, 8), age).donneeIndisponible;
+    expect(bad({ mode: "viagere", tauxSalaireRef: 0.12, finAgeDefunt: 64, beneficiaires: benef })).toBe(true); // mode inconnu
+    expect(bad({ ...cible, finAgeDefunt: 40 })).toBe(true);            // < 55
+    expect(bad({ ...cible, finAgeDefunt: 80 })).toBe(true);            // > 75
+    expect(bad({ ...cible, finAgeDefunt: undefined })).toBe(true);     // absent
+    expect(bad({ ...cible, tauxSalaireRef: 1.5 })).toBe(true);         // taux > 1
+    expect(bad({ ...cible, tauxSalaireRef: "x" })).toBe(true);         // taux non numérique
+    expect(bad({ ...cible, assietteMinimumEuros: -1000 })).toBe(true); // plancher négatif
+  });
+
+  it("substitutive : cumulableAvecRenteEducation = false (flag iso)", () => {
+    const sub = { mode: "substitutive", tauxSalaireRef: 0.05, dureeMaxAnnees: 5, beneficiaires: benef };
+    const r = resolveRenteConjointSubstitutiveBranche("0003", "cadres", 60000, PASS, stubRefRC(sub, 8), 40);
+    expect(r.donneeIndisponible).toBe(false);
+    expect(r.cumulableAvecRenteEducation).toBe(false);
+    expect(r.dureeMaxAnnees).toBe(5);
   });
 });

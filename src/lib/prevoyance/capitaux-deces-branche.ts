@@ -356,28 +356,45 @@ export function resolveRenteEducationBranche(
 // la dévolution du capital, où il est exclu).
 export type RenteConjointSubstitutiveBranche = {
   montantAnnuel: number | null;                            // €/an (null si non prévu)
-  dureeMaxAnnees: number | null;                           // plafond temporel (années)
+  dureeMaxAnnees: number | null;                           // durée de versement (années)
   beneficiairesQualites: ("conjoint" | "pacs" | "concubin")[];
+  // LOT BTP-4 : false = mode "substitutive" (HCR, EXCLUSIF de la rente éducation) ;
+  // true = mode "cibleCumulable" (BTP, CUMULABLE avec la rente éducation). C'est
+  // l'appelant (succession) qui applique, ou non, la condition d'exclusivité.
+  cumulableAvecRenteEducation: boolean;
   source: string;                                          // libellé de la CCN (traçabilité)
   donneeIndisponible: boolean;
 };
 
-type GarantieRenteConjoint = { mode?: unknown; tauxSalaireRef?: unknown; dureeMaxAnnees?: unknown; beneficiaires?: unknown };
+type GarantieRenteConjoint = {
+  mode?: unknown; tauxSalaireRef?: unknown; dureeMaxAnnees?: unknown; beneficiaires?: unknown;
+  // Mode "cibleCumulable" (LOT BTP-4) :
+  finAgeDefunt?: unknown;          // âge légal du défunt jusqu'auquel la rente est versée
+  assietteMinimumEuros?: unknown;  // plancher d'ASSIETTE optionnel (= 4000 × SR, calculé au remplissage)
+};
 type BlocPrevoyanceRenteConjoint = { garantiesMinimum?: { renteConjoint?: unknown } | null } | null;
 
 const QUALITES_BENEF_CONNUES = ["conjoint", "pacs", "concubin"] as const;
 
+// Deux modes : "substitutive" (HCR, durée fixe, exclusif de la rente éducation —
+// inchangé) et "cibleCumulable" (BTP/RNPO art 18 : cible reversion Arrco comprise,
+// versée jusqu'à l'âge légal du défunt, CUMULABLE avec la rente éducation, plancher
+// d'assiette optionnel). `ageDefunt` (âge au décès) n'est requis que pour le mode
+// cibleCumulable (durée = âge légal − âge). Lecture défensive identique : tout
+// champ requis absent / aberrant / mode inconnu → donneeIndisponible, jamais de throw.
 export function resolveRenteConjointSubstitutiveBranche(
   idcc: string | null,
   categorie: "cadres" | "nonCadres",
   salaireBrutAnnuel: number,
   pass: number,
-  ref: Referentiels
+  ref: Referentiels,
+  ageDefunt: number | null = null
 ): RenteConjointSubstitutiveBranche {
   const indispo = (src: string): RenteConjointSubstitutiveBranche => ({
     montantAnnuel: null,
     dureeMaxAnnees: null,
     beneficiairesQualites: [],
+    cumulableAvecRenteEducation: false,
     source: src,
     donneeIndisponible: true,
   });
@@ -403,26 +420,56 @@ export function resolveRenteConjointSubstitutiveBranche(
   if (renteConjoint == null || typeof renteConjoint !== "object") return indispo(source);
 
   const g = renteConjoint as GarantieRenteConjoint;
-  if (g.mode !== "substitutive") return indispo(source);
 
+  // Communs aux deux modes : taux [0,1], bénéficiaires, salaire de référence
+  // plafonné (MÊME plafond que capital / rente éducation).
   const passNum = safeNum(pass);
   const brut = safeNum(salaireBrutAnnuel);
   const taux = safeNum(g.tauxSalaireRef);
-  const duree = safeNum(g.dureeMaxAnnees);
-  if (passNum === null || brut === null || taux === null || duree === null) return indispo(source);
-  // Gardes de cohérence : taux en pourcentage [0,1], durée strictement positive.
-  if (taux < 0 || taux > 1 || duree <= 0) return indispo(source);
+  if (passNum === null || brut === null || taux === null) return indispo(source);
+  if (taux < 0 || taux > 1) return indispo(source);
 
-  // Bénéficiaires admis = liste JSON filtrée aux qualités connues. Aucune qualité
-  // reconnue → indispo (la branche n'a pas désigné de bénéficiaire exploitable).
   const beneficiairesQualites = (Array.isArray(g.beneficiaires) ? g.beneficiaires : []).filter(
     (q): q is "conjoint" | "pacs" | "concubin" =>
       typeof q === "string" && (QUALITES_BENEF_CONNUES as readonly string[]).includes(q)
   );
   if (beneficiairesQualites.length === 0) return indispo(source);
 
-  // Salaire de référence plafonné — MÊME plafond que capital / rente éducation.
   const salaireRef = Math.min(brut, resolvePlafondSalaireRefPass(idcc, ref) * passNum);
-  const montantAnnuel = taux * salaireRef;
-  return { montantAnnuel, dureeMaxAnnees: duree, beneficiairesQualites, source, donneeIndisponible: false };
+
+  // Mode "substitutive" (HCR) — STRICTEMENT INCHANGÉ : % du salaire de référence,
+  // durée fixe dureeMaxAnnees > 0, EXCLUSIF de la rente éducation (cumulable=false).
+  if (g.mode === "substitutive") {
+    const duree = safeNum(g.dureeMaxAnnees);
+    if (duree === null || duree <= 0) return indispo(source);
+    const montantAnnuel = taux * salaireRef;
+    return { montantAnnuel, dureeMaxAnnees: duree, beneficiairesQualites, cumulableAvecRenteEducation: false, source, donneeIndisponible: false };
+  }
+
+  // Mode "cibleCumulable" (BTP, RNPO art 18) — CIBLE (reversion Arrco comprise),
+  // CUMULABLE avec la rente éducation, versée jusqu'à l'âge légal du défunt.
+  if (g.mode === "cibleCumulable") {
+    // Âge légal (finAgeDefunt) obligatoire et borné [55,75] (garde de cohérence).
+    const finAge = safeNum(g.finAgeDefunt);
+    if (finAge === null || finAge < 55 || finAge > 75) return indispo(source);
+    // Plancher d'ASSIETTE optionnel : absent → pas de plancher ; présent et >= 0 →
+    // assiette = max(salaireRef, plancher) ; présent mais négatif/invalide → indispo.
+    let assiette = salaireRef;
+    if (g.assietteMinimumEuros !== undefined && g.assietteMinimumEuros !== null) {
+      const minAssiette = safeNum(g.assietteMinimumEuros);
+      if (minAssiette === null || minAssiette < 0) return indispo(source);
+      assiette = Math.max(salaireRef, minAssiette);
+    }
+    // Durée = âge légal − âge du défunt au décès (années entières). Âge inconnu, ou
+    // défunt déjà au-delà de l'âge légal → aucune rente (donneeIndisponible).
+    const age = safeNum(ageDefunt);
+    if (age === null) return indispo(source);
+    const dureeAnnees = Math.max(0, Math.floor(finAge - age));
+    if (dureeAnnees <= 0) return indispo(source);
+    const montantAnnuel = taux * assiette;
+    return { montantAnnuel, dureeMaxAnnees: dureeAnnees, beneficiairesQualites, cumulableAvecRenteEducation: true, source, donneeIndisponible: false };
+  }
+
+  // Mode inconnu → indispo (JAMAIS de valeur inventée).
+  return indispo(source);
 }
