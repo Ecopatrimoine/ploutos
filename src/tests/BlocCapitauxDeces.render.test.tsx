@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
-import { BlocCapitauxDeces } from "../components/succession/BlocCapitauxDeces";
+import { BlocCapitauxDeces, renteConjointLibelle } from "../components/succession/BlocCapitauxDeces";
 import type {
   CapitalDecesCaisseLine,
   CapitalDecesPriveLine,
@@ -249,7 +249,7 @@ describe("BlocCapitauxDeces — rente conjoint substitutive de branche (LOT HCR-
   it("ligne substitutive → libellé branche dynamique, montant /an, durée et bénéficiaire", () => {
     const rc: RenteConjointBrancheLine = {
       montantAnnuel: 1500, dureeMaxAnnees: 5, beneficiaireNom: "Marie Martin",
-      source: NOM_HCR, exonere: true, donneeIndisponible: false,
+      source: NOM_HCR, exonere: true, donneeIndisponible: false, mode: "substitutive",
     };
     const { container, getByText } = render(
       <BlocCapitauxDeces {...EMPTY} branche={[brancheCap]} renteConjointBranche={[rc]} />
@@ -271,5 +271,45 @@ describe("BlocCapitauxDeces — rente conjoint substitutive de branche (LOT HCR-
       <BlocCapitauxDeces {...EMPTY} branche={[brancheCap]} renteConjointBranche={[rc]} />
     );
     expect(norm(container.textContent)).not.toContain(norm("Rente de conjoint substitutive"));
+  });
+
+  it("ligne cibleCumulable → titre « Rente de conjoint » + sous-titre âge légal / Arrco", () => {
+    const rc: RenteConjointBrancheLine = {
+      montantAnnuel: 3600, dureeMaxAnnees: 24, beneficiaireNom: "Marie Martin",
+      source: "Bâtiment ouvriers", exonere: true, donneeIndisponible: false,
+      mode: "cibleCumulable", finAgeDefunt: 64,
+    };
+    const { container } = render(
+      <BlocCapitauxDeces {...EMPTY} branche={[brancheCap]} renteConjointBranche={[rc]} />
+    );
+    const t = norm(container.textContent);
+    expect(t).toContain(norm("Rente de conjoint"));
+    expect(t).not.toContain(norm("substitutive"));         // plus de « substitutive »
+    expect(t).toContain(norm("jusqu'aux 64 ans du défunt")); // sous-titre âge légal
+    expect(t).toContain(norm("réversion Arrco comprise"));
+    expect(t).toContain("3600€");
+  });
+});
+
+describe("renteConjointLibelle — libellé mode-conscient (LOT UI-LABEL)", () => {
+  it("substitutive → libellés HISTORIQUES (inchangés)", () => {
+    const l = renteConjointLibelle("substitutive", undefined, 5);
+    expect(l.titre).toBe("Rente de conjoint substitutive");
+    expect(l.sousTitre).toContain("pendant 5 ans max");
+    expect(l.sousTitre).toContain("en l'absence d'enfant ouvrant droit");
+  });
+  it("cibleCumulable → titre générique + sous-titre âge légal / Arrco", () => {
+    const l = renteConjointLibelle("cibleCumulable", 64, 24);
+    expect(l.titre).toBe("Rente de conjoint");
+    expect(l.sousTitre).toContain("jusqu'aux 64 ans du défunt");
+    expect(l.sousTitre).toContain("réversion Arrco comprise");
+  });
+  it("cibleCumulable sans finAgeDefunt → pas de sous-titre (défensif)", () => {
+    expect(renteConjointLibelle("cibleCumulable", undefined, 24).sousTitre).toBeNull();
+  });
+  it("mode absent/inconnu → titre générique, pas de sous-titre", () => {
+    const l = renteConjointLibelle(undefined, undefined, 5);
+    expect(l.titre).toBe("Rente de conjoint");
+    expect(l.sousTitre).toBeNull();
   });
 });

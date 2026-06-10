@@ -104,6 +104,34 @@ function phasesProjection(phases: RenteEducationBrancheLine["phases"], ageActuel
     .join(", puis ");
 }
 
+// Libellé de la rente conjoint selon le MODE de branche (LOT UI-LABEL). UI PURE :
+// aucun calcul. substitutive (HCR) → libellés HISTORIQUES inchangés ; cibleCumulable
+// (BTP) → titre générique « Rente de conjoint » + sous-titre « jusqu'aux N ans du
+// défunt — réversion Arrco comprise » ; mode absent/inconnu → titre générique, pas
+// de sous-titre conditionnel (garde défensive).
+export function renteConjointLibelle(
+  mode: "substitutive" | "cibleCumulable" | undefined,
+  finAgeDefunt: number | undefined,
+  dureeMaxAnnees: number
+): { titre: string; sousTitre: string | null } {
+  if (mode === "substitutive") {
+    return {
+      titre: "Rente de conjoint substitutive",
+      sousTitre: `pendant ${dureeMaxAnnees} ans max — versée en l'absence d'enfant ouvrant droit à la rente éducation.`,
+    };
+  }
+  if (mode === "cibleCumulable") {
+    return {
+      titre: "Rente de conjoint",
+      sousTitre:
+        finAgeDefunt != null
+          ? `jusqu'aux ${finAgeDefunt} ans du défunt — réversion Arrco comprise.`
+          : null,
+    };
+  }
+  return { titre: "Rente de conjoint", sousTitre: null };
+}
+
 export function BlocCapitauxDeces({
   caisses,
   prives,
@@ -506,10 +534,12 @@ export function BlocCapitauxDeces({
                   donneeIndisponible / liste vide → aucune section. ── */}
               {renteConjointBranche.filter((r) => !r.donneeIndisponible).length > 0 && (
                 <div style={{ marginTop: "4px", borderRadius: "10px", border: `1px solid ${SURFACE.border}`, background: SURFACE.app, padding: "10px 12px" }}>
-                  {renteConjointBranche.filter((r) => !r.donneeIndisponible).map((r, i) => (
+                  {renteConjointBranche.filter((r) => !r.donneeIndisponible).map((r, i) => {
+                    const lib = renteConjointLibelle(r.mode, r.finAgeDefunt, r.dureeMaxAnnees);
+                    return (
                     <div key={i} style={{ paddingTop: i > 0 ? "6px" : 0, marginTop: i > 0 ? "6px" : 0, borderTop: i > 0 ? `1px solid ${SURFACE.border}` : "none" }}>
                       <div style={{ fontSize: "11px", fontWeight: 600, color: BRAND.sky, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>
-                        Rente de conjoint substitutive{r.source ? ` (${r.source})` : ""}
+                        {lib.titre}{r.source ? ` (${r.source})` : ""}
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                         <span style={{ fontSize: "12px", color: BRAND.muted }}>
@@ -520,11 +550,14 @@ export function BlocCapitauxDeces({
                           <span style={{ fontSize: "11px", fontWeight: 600, color: BRAND.success }}>exonéré</span>
                         </span>
                       </div>
-                      <div style={{ fontSize: "11px", color: BRAND.muted, marginTop: "2px" }}>
-                        pendant {r.dureeMaxAnnees} ans max — versée en l'absence d'enfant ouvrant droit à la rente éducation.
-                      </div>
+                      {lib.sousTitre && (
+                        <div style={{ fontSize: "11px", color: BRAND.muted, marginTop: "2px" }}>
+                          {lib.sousTitre}
+                        </div>
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

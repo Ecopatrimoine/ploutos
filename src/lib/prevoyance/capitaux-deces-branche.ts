@@ -362,6 +362,9 @@ export type RenteConjointSubstitutiveBranche = {
   // true = mode "cibleCumulable" (BTP, CUMULABLE avec la rente éducation). C'est
   // l'appelant (succession) qui applique, ou non, la condition d'exclusivité.
   cumulableAvecRenteEducation: boolean;
+  // LOT UI-LABEL : âge légal du défunt (mode cibleCumulable) pour le sous-titre UI ;
+  // null pour substitutive / indispo.
+  finAgeDefunt: number | null;
   source: string;                                          // libellé de la CCN (traçabilité)
   donneeIndisponible: boolean;
 };
@@ -395,6 +398,7 @@ export function resolveRenteConjointSubstitutiveBranche(
     dureeMaxAnnees: null,
     beneficiairesQualites: [],
     cumulableAvecRenteEducation: false,
+    finAgeDefunt: null,
     source: src,
     donneeIndisponible: true,
   });
@@ -443,7 +447,7 @@ export function resolveRenteConjointSubstitutiveBranche(
     const duree = safeNum(g.dureeMaxAnnees);
     if (duree === null || duree <= 0) return indispo(source);
     const montantAnnuel = taux * salaireRef;
-    return { montantAnnuel, dureeMaxAnnees: duree, beneficiairesQualites, cumulableAvecRenteEducation: false, source, donneeIndisponible: false };
+    return { montantAnnuel, dureeMaxAnnees: duree, beneficiairesQualites, cumulableAvecRenteEducation: false, finAgeDefunt: null, source, donneeIndisponible: false };
   }
 
   // Mode "cibleCumulable" (BTP, RNPO art 18) — CIBLE (reversion Arrco comprise),
@@ -467,7 +471,7 @@ export function resolveRenteConjointSubstitutiveBranche(
     const dureeAnnees = Math.max(0, Math.floor(finAge - age));
     if (dureeAnnees <= 0) return indispo(source);
     const montantAnnuel = taux * assiette;
-    return { montantAnnuel, dureeMaxAnnees: dureeAnnees, beneficiairesQualites, cumulableAvecRenteEducation: true, source, donneeIndisponible: false };
+    return { montantAnnuel, dureeMaxAnnees: dureeAnnees, beneficiairesQualites, cumulableAvecRenteEducation: true, finAgeDefunt: finAge, source, donneeIndisponible: false };
   }
 
   // Mode inconnu → indispo (JAMAIS de valeur inventée).

@@ -181,6 +181,11 @@ export type RenteConjointBrancheLine = {
   source: string;
   exonere: true;
   donneeIndisponible: boolean;
+  // LOT UI-LABEL : mode de branche + âge légal du défunt, pour un libellé UI
+  // mode-conscient (substitutive HCR vs cibleCumulable BTP). Optionnels (lecture
+  // défensive côté composant : absent → titre générique, pas de sous-titre).
+  mode?: "substitutive" | "cibleCumulable";
+  finAgeDefunt?: number;
 };
 
 // Contexte de dévolution du capital décès de BRANCHE (clause type Syntec,
@@ -1496,6 +1501,9 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
         source: rc.source,
         exonere: true,
         donneeIndisponible: false,
+        // Libellé UI mode-conscient (LOT UI-LABEL) — discriminant dérivé du résolveur.
+        mode: rc.cumulableAvecRenteEducation ? "cibleCumulable" : "substitutive",
+        finAgeDefunt: rc.finAgeDefunt ?? undefined,
       });
     }
   }
