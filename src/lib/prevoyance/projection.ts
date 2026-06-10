@@ -47,6 +47,7 @@ import {
   renteInvaliditeCarpimkoAnnuelle,
 } from "./carpimko";
 import { resolveCouvertureBranche } from "./couverture-branche";
+import { categorieBranche } from "./categorie-branche";
 
 // Paliers temporels phase AM (J0 → J1095).
 const PALIERS_AM = [0, 3, 7, 14, 30, 60, 90, 120, 180, 365, 547, 730, 912, 1095];
@@ -1294,7 +1295,7 @@ export function projeterArretMaladie(
   if (!isTns && entree.couvertureCollective === null && entree.idccCCN) {
     const branche = resolveCouvertureBranche(
       entree.idccCCN,
-      categorieMaintien(entree.statutPro),
+      categorieBranche(entree.idccCCN, entree.statutPro, ref),
       ref
     );
     if (!branche.donneeIndisponible) {

@@ -10,7 +10,7 @@ import { resolveLoanValuesMulti } from './credit';
 import { buildEntreePerso } from '../prevoyance/mapping';
 import { resolveCapitauxDeces } from '../prevoyance/capitaux-deces';
 import { resolveCapitalDecesBranche, resolveRenteEducationBranche, resolveRenteConjointSubstitutiveBranche } from '../prevoyance/capitaux-deces-branche';
-import { categorieMaintien } from '../prevoyance/projection';
+import { categorieBranche } from '../prevoyance/categorie-branche';
 import { getContratsTransmissionDecesAvecLegacy, getPrevoyancePerso } from '../prevoyance/utils';
 import { referentiels, type Referentiels } from '../../data/prevoyance';
 
@@ -1367,11 +1367,11 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
   // ligne. La catégorie cadre/non-cadre est dérivée du statut (LOT 1a-ii).
   const capitalDecesBrancheLines: CapitalDecesBrancheLine[] = [];
   if (entreeDefunt && entreeDefunt.idccCCN) {
-    const categorieBranche = categorieMaintien(entreeDefunt.statutPro);
+    const categorie = categorieBranche(entreeDefunt.idccCCN, entreeDefunt.statutPro, referentiels);
     const passAnnuel = referentiels.pass.pass.annuel; // PASS du référentiel, jamais en dur
     const br = resolveCapitalDecesBranche(
       entreeDefunt.idccCCN,
-      categorieBranche,
+      categorie,
       entreeDefunt.salaireBrutAnnuel,
       passAnnuel,
       referentiels
@@ -1399,7 +1399,7 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
   // n'est appelé QUE d'ici (jamais depuis projection.ts → hors 9 séries).
   const renteEducationBrancheLines: RenteEducationBrancheLine[] = [];
   if (entreeDefunt && entreeDefunt.idccCCN) {
-    const categorieBranche = categorieMaintien(entreeDefunt.statutPro);
+    const categorie = categorieBranche(entreeDefunt.idccCCN, entreeDefunt.statutPro, referentiels);
     const passAnnuel = referentiels.pass.pass.annuel;
     for (const child of data.childrenData) {
       if (!childMatchesDeceased(child.parentLink, deceasedKey)) continue;
@@ -1408,7 +1408,7 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
       // on ne peut exclure l'enfant : ligne produite, marquée donneeIndisponible.
       if (ageEnfant !== null && ageEnfant >= 26) continue;
       const re = resolveRenteEducationBranche(
-        entreeDefunt.idccCCN, categorieBranche, entreeDefunt.salaireBrutAnnuel, passAnnuel, ageEnfant, referentiels
+        entreeDefunt.idccCCN, categorie, entreeDefunt.salaireBrutAnnuel, passAnnuel, ageEnfant, referentiels
       );
       renteEducationBrancheLines.push({
         enfantPrenom: child.firstName || "Enfant",
@@ -1446,7 +1446,7 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
 
       const rc = resolveRenteConjointSubstitutiveBranche(
         entreeDefunt.idccCCN,
-        categorieMaintien(entreeDefunt.statutPro),
+        categorieBranche(entreeDefunt.idccCCN, entreeDefunt.statutPro, referentiels),
         entreeDefunt.salaireBrutAnnuel,
         referentiels.pass.pass.annuel,
         referentiels

@@ -8,6 +8,7 @@
     "Spec module Prévoyance Ploutos (SPEC_MODULE_PREVOYANCE.md §5.5)"
   ],
   "_notes": "Les libellés officiels des 10 CCN ci-dessous sont stables (référencés sur Légifrance/base KALI). Le maintien légal L.1226-1 et ses paliers sont issus de la loi Mensualisation (D.1226-1 et s. C. trav.) et donc publics. En revanche, les paliers de maintien employeur par CCN, les minima de prévoyance (tauxT1, garanties capital DC, rente conjoint…) et les régimes de santé spécifiques sont marqués TO_VERIFY / TO_FILL et doivent être renseignés par lecture directe de chaque texte de CCN sur Légifrance avant utilisation en production.",
+  "_collegeImpose_schema": "Champ OPTIONNEL convention-level collegeImpose (\"cadres\" | \"nonCadres\") : impose le college de prevoyance de branche independamment du statutPro saisi, pour les CCN mono-college (ex. BTP : 1596/1597/1702 ouvriers, 2609/2614 ETAM, 2420/3212 cadres). Absent de TOUTES les conventions actuelles (= comportement inchange) ou valeur inconnue => repli sur l'aiguillage par statut (categorieMaintien). Lu par categorieBranche() - LOT BTP-0.",
   "maintienLegal": {
     "description": "Loi Mensualisation, L.1226-1 et D.1226-1 et s. C. trav.",
     "carenceJours": 7,

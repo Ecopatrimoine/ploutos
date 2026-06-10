@@ -18,7 +18,9 @@ import {
   categorieMaintien,
   getMaintienParams,
 } from "../lib/prevoyance/projection";
+import { categorieBranche } from "../lib/prevoyance/categorie-branche";
 import type { EntreePerso } from "../lib/prevoyance/types";
+import type { Referentiels } from "../data/prevoyance";
 
 const ccn = referentiels.ccn as any;
 const conventions = ccn.conventions;
@@ -136,6 +138,61 @@ describe("LOT 1a-ii — catégorie de maintien (cadres / non-cadres)", () => {
       expect(getMaintienParams(idcc, referentiels, "cadres").source).toBe("legal");
       expect(getMaintienParams(idcc, referentiels, "nonCadres").source).toBe("legal");
     }
+  });
+});
+
+// ── LOT BTP-0 : collège imposé par la convention (categorieBranche) ─────────
+//    categorieBranche prime sur categorieMaintien quand la CCN porte
+//    `collegeImpose` (CCN mono-collège, ex. BTP). Aucune convention réelle ne
+//    le porte encore → repli iso-comportement vérifié sur le référentiel réel ;
+//    les cas « champ présent » sont simulés par un stub (modèle PASS-CAP).
+describe("LOT BTP-0 — categorieBranche (collège imposé par convention)", () => {
+  // Stub : convention "9998" portant un `collegeImpose` arbitraire (valeur
+  // injectée par le test). Seul ce champ est lu par categorieBranche.
+  function stubRefCollege(collegeImpose?: unknown): Referentiels {
+    const conv: Record<string, unknown> = { nom: "Stub college" };
+    if (collegeImpose !== undefined) conv.collegeImpose = collegeImpose;
+    return { ccn: { conventions: { "9998": conv } } } as unknown as Referentiels;
+  }
+
+  it("sans collegeImpose (référentiel réel) → identique à categorieMaintien", () => {
+    // 1486 (Syntec) et toutes les CCN actuelles n'ont PAS de collegeImpose.
+    const statuts = [
+      "salarie_cadre", "salarie_non_cadre", "president_sas",
+      "eurl_unique", "fonctionnaire", "tns_liberal", "",
+    ] as const;
+    for (const statut of statuts) {
+      expect(categorieBranche("1486", statut, referentiels)).toBe(categorieMaintien(statut));
+    }
+  });
+
+  it("idcc null → repli sur categorieMaintien (statut seul)", () => {
+    expect(categorieBranche(null, "salarie_cadre", referentiels)).toBe("cadres");
+    expect(categorieBranche(null, "salarie_non_cadre", referentiels)).toBe("nonCadres");
+  });
+
+  it("idcc inconnu du référentiel → repli sur categorieMaintien", () => {
+    expect(categorieBranche("0000", "salarie_cadre", referentiels)).toBe("cadres");
+    expect(categorieBranche("0000", "salarie_non_cadre", referentiels)).toBe("nonCadres");
+  });
+
+  it("collegeImpose 'cadres' prime sur statutPro salarie_non_cadre", () => {
+    expect(categorieBranche("9998", "salarie_non_cadre", stubRefCollege("cadres"))).toBe("cadres");
+  });
+
+  it("collegeImpose 'nonCadres' prime sur statutPro salarie_cadre", () => {
+    expect(categorieBranche("9998", "salarie_cadre", stubRefCollege("nonCadres"))).toBe("nonCadres");
+  });
+
+  it("collegeImpose invalide ('ouvriers') → repli statutPro, sans throw", () => {
+    expect(categorieBranche("9998", "salarie_cadre", stubRefCollege("ouvriers"))).toBe("cadres");
+    expect(categorieBranche("9998", "salarie_non_cadre", stubRefCollege("ouvriers"))).toBe("nonCadres");
+  });
+
+  it("collegeImpose absent / non-string → repli statutPro, sans throw", () => {
+    expect(categorieBranche("9998", "salarie_cadre", stubRefCollege())).toBe("cadres");        // absent
+    expect(categorieBranche("9998", "salarie_non_cadre", stubRefCollege(2))).toBe("nonCadres"); // nombre
+    expect(categorieBranche("9998", "salarie_cadre", stubRefCollege({ x: 1 }))).toBe("cadres"); // objet
   });
 });
 
