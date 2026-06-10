@@ -13,7 +13,7 @@ import {
 } from "../lib/prevoyance/capitaux-deces-branche";
 import { resolveCouvertureBranche } from "../lib/prevoyance/couverture-branche";
 import { categorieBranche } from "../lib/prevoyance/categorie-branche";
-import { projeterArretMaladie } from "../lib/prevoyance/projection";
+import { projeterArretMaladie, getMaintienParams } from "../lib/prevoyance/projection";
 import { computeSuccession } from "../lib/calculs/succession";
 import { referentiels } from "../data/prevoyance";
 import type { EntreePerso } from "../lib/prevoyance/types";
@@ -141,5 +141,65 @@ describe("CCN Banque (IDCC 2120) — maintien conventionnel plancher (art. 54, B
     expect(s.capitalDecesBrancheExonere).toBe(0);
     expect(s.capitalDecesLines.renteConjointBranche).toHaveLength(0);
     expect(s.capitalDecesLines.renteEducationBranche).toHaveLength(0);
+  });
+});
+
+// ─── MICRO-LOT CCN Industries chimiques (IDCC 44, CCNIC) ──────────────────────
+// Miroir structurel de l'entree Banque 2120 : aucun regime de prevoyance assure
+// de branche (accord de methode du 24/04/2018 jamais concretise), maintien
+// employeur PLANCHER etendu (cadres 4+4 mois, ouvriers/collaborateurs 2+2 mois,
+// carence 0). Pure donnee, zero modification moteur.
+
+describe("CCN Industries chimiques (IDCC 44) — entree documentaire, aucune garantie de branche", () => {
+  it("entree presente, nom correct, sans collegeImpose, les deux colleges null", () => {
+    const conv = (referentiels.ccn as any).conventions["44"];
+    expect(conv).toBeDefined();
+    expect(conv.nom).toContain("Industries chimiques");
+    expect(conv.collegeImpose).toBeUndefined();
+    expect(conv.prevoyanceCadres).toBeNull();
+    expect(conv.prevoyanceNonCadres).toBeNull();
+  });
+
+  it("aucune garantie assuree de branche — cadre COMME non-cadre", () => {
+    for (const statut of ["salarie_cadre", "salarie_non_cadre"] as const) {
+      const cat = categorieBranche("44", statut, referentiels);
+      // Capital deces : indisponible (bloc prevoyance null).
+      expect(resolveCapitalDecesBranche("44", cat, 50000, PASS, referentiels, { conjointPresent: true, nbEnfantsACharge: 2 }).donneeIndisponible).toBe(true);
+      // IJ + invalidite : indisponibles -> AUCUNE injection dans la projection.
+      expect(resolveCouvertureBranche("44", cat, referentiels).donneeIndisponible).toBe(true);
+      // Rentes : indisponibles.
+      expect(resolveRenteConjointSubstitutiveBranche("44", cat, 50000, PASS, referentiels).donneeIndisponible).toBe(true);
+      expect(resolveRenteEducationBranche("44", cat, 50000, PASS, 10, referentiels).donneeIndisponible).toBe(true);
+    }
+  });
+});
+
+describe("CCN Industries chimiques (IDCC 44) — maintien employeur plancher etendu", () => {
+  it("cadre : carence 0, a 12 mois 120 j a 100% puis 120 j a 50% (pct ENTIERS)", () => {
+    const m = getMaintienParams("44", referentiels, "cadres");
+    expect(m.source).toBe("ccn");
+    expect(m.carenceJours).toBe(0);
+    const palier = m.paliers.find((p) => p.ancienneteMois === 12);
+    expect(palier).toBeDefined();
+    expect(palier!.segments).toEqual([
+      { jours: 120, pct: 100 },
+      { jours: 120, pct: 50 },
+    ]);
+    // pct lu comme POURCENTAGE ENTIER (jamais une fraction 1 / 0,5).
+    expect(palier!.segments[0].pct).toBe(100);
+    expect(Number.isInteger(palier!.segments[0].pct)).toBe(true);
+  });
+
+  it("non-cadre : carence 0, a 12 mois 60 j a 100% puis 60 j a 50%", () => {
+    const m = getMaintienParams("44", referentiels, "nonCadres");
+    expect(m.source).toBe("ccn");
+    expect(m.carenceJours).toBe(0);
+    const palier = m.paliers.find((p) => p.ancienneteMois === 12);
+    expect(palier).toBeDefined();
+    expect(palier!.segments).toEqual([
+      { jours: 60, pct: 100 },
+      { jours: 60, pct: 50 },
+    ]);
+    expect(palier!.segments[0].pct).toBe(100);
   });
 });

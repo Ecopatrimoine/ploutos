@@ -682,6 +682,32 @@
       "_comment": "CCN du 10/01/2000 : AUCUN regime de prevoyance assure de branche (ni capital deces, ni rentes, ni IJ, ni invalidite). Obligations reelles : maintien de salaire employeur art. 54 (avenant 26/10/2009) - PLANCHER conservateur pose (cf. maintienEmployeur.note), bareme complet par anciennete non modelisable sans saisie fiable ; cadres : financement ANI 1,50% TA sans prestations definies. Les garanties reelles relevent des accords d'ENTREPRISE (BNP, SG, LCL...) : interroger le contrat collectif du client. Perimetre : banques AFB ; CA, BPCE, Credit Mutuel = autres CCN. PAS un TO_FILL. Verifie le 10/06/2026 (Legifrance, titre VII art. 50-60 + liste des textes attaches) : aucun regime de prevoyance assure de branche pour l'IDCC 2120.",
       "santeMinimum": { "TO_FILL": true }
     },
+    "44": {
+      "idcc": "44",
+      "nom": "Industries chimiques (CCNIC)",
+      "datesVerification": "2026-06-10",
+      "source": "CCN des industries chimiques (CCNIC, IDCC 44, KALICONT000005635613) ; aucun regime de prevoyance assure de branche (accord de methode du 24/04/2018 non concretise). Maintien de salaire employeur : plancher etendu - cadres av. n3 art. 7 (KALIARTI000005846305), ouvriers/collaborateurs av. n1 art. 23 (KALIARTI000005846387). Verifie le 10/06/2026.",
+      "maintienEmployeur": {
+        "cadres": {
+          "carenceJours": 0,
+          "subrogation": false,
+          "paliers": [
+            { "ancienneteMois": 12, "segments": [ { "jours": 120, "pct": 100 }, { "jours": 120, "pct": 50 } ] }
+          ]
+        },
+        "nonCadres": {
+          "carenceJours": 0,
+          "subrogation": false,
+          "paliers": [
+            { "ancienneteMois": 12, "segments": [ { "jours": 60, "pct": 100 }, { "jours": 60, "pct": 50 } ] }
+          ]
+        }
+      },
+      "prevoyanceCadres": null,
+      "prevoyanceNonCadres": null,
+      "_comment": "Sourcing 10/06/2026. Aucun regime de prevoyance assure de branche (liste des textes attaches Legifrance KALICONT000005635613 verifiee : seul texte 'prevoyance' = accord de methode du 24/04/2018, jamais concretise ; corrobore CTIP avril 2024 et accord salaires du 09/12/2024). Maintien pose = plancher ETENDU des 12 mois d'anciennete : cadres 4 mois 100 + 4 mois 50 (av. n3 art. 7, version etendue, KALIARTI000005846305) ; ouvriers/collaborateurs 2 mois 100 + 2 mois 50 (av. n1 art. 23, version 1971 etendue, KALIARTI000005846387). Bareme conventionnel NON ETENDU (avenant du 12/12/1973, adherents France Chimie/FEBEA/FIPEC/FNCG) : 4+4 mois pour TOUS les colleges (ouvriers depuis 01/01/1976, AM depuis 01/01/1975), chaque periode +1 mois par 3 ans d'anciennete, plafond 6 mois par periode -> a activer au lot transverse saisie d'anciennete. AM/techniciens fusionnes dans nonCadres : plancher 2+2 = lecture pratique (leur texte consolide est 4+4, leur version etendue 1955 ~1,5+1,5). Carence 0. Assiette = appointements + prime anciennete (+ primes de rendement av. 1 et 2), deduction IJSS possible hors majorations 3 enfants et plus. Garantie employeur AT/MP (les 3 avenants, par. 5) : deces ou IPT par AT hors trajet ou MP = 12 derniers mois d'appointements, NON MODELISEE (perimetre AT/MP uniquement, comme rente IPP AT/MP metallurgie). Veille : negociation prevoyance de branche a l'agenda paritaire depuis 2018, relancee 12/2024.",
+      "santeMinimum": { "TO_FILL": true }
+    },
     "2216": {
       "idcc": "2216",
       "nom": "Commerce de detail et de gros a predominance alimentaire",
