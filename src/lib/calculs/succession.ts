@@ -1360,6 +1360,16 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
   const capitalDecesPriveCapital = capitalDecesPriveLines.reduce((s, l) => s + l.montant, 0);
   const capitalDecesPriveDuties = capitalDecesPriveLines.reduce((s, l) => s + l.duties, 0);
 
+  // Enfants à charge du défunt au sens de la prévoyance de branche (âge < 26 OU
+  // âge inconnu) — prédicat COMMUN au capital (majoration par enfant, LOT BTP-1),
+  // à la rente éducation 3b et à la condition substitutive de la rente conjoint
+  // 3c. Factorisé ici pour éviter la triple duplication du filtre.
+  const enfantsBrancheACharge = data.childrenData.filter((child) => {
+    if (!childMatchesDeceased(child.parentLink, deceasedKey)) return false;
+    const age = getAgeFromBirthDate(child.birthDate);
+    return age === null || age < 26;
+  });
+
   // ── Source 3 : capital décès de PRÉVOYANCE COLLECTIVE DE BRANCHE (CCN) ──
   // EXONÉRÉ (art. 998 CGI, contrat de groupe professionnel) → chemin "caisse" :
   // AUCUN computeAvTax, HORS actif et HORS droits (sortie strictement additive).
@@ -1369,12 +1379,21 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
   if (entreeDefunt && entreeDefunt.idccCCN) {
     const categorie = categorieBranche(entreeDefunt.idccCCN, entreeDefunt.statutPro, referentiels);
     const passAnnuel = referentiels.pass.pass.annuel; // PASS du référentiel, jamais en dur
+    // Contexte famille (LOT BTP-1) pour le mode "situationFamiliale" : présence
+    // d'un conjoint (marié/PACS) ou d'un concubin (cohab — assimilé selon la
+    // convention), et nombre d'enfants à charge. INERTE pour le mode historique
+    // "pourcentageSalaireRef" (Syntec/HCR/Métallurgie ne lisent pas ce contexte).
     const br = resolveCapitalDecesBranche(
       entreeDefunt.idccCCN,
       categorie,
       entreeDefunt.salaireBrutAnnuel,
       passAnnuel,
-      referentiels
+      referentiels,
+      {
+        conjointPresent: data.coupleStatus === "married" || data.coupleStatus === "pacs",
+        concubinPresent: data.coupleStatus === "cohab",
+        nbEnfantsACharge: enfantsBrancheACharge.length,
+      }
     );
     capitalDecesBrancheLines.push({
       source: br.source,
@@ -1430,11 +1449,9 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
   // canal caisse rentesSurvieAnnuelles n'est PAS touché (ligne/rendu propres).
   const renteConjointBrancheLines: RenteConjointBrancheLine[] = [];
   if (entreeDefunt && entreeDefunt.idccCCN) {
-    const ouvreRenteEducation = data.childrenData.some((child) => {
-      if (!childMatchesDeceased(child.parentLink, deceasedKey)) return false;
-      const age = getAgeFromBirthDate(child.birthDate);
-      return age === null || age < 26;
-    });
+    // Condition substitutive : un enfant ouvre droit à la rente éducation
+    // (même prédicat « à charge » que 3b — factorisé en enfantsBrancheACharge).
+    const ouvreRenteEducation = enfantsBrancheACharge.length > 0;
     if (!ouvreRenteEducation) {
       // Qualité du partenaire survivant (mapping IDENTIQUE à DEVOL-1). Le concubin
       // est ICI admissible si la branche l'inscrit dans `beneficiaires` (la liste
