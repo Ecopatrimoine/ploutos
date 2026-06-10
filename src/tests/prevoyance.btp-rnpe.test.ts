@@ -42,6 +42,15 @@ describe("RNPE — coherence Q6 (2609 / 2614 identiques)", () => {
     expect(c2609.nom).not.toBe(c2614.nom);
     expect(c2614.nom).toContain("Travaux publics");
   });
+
+  it("devolution clot sur 'autres heritiers' (devolutionSuccessorale, RNPE art 11)", () => {
+    const rangs = c2609.devolutionCapitalDeces.rangs;
+    expect(rangs).toHaveLength(4);
+    expect(rangs[0].qualites).toEqual(["conjoint", "pacs", "concubin"]);
+    expect(rangs[1].representation).toBe(true);
+    expect(rangs[2].qualites).toEqual(["ascendants"]);
+    expect(rangs[3].qualites).toEqual(["devolutionSuccessorale"]); // cloture
+  });
 });
 
 // ── b. Capital DC : blocs a unites differentes (euros vs pourcentage) ─────────

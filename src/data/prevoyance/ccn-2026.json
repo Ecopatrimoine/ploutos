@@ -434,9 +434,10 @@
         "rangs": [
           { "qualites": ["conjoint", "pacs", "concubin"] },
           { "qualites": ["enfants"], "representation": true },
-          { "qualites": ["ascendants"] }
+          { "qualites": ["ascendants"] },
+          { "qualites": ["devolutionSuccessorale"] }
         ],
-        "note": "RNPE art 11 : cascade conjoint -> enfants (parts egales, nes ou a naitre) -> petits-enfants (par representation) -> parents (mappes sur ascendants, SANS condition de charge fiscale, contrairement au RNPO). TO_NOTE : niveau 'autres heritiers' (devolution legale) NON pose ; la qualite devolutionSuccessorale EXISTE (RNPO/Syntec/Metallurgie l'utilisent comme cloture) et pourrait clore la cascade - omission VOLONTAIRE (spec RNPE)."
+        "note": "RNPE art 11 : cascade conjoint -> enfants (parts egales, nes ou a naitre) -> petits-enfants (par representation) -> parents (mappes sur ascendants, SANS condition de charge fiscale, contrairement au RNPO) -> a defaut autres heritiers (devolutionSuccessorale, art 11)."
       },
       "plafondSalaireRefPass": 3,
       "_plafondSalaireRefPass_commentaire": "RNPE art 4.1 : assiette des garanties limitee a 3 plafonds (TA+TB+TC, 0 a 3 PASS).",
@@ -488,9 +489,10 @@
         "rangs": [
           { "qualites": ["conjoint", "pacs", "concubin"] },
           { "qualites": ["enfants"], "representation": true },
-          { "qualites": ["ascendants"] }
+          { "qualites": ["ascendants"] },
+          { "qualites": ["devolutionSuccessorale"] }
         ],
-        "note": "RNPE art 11 : cascade conjoint -> enfants (parts egales, nes ou a naitre) -> petits-enfants (par representation) -> parents (mappes sur ascendants, SANS condition de charge fiscale, contrairement au RNPO). TO_NOTE : niveau 'autres heritiers' (devolution legale) NON pose ; la qualite devolutionSuccessorale EXISTE (RNPO/Syntec/Metallurgie l'utilisent comme cloture) et pourrait clore la cascade - omission VOLONTAIRE (spec RNPE)."
+        "note": "RNPE art 11 : cascade conjoint -> enfants (parts egales, nes ou a naitre) -> petits-enfants (par representation) -> parents (mappes sur ascendants, SANS condition de charge fiscale, contrairement au RNPO) -> a defaut autres heritiers (devolutionSuccessorale, art 11)."
       },
       "plafondSalaireRefPass": 3,
       "_plafondSalaireRefPass_commentaire": "RNPE art 4.1 : assiette des garanties limitee a 3 plafonds (TA+TB+TC, 0 a 3 PASS).",
