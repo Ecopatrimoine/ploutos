@@ -684,11 +684,56 @@
     },
     "2216": {
       "idcc": "2216",
-      "nom": "Commerce de détail et de gros à prédominance alimentaire",
-      "datesVerification": "2026-05-27",
+      "nom": "Commerce de detail et de gros a predominance alimentaire",
+      "datesVerification": "2026-06-10",
+      "source": "Avenants n16 (28/09/2006), n45 bis (19/12/2012, capital), n69 (14/12/2018, invalidite cat1) - textes signes AG2R, etat en vigueur au 01/01/2019, verifie le 10/06/2026.",
       "maintienEmployeur": { "cadres": null, "nonCadres": null },
-      "prevoyanceCadres": { "TO_FILL": true },
-      "prevoyanceNonCadres": { "TO_FILL": true },
+      "devolutionCapitalDeces": {
+        "mode": "cascadeExclusive",
+        "rangs": [
+          { "qualites": ["conjoint"] },
+          { "qualites": ["pacs"] },
+          { "qualites": ["concubin"] },
+          { "qualites": ["enfants"] },
+          { "qualites": ["ascendants"] },
+          { "qualites": ["devolutionSuccessorale"] }
+        ],
+        "note": "Art 13-3.4 : conjoint -> PACS -> concubin (acte notarie) -> enfants (parts egales, SANS representation - non mentionnee par le texte) -> peres et meres (ascendants) -> autres heritiers (devolutionSuccessorale). Part 'majoration enfants' versee directement aux enfants (av. 45 bis art 3) - total exact, ventilation non modelisee."
+      },
+      "plafondSalaireRefPass": 4,
+      "_plafondSalaireRefPass_commentaire": "SR = brut 12 mois limite a 4 PASS (art 13-2).",
+      "_prevoyanceCadres_comment": "CCN multi-colleges : regime de branche NON-CADRES (titre XIII). Cadres : seule l'obligation de financement ANI 1,50% TA employeur s'applique, sans prestations definies de branche (garanties reelles = accord d'entreprise).",
+      "prevoyanceCadres": null,
+      "prevoyanceNonCadres": {
+        "garantiesMinimum": {
+          "capitalDC": {
+            "mode": "situationFamiliale",
+            "conjointInclutConcubin": true,
+            "sansConjoint": { "valeur": 50, "unite": "pourcentageSalaireRef", "majorationParEnfant": [ { "deRang": 1, "valeur": 50 } ] },
+            "avecConjoint": { "valeur": 100, "unite": "pourcentageSalaireRef", "majorationParEnfant": [ { "deRang": 1, "valeur": 50 } ] },
+            "_comment": "Avenant 45 bis : celibataire/veuf/divorce 50% SR + 50% par enfant ; marie/PACS >= 2 ans/concubin >= 2 ans (acte notarie) 100% SR + 50% par enfant, LINEAIRE sans plafond (contraste avec transports). Enfant a charge au sens du CGI. Conditions de duree/acte du conjoint assimile non verifiables dans Ploutos (approximation favorable). SR = brut 12 mois limite a 4 PASS (art 13-2). Condition d'acces : 1 an d'anciennete (hypothese remplie)."
+          },
+          "renteConjoint": null,
+          "ij": null,
+          "_rentes_ij_comment": "Le regime ne porte NI rente de conjoint NI indemnites journalieres de branche (incapacite temporaire non couverte). PAS un TO_FILL.",
+          "renteEducation": {
+            "mode": "trancheAge",
+            "tranches": [
+              { "deAge": 0,  "aAge": 11, "tauxSalaireRef": 0.04, "minimumPass": 0 },
+              { "deAge": 11, "aAge": 18, "tauxSalaireRef": 0.06, "minimumPass": 0 },
+              { "deAge": 18, "aAge": 26, "tauxSalaireRef": 0.09, "minimumPass": 0 }
+            ],
+            "_comment": "Art 13-5 (inchange depuis 2006) : 4%/6%/9% SR selon l'age (<11, 11-<18, 18-<26 si etudes/apprentissage/demandeur d'emploi non indemnise). Tranches CONTIGUES (bornes 11/18/26 realisant le <11/<18/<26, AUCUN trou - arbitrage David). Pas de plancher PASS (minimumPass 0). Viagere pour les enfants handicapes (non modelise). OCIRP."
+          },
+          "invalidite": {
+            "cat1": { "pctSalaire": 0.42 },
+            "cat2": { "pctSalaire": 0.65 },
+            "cat3": { "pctSalaire": 0.65 },
+            "_comment": "Mode cible (y compris Secu). Cat1/IPP 33-66% : 42% SR (av. 69, en vigueur 01/01/2019 ; 45% avant). Cat2-3/IPP >66% : 65% SR. Sous deduction des prestations brutes Secu. Plafond de cumul a la remuneration nette (gap). Cat3 : IAD = versement anticipe du capital en sus (non modelise)."
+          }
+        },
+        "note": "Regime de prevoyance NON-CADRES de la CCN commerce alimentaire (titre XIII, OCIRP/AG2R). Capital + rente education + invalidite ; NI rente conjoint NI IJ de branche. Gaps non encodes : frais d'obseques 1 PMSS (av. 40), double effet (capital integral aux enfants), portabilite 9 mois (av. 31), condition 1 an d'anciennete, definition enfant a charge CGI vs <26 ans."
+      },
       "santeMinimum": { "TO_FILL": true }
     },
     "16": {
