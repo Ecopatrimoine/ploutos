@@ -655,6 +655,17 @@
       "prevoyanceNonCadres": { "TO_FILL": true },
       "santeMinimum": { "TO_FILL": true }
     },
+    "2120": {
+      "idcc": "2120",
+      "nom": "Banque (AFB)",
+      "datesVerification": "2026-06-10",
+      "source": "CCN de la banque du 10/01/2000 (AFB). Entree DOCUMENTAIRE.",
+      "maintienEmployeur": { "cadres": null, "nonCadres": null },
+      "prevoyanceCadres": null,
+      "prevoyanceNonCadres": null,
+      "_comment": "CCN du 10/01/2000 : AUCUN regime de prevoyance assure de branche (ni capital deces, ni rentes, ni IJ, ni invalidite). Obligations reelles : maintien de salaire employeur art. 54 (avenant 26/10/2009), bareme par anciennete (jusqu'a 12 mois a 100% + 12 mois a 50% en longue maladie >= 10 ans) - non modelisable sans saisie d'anciennete ; cadres : financement ANI 1,50% TA sans prestations definies. Les garanties reelles relevent des accords d'ENTREPRISE (BNP, SG, LCL...) : interroger le contrat collectif du client. Perimetre : banques AFB ; CA, BPCE, Credit Mutuel = autres CCN. PAS un TO_FILL.",
+      "santeMinimum": { "TO_FILL": true }
+    },
     "2216": {
       "idcc": "2216",
       "nom": "Commerce de détail et de gros à prédominance alimentaire",
