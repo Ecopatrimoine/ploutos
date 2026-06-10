@@ -534,10 +534,115 @@
     },
     "2420": {
       "idcc": "2420",
-      "nom": "Bâtiment — cadres",
-      "datesVerification": "2026-05-27",
-      "maintienEmployeur": { "cadres": null, "nonCadres": null },
-      "prevoyanceCadres": { "TO_FILL": true },
+      "nom": "Batiment cadres",
+      "datesVerification": "2026-06-10",
+      "source": "BTP-PREVOYANCE Textes de reference 2026 (RNPC, annexe des garanties au 01/01/2026)",
+      "collegeImpose": "cadres",
+      "maintienEmployeur": { "cadres": null, "nonCadres": null, "_comment_TO_NOTE": "Option A = plancher legal mensualisation (defaut moteur). Paliers conventionnels CCN cadres BTP a sourcer (lot complementaire)." },
+      "devolutionCapitalDeces": {
+        "mode": "cascadeExclusive",
+        "rangs": [
+          { "qualites": ["conjoint", "pacs", "concubin"] },
+          { "qualites": ["enfants"], "representation": true },
+          { "qualites": ["ascendants"] },
+          { "qualites": ["devolutionSuccessorale"] }
+        ],
+        "note": "RNPC art 11 (identique RNPE) : conjoint -> enfants nes ou a naitre -> petits-enfants (par representation) -> parents (mappes sur ascendants) -> a defaut autres heritiers (devolutionSuccessorale)."
+      },
+      "plafondSalaireRefPass": 4,
+      "_plafondSalaireRefPass_commentaire": "RNPC art 12 : SB plafonne a 4 PSS (0 a 4 PASS).",
+      "prevoyanceCadres": {
+        "garantiesMinimum": {
+          "capitalDC": {
+            "mode": "situationFamiliale",
+            "conjointInclutConcubin": true,
+            "minimumPass": 0.1083333333,
+            "sansConjoint": { "valeur": 200, "unite": "pourcentageSalaireRef", "majorationParEnfant": [ { "deRang": 1, "aRang": 2, "valeur": 40 }, { "deRang": 3, "valeur": 60 } ] },
+            "avecConjoint": { "valeur": 250, "unite": "pourcentageSalaireRef", "majorationParEnfant": [ { "deRang": 1, "aRang": 2, "valeur": 40 }, { "deRang": 3, "valeur": 60 } ] },
+            "_comment": "RNPC art 12 : SB plafonne a 4 PSS ; capital deces jamais inferieur a 1,3 PMSS a la date du deces (= 5 206,50 EUR en 2026, minimumPass 1,3/12 PASS, applique a la BASE avant majorations). Majoration PAR enfant : +40% SB chacun des 2 premiers, +60% SB chacun a compter du 3e (vraie majoration par enfant, PAS le forfait par tranche des ouvriers)."
+          },
+          "renteConjoint": null,
+          "_renteConjoint_comment_TO_NOTE": "Rente de conjoint cadres HORS socle conventionnel (garantie optionnelle en points AGIRC-ARRCO). GAP v1 (rente conjoint NON posee).",
+          "renteEducation": {
+            "mode": "trancheAge",
+            "tranches": [ { "deAge": 0, "aAge": 26, "tauxSalaireRef": 0.10, "minimumPass": 0.10 } ],
+            "_comment": "10% SB orphelin simple jusqu'a 25 ans inclus (borne aAge 26 exclusive), plancher 10% PASS = 4 806 EUR (actif sous 48 060 EUR de salaire). TO_NOTE : doublement orphelin des DEUX parents DIFFERE (raffinement transverse, comme HCR/RNPO/RNPE)."
+          },
+          "ij": {
+            "mode": "complementSecu",
+            "pctSalaire": 0.70,
+            "majorationParEnfantPct": 0.033333,
+            "franchise": 90,
+            "plafondJours": 1005,
+            "baseCalcul": "brut_total",
+            "_comment": "70% SB y compris IJSS + 3 1/3 % SB PAR enfant a charge (annexe RNPC 2026). Assiette plafonnee 4 PSS NON appliquee a l'IJ (gap, comme HCR tranche A)."
+          },
+          "invalidite": {
+            "cat1": { "pctSalaire": 0.39, "majorationSiAuMoinsUnEnfantPct": 0.05 },
+            "cat2": { "pctSalaire": 0.65, "majorationParEnfantPct": 0.05 },
+            "cat3": { "pctSalaire": 0.85 },
+            "_comment": "RNPC (mode cible y compris Secu) : cat1 39% + 5% forfait des le 1er enfant (forfait UNIQUE) ; cat2 65% + 5% PAR enfant ; cat3 85% sans majoration. Assiette 4 PSS NON appliquee (gap)."
+          }
+        },
+        "note": "Regime National de Prevoyance des Cadres du BTP (RNPC) - identique 2420/3212 (meme regime national), duplication verrouillee par test de coherence Q6. Garanties dans prevoyanceCadres ; collegeImpose cadres absorbe une incoherence statutPro/IDCC (BTP-0, jamais d'indisponibilite silencieuse). Gaps non encodes : AT/MP (+300% RA), deces accidentel (+100% SB), capital orphelin 125% SB, plafond cumul 85%."
+      },
+      "prevoyanceNonCadres": null,
+      "santeMinimum": { "TO_FILL": true }
+    },
+    "3212": {
+      "idcc": "3212",
+      "nom": "Travaux publics cadres",
+      "datesVerification": "2026-06-10",
+      "source": "BTP-PREVOYANCE Textes de reference 2026 (RNPC, annexe des garanties au 01/01/2026)",
+      "collegeImpose": "cadres",
+      "maintienEmployeur": { "cadres": null, "nonCadres": null, "_comment_TO_NOTE": "Option A = plancher legal mensualisation (defaut moteur). Paliers conventionnels CCN cadres BTP a sourcer (lot complementaire)." },
+      "devolutionCapitalDeces": {
+        "mode": "cascadeExclusive",
+        "rangs": [
+          { "qualites": ["conjoint", "pacs", "concubin"] },
+          { "qualites": ["enfants"], "representation": true },
+          { "qualites": ["ascendants"] },
+          { "qualites": ["devolutionSuccessorale"] }
+        ],
+        "note": "RNPC art 11 (identique RNPE) : conjoint -> enfants nes ou a naitre -> petits-enfants (par representation) -> parents (mappes sur ascendants) -> a defaut autres heritiers (devolutionSuccessorale)."
+      },
+      "plafondSalaireRefPass": 4,
+      "_plafondSalaireRefPass_commentaire": "RNPC art 12 : SB plafonne a 4 PSS (0 a 4 PASS).",
+      "prevoyanceCadres": {
+        "garantiesMinimum": {
+          "capitalDC": {
+            "mode": "situationFamiliale",
+            "conjointInclutConcubin": true,
+            "minimumPass": 0.1083333333,
+            "sansConjoint": { "valeur": 200, "unite": "pourcentageSalaireRef", "majorationParEnfant": [ { "deRang": 1, "aRang": 2, "valeur": 40 }, { "deRang": 3, "valeur": 60 } ] },
+            "avecConjoint": { "valeur": 250, "unite": "pourcentageSalaireRef", "majorationParEnfant": [ { "deRang": 1, "aRang": 2, "valeur": 40 }, { "deRang": 3, "valeur": 60 } ] },
+            "_comment": "RNPC art 12 : SB plafonne a 4 PSS ; capital deces jamais inferieur a 1,3 PMSS a la date du deces (= 5 206,50 EUR en 2026, minimumPass 1,3/12 PASS, applique a la BASE avant majorations). Majoration PAR enfant : +40% SB chacun des 2 premiers, +60% SB chacun a compter du 3e (vraie majoration par enfant, PAS le forfait par tranche des ouvriers)."
+          },
+          "renteConjoint": null,
+          "_renteConjoint_comment_TO_NOTE": "Rente de conjoint cadres HORS socle conventionnel (garantie optionnelle en points AGIRC-ARRCO). GAP v1 (rente conjoint NON posee).",
+          "renteEducation": {
+            "mode": "trancheAge",
+            "tranches": [ { "deAge": 0, "aAge": 26, "tauxSalaireRef": 0.10, "minimumPass": 0.10 } ],
+            "_comment": "10% SB orphelin simple jusqu'a 25 ans inclus (borne aAge 26 exclusive), plancher 10% PASS = 4 806 EUR (actif sous 48 060 EUR de salaire). TO_NOTE : doublement orphelin des DEUX parents DIFFERE (raffinement transverse, comme HCR/RNPO/RNPE)."
+          },
+          "ij": {
+            "mode": "complementSecu",
+            "pctSalaire": 0.70,
+            "majorationParEnfantPct": 0.033333,
+            "franchise": 90,
+            "plafondJours": 1005,
+            "baseCalcul": "brut_total",
+            "_comment": "70% SB y compris IJSS + 3 1/3 % SB PAR enfant a charge (annexe RNPC 2026). Assiette plafonnee 4 PSS NON appliquee a l'IJ (gap, comme HCR tranche A)."
+          },
+          "invalidite": {
+            "cat1": { "pctSalaire": 0.39, "majorationSiAuMoinsUnEnfantPct": 0.05 },
+            "cat2": { "pctSalaire": 0.65, "majorationParEnfantPct": 0.05 },
+            "cat3": { "pctSalaire": 0.85 },
+            "_comment": "RNPC (mode cible y compris Secu) : cat1 39% + 5% forfait des le 1er enfant (forfait UNIQUE) ; cat2 65% + 5% PAR enfant ; cat3 85% sans majoration. Assiette 4 PSS NON appliquee (gap)."
+          }
+        },
+        "note": "Regime National de Prevoyance des Cadres du BTP (RNPC) - identique 2420/3212 (meme regime national), duplication verrouillee par test de coherence Q6. Garanties dans prevoyanceCadres ; collegeImpose cadres absorbe une incoherence statutPro/IDCC (BTP-0, jamais d'indisponibilite silencieuse). Gaps non encodes : AT/MP (+300% RA), deces accidentel (+100% SB), capital orphelin 125% SB, plafond cumul 85%."
+      },
       "prevoyanceNonCadres": null,
       "santeMinimum": { "TO_FILL": true }
     },
