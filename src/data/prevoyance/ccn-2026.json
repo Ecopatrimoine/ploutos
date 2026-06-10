@@ -238,20 +238,188 @@
     },
     "1597": {
       "idcc": "1597",
-      "nom": "Bâtiment — ouvriers (entreprises occupant plus de 10 salariés)",
-      "datesVerification": "2026-05-27",
-      "maintienEmployeur": { "cadres": null, "nonCadres": null },
+      "nom": "Batiment ouvriers (entreprises de plus de 10 salaries)",
+      "datesVerification": "2026-06-10",
+      "source": "BTP-PREVOYANCE Textes de reference 2026 (RNPO, annexe des garanties au 01/01/2026), SR 6,71 EUR au 01/07/2025",
+      "collegeImpose": "nonCadres",
+      "maintienEmployeur": { "cadres": null, "nonCadres": null, "_comment_TO_NOTE": "Option A = plancher legal mensualisation (defaut moteur). Paliers conventionnels CCN categorielle ouvriers BTP a sourcer (lot complementaire)." },
+      "devolutionCapitalDeces": {
+        "mode": "cascadeExclusive",
+        "rangs": [
+          { "qualites": ["conjoint", "pacs", "concubin"] },
+          { "qualites": ["enfants"], "representation": true },
+          { "qualites": ["ascendants"] },
+          { "qualites": ["devolutionSuccessorale"] }
+        ],
+        "note": "RNPO art. 11 : cascade conjoint -> enfants (parts egales) -> petits-enfants (par representation) -> ascendants directs A CHARGE FISCALE (condition de charge fiscale NON modelisee - approximation). Concubin notoire admis rang 1 (art 8.1). Cloture devolutionSuccessorale (format Syntec)."
+      },
       "prevoyanceCadres": null,
-      "prevoyanceNonCadres": { "TO_FILL": true },
+      "prevoyanceNonCadres": {
+        "garantiesMinimum": {
+          "capitalDC": {
+            "mode": "situationFamiliale",
+            "valeurSREuros": 6.71,
+            "conjointInclutConcubin": true,
+            "sansConjoint": { "valeur": 750, "unite": "sr", "majorationParEnfant": [ { "deRang": 1, "aRang": 1, "valeur": 1000 }, { "deRang": 3, "aRang": 3, "valeur": 1000 } ] },
+            "avecConjoint": { "valeur": 3500, "unite": "sr", "majorationParEnfant": [ { "deRang": 1, "aRang": 1, "valeur": 1000 }, { "deRang": 3, "aRang": 3, "valeur": 1000 } ] },
+            "_comment": "Emulation du forfait par tranche RNPO : +1000 SR total si 1-2 enfants, +2000 SR total si 3 enfants ou plus (seuls les rangs 1 et 3 declenchent). PAS une majoration par enfant. SR 6,71 EUR au 01/07/2025."
+          },
+          "renteConjoint": {
+            "mode": "cibleCumulable",
+            "tauxSalaireRef": 0.12,
+            "finAgeDefunt": 64,
+            "assietteMinimumEuros": 26840,
+            "beneficiaires": ["conjoint", "pacs", "concubin"],
+            "_comment": "Cible 12% SB reversion AGIRC-ARRCO comprise, jusqu'a l'age legal (64 ans, defunts nes >= 1968), CUMULABLE avec la rente education. Plancher d'assiette 4000 SR = 26 840 EUR (SR 6,71). Beneficiaires : mariage -> a defaut PACS -> a defaut concubin notoire (art 8.1). Suppression en cas de remariage/PACS du conjoint NON modelisee (gap). Maintenance : SR revalorise chaque 01/07."
+          },
+          "renteEducation": {
+            "mode": "trancheAge",
+            "tranches": [ { "deAge": 0, "aAge": 26, "tauxSalaireRef": 0.10, "minimumPass": 0.05585 } ],
+            "_comment": "10% SB orphelin simple, jusqu'a 25 ans inclus (borne aAge 26 exclusive). Plancher 4000 SR = 2 684 EUR/an emule en minimumPass 0.05585 (2684 / 48060 PASS 2026). TO_NOTE : doublement orphelin des DEUX parents (0.20 / 5 368 EUR) DIFFERE - raffinement moteur transverse (suppose un second deces non represente par le modele succession), comme HCR."
+          },
+          "ij": {
+            "mode": "complementSecu",
+            "pctSalaire": 0.75,
+            "franchise": 90,
+            "plafondJours": 1005,
+            "baseCalcul": "brut_total",
+            "_comment": "75% SB y compris IJSS a compter du 91e jour. IJ versees tant que les IJSS le sont (max 3 ans), du 91e au 1095e jour. Plancher S/2000 ou SR/jour NON modelise (gap mineur)."
+          },
+          "invalidite": {
+            "mode": "additif",
+            "base": "brut",
+            "cat1": { "pctSalaire": 0 },
+            "cat2": { "pctSalaire": 0.10, "majorationParEnfantPct": 0.05 },
+            "cat3": { "pctSalaire": 0.10, "majorationParEnfantPct": 0.05 },
+            "_comment": "Complement ADDITIF +10% SB a la pension Securite sociale, +5% SB par enfant (cat2/cat3). cat1 : aucune garantie de branche (annexe RNPO 2026) - complement nul. Planchers 400/200 SR NON modelises (gap)."
+          }
+        },
+        "note": "Regime National de Prevoyance des Ouvriers du BTP (RNPO) - identique 1596/1597/1702 (meme regime national), duplication verrouillee par test de coherence Q6."
+      },
       "santeMinimum": { "TO_FILL": true }
     },
     "1596": {
       "idcc": "1596",
-      "nom": "Bâtiment — ouvriers (entreprises occupant jusqu'à 10 salariés)",
-      "datesVerification": "2026-05-27",
-      "maintienEmployeur": { "cadres": null, "nonCadres": null },
+      "nom": "Batiment ouvriers (entreprises jusqu'a 10 salaries)",
+      "datesVerification": "2026-06-10",
+      "source": "BTP-PREVOYANCE Textes de reference 2026 (RNPO, annexe des garanties au 01/01/2026), SR 6,71 EUR au 01/07/2025",
+      "collegeImpose": "nonCadres",
+      "maintienEmployeur": { "cadres": null, "nonCadres": null, "_comment_TO_NOTE": "Option A = plancher legal mensualisation (defaut moteur). Paliers conventionnels CCN categorielle ouvriers BTP a sourcer (lot complementaire)." },
+      "devolutionCapitalDeces": {
+        "mode": "cascadeExclusive",
+        "rangs": [
+          { "qualites": ["conjoint", "pacs", "concubin"] },
+          { "qualites": ["enfants"], "representation": true },
+          { "qualites": ["ascendants"] },
+          { "qualites": ["devolutionSuccessorale"] }
+        ],
+        "note": "RNPO art. 11 : cascade conjoint -> enfants (parts egales) -> petits-enfants (par representation) -> ascendants directs A CHARGE FISCALE (condition de charge fiscale NON modelisee - approximation). Concubin notoire admis rang 1 (art 8.1). Cloture devolutionSuccessorale (format Syntec)."
+      },
       "prevoyanceCadres": null,
-      "prevoyanceNonCadres": { "TO_FILL": true },
+      "prevoyanceNonCadres": {
+        "garantiesMinimum": {
+          "capitalDC": {
+            "mode": "situationFamiliale",
+            "valeurSREuros": 6.71,
+            "conjointInclutConcubin": true,
+            "sansConjoint": { "valeur": 750, "unite": "sr", "majorationParEnfant": [ { "deRang": 1, "aRang": 1, "valeur": 1000 }, { "deRang": 3, "aRang": 3, "valeur": 1000 } ] },
+            "avecConjoint": { "valeur": 3500, "unite": "sr", "majorationParEnfant": [ { "deRang": 1, "aRang": 1, "valeur": 1000 }, { "deRang": 3, "aRang": 3, "valeur": 1000 } ] },
+            "_comment": "Emulation du forfait par tranche RNPO : +1000 SR total si 1-2 enfants, +2000 SR total si 3 enfants ou plus (seuls les rangs 1 et 3 declenchent). PAS une majoration par enfant. SR 6,71 EUR au 01/07/2025."
+          },
+          "renteConjoint": {
+            "mode": "cibleCumulable",
+            "tauxSalaireRef": 0.12,
+            "finAgeDefunt": 64,
+            "assietteMinimumEuros": 26840,
+            "beneficiaires": ["conjoint", "pacs", "concubin"],
+            "_comment": "Cible 12% SB reversion AGIRC-ARRCO comprise, jusqu'a l'age legal (64 ans, defunts nes >= 1968), CUMULABLE avec la rente education. Plancher d'assiette 4000 SR = 26 840 EUR (SR 6,71). Beneficiaires : mariage -> a defaut PACS -> a defaut concubin notoire (art 8.1). Suppression en cas de remariage/PACS du conjoint NON modelisee (gap). Maintenance : SR revalorise chaque 01/07."
+          },
+          "renteEducation": {
+            "mode": "trancheAge",
+            "tranches": [ { "deAge": 0, "aAge": 26, "tauxSalaireRef": 0.10, "minimumPass": 0.05585 } ],
+            "_comment": "10% SB orphelin simple, jusqu'a 25 ans inclus (borne aAge 26 exclusive). Plancher 4000 SR = 2 684 EUR/an emule en minimumPass 0.05585 (2684 / 48060 PASS 2026). TO_NOTE : doublement orphelin des DEUX parents (0.20 / 5 368 EUR) DIFFERE - raffinement moteur transverse (suppose un second deces non represente par le modele succession), comme HCR."
+          },
+          "ij": {
+            "mode": "complementSecu",
+            "pctSalaire": 0.75,
+            "franchise": 90,
+            "plafondJours": 1005,
+            "baseCalcul": "brut_total",
+            "_comment": "75% SB y compris IJSS a compter du 91e jour. IJ versees tant que les IJSS le sont (max 3 ans), du 91e au 1095e jour. Plancher S/2000 ou SR/jour NON modelise (gap mineur)."
+          },
+          "invalidite": {
+            "mode": "additif",
+            "base": "brut",
+            "cat1": { "pctSalaire": 0 },
+            "cat2": { "pctSalaire": 0.10, "majorationParEnfantPct": 0.05 },
+            "cat3": { "pctSalaire": 0.10, "majorationParEnfantPct": 0.05 },
+            "_comment": "Complement ADDITIF +10% SB a la pension Securite sociale, +5% SB par enfant (cat2/cat3). cat1 : aucune garantie de branche (annexe RNPO 2026) - complement nul. Planchers 400/200 SR NON modelises (gap)."
+          }
+        },
+        "note": "Regime National de Prevoyance des Ouvriers du BTP (RNPO) - identique 1596/1597/1702 (meme regime national), duplication verrouillee par test de coherence Q6."
+      },
+      "santeMinimum": { "TO_FILL": true }
+    },
+    "1702": {
+      "idcc": "1702",
+      "nom": "Travaux publics (ouvriers)",
+      "datesVerification": "2026-06-10",
+      "source": "BTP-PREVOYANCE Textes de reference 2026 (RNPO, annexe des garanties au 01/01/2026), SR 6,71 EUR au 01/07/2025",
+      "collegeImpose": "nonCadres",
+      "maintienEmployeur": { "cadres": null, "nonCadres": null, "_comment_TO_NOTE": "Option A = plancher legal mensualisation (defaut moteur). Paliers conventionnels CCN categorielle ouvriers BTP a sourcer (lot complementaire)." },
+      "devolutionCapitalDeces": {
+        "mode": "cascadeExclusive",
+        "rangs": [
+          { "qualites": ["conjoint", "pacs", "concubin"] },
+          { "qualites": ["enfants"], "representation": true },
+          { "qualites": ["ascendants"] },
+          { "qualites": ["devolutionSuccessorale"] }
+        ],
+        "note": "RNPO art. 11 : cascade conjoint -> enfants (parts egales) -> petits-enfants (par representation) -> ascendants directs A CHARGE FISCALE (condition de charge fiscale NON modelisee - approximation). Concubin notoire admis rang 1 (art 8.1). Cloture devolutionSuccessorale (format Syntec)."
+      },
+      "prevoyanceCadres": null,
+      "prevoyanceNonCadres": {
+        "garantiesMinimum": {
+          "capitalDC": {
+            "mode": "situationFamiliale",
+            "valeurSREuros": 6.71,
+            "conjointInclutConcubin": true,
+            "sansConjoint": { "valeur": 750, "unite": "sr", "majorationParEnfant": [ { "deRang": 1, "aRang": 1, "valeur": 1000 }, { "deRang": 3, "aRang": 3, "valeur": 1000 } ] },
+            "avecConjoint": { "valeur": 3500, "unite": "sr", "majorationParEnfant": [ { "deRang": 1, "aRang": 1, "valeur": 1000 }, { "deRang": 3, "aRang": 3, "valeur": 1000 } ] },
+            "_comment": "Emulation du forfait par tranche RNPO : +1000 SR total si 1-2 enfants, +2000 SR total si 3 enfants ou plus (seuls les rangs 1 et 3 declenchent). PAS une majoration par enfant. SR 6,71 EUR au 01/07/2025."
+          },
+          "renteConjoint": {
+            "mode": "cibleCumulable",
+            "tauxSalaireRef": 0.12,
+            "finAgeDefunt": 64,
+            "assietteMinimumEuros": 26840,
+            "beneficiaires": ["conjoint", "pacs", "concubin"],
+            "_comment": "Cible 12% SB reversion AGIRC-ARRCO comprise, jusqu'a l'age legal (64 ans, defunts nes >= 1968), CUMULABLE avec la rente education. Plancher d'assiette 4000 SR = 26 840 EUR (SR 6,71). Beneficiaires : mariage -> a defaut PACS -> a defaut concubin notoire (art 8.1). Suppression en cas de remariage/PACS du conjoint NON modelisee (gap). Maintenance : SR revalorise chaque 01/07."
+          },
+          "renteEducation": {
+            "mode": "trancheAge",
+            "tranches": [ { "deAge": 0, "aAge": 26, "tauxSalaireRef": 0.10, "minimumPass": 0.05585 } ],
+            "_comment": "10% SB orphelin simple, jusqu'a 25 ans inclus (borne aAge 26 exclusive). Plancher 4000 SR = 2 684 EUR/an emule en minimumPass 0.05585 (2684 / 48060 PASS 2026). TO_NOTE : doublement orphelin des DEUX parents (0.20 / 5 368 EUR) DIFFERE - raffinement moteur transverse (suppose un second deces non represente par le modele succession), comme HCR."
+          },
+          "ij": {
+            "mode": "complementSecu",
+            "pctSalaire": 0.75,
+            "franchise": 90,
+            "plafondJours": 1005,
+            "baseCalcul": "brut_total",
+            "_comment": "75% SB y compris IJSS a compter du 91e jour. IJ versees tant que les IJSS le sont (max 3 ans), du 91e au 1095e jour. Plancher S/2000 ou SR/jour NON modelise (gap mineur)."
+          },
+          "invalidite": {
+            "mode": "additif",
+            "base": "brut",
+            "cat1": { "pctSalaire": 0 },
+            "cat2": { "pctSalaire": 0.10, "majorationParEnfantPct": 0.05 },
+            "cat3": { "pctSalaire": 0.10, "majorationParEnfantPct": 0.05 },
+            "_comment": "Complement ADDITIF +10% SB a la pension Securite sociale, +5% SB par enfant (cat2/cat3). cat1 : aucune garantie de branche (annexe RNPO 2026) - complement nul. Planchers 400/200 SR NON modelises (gap)."
+          }
+        },
+        "note": "Regime National de Prevoyance des Ouvriers du BTP (RNPO) - identique 1596/1597/1702 (meme regime national), duplication verrouillee par test de coherence Q6."
+      },
       "santeMinimum": { "TO_FILL": true }
     },
     "2609": {
