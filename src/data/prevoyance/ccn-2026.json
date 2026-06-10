@@ -424,11 +424,110 @@
     },
     "2609": {
       "idcc": "2609",
-      "nom": "Bâtiment — ETAM (employés, techniciens et agents de maîtrise)",
-      "datesVerification": "2026-05-27",
-      "maintienEmployeur": { "cadres": null, "nonCadres": null },
+      "nom": "Batiment ETAM",
+      "datesVerification": "2026-06-10",
+      "source": "BTP-PREVOYANCE Textes de reference 2026 (RNPE, annexe des garanties au 01/01/2026)",
+      "collegeImpose": "nonCadres",
+      "maintienEmployeur": { "cadres": null, "nonCadres": null, "_comment_TO_NOTE": "Option A = plancher legal mensualisation (defaut moteur). Paliers conventionnels CCN categorielle ETAM BTP a sourcer (lot complementaire)." },
+      "devolutionCapitalDeces": {
+        "mode": "cascadeExclusive",
+        "rangs": [
+          { "qualites": ["conjoint", "pacs", "concubin"] },
+          { "qualites": ["enfants"], "representation": true },
+          { "qualites": ["ascendants"] }
+        ],
+        "note": "RNPE art 11 : cascade conjoint -> enfants (parts egales, nes ou a naitre) -> petits-enfants (par representation) -> parents (mappes sur ascendants, SANS condition de charge fiscale, contrairement au RNPO). TO_NOTE : niveau 'autres heritiers' (devolution legale) NON pose ; la qualite devolutionSuccessorale EXISTE (RNPO/Syntec/Metallurgie l'utilisent comme cloture) et pourrait clore la cascade - omission VOLONTAIRE (spec RNPE)."
+      },
+      "plafondSalaireRefPass": 3,
+      "_plafondSalaireRefPass_commentaire": "RNPE art 4.1 : assiette des garanties limitee a 3 plafonds (TA+TB+TC, 0 a 3 PASS).",
       "prevoyanceCadres": null,
-      "prevoyanceNonCadres": { "TO_FILL": true },
+      "prevoyanceNonCadres": {
+        "garantiesMinimum": {
+          "capitalDC": {
+            "mode": "situationFamiliale",
+            "conjointInclutConcubin": true,
+            "sansConjoint": { "valeur": 6000, "unite": "euros", "majorationParEnfant": [ { "deRang": 1, "valeur": 100, "unite": "pourcentageSalaireRef" } ] },
+            "avecConjoint": { "valeur": 200, "unite": "pourcentageSalaireRef", "majorationParEnfant": [ { "deRang": 1, "valeur": 50 } ] },
+            "_comment": "RNPE art 17 : celibataire/veuf/divorce 6000 EUR (+100% SB par enfant) ; avec conjoint 200% SB capital de base inclus (+50% SB par enfant). Capital de base 6000 EUR revalorisable au 01/07. Concubin assimile au conjoint."
+          },
+          "renteConjoint": null,
+          "_renteConjoint_comment_TO_NOTE": "RNPE art 18 : rente au conjoint INVALIDE uniquement (15% SB), conditionnee a l'invalidite du conjoint survivant - non saisie dans Ploutos. GAP v1 (rente conjoint NON posee).",
+          "renteEducation": {
+            "mode": "trancheAge",
+            "tranches": [ { "deAge": 0, "aAge": 26, "tauxSalaireRef": 0.15, "minimumPass": 0.12 } ],
+            "_comment": "15% SB orphelin simple jusqu'a 25 ans inclus (borne aAge 26 exclusive), plancher 12% PASS = 5 767,20 EUR (actif sous ~38 450 EUR de salaire). TO_NOTE : orphelin des DEUX parents 30% SB (mini 25% PASS) DIFFERE - raffinement doublement (comme HCR/RNPO)."
+          },
+          "ij": {
+            "mode": "complementSecu",
+            "pctSalaire": 0.84,
+            "franchise": 90,
+            "plafondJours": 1005,
+            "baseCalcul": "brut_total",
+            "_comment": "84% SB y compris IJSS. Demarrage reel = fin du maintien employeur (90 j si anciennete insuffisante) - approximation 90 j fixe. Plafond 1005 j (J91 a J1095)."
+          },
+          "invalidite": {
+            "cat1": { "pctSalaire": 0.40, "majorationSiAuMoinsUnEnfantPct": 0.05 },
+            "cat2": { "pctSalaire": 0.75, "majorationParEnfantPct": 0.06 },
+            "cat3": { "pctSalaire": 0.85 },
+            "_comment": "RNPE art 21 (mode cible y compris Secu) : cat1 40% + 5% forfait des le 1er enfant (forfait UNIQUE) ; cat2 75% + 6% PAR enfant ; cat3 85% sans majoration."
+          }
+        },
+        "note": "Regime National de Prevoyance des ETAM du BTP (RNPE) - identique 2609/2614 (meme regime national), duplication verrouillee par test de coherence Q6."
+      },
+      "santeMinimum": { "TO_FILL": true }
+    },
+    "2614": {
+      "idcc": "2614",
+      "nom": "Travaux publics ETAM",
+      "datesVerification": "2026-06-10",
+      "source": "BTP-PREVOYANCE Textes de reference 2026 (RNPE, annexe des garanties au 01/01/2026)",
+      "collegeImpose": "nonCadres",
+      "maintienEmployeur": { "cadres": null, "nonCadres": null, "_comment_TO_NOTE": "Option A = plancher legal mensualisation (defaut moteur). Paliers conventionnels CCN categorielle ETAM BTP a sourcer (lot complementaire)." },
+      "devolutionCapitalDeces": {
+        "mode": "cascadeExclusive",
+        "rangs": [
+          { "qualites": ["conjoint", "pacs", "concubin"] },
+          { "qualites": ["enfants"], "representation": true },
+          { "qualites": ["ascendants"] }
+        ],
+        "note": "RNPE art 11 : cascade conjoint -> enfants (parts egales, nes ou a naitre) -> petits-enfants (par representation) -> parents (mappes sur ascendants, SANS condition de charge fiscale, contrairement au RNPO). TO_NOTE : niveau 'autres heritiers' (devolution legale) NON pose ; la qualite devolutionSuccessorale EXISTE (RNPO/Syntec/Metallurgie l'utilisent comme cloture) et pourrait clore la cascade - omission VOLONTAIRE (spec RNPE)."
+      },
+      "plafondSalaireRefPass": 3,
+      "_plafondSalaireRefPass_commentaire": "RNPE art 4.1 : assiette des garanties limitee a 3 plafonds (TA+TB+TC, 0 a 3 PASS).",
+      "prevoyanceCadres": null,
+      "prevoyanceNonCadres": {
+        "garantiesMinimum": {
+          "capitalDC": {
+            "mode": "situationFamiliale",
+            "conjointInclutConcubin": true,
+            "sansConjoint": { "valeur": 6000, "unite": "euros", "majorationParEnfant": [ { "deRang": 1, "valeur": 100, "unite": "pourcentageSalaireRef" } ] },
+            "avecConjoint": { "valeur": 200, "unite": "pourcentageSalaireRef", "majorationParEnfant": [ { "deRang": 1, "valeur": 50 } ] },
+            "_comment": "RNPE art 17 : celibataire/veuf/divorce 6000 EUR (+100% SB par enfant) ; avec conjoint 200% SB capital de base inclus (+50% SB par enfant). Capital de base 6000 EUR revalorisable au 01/07. Concubin assimile au conjoint."
+          },
+          "renteConjoint": null,
+          "_renteConjoint_comment_TO_NOTE": "RNPE art 18 : rente au conjoint INVALIDE uniquement (15% SB), conditionnee a l'invalidite du conjoint survivant - non saisie dans Ploutos. GAP v1 (rente conjoint NON posee).",
+          "renteEducation": {
+            "mode": "trancheAge",
+            "tranches": [ { "deAge": 0, "aAge": 26, "tauxSalaireRef": 0.15, "minimumPass": 0.12 } ],
+            "_comment": "15% SB orphelin simple jusqu'a 25 ans inclus (borne aAge 26 exclusive), plancher 12% PASS = 5 767,20 EUR (actif sous ~38 450 EUR de salaire). TO_NOTE : orphelin des DEUX parents 30% SB (mini 25% PASS) DIFFERE - raffinement doublement (comme HCR/RNPO)."
+          },
+          "ij": {
+            "mode": "complementSecu",
+            "pctSalaire": 0.84,
+            "franchise": 90,
+            "plafondJours": 1005,
+            "baseCalcul": "brut_total",
+            "_comment": "84% SB y compris IJSS. Demarrage reel = fin du maintien employeur (90 j si anciennete insuffisante) - approximation 90 j fixe. Plafond 1005 j (J91 a J1095)."
+          },
+          "invalidite": {
+            "cat1": { "pctSalaire": 0.40, "majorationSiAuMoinsUnEnfantPct": 0.05 },
+            "cat2": { "pctSalaire": 0.75, "majorationParEnfantPct": 0.06 },
+            "cat3": { "pctSalaire": 0.85 },
+            "_comment": "RNPE art 21 (mode cible y compris Secu) : cat1 40% + 5% forfait des le 1er enfant (forfait UNIQUE) ; cat2 75% + 6% PAR enfant ; cat3 85% sans majoration."
+          }
+        },
+        "note": "Regime National de Prevoyance des ETAM du BTP (RNPE) - identique 2609/2614 (meme regime national), duplication verrouillee par test de coherence Q6."
+      },
       "santeMinimum": { "TO_FILL": true }
     },
     "2420": {
