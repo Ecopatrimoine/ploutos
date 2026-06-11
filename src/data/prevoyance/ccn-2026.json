@@ -1057,6 +1057,67 @@
       },
       "_comment": "RPP commun aux CCN 1672/1679 (accord 24/06/2013, KALITEXT000028269637) — garanties strictement identiques a l'entree 1672, voir son _comment pour le detail. Maintien : art. 59 CCN 1679 (ETENDU, arrete du 12/07/1993, KALIARTI000005793009) : allocation completant a 1/360 de la remuneration NETTE annuelle (12 derniers mois hors frais, nette de charges) pendant 3 mois, carence 0, condition presence effective art. 53, enveloppe 3 mois/annee civile meme maladie, deduction IJSS/prevoyance employeur/tiers, renvoi expres au RPP au-dela de 3 mois (al. d), avance employeur possible (al. e). Population inspecteurs : statut unique, blocs cadres/nonCadres identiques.",
       "santeMinimum": { "TO_FILL": true }
+    },
+    "2264": {
+      "idcc": "2264",
+      "nom": "Hospitalisation privee (CCN du 18 avril 2002)",
+      "datesVerification": "2026-06-11",
+      "source": "Regime de prevoyance art. 84 CCN hospitalisation privee 18/04/2002 (ETENDU), texte de base KALIARTI000020977284, consolide avenant 24/04/2009 + avenant interpretatif 21/01/2010. Verifie le 10/06/2026.",
+      "maintienEmployeur": {
+        "cadres": {
+          "carenceJours": 0,
+          "subrogation": false,
+          "paliers": [
+            { "ancienneteMois": 0, "segments": [ { "jours": 90, "pct": 100 } ] }
+          ]
+        },
+        "nonCadres": {
+          "carenceJours": 3,
+          "subrogation": false,
+          "paliers": [
+            { "ancienneteMois": 0, "segments": [ { "jours": 90, "pct": 100 } ] }
+          ]
+        },
+        "note": "Art. 84.1 : maintien (regime assure, economiquement = maintien) 90 j a 100% du net par annee civile, SANS condition d'anciennete (palier ancienneteMois 0). Carence maladie 3 j non-cadres / 0 cadres ; carence 0 pour TOUS en AT/MP/trajet (non modelisable sans saisie de l'origine de l'arret - approximation : carence maladie appliquee). Fenetre '90 j par annee civile' approximee en arret continu. pct ENTIER (100). Subrogation non acquise (simple examen en NAO)."
+      },
+      "prevoyanceCadres": {
+        "garantiesMinimum": {
+          "capitalDC": { "mode": "pourcentageSalaireRef", "tauxSalaireRef": 0.85, "minimumPass": 0, "_comment": "Art. 84.3 option (b) : capital 85% du salaire annuel brut de reference, UNIFORME toute situation de famille, AUCUNE majoration conjoint/enfant. Option (a) NON posee (capital 170% + 50%/enfant SANS rente education ; isole 0/2 enfants = 170/270%). Aucun plafond exprime par le texte (le moteur applique son plafond par defaut 8 PASS). IAD cat. 3 = versement anticipe mettant fin a la garantie (non modelise)." },
+          "renteConjoint": null,
+          "renteEducation": {
+            "mode": "trancheAge",
+            "tranches": [
+              { "deAge": 0,  "aAge": 12, "tauxSalaireRef": 0.05, "minimumPass": 0 },
+              { "deAge": 12, "aAge": 18, "tauxSalaireRef": 0.10, "minimumPass": 0 },
+              { "deAge": 18, "aAge": 25, "tauxSalaireRef": 0.15, "minimumPass": 0 }
+            ],
+            "_comment": "Art. 84.3 option (b) : rente education 5% (<12 ans), 10% (12-<18), 15% (18-<25) du salaire de reference. Bornes du TEXTE (aAge 12/18/25 exclusif), extinction a 25 ans (PAS la convention maison 26). FRACTIONS."
+          },
+          "ij": { "mode": "complementSecu", "pctSalaire": 0.80, "franchise": 90, "plafondJours": 1004, "baseCalcul": "brut_total", "_comment": "Art. 84.1 lecture A (plancher) : 80% du brut (moyenne 6 mois ~ assiette moteur) a compter du 91e jour, sous deduction IJSS NETTES de CSG/CRDS (avenant 21/01/2010). franchise 90 + plafondJours 1004 = dernier jour servi 1094, extinction a la bascule invalidite 1095 (convention ASSUR-2). Lecture B jurisprudentielle (100% du net pendant TOUTE l'incapacite, Cass. soc. 02/10/2019 et 20/12/2019) NON posee : couverture reelle possiblement superieure au plancher. FRACTION." },
+          "invalidite": { "cat1": { "pctSalaire": 0.50 }, "cat2": { "pctSalaire": 0.85 }, "cat3": { "pctSalaire": 0.85 }, "_comment": "Art. 84.2 : cibles 50% (invalidite 1re categorie), 85% (2e/3e categorie), exprimees 'en net de X% du brut', approximees en cible brute sous deduction Secu, jusqu'a liquidation retraite. Plafond 100% du net toutes ressources (non modelise). FRACTIONS." }
+        },
+        "note": "Regime de prevoyance hospitalisation privee art. 84 - garanties assurees IDENTIQUES cadres/non-cadres (seule la carence du maintien differe : 0 cadres / 3 j non-cadres)."
+      },
+      "prevoyanceNonCadres": {
+        "garantiesMinimum": {
+          "capitalDC": { "mode": "pourcentageSalaireRef", "tauxSalaireRef": 0.85, "minimumPass": 0, "_comment": "Art. 84.3 option (b) : capital 85% du salaire annuel brut de reference, UNIFORME toute situation de famille, AUCUNE majoration conjoint/enfant. Option (a) NON posee (capital 170% + 50%/enfant SANS rente education ; isole 0/2 enfants = 170/270%). Aucun plafond exprime par le texte (le moteur applique son plafond par defaut 8 PASS). IAD cat. 3 = versement anticipe mettant fin a la garantie (non modelise)." },
+          "renteConjoint": null,
+          "renteEducation": {
+            "mode": "trancheAge",
+            "tranches": [
+              { "deAge": 0,  "aAge": 12, "tauxSalaireRef": 0.05, "minimumPass": 0 },
+              { "deAge": 12, "aAge": 18, "tauxSalaireRef": 0.10, "minimumPass": 0 },
+              { "deAge": 18, "aAge": 25, "tauxSalaireRef": 0.15, "minimumPass": 0 }
+            ],
+            "_comment": "Art. 84.3 option (b) : rente education 5% (<12 ans), 10% (12-<18), 15% (18-<25) du salaire de reference. Bornes du TEXTE (aAge 12/18/25 exclusif), extinction a 25 ans (PAS la convention maison 26). FRACTIONS."
+          },
+          "ij": { "mode": "complementSecu", "pctSalaire": 0.80, "franchise": 90, "plafondJours": 1004, "baseCalcul": "brut_total", "_comment": "Art. 84.1 lecture A (plancher) : 80% du brut (moyenne 6 mois ~ assiette moteur) a compter du 91e jour, sous deduction IJSS NETTES de CSG/CRDS (avenant 21/01/2010). franchise 90 + plafondJours 1004 = dernier jour servi 1094, extinction a la bascule invalidite 1095 (convention ASSUR-2). Lecture B jurisprudentielle (100% du net pendant TOUTE l'incapacite, Cass. soc. 02/10/2019 et 20/12/2019) NON posee : couverture reelle possiblement superieure au plancher. FRACTION." },
+          "invalidite": { "cat1": { "pctSalaire": 0.50 }, "cat2": { "pctSalaire": 0.85 }, "cat3": { "pctSalaire": 0.85 }, "_comment": "Art. 84.2 : cibles 50% (invalidite 1re categorie), 85% (2e/3e categorie), exprimees 'en net de X% du brut', approximees en cible brute sous deduction Secu, jusqu'a liquidation retraite. Plafond 100% du net toutes ressources (non modelise). FRACTIONS." }
+        },
+        "note": "Regime de prevoyance hospitalisation privee art. 84 - garanties assurees IDENTIQUES cadres/non-cadres (seule la carence du maintien differe : 0 cadres / 3 j non-cadres)."
+      },
+      "_comment": "Regime de prevoyance art. 84 CCN 18/04/2002, ETENDU, dans le texte de base (KALIARTI000020977284), consolide avenant 24/04/2009 + avenant interpretatif 21/01/2010 (deduction des IJSS NETTES de CSG/CRDS). Tous salaries SANS condition d'anciennete (palier 0). IJ posee = lecture A plancher (90 j a 100 % net par annee civile puis 80 % du brut moyenne 6 mois jusqu'a expiration IJSS) ; lecture B jurisprudentielle NON posee : Cass. soc. 02/10/2019 n 17-28311 et 20/12/2019 n 18-19.583 lisent l'art. 84.1 comme 100 % du net pendant TOUTE l'incapacite indemnisee (texte superpose, pratiques divergentes) — la couverture reelle peut donc etre superieure au plancher affiche. Carence maladie 3 j non-cadres / 0 cadres ; 0 pour tous en AT/MP/trajet (non modelise) ; subrogation non acquise (examen NAO). Deces 84.3 : CHOIX exclusif des ayants droit — pose = option (b) capital 85 % + rente education 5/10/15 % (bornes texte 12/18/25, extinction 25) ; option (a) NON posee : capital 170 % + 50 % par enfant SANS rente education (controles : isole 0/2 enfants = 170/270 %). IAD cat. 3 = versement anticipe mettant fin a la garantie. Pas de clause de devolution conventionnelle (capital aux ayants droit sans cascade). Invalidite 84.2 : cibles 'en net de X % du brut' approximees en cible brute, plafond 100 % du net toutes ressources. Assiettes : brut moyen 12 mois (1/365), revalorisation au point conventionnel (84.4). Hors entree : thermalisme ex-2104 (regime propre, avenants 24/32, meme conteneur depuis fusion 2019), saisonniers maisons d'enfants (annexe II), disparus en 2009 : doublement deces accidentel et double effet conjoint (version anterieure uniquement).",
+      "santeMinimum": { "TO_FILL": true }
     }
   }
 }
