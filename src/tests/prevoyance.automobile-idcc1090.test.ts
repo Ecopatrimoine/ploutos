@@ -17,10 +17,10 @@ import {
   resolveRenteConjointSubstitutiveBranche,
 } from "../lib/prevoyance/capitaux-deces-branche";
 import { resolveCouvertureBranche } from "../lib/prevoyance/couverture-branche";
-import { computeIJCollective, getMaintienParams } from "../lib/prevoyance/projection";
+import { computeIJCollective, getMaintienParams, projeterArretMaladie } from "../lib/prevoyance/projection";
 import { resolveDevolutionCapitalDecesConfig } from "../lib/calculs/succession";
 import { referentiels } from "../data/prevoyance";
-import type { CouvertureCollective } from "../lib/prevoyance/types";
+import type { CouvertureCollective, EntreePerso } from "../lib/prevoyance/types";
 
 const PASS = 48060;
 
@@ -144,5 +144,69 @@ describe("1090 — asymetrie de college : rente conjoint OEA vs rente education 
     expect(reC(25)).toBe(0);                     // extinction a 25
     // non-cadres : renteEducation null -> indisponible.
     expect(resolveRenteEducationBranche("1090", "nonCadres", 28000, PASS, 10, referentiels).donneeIndisponible).toBe(true);
+  });
+});
+
+// ── LOT AUTO-0bis — bascule du palier 2 en mode ADDITIF ──────────────────────
+describe("1090 — IJ palier 2 ADDITIF (LOT AUTO-0bis)", () => {
+  const ijNC = resolveCouvertureBranche("1090", "nonCadres", referentiels).ij;
+  const ijC = resolveCouvertureBranche("1090", "cadres", referentiels).ij;
+
+  it("palier 1 cible (defaut) / palier 2 additif, cadres ET non-cadres", () => {
+    expect(ijNC?.paliers?.[0].modeComplement).toBeUndefined(); // cible par defaut
+    expect(ijNC?.paliers?.[1].modeComplement).toBe("additif");
+    expect(ijC?.paliers?.[0].modeComplement).toBeUndefined();
+    expect(ijC?.paliers?.[1].modeComplement).toBe("additif");
+  });
+
+  it("nonCadres : t=179 -> total 1.00 ; t=180 avec IJSS 0.50 -> total 0.80 ; t=1095 -> IJSS seules", () => {
+    const REF = 1000;
+    const cov: CouvertureCollective = { ij: ijNC };
+    expect(computeIJCollective(179, cov, REF, 500)).toBeCloseTo(500); // palier 1 cible -> total 1000 (100 %)
+    expect(computeIJCollective(180, cov, REF, 500)).toBeCloseTo(300); // palier 2 additif 0.30 ref -> total 800 (80 %)
+    expect(computeIJCollective(1095, cov, REF, 500)).toBe(0);         // hors palier -> IJSS seules
+  });
+
+  it("cadres : t=89 -> 0 (franchise 90) ; t=179 -> total 1.00 ; t=180 avec IJSS 0.50 -> total 0.80", () => {
+    const REF = 1000;
+    const cov: CouvertureCollective = { ij: ijC };
+    expect(computeIJCollective(89, cov, REF, 500)).toBe(0);
+    expect(computeIJCollective(179, cov, REF, 500)).toBeCloseTo(500);
+    expect(computeIJCollective(180, cov, REF, 500)).toBeCloseTo(300);
+  });
+});
+
+describe("1090 — AUTO-A (mecanicien ~28 ke) : escalier 100 % puis IJSS + 30 % additif", () => {
+  function entreeNonCadre(): EntreePerso {
+    return {
+      age: 40, ageRetraite: 64, statutPro: "salarie_non_cadre", caisse: "CPAM",
+      idccCCN: "1090", ancienneteMois: 24, salaireBrutAnnuel: 28000,
+      salaireNetMensuel: 0, contratsIndividuels: [], couvertureCollective: null,
+    };
+  }
+
+  it("100 % (j0-179, maintien puis IJ cible) puis le palier 2 additif ajoute 0,30 x ref aux IJSS (plafonne a 100 %)", () => {
+    const r = projeterArretMaladie(entreeNonCadre(), "cat2", referentiels);
+    const ref = r.revenuReferenceMensuel;
+    let phase100 = false, phaseAdditif = false;
+    for (let i = 0; i < r.axe.length; i++) {
+      if (r.axe[i].phase !== "am") continue;
+      const j = r.axe[i].jour;
+      const total = r.series.maintienEmployeur[i] + r.series.ijObligatoire[i] + r.series.ijComplementaireCollective[i];
+      // Cap collectif : JAMAIS au-dessus de 100 % du revenu de reference.
+      expect(total).toBeLessThanOrEqual(ref * 1.0001);
+      if (j >= 7 && j <= 179) {
+        // Maintien (j0-44) puis IJ palier 1 CIBLE 1.00 (j45-179) -> 100 % du ref.
+        expect(total).toBeCloseTo(ref, 0);
+        phase100 = true;
+      } else if (j >= 180 && j <= 912) {
+        // Palier 2 ADDITIF : le complement collectif vaut 0,30 x ref, AJOUTE aux IJSS
+        // (le creux fictif des IJSS seules disparait ; total = IJSS + 0,30 x ref).
+        expect(r.series.ijComplementaireCollective[i]).toBeCloseTo(0.30 * ref, 0);
+        expect(total).toBeCloseTo(r.series.ijObligatoire[i] + 0.30 * ref, 0);
+        phaseAdditif = true;
+      }
+    }
+    expect(phase100 && phaseAdditif).toBe(true);
   });
 });
