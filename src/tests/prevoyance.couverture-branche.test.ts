@@ -356,3 +356,87 @@ describe("projeterArretMaladie — IJ branche à 2 paliers (0.85 puis 0.70)", ()
     expect(p1 && p2 && eteint).toBe(true);
   });
 });
+
+// ─── LOT AUTO-0bis — IJ mode additif + cap collectif 100 % ────────────────────
+describe("computeIJCollective — mode additif (LOT AUTO-0bis)", () => {
+  const REF = 1000;
+  // Mono-taux additif 0.30 (modeComplement au niveau du bloc).
+  const covAdditif: CouvertureCollective = {
+    ij: { pctSalaire: 0.30, franchise: 0, plafondJours: 1000, baseCalcul: "brut_total", modeComplement: "additif" },
+  };
+  // Mono-taux cible (défaut, historique) pour le contraste.
+  const covCible: CouvertureCollective = {
+    ij: { pctSalaire: 0.30, franchise: 0, plafondJours: 1000, baseCalcul: "brut_total" },
+  };
+
+  it("additif : complément = 0.30 × ref quel que soit le niveau d'IJSS, tant que le cap n'est pas atteint", () => {
+    expect(computeIJCollective(10, covAdditif, REF, 0)).toBeCloseTo(300);   // IJSS 0
+    expect(computeIJCollective(10, covAdditif, REF, 200)).toBeCloseTo(300); // IJSS 0.20
+    expect(computeIJCollective(10, covAdditif, REF, 500)).toBeCloseTo(300); // IJSS 0.50
+  });
+
+  it("CONTRASTE cible (défaut) : à IJSS 0.50 la cible 0.30 est masquée → 0 (vs additif 0.30)", () => {
+    expect(computeIJCollective(10, covCible, REF, 500)).toBe(0);            // cible : max(0, 300-500)=0
+    expect(computeIJCollective(10, covAdditif, REF, 500)).toBeCloseTo(300); // additif : 0.30 servi
+  });
+
+  it("cap collectif : IJSS 0.50 + additif 0.30 → total 0.80 ; IJSS 0.85 + additif 0.30 → total 1.00 (clipping)", () => {
+    const c50 = computeIJCollective(10, covAdditif, REF, 500);
+    expect(c50).toBeCloseTo(300);
+    expect(500 + c50).toBeCloseTo(800); // total 0.80 ref
+    const c85 = computeIJCollective(10, covAdditif, REF, 850);
+    expect(c85).toBeCloseTo(150);       // clippé à la marge 100 %
+    expect(850 + c85).toBeCloseTo(1000); // total plafonné à 100 % du ref
+  });
+
+  it("mixité cible/additif dans un même tableau de paliers (forme 1090) : bascule à 180 (half-open)", () => {
+    const cov: CouvertureCollective = {
+      ij: {
+        pctSalaire: 1.0, franchise: 45, plafondJours: 1050, baseCalcul: "brut_total",
+        paliers: [
+          { deJour: 45, aJour: 180, pctSalaire: 1.0 },                              // cible (défaut)
+          { deJour: 180, aJour: 1095, pctSalaire: 0.30, modeComplement: "additif" }, // additif
+        ],
+      },
+    };
+    const dejaCouvert = 500; // IJSS 0.50
+    // t=179 (palier 1 cible 1.00) : complément = ref - dejaCouvert → total 100 %.
+    expect(computeIJCollective(179, cov, REF, dejaCouvert)).toBeCloseTo(500);
+    // t=180 (palier 2 additif 0.30) : 0.30 ADDITIF, total 0.80.
+    expect(computeIJCollective(180, cov, REF, dejaCouvert)).toBeCloseTo(300);
+  });
+});
+
+describe("resolveCouvertureBranche — modeComplement IJ (validation 3 états, LOT AUTO-0bis)", () => {
+  function stub(prevoyanceCadres: unknown): Referentiels {
+    return { ccn: { conventions: { "0001": { nom: "Test", prevoyanceCadres } } } } as unknown as Referentiels;
+  }
+
+  it("modeComplement 'cible' (bloc) + 'additif' (palier) → portés ; palier sans mode → omis (hérite)", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: { ij: {
+      mode: "complementSecu", franchise: 45, baseCalcul: "brut_total", modeComplement: "cible", paliers: [
+        { deJour: 45, aJour: 180, pctSalaire: 1.0 },
+        { deJour: 180, aJour: 1095, pctSalaire: 0.30, modeComplement: "additif" },
+      ],
+    } } }));
+    expect(r.ij?.modeComplement).toBe("cible");
+    expect(r.ij?.paliers?.[0].modeComplement).toBeUndefined();
+    expect(r.ij?.paliers?.[1].modeComplement).toBe("additif");
+  });
+
+  it("modeComplement invalide au niveau du BLOC → IJ omise (échec explicite)", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: { ij: {
+      mode: "complementSecu", pctSalaire: 0.30, franchise: 0, plafondJours: 1000, baseCalcul: "brut_total", modeComplement: "foo",
+    } } }));
+    expect(r.ij).toBeUndefined();
+  });
+
+  it("modeComplement invalide au niveau d'un PALIER → IJ omise", () => {
+    const r = resolveCouvertureBranche("0001", "cadres", stub({ garantiesMinimum: { ij: {
+      mode: "complementSecu", franchise: 0, baseCalcul: "brut_total", paliers: [
+        { deJour: 0, aJour: 180, pctSalaire: 1.0, modeComplement: "bogus" },
+      ],
+    } } }));
+    expect(r.ij).toBeUndefined();
+  });
+});

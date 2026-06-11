@@ -893,17 +893,18 @@ function majorationSiAuMoinsUnEnfant(majorationSiAuMoinsUnEnfantPct: number | un
   return n >= 1 ? majorationSiAuMoinsUnEnfantPct : 0;
 }
 
-// LOT ASSUR-0 — taux d'IJ au jour t pour une garantie à PALIERS temporels :
-// pctSalaire du segment [deJour, aJour) (half-open, borne haute exclusive) qui
-// contient t, ou null si t tombe hors de tout segment (avant le 1er deJour ou
-// au-delà du dernier aJour → plus de complément). Segments validés en amont par
-// le résolveur (ordonnés, contigus, fractions ]0,1]).
-function tauxPalierIJ(
-  paliers: ReadonlyArray<{ deJour: number; aJour: number; pctSalaire: number }>,
+// LOT ASSUR-0 — segment d'IJ à PALIERS temporels couvrant le jour t : le segment
+// [deJour, aJour) (half-open, borne haute exclusive) qui contient t, ou null si t
+// tombe hors de tout segment (avant le 1er deJour ou au-delà du dernier aJour →
+// plus de complément). Segments validés en amont par le résolveur (ordonnés,
+// contigus, fractions ]0,1]). LOT AUTO-0bis : le segment porte aussi son
+// `modeComplement` éventuel (cible/additif).
+function segPalierIJ(
+  paliers: ReadonlyArray<{ deJour: number; aJour: number; pctSalaire: number; modeComplement?: "cible" | "additif" }>,
   t: number
-): number | null {
+): { pctSalaire: number; modeComplement?: "cible" | "additif" } | null {
   for (const seg of paliers) {
-    if (t >= seg.deJour && t < seg.aJour) return seg.pctSalaire;
+    if (t >= seg.deJour && t < seg.aJour) return seg;
   }
   return null;
 }
@@ -918,24 +919,36 @@ export function computeIJCollective(
   if (!cov?.ij) return 0;
   const f = cov.ij.franchise;
   if (t < f) return 0; // franchise commune (inchangée)
-  // Taux applicable au jour t. LOT ASSUR-0 : si `paliers` est présent, le taux
-  // vient du segment temporel courant (et la fenêtre est bornée par le dernier
-  // aJour) ; sinon comportement historique mono-taux borné par [f, f + plafond].
+  // Taux ET mode de combinaison applicables au jour t. LOT ASSUR-0 : si `paliers`
+  // est présent, le taux vient du segment temporel courant (fenêtre bornée par le
+  // dernier aJour) ; sinon mono-taux borné par [f, f + plafond]. LOT AUTO-0bis : le
+  // mode (cible/additif) vient du palier, sinon du défaut du bloc, sinon "cible".
   let taux: number;
+  let mode: "cible" | "additif";
   if (cov.ij.paliers && cov.ij.paliers.length > 0) {
-    const tp = tauxPalierIJ(cov.ij.paliers, t);
-    if (tp === null) return 0; // hors de tout palier → plus de complément
-    taux = tp;
+    const seg = segPalierIJ(cov.ij.paliers, t);
+    if (seg === null) return 0; // hors de tout palier → plus de complément
+    taux = seg.pctSalaire;
+    mode = seg.modeComplement ?? cov.ij.modeComplement ?? "cible";
   } else {
     if (t > f + cov.ij.plafondJours) return 0;
     taux = cov.ij.pctSalaire;
+    mode = cov.ij.modeComplement ?? "cible";
   }
   // Majoration par enfant à charge (LOT BTP-3) sur la MÊME assiette que le
   // principal (revenuReference) — approximation conservatrice, cohérente avec le
   // gap d'assiette IJ déjà documenté. Champ absent/invalide → 0.
   const majo = majorationParEnfant(cov.ij.majorationParEnfantPct, nbEnfantsACharge);
-  const cible = assietteMensuelle * (clampPct(taux) + majo);
-  return Math.max(0, cible - dejaCouvertMensuel);
+  const prestation = assietteMensuelle * (clampPct(taux) + majo);
+  // LOT AUTO-0bis — mode "additif" (RPO auto art. 4) : prestation versée EN PLUS du
+  // déjà-perçu (maintien + IJSS), plafonnée au CUMUL 100 % du revenu de référence.
+  // Le cap joue ici, au niveau collectif (pas seulement à l'étage individuel).
+  if (mode === "additif") {
+    const margeJusqu100 = Math.max(0, assietteMensuelle - dejaCouvertMensuel);
+    return Math.min(prestation, margeJusqu100);
+  }
+  // Mode "cible" (défaut, historique) : complément jusqu'à la cible, déduction du déjà-perçu.
+  return Math.max(0, prestation - dejaCouvertMensuel);
 }
 
 // Résultat d'un étage individuel borné (IJ ou invalidité).
@@ -1063,12 +1076,14 @@ export function computeInvalObligatoireMensuel(
 // `base` choisit l'assiette : "revenuReference" (défaut) ou "brut" = la MÊME
 // assiette mensuelle que la pension Secu (salaireBrutMensuel, cf. l'appelant) →
 // cohérence d'assiette obligatoire pour l'additif.
-// Le bornage H11 (100 % du revenu de référence) s'applique EN AVAL et reste
-// INCHANGÉ : l'additif y passe comme les autres séries (l'étage individuel comble
-// la marge restante jusqu'à 100 % du revenu de référence). H11 (≈ 78 % du brut,
-// via le coef brut→net) est PLUS restrictif que le plafond de cumul réel BTP
-// (85 % du brut) → approximation conservatrice ; le plafond 85 % est un gap
-// documenté du chantier BTP (différé).
+// LOT AUTO-0bis — le bornage 100 % du revenu de référence est désormais appliqué
+// AU NIVEAU COLLECTIF pour l'additif (pension + prestation ≤ 100 % du ref), pas
+// seulement à l'étage individuel : pension + min(prestation, marge) ≤ ref. Pour
+// les additifs BTP à taux faible (RNPO +10 %, etc.) la marge ne mord pas → valeurs
+// INCHANGÉES (suite verte) ; pour un additif élevé (auto 1090 +30 % brut) le cumul
+// est plafonné à 100 % du ref (résout le dépassement ~102 % surfacé en AUTO-1).
+// H11 (≈ 78 % du brut) reste PLUS restrictif que le plafond de cumul réel BTP
+// (85 % du brut) → approximation conservatrice (gap 85 % BTP différé, inchangé).
 export function computeRenteInvalCollective(
   cov: CouvertureCollective | null,
   categorie: CategorieInvalidite,
@@ -1091,8 +1106,14 @@ export function computeRenteInvalCollective(
     majorationParEnfant(c.majorationParEnfantPct, nbEnfantsACharge) +
     majorationSiAuMoinsUnEnfant(c.majorationSiAuMoinsUnEnfantPct, nbEnfantsACharge);
   const prestation = assiette * pct;
-  // Additif : versé EN PLUS de la pension (aucune déduction).
-  if (inv.mode === "additif") return prestation;
+  // Additif (LOT BTP-2) : versé EN PLUS de la pension (aucune déduction), MAIS
+  // plafonné au cumul 100 % du revenu de référence (LOT AUTO-0bis, cap collectif) :
+  // pension + min(prestation, marge) ≤ ref. Taux faible BTP → marge non mordante
+  // (iso). Taux élevé (auto +30 %) → cumul plafonné à 100 % du ref.
+  if (inv.mode === "additif") {
+    const margeJusqu100 = Math.max(0, assietteRevenuRef - pensionOblig);
+    return Math.min(prestation, margeJusqu100);
+  }
   // Cible (défaut) : complément jusqu'à la cible, déduction faite de la Secu.
   return Math.max(0, prestation - pensionOblig);
 }

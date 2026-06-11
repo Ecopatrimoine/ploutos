@@ -58,6 +58,14 @@ export type CouvertureCollective = {
     // LOT BTP-3 : +% de l'assiette IJ PAR enfant à charge (IJ cadres BTP, RNPC).
     // Absent/invalide → 0 (la garantie principale reste servie).
     majorationParEnfantPct?: number;
+    // LOT AUTO-0bis — mode de COMBINAISON du complément IJ avec le déjà-perçu
+    // (maintien + IJSS). "cible" (défaut, historique) = complément
+    // max(0, pct × ref − déjàPerçu) ; "additif" = pct × ref versé EN PLUS du
+    // déjàPerçu, puis plafonné au cumul 100 % du revenu de référence (RPO auto
+    // art. 4 : 30 % du brut en complément des IJSS). Défaut du bloc (mono-taux +
+    // paliers sans mode propre). ⚠ distinct du champ JSON `mode: "complementSecu"`
+    // (marqueur de TYPE d'IJ) — cet axe-ci est nommé `modeComplement` côté JSON.
+    modeComplement?: "cible" | "additif";
     // LOT ASSUR-0 — IJ à PALIERS temporels : taux qui change dans le temps
     // (ex. RPP assurance 85 % du 4e au 12e mois puis 70 % du 13e au 36e ; métallurgie
     // 100 % puis 75 % cadres). Présent → REMPLACE le couple pctSalaire/plafondJours :
@@ -68,7 +76,9 @@ export type CouvertureCollective = {
     // contigus (aJour[n] == deJour[n+1]), pctSalaire en FRACTION dans ]0, 1].
     // franchise/baseCalcul/majorationParEnfantPct restent communs et s'appliquent
     // inchangés. Resolver (mapIJ) : paliers malformés → IJ omise (jamais dégradée).
-    paliers?: Array<{ deJour: number; aJour: number; pctSalaire: number }>;
+    // LOT AUTO-0bis : chaque palier peut porter son propre `modeComplement` (sinon
+    // hérite du défaut du bloc, sinon "cible").
+    paliers?: Array<{ deJour: number; aJour: number; pctSalaire: number; modeComplement?: "cible" | "additif" }>;
   };
   invalidite?: {
     // mode (LOT BTP-2) : "cibleInclSecu" (défaut si absent) = la rente complète

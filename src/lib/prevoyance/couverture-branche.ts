@@ -30,8 +30,18 @@ export type CouvertureBranche = {
 // Formes attendues dans le référentiel (champs `unknown` tant que les CCN ne
 // sont pas toutes remplies). BlocPrevoyanceCouverture ne déclare QUE les champs
 // lus ici → indépendant des blocs capital/rente, qu'on ne touche pas.
-type GarantieIJ = { mode?: unknown; pctSalaire?: unknown; franchise?: unknown; plafondJours?: unknown; baseCalcul?: unknown; majorationParEnfantPct?: unknown; paliers?: unknown };
-type SegmentIJ = { deJour?: unknown; aJour?: unknown; pctSalaire?: unknown };
+type GarantieIJ = { mode?: unknown; pctSalaire?: unknown; franchise?: unknown; plafondJours?: unknown; baseCalcul?: unknown; majorationParEnfantPct?: unknown; modeComplement?: unknown; paliers?: unknown };
+type SegmentIJ = { deJour?: unknown; aJour?: unknown; pctSalaire?: unknown; modeComplement?: unknown };
+
+// LOT AUTO-0bis — mode de combinaison du complément IJ (axe `modeComplement`).
+//   undefined : champ ABSENT → hérite du défaut (bloc puis "cible")
+//   null      : champ PRÉSENT mais hors {"cible","additif"} → l'appelant OMET l'IJ
+//   "cible" / "additif" : valide
+function mapModeComplementIJ(raw: unknown): "cible" | "additif" | null | undefined {
+  if (raw === undefined) return undefined;
+  if (raw === "cible" || raw === "additif") return raw;
+  return null;
+}
 type CategorieInval = { pctSalaire?: unknown; majorationParEnfantPct?: unknown; majorationSiAuMoinsUnEnfantPct?: unknown };
 type GarantieInvalidite = { mode?: unknown; base?: unknown; cat1?: unknown; cat2?: unknown; cat3?: unknown };
 type BlocPrevoyanceCouverture = { garantiesMinimum?: { ij?: unknown; invalidite?: unknown } | null } | null;
@@ -43,10 +53,11 @@ type BlocPrevoyanceCouverture = { garantiesMinimum?: { ij?: unknown; invalidite?
 //   tableau   : segments validés — ordonnés, contigus (aJour[n] == deJour[n+1]),
 //               non vides (aJour > deJour), pctSalaire en FRACTION dans ]0, 1].
 // Bornes en jours depuis le début de l'arrêt (même axe que franchise + plafondJours).
-function mapPaliersIJ(raw: unknown): Array<{ deJour: number; aJour: number; pctSalaire: number }> | null | undefined {
+type PalierIJResolu = { deJour: number; aJour: number; pctSalaire: number; modeComplement?: "cible" | "additif" };
+function mapPaliersIJ(raw: unknown): PalierIJResolu[] | null | undefined {
   if (raw === undefined) return undefined;
   if (!Array.isArray(raw) || raw.length === 0) return null;
-  const out: Array<{ deJour: number; aJour: number; pctSalaire: number }> = [];
+  const out: PalierIJResolu[] = [];
   let bornePrecedente: number | null = null;
   for (const item of raw) {
     if (item == null || typeof item !== "object") return null;
@@ -58,7 +69,11 @@ function mapPaliersIJ(raw: unknown): Array<{ deJour: number; aJour: number; pctS
     if (deJour < 0 || aJour <= deJour) return null;            // bornes valides, segment non vide
     if (pct <= 0 || pct > 1) return null;                      // fraction ]0,1] (rejette un entier 85)
     if (bornePrecedente !== null && deJour !== bornePrecedente) return null; // contigu
-    out.push({ deJour, aJour, pctSalaire: pct });
+    const modeC = mapModeComplementIJ(s.modeComplement);
+    if (modeC === null) return null;                           // mode de palier invalide → IJ omise
+    const seg: PalierIJResolu = { deJour, aJour, pctSalaire: pct };
+    if (modeC !== undefined) seg.modeComplement = modeC;
+    out.push(seg);
     bornePrecedente = aJour;
   }
   return out;
@@ -78,6 +93,10 @@ function mapIJ(raw: unknown): CouvertureCollective["ij"] | undefined {
   if (franchise === null || franchise < 0) return undefined;
   if (baseCalcul !== "T1_T2" && baseCalcul !== "T1_seul" && baseCalcul !== "brut_total") return undefined;
 
+  // LOT AUTO-0bis — mode de combinaison par défaut du bloc. Présent mais invalide → IJ omise.
+  const modeBloc = mapModeComplementIJ(g.modeComplement);
+  if (modeBloc === null) return undefined;
+
   // Mode PALIERS (prioritaire). Présent mais malformé → IJ omise (échec explicite).
   const paliers = mapPaliersIJ(g.paliers);
   if (paliers === null) return undefined;
@@ -93,6 +112,7 @@ function mapIJ(raw: unknown): CouvertureCollective["ij"] | undefined {
       baseCalcul,
       paliers,
     };
+    if (modeBloc !== undefined) out.modeComplement = modeBloc;
     const majo = safeNum(g.majorationParEnfantPct);
     if (majo !== null && majo >= 0) out.majorationParEnfantPct = majo;
     return out;
@@ -104,6 +124,7 @@ function mapIJ(raw: unknown): CouvertureCollective["ij"] | undefined {
   if (pctSalaire === null || plafondJours === null) return undefined;
   if (pctSalaire < 0 || pctSalaire > 1 || plafondJours <= 0) return undefined;
   const out: NonNullable<CouvertureCollective["ij"]> = { pctSalaire, franchise, plafondJours, baseCalcul };
+  if (modeBloc !== undefined) out.modeComplement = modeBloc;
   // LOT BTP-3 — majoration par enfant : numérique >= 0 → portée ; sinon IGNORÉE
   // (champ omis), la garantie IJ principale reste servie. Clé absente → omise (iso).
   const majo = safeNum(g.majorationParEnfantPct);
