@@ -59,10 +59,10 @@ describe("resolveCapitalDecesBranche — Syntec (1486)", () => {
     expect(r.donneeIndisponible).toBe(true);
   });
 
-  it("CCN présente mais capitalDC non documenté (1996 TO_FILL) → null + donneeIndisponible", () => {
-    // 3248 (Métallurgie) est désormais documenté → on prend une autre CCN encore
-    // TO_FILL (1996 Pharmacie) pour garder le verrou « branche non documentée ».
-    const r = resolveCapitalDecesBranche("1996", "cadres", 60000, PASS, referentiels);
+  it("CCN présente mais capitalDC non documenté (témoin 9999) → null + donneeIndisponible", () => {
+    // Témoin de test 9999 (branche fictive sans garantie) pour le verrou « branche
+    // non documentée » (1996 Pharmacie est désormais rempli avec le régime APGIS).
+    const r = resolveCapitalDecesBranche("9999", "cadres", 60000, PASS, referentiels);
     expect(r.capital).toBeNull();
     expect(r.donneeIndisponible).toBe(true);
   });

@@ -60,11 +60,10 @@ describe("resolveCouvertureBranche — cas indisponibles (jamais d'exception)", 
     expect(r.donneeIndisponible).toBe(true);
   });
 
-  it("CCN sans garanties IJ/invalidité documentées (1996 TO_FILL) → donneeIndisponible", () => {
-    // 3248 (Métallurgie) porte désormais capital/rente éducation (mais ni IJ ni
-    // invalidité) → on prend 1996 (Pharmacie, entièrement TO_FILL) comme exemple
-    // non ambigu de branche sans aucune garantie documentée.
-    const r = resolveCouvertureBranche("1996", "cadres", referentiels);
+  it("CCN sans garanties IJ/invalidité documentées (témoin 9999) → donneeIndisponible", () => {
+    // Témoin de test 9999 (branche fictive sans aucune garantie). 1996 Pharmacie,
+    // jadis l'exemple « TO_FILL », porte désormais le régime APGIS → bascule sur 9999.
+    const r = resolveCouvertureBranche("9999", "cadres", referentiels);
     expect(r.donneeIndisponible).toBe(true);
     expect(r.ij).toBeUndefined();
     expect(r.invalidite).toBeUndefined();

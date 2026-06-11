@@ -79,10 +79,10 @@ describe("resolveRenteEducationBranche — cas indisponibles (jamais d'exception
     expect(r.donneeIndisponible).toBe(true);
   });
 
-  it("CCN sans renteEducation documentée (1996 TO_FILL) → donneeIndisponible", () => {
-    // 3248 (Métallurgie) est désormais documenté → on prend 1996 (Pharmacie,
-    // encore TO_FILL) pour préserver le verrou « branche non documentée ».
-    const r = resolveRenteEducationBranche("1996", "cadres", 60000, PASS, 10, referentiels);
+  it("CCN sans renteEducation documentée (témoin 9999) → donneeIndisponible", () => {
+    // Témoin de test 9999 (branche fictive sans garantie) pour le verrou « branche
+    // non documentée » (1996 Pharmacie est désormais rempli avec le régime APGIS).
+    const r = resolveRenteEducationBranche("9999", "cadres", 60000, PASS, 10, referentiels);
     expect(r.donneeIndisponible).toBe(true);
   });
 

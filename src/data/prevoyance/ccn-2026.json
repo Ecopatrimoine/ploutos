@@ -665,10 +665,88 @@
     "1996": {
       "idcc": "1996",
       "nom": "Pharmacie d'officine",
-      "datesVerification": "2026-05-27",
-      "maintienEmployeur": { "cadres": null, "nonCadres": null },
-      "prevoyanceCadres": { "TO_FILL": true },
-      "prevoyanceNonCadres": { "TO_FILL": true },
+      "datesVerification": "2026-06-11",
+      "source": "Plaquette APGIS Regime general juillet 2025 (garanties prevoyance au 01/01/2024) + avenant du 7 juin 2022. PMSS 2025 = 3925 EUR. Verifie le 10/06/2026.",
+      "maintienEmployeur": { "cadres": null, "nonCadres": null, "note": "Option A : pas de maintien conventionnel plus favorable retenu -> plancher legal de mensualisation applique par le moteur. Le RPO APGIS porte les IJ de branche (franchise non-cadre 3 j / cadre 61e jour) en relais." },
+      "devolutionCapitalDeces": {
+        "mode": "cascadeExclusive",
+        "rangs": [
+          { "qualites": ["conjoint", "pacs"] },
+          { "qualites": ["enfants"], "representation": true },
+          { "qualites": ["ascendants"] },
+          { "qualites": ["devolutionSuccessorale"] }
+        ],
+        "note": "Le bareme APGIS ne detaille pas l'ordre legal au-dela du conjoint : cascade standard (conjoint/PACS -> enfants par representation -> ascendants -> autres heritiers) = ordre legal a defaut de designation."
+      },
+      "plafondSalaireRefPass": 4,
+      "_plafondSalaireRefPass_commentaire": "Capital deces et rente education sur l'assiette TA+TB, limitee a 4 PMSS (plaquette APGIS).",
+      "prevoyanceCadres": {
+        "garantiesMinimum": {
+          "capitalDC": {
+            "mode": "situationFamiliale",
+            "conjointInclutConcubin": false,
+            "sansConjoint": { "valeur": 200, "unite": "pourcentageSalaireRef", "majorationParEnfant": [ { "deRang": 1, "aRang": 1, "valeur": 50 }, { "deRang": 2, "valeur": 25 } ] },
+            "avecConjoint": { "valeur": 250, "unite": "pourcentageSalaireRef", "majorationParEnfant": [ { "deRang": 2, "valeur": 25 } ] },
+            "_comment": "RPO plaquette APGIS 2025. Celib 200% (250% des 1 personne a charge -> saut +50 au rang 1), marie/PACS 250%, +25%/charge au-dela de la 1re. Capital TA+TB (plafond 4 PMSS). Concubin NON assimile pour le capital (marie ou PACS uniquement)."
+          },
+          "renteConjoint": null,
+          "_renteConjoint_comment": "Pas de rente de conjoint au regime APGIS - capital + rente education uniquement. PAS un TO_FILL.",
+          "renteEducation": {
+            "mode": "trancheAge",
+            "tranches": [ { "deAge": 0, "aAge": 28, "tauxSalaireRef": 0.05, "minimumPass": 0.03 } ],
+            "_comment": "5% TA+TB par enfant < 28 ans, minimum 3% PASS. Doublement orphelin 2 parents / handicape DIFFERE (raffinement transverse). Rente education en cas d'invalidite du participant (forfaits 243/405/608 EUR) = garantie distincte, GAP v1."
+          },
+          "ij": {
+            "mode": "complementSecu",
+            "pctSalaire": 0.82,
+            "franchise": 60,
+            "plafondJours": 1035,
+            "baseCalcul": "brut_total",
+            "_comment": "82% TA+TB sous deduction Secu. Franchise non-cadre 3 jours continus ; cadre >= 1 an d'anciennete 61e jour (le maintien employeur couvre l'intervalle ; cadre < 1 an et assimile cadre : 4e/31e jour, non modelisable sans anciennete). AT/MP : 90% des le 1er jour (non modelise)."
+          },
+          "invalidite": {
+            "cat1": { "pctSalaire": 0.675 },
+            "cat2": { "pctSalaire": 0.90 },
+            "cat3": { "pctSalaire": 0.90 },
+            "_comment": "Cat2-3/IPP >= 67% : 90% TA+TB sous deduction Secu (hors tierce personne). Cat1/IPP 40-67% : 90% reduit de 25% = 67,5%. IPP < 40% : aucune rente. Plafond cumul 100% SR net."
+          }
+        },
+        "note": "Regime APGIS pharmacie d'officine - garanties IDENTIQUES cadres/non-cadres SAUF la franchise IJ (cadre 61e jour = franchise 60)."
+      },
+      "prevoyanceNonCadres": {
+        "garantiesMinimum": {
+          "capitalDC": {
+            "mode": "situationFamiliale",
+            "conjointInclutConcubin": false,
+            "sansConjoint": { "valeur": 200, "unite": "pourcentageSalaireRef", "majorationParEnfant": [ { "deRang": 1, "aRang": 1, "valeur": 50 }, { "deRang": 2, "valeur": 25 } ] },
+            "avecConjoint": { "valeur": 250, "unite": "pourcentageSalaireRef", "majorationParEnfant": [ { "deRang": 2, "valeur": 25 } ] },
+            "_comment": "RPO plaquette APGIS 2025. Celib 200% (250% des 1 personne a charge -> saut +50 au rang 1), marie/PACS 250%, +25%/charge au-dela de la 1re. Capital TA+TB (plafond 4 PMSS). Concubin NON assimile pour le capital (marie ou PACS uniquement). Identique cadres."
+          },
+          "renteConjoint": null,
+          "_renteConjoint_comment": "Pas de rente de conjoint au regime APGIS - capital + rente education uniquement. PAS un TO_FILL.",
+          "renteEducation": {
+            "mode": "trancheAge",
+            "tranches": [ { "deAge": 0, "aAge": 28, "tauxSalaireRef": 0.05, "minimumPass": 0.03 } ],
+            "_comment": "5% TA+TB par enfant < 28 ans, minimum 3% PASS. Identique cadres."
+          },
+          "ij": {
+            "mode": "complementSecu",
+            "pctSalaire": 0.82,
+            "franchise": 3,
+            "plafondJours": 1092,
+            "baseCalcul": "brut_total",
+            "_comment": "82% TA+TB sous deduction Secu. Franchise non-cadre 3 jours continus (82% des le 4e jour). AT/MP : 90% des le 1er jour (non modelise). SEUL champ different du college cadre (franchise 60)."
+          },
+          "invalidite": {
+            "cat1": { "pctSalaire": 0.675 },
+            "cat2": { "pctSalaire": 0.90 },
+            "cat3": { "pctSalaire": 0.90 },
+            "_comment": "Cat2-3/IPP >= 67% : 90% TA+TB sous deduction Secu (hors tierce personne). Cat1/IPP 40-67% : 67,5%. IPP < 40% : aucune rente. Plafond cumul 100% SR net. Identique cadres."
+          }
+        },
+        "note": "Regime APGIS pharmacie d'officine - garanties IDENTIQUES cadres/non-cadres SAUF la franchise IJ (non-cadre 3 jours)."
+      },
+      "_comment": "Regime de prevoyance APGIS pharmacie d'officine (plaquette Regime general juillet 2025, garanties au 01/01/2024 ; avenant 07/06/2022). Garanties IDENTIQUES cadres/non-cadres SAUF la franchise IJ (non-cadre 3 j / cadre 61e jour). Capital TA+TB plafond 4 PMSS, situationFamiliale (celib 200%, saut +50 au 1er enfant, marie/PACS 250%, +25%/charge au-dela de la 1re ; concubin NON assimile). Rente education 5% TA+TB < 28 ans (min 3% PASS). IJ 82% TA+TB sous deduction Secu. Invalidite cible 90% (cat2/3) / 67,5% (cat1) sous deduction Secu, plafond 100% SR net. Maintien : Option A (plancher legal mensualisation, le RPO porte les IJ de branche en relais). Gaps hors perimetre v1 : frais d'obseques 750 EUR, deces accidentel (capital double), double effet conjoint, predeces du conjoint, rente education en cas d'invalidite du participant (forfaits 243/405/608 EUR), franchises IJ cadre < 1 an et assimile cadre (4e/31e jour, non modelisables sans saisie d'anciennete), doublement orphelin 2 parents / enfant handicape (raffinement transverse). PMSS 2025 = 3925 EUR.",
       "santeMinimum": { "TO_FILL": true }
     },
     "2120": {
@@ -1233,6 +1311,16 @@
         "note": "RPO IRP AUTO - college cadres (et maitrise pour capital/rente education). Asymetrie : capital 250 % PASS + rente education (PAS de rente de conjoint)."
       },
       "_comment": "RPO IRP AUTO Prevoyance-Sante, reglement officiel edition 06/2025 application 01/01/2026 (LDR035P), execute l'art. 1.26 CCN 15/01/1981 ; accord historique 09/04/1998 (KALITEXT000005685300) ; accord cotisations 23/10/2025 etendu 18/03/2026 (tarifs seuls). Colleges asymetriques : maitrise = OEA pour IJ/maintien (46e jour) mais maitrise+cadres pour capital 250 % PASS et rente education — le bloc nonCadres modelise les OEA stricts, un agent de maitrise reel est sous-estime au capital et recoit la rente de conjoint au lieu de la rente education (approximation de college type chimie). Maintien 100 % NET 45 j (OEA)/90 j (cadres) par annee civile des 1 an, arts. 2.10-2.11/4.08-4.09 CCN. IJ : ITT 100 % du NET (pose 1.00 brut, plafond moteur) du 46e/91e au 180e jour puis longue maladie 30 % du brut jusqu'a cat. 2/3 ou retraite ; fenetres annee civile approximees en arret continu ; cotisation ITT a la charge exclusive des salaries. Palier 2 IJ (30 %) ADDITIF (art. 4 RPO : 30 % du brut EN COMPLEMENT des IJSS brutes), plafond cumul 100 % du net via cap collectif (LOT AUTO-0bis). Invalidite ADDITIVE : cat. 2/3 30 % du brut 4 PASS en complement de la Secu, plafond 100 % du net borne au cumul par le cap collectif (LOT AUTO-0bis), jusqu'a la retraite ; cat. 1 (art. 6 RPO : 15 % de la tranche 1, ~600 EUR/mois max 2026) NON posee (cat1 a 0) car assiette T1 non representable sans surestimer les salaires > 1 PASS [ARBRE 1]. IP AT/MP art. 9 hors perimetre. Capital forfaitaire 150 %/250 % du PASS au deces — valeurs euros 2026 (OEA 72 090, cadres 120 150, a reviser au bareme annuel) [ARBRE 2] ; OEA isole +25 % du salaire annuel NON representable (cross-unit) donc non pose ; double effet (art. 11), allocation obseques 2/1 PMSS (art. 13), capital anticipe cat. 3 (art. 12) hors perimetre. Devolution RGP art. 8 : designation libre possible (y compris concubin) ; ordre par defaut conjoint puis PACS (rangs separes) puis enfants puis ascendants puis heritiers, sans representation. Rente de conjoint OEA : viagere 2 % + temporaire 4 % jusqu'a la reversion, +10 %/enfant chacune, orphelin 50 % de la viagere, interruption si remariage/PACS ; pose = viagere 2 % seule en mode cibleCumulable (cumulable, non conditionnee aux enfants) jusqu'a l'age legal du defunt (64) [ARBRE 3]. Rente education maitrise/cadres : 8 % PASS jusqu'a 16 ans, 10 % jusqu'a 18/25 (art. 8 RGP : etudes, apprentissage, stage, demandeur d'emploi non indemnise ; invalide 2-3e cat. avant 21 ans sans limite), forfait PASS via minimumPass, DOUBLEE orphelins pere et mere (lot transverse doublement) non posee. Enfants a charge = fiscalement a charge. Capital de fin de carriere (Titre VI) = IFC, hors perimetre prevoyance. Portabilite 12 mois.",
+      "santeMinimum": { "TO_FILL": true }
+    },
+    "9999": {
+      "idcc": "9999",
+      "nom": "Branche de test sans garantie",
+      "datesVerification": "2026-06-11",
+      "_comment": "TEMOIN DE TEST (LOT DONNEES PHARMACIE) - entree fictive SANS aucune garantie de branche (ni prevoyance, ni maintien, ni devolution), destinee aux tests 'branche non documentee' (remplace l'ancien usage de l'IDCC 1996 vide, desormais rempli avec le regime APGIS). NE PAS utiliser en production.",
+      "maintienEmployeur": { "cadres": null, "nonCadres": null },
+      "prevoyanceCadres": null,
+      "prevoyanceNonCadres": null,
       "santeMinimum": { "TO_FILL": true }
     }
   }
