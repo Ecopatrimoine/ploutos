@@ -419,13 +419,15 @@ describe("regleIjPlafondInsuffisant", () => {
     expect(regleIjPlafondInsuffisant(ctx, "p1")).toBeNull();
   });
 
-  it("déclenche pour salarié sans couverture coll (CPAM TO_VERIFY → exposition)", () => {
-    // Léa : 28k brut, pas de coll → à J180 IJ obl seules ≈ 50 % brut = 1167 €
-    // ref net = 1820 → ratio 0.64 → alerte (trou ~36 %)
+  it("déclenche pour salarié sans couverture coll (CPAM, sans IJ de branche → exposition)", () => {
+    // Léa : 28k brut, AUCUNE couverture de branche (idccCCN null) → à J180 IJ obl seules
+    // ≈ 1167 € ; ref net = 1820 → ratio 0.64 → alerte (trou ~36 %).
+    // NB : avec une CCN portant une IJ de branche (ex. Métallurgie 3248 depuis ASSUR-2,
+    // 75 % plat non-cadre), la couverture remonte au-dessus du seuil et la règle ne déclenche plus.
     const ctxLea = makeCtx({
       ...entreeSalarie,
       age: 28,
-      idccCCN: "3248",
+      idccCCN: null,
       ancienneteMois: 12,
       salaireBrutAnnuel: 28000,
       salaireNetMensuel: 1820,

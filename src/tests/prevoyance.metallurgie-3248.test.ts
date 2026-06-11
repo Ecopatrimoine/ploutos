@@ -3,9 +3,9 @@
 // Capital décès 200 % (cadre) / 100 % (non-cadre) du salaire de référence brut,
 // plafonné à 8 PASS (art 17.3) ; rente éducation 4/6/8 % par âge (art 17.4) ;
 // dévolution cascade exclusive avec CONCUBIN ADMIS au rang 1 (contrairement à
-// HCR). IJ et invalidité de branche NON posées dans le JSON (IJ : mode paliers
-// temporels différé ; invalidité : valeurs TO_VERIFY art 17.2 — non diffusées
-// dans la projection tant que non confirmées). PASS 2026 = 48 060.
+// HCR). IJ de branche POSÉE en ASSUR-2 (cadres : paliers 100 %/75 % art 17.1 ;
+// non-cadres : 75 % plat) ; invalidité PRIMARY art 17.2.c (avenant n1).
+// PASS 2026 = 48 060.
 
 import { describe, it, expect } from "vitest";
 import {
@@ -18,9 +18,10 @@ import {
   devolutionCapitalDecesBrancheCascade,
   resolveDevolutionCapitalDecesConfig,
 } from "../lib/calculs/succession";
-import { getMaintienParams } from "../lib/prevoyance/projection";
+import { getMaintienParams, computeIJCollective, projeterArretMaladie } from "../lib/prevoyance/projection";
 import { referentiels } from "../data/prevoyance";
 import type { PatrimonialData } from "../types/patrimoine";
+import type { CouvertureCollective, EntreePerso } from "../lib/prevoyance/types";
 
 const PASS = 48060;
 
@@ -190,5 +191,91 @@ describe("Métallurgie (3248) — maintien GMS (art 91.1.2, carence 0)", () => {
     expect(tauxJour(ccnCadre, 11, 10)).toBe(0);
     expect(tauxJour(ccnNonCadre, 11, 10)).toBe(0);
     expect(eff(11, 10)).toBe(0);
+  });
+});
+
+// ─── LOT ASSUR-2 — IJ de branche (art 17.1 annexe 9) ──────────────────────────
+describe("Métallurgie (3248) — IJ de branche CADRES (paliers 100 % puis 75 %)", () => {
+  const branche = resolveCouvertureBranche("3248", "cadres", referentiels);
+  const cov: CouvertureCollective = { ij: branche.ij };
+  const ij = (t: number) => computeIJCollective(t, cov, 1000, 0); // assiette 1000 → € directs
+
+  it("paliers résolus : [0,180) 1.00 puis [180,1095) 0.75 (FRACTIONS), franchise 0", () => {
+    expect(branche.ij?.franchise).toBe(0);
+    expect(branche.ij?.paliers).toEqual([
+      { deJour: 0, aJour: 180, pctSalaire: 1.0 },
+      { deJour: 180, aJour: 1095, pctSalaire: 0.75 },
+    ]);
+    expect(branche.ij?.paliers?.[0].pctSalaire).toBe(1.0); // FRACTION, jamais 100
+  });
+
+  it("t=0 et t=179 → 1.00 ; t=180 et t=1094 → 0.75 ; t=1095 → 0 (bornes half-open)", () => {
+    expect(ij(0)).toBeCloseTo(1000);
+    expect(ij(179)).toBeCloseTo(1000);
+    expect(ij(180)).toBeCloseTo(750);
+    expect(ij(1094)).toBeCloseTo(750);
+    expect(ij(1095)).toBe(0);
+  });
+});
+
+describe("Métallurgie (3248) — IJ de branche NON-CADRES (75 % plat, mono-taux)", () => {
+  const branche = resolveCouvertureBranche("3248", "nonCadres", referentiels);
+  const cov: CouvertureCollective = { ij: branche.ij };
+  const ij = (t: number) => computeIJCollective(t, cov, 1000, 0);
+
+  it("mono-taux résolu : pctSalaire 0.75 (FRACTION), franchise 0, PAS de paliers", () => {
+    expect(branche.ij?.pctSalaire).toBe(0.75);
+    expect(branche.ij?.franchise).toBe(0);
+    expect(branche.ij?.paliers).toBeUndefined();
+  });
+
+  it("t=0 → 0.75 ; t=1094 → 0.75 ; t=1095 → 0", () => {
+    expect(ij(0)).toBeCloseTo(750);
+    expect(ij(1094)).toBeCloseTo(750);
+    expect(ij(1095)).toBe(0);
+  });
+});
+
+// ─── LE TEST DE CHEVAUCHEMENT GMS + IJ de branche (premier de la base) ─────────
+describe("Métallurgie (3248) — chevauchement maintien GMS + IJ de branche (PAS de double comptage)", () => {
+  function entreeCadre(ancienneteMois: number, brut: number): EntreePerso {
+    return {
+      age: 40, ageRetraite: 64, statutPro: "salarie_cadre", caisse: "CPAM",
+      idccCCN: "3248", ancienneteMois, salaireBrutAnnuel: brut,
+      salaireNetMensuel: 0, contratsIndividuels: [], couvertureCollective: null,
+    };
+  }
+
+  it("cadre 24 mois, arrêt long : total JAMAIS > 100 % ref ; la branche relaie à la cible (100 % avant 180 j, 75 % après)", () => {
+    const r = projeterArretMaladie(entreeCadre(24, 60000), "cat2", referentiels);
+    const ref = r.revenuReferenceMensuel;
+    let gms100 = false, gmsRelais = false, apresGms = false;
+    for (let i = 0; i < r.axe.length; i++) {
+      if (r.axe[i].phase !== "am") continue;
+      const j = r.axe[i].jour;
+      const maint = r.series.maintienEmployeur[i];
+      const ijColl = r.series.ijComplementaireCollective[i];
+      const total = maint + r.series.ijObligatoire[i] + ijColl;
+      // (a) ANTI-DOUBLE-COMPTAGE : total <= 100 % du ref PARTOUT (GMS + IJ branche fusionnés sans cumul).
+      expect(total).toBeLessThanOrEqual(ref * 1.0001);
+      if (j >= 7 && j <= 60) {
+        // Fenêtre GMS 100 % : total porté à 100 %, la branche n'ajoute rien (déjà à la cible).
+        expect(total).toBeCloseTo(ref, 0);
+        gms100 = true;
+      } else if (j === 120) {
+        // GMS tombé à 50 % MAIS branche cible 100 % (< 180 j) → total reste 100 %, branche RELAIE.
+        expect(total).toBeCloseTo(ref, 0);
+        expect(maint).toBeGreaterThan(0);   // GMS encore actif (50 %)
+        expect(ijColl).toBeGreaterThan(0);  // branche relaie le complément
+        gmsRelais = true;
+      } else if (j === 365 || j === 547) {
+        // GMS terminé → la branche porte SEULE le total à 75 % (cible après 180 j).
+        expect(total).toBeCloseTo(0.75 * ref, 0);
+        expect(maint).toBe(0);
+        expect(ijColl).toBeGreaterThan(0);
+        apresGms = true;
+      }
+    }
+    expect(gms100 && gmsRelais && apresGms).toBe(true);
   });
 });

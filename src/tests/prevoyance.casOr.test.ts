@@ -246,9 +246,13 @@ describe("Cas d'or C — Léa, salariée non-cadre Métallurgie (CPAM / IDCC 324
     expect(r.revenuReferenceMensuel).toBeCloseTo((28000 * 0.78) / 12, 2);
   });
 
-  it("Métallurgie sans saisie : IJ collective = 0 (3248 sans IJ de branche), invalidité de branche injectée", () => {
-    // 3248 ne documente pas d'IJ de branche (ij: null) → IJ complémentaire collective = 0 partout.
-    for (const v of r.series.ijComplementaireCollective) expect(v).toBe(0);
+  it("Métallurgie IJ de branche 75 % (ASSUR-2) : nulle sous le GMS 100 %, relais après J90 ; invalidité de branche injectée", () => {
+    // GMS non-cadre 100 % (J0-89) domine la cible IJ de branche 75 % → complément collectif nul tant qu'il court.
+    const j30 = idxJour(r.axe, 30);
+    expect(r.series.ijComplementaireCollective[j30]).toBe(0);
+    // Après la fin du GMS (J90), l'IJ de branche 75 % (art 17.1) relaie au-dessus de l'IJSS seule → > 0.
+    const j180 = idxJour(r.axe, 180);
+    expect(r.series.ijComplementaireCollective[j180]).toBeGreaterThan(0);
     // L'invalidité de branche (non-cadre, cat2 70 %, art 17.2.c) EST injectée : 0 en phase AM,
     // > 0 en phase invalidité (valeur précise vérifiée à J1095 plus bas).
     const idxAM = r.axe.findIndex((p) => p.jour < 1095);
@@ -278,19 +282,20 @@ describe("Cas d'or C — Léa, salariée non-cadre Métallurgie (CPAM / IDCC 324
     expect(r.series.maintienEmployeur[j90]).toBe(0);
   });
 
-  it("exposition après J67 = IJSS seules (pas de coll/ind), revenu inférieur au net", () => {
+  it("après J90 : IJ de branche 75 % (ASSUR-2) porte le revenu à 0,75 × ref — le décrochage v1.12.2 est comblé, exposition résiduelle 25 %", () => {
     const j180 = idxJour(r.axe, 180);
     // Léa (brut 28 000 → 2333 €/mois) est SOUS le plafond 1,4 SMIC
     // (2552 €) → IJ proportionnelle : SJB = 2333,33×3/91,25 = 76,71 €/j,
     // IJ = 38,36 €/j, soit ≈ 1150,7 €/mois (non plafonnée).
     expect(r.series.ijObligatoire[j180]).toBeCloseTo(38.356 * 30, 0);
-    expect(r.series.ijComplementaireCollective[j180]).toBe(0);
+    // L'IJ de branche 75 % (art 17.1) complète l'IJSS jusqu'à 0,75 × revenu de référence.
+    expect(r.series.ijComplementaireCollective[j180]).toBeGreaterThan(0);
     expect(r.series.ijComplementaireIndividuelle[j180]).toBe(0);
     expect(r.series.maintienEmployeur[j180]).toBe(0);
-    // Total = IJ_obl seul → inférieur au net mensuel saisi (1820) :
-    // c'est précisément le constat d'exposition pédagogique.
+    // Total = IJSS + IJ de branche = 0,75 × ref, SOUS le net saisi (1820) : exposition
+    // RÉSIDUELLE de 25 %, et non plus le décrochage aux IJSS seules des fiches v1.12.2.
+    expect(totalAtIdx(r.series, j180)).toBeCloseTo(0.75 * r.revenuReferenceMensuel, 0);
     expect(totalAtIdx(r.series, j180)).toBeLessThan(1820);
-    expect(totalAtIdx(r.series, j180)).toBe(r.series.ijObligatoire[j180]);
   });
 
   it("bascule invalidité à J1095 : pension cat2 50 % SAM + invalidité de branche cat2 70 % (cible sous déduction), aucun contrat individuel", () => {
@@ -426,7 +431,7 @@ describe("Cas d'or D — Pierre, gérant majoritaire SSI (TNS, Madelin)", () => 
 // LOT ALD — scénario maladie ordinaire vs affection longue durée
 // ────────────────────────────────────────────────────────────────────
 
-describe("LOT ALD — Léa (cas C, CPAM sans complémentaire) : trou J361-J1095 en ordinaire, comblé en ALD", () => {
+describe("LOT ALD — Léa (cas C, Métallurgie 3248) : l'IJ de branche 75 % comble le trou J361-J1095 dans LES DEUX scénarios (ASSUR-2)", () => {
   const vars = buildPlafondVariables(referentiels);
   const cpam = (referentiels.caisses as any).caisses.CPAM;
 
@@ -449,15 +454,18 @@ describe("LOT ALD — Léa (cas C, CPAM sans complémentaire) : trou J361-J1095 
     expect(rAld.series.ijObligatoire[idxJour(rAld.axe, 90)]).toBeCloseTo(38.356 * 30, 0);
   });
 
-  it("au-delà de J360 (axe J365/J730/J912) : ordinaire = 0 (trou), ALD = IJSS maintenues", () => {
+  it("au-delà de J360 (axe J365/J730/J912) : l'IJ de branche 75 % porte le revenu à 0,75 × ref dans LES DEUX scénarios (ASSUR-2)", () => {
+    const cible75 = 0.75 * rOrd.revenuReferenceMensuel;
     for (const j of [365, 730, 912]) {
       const iOrd = idxJour(rOrd.axe, j);
       const iAld = idxJour(rAld.axe, j);
+      // IJSS : coupée à J360 en ordinaire, maintenue en ALD.
       expect(rOrd.series.ijObligatoire[iOrd]).toBe(0);
-      // Léa n'a aucune complémentaire → en ordinaire, revenu total nul.
-      expect(totalAtIdx(rOrd.series, iOrd)).toBe(0);
       expect(rAld.series.ijObligatoire[iAld]).toBeCloseTo(38.356 * 30, 0);
-      expect(totalAtIdx(rAld.series, iAld)).toBeCloseTo(38.356 * 30, 0);
+      // MAIS l'IJ de branche Métallurgie (75 % plat, art 17.1) comble le trou dans les DEUX cas :
+      // en ordinaire elle paie seule (IJSS = 0), en ALD elle complète l'IJSS → total identique = 0,75 × ref.
+      expect(totalAtIdx(rOrd.series, iOrd)).toBeCloseTo(cible75, 0);
+      expect(totalAtIdx(rAld.series, iAld)).toBeCloseTo(cible75, 0);
     }
   });
 

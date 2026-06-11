@@ -152,8 +152,16 @@
             { "deAge": 16, "aAge": 19, "tauxSalaireRef": 0.06, "minimumPass": 0 },
             { "deAge": 19, "aAge": 26, "tauxSalaireRef": 0.08, "minimumPass": 0 }
           ], "_commentaire": "Art 17.4.c. 4/6/8% par age, identique cadres/non-cadres. PRIMARY. Prolongation handicap >25 ans NON modelisee (gap)." },
-          "ij": null,
-          "_ij_commentaire": "IJ branche a paliers temporels (cadre 100% jusqu'a 180j puis 75%) - mode moteur DIFFERE (perimetre reduit).",
+          "ij": {
+            "mode": "complementSecu",
+            "franchise": 0,
+            "baseCalcul": "brut_total",
+            "paliers": [
+              { "deJour": 0,   "aJour": 180,  "pctSalaire": 1.00 },
+              { "deJour": 180, "aJour": 1095, "pctSalaire": 0.75 }
+            ],
+            "_comment": "IJ cadres art. 17.1 annexe 9 (ETENDU, avenant 11/07/2023) : 100% SR jusqu'au 180e jour (deJour 0-180) puis 75% jusqu'a la bascule invalidite (aJour 1095 exclusif, dernier jour servi 1094). Garantie DIFFERENTIELLE (17.1.d.i) : cible sous deduction IJSS ET salaire maintenu employeur (GMS), combinaison sans cumul au-dela de la cible. Franchise 0 (anciennete >= 12 mois). FRACTIONS (1.00, 0.75). Voir _comment d'entree pour le detail."
+          },
           "invalidite": { "cat1": { "pctSalaire": 0.45 }, "cat2": { "pctSalaire": 0.75 }, "cat3": { "pctSalaire": 0.75 }, "_commentaire": "Art 17.2.c annexe 9 (avenant n1). Cible sous deduction Secu. PRIMARY. Assiette NON plafonnee 8 PASS (art 17.2.b - raffinement differe). Rente IPP AT/MP de l'art 17.2 NON modelisee (gap)." }
         },
         "note": "Metallurgie cadres (groupes E-I, art 166.1) - aiguillage via statutPro proxy."
@@ -167,11 +175,19 @@
             { "deAge": 16, "aAge": 19, "tauxSalaireRef": 0.06, "minimumPass": 0 },
             { "deAge": 19, "aAge": 26, "tauxSalaireRef": 0.08, "minimumPass": 0 }
           ], "_commentaire": "Art 17.4.c. Identique cadres. PRIMARY." },
-          "ij": null,
+          "ij": {
+            "mode": "complementSecu",
+            "pctSalaire": 0.75,
+            "franchise": 0,
+            "plafondJours": 1094,
+            "baseCalcul": "brut_total",
+            "_comment": "IJ non-cadres art. 17.1 annexe 9 : 75% SR plat (mono-taux) du jour 0 a la bascule invalidite. plafondJours 1094 = dernier jour servi (franchise 0 + 1094) ; le moteur sert [franchise, franchise+plafondJours] INCLUS, donc extinction au j1095 = bascule invalidite, alignee sur l'aJour exclusif 1095 des cadres (ecart d'un jour avec le 1095 du sourcing, sans impact projection). Garantie differentielle (cible sous deduction IJSS et GMS). Franchise 0 (anciennete >= 12 mois). FRACTION (0.75). Voir _comment d'entree."
+          },
           "invalidite": { "cat1": { "pctSalaire": 0.42 }, "cat2": { "pctSalaire": 0.70 }, "cat3": { "pctSalaire": 0.70 }, "_commentaire": "Art 17.2.c. PRIMARY. Memes reserves que cadres." }
         },
         "note": "Metallurgie non-cadres (groupes A-D)."
       },
+      "_comment": "IJ art. 17.1 annexe 9 (ETENDU, consolide avenant 11/07/2023, KALIARTI000048487989, releve 10/06/2026) : cadres 100 % SR jusqu'au 180e jour puis 75 % jusqu'a expiration des droits IJSS ; non-cadres 75 % plat. Garantie differentielle (17.1.d.i) : cible sous deduction IJSS ET salaire maintenu employeur — le GMS et l'IJ de branche se combinent sans cumul au-dela de la cible. Franchise 0 pour les salaries >= 12 mois d'anciennete (hypothese de l'entree) ; salaries < 12 mois : garantie relais avec franchise 90 j continus (17.1.d.ii), non modelisee sans saisie d'anciennete. SR = brut L. 242-1 des 12 mois civils precedant l'arret (17.1.b). Hors perimetre : temps partiel therapeutique (17.1.e), indemnite temporaire d'inaptitude AT/MP (17.1.f), garanties additionnelles optionnelles (IJ 85/80, invalidite 51/85/85 — accord gouvernance 07/02/2022, NE PAS confondre avec le socle).",
       "santeMinimum": { "TO_FILL": true }
     },
     "1979": {
