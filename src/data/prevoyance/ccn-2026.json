@@ -1118,6 +1118,122 @@
       },
       "_comment": "Regime de prevoyance art. 84 CCN 18/04/2002, ETENDU, dans le texte de base (KALIARTI000020977284), consolide avenant 24/04/2009 + avenant interpretatif 21/01/2010 (deduction des IJSS NETTES de CSG/CRDS). Tous salaries SANS condition d'anciennete (palier 0). IJ posee = lecture A plancher (90 j a 100 % net par annee civile puis 80 % du brut moyenne 6 mois jusqu'a expiration IJSS) ; lecture B jurisprudentielle NON posee : Cass. soc. 02/10/2019 n 17-28311 et 20/12/2019 n 18-19.583 lisent l'art. 84.1 comme 100 % du net pendant TOUTE l'incapacite indemnisee (texte superpose, pratiques divergentes) — la couverture reelle peut donc etre superieure au plancher affiche. Carence maladie 3 j non-cadres / 0 cadres ; 0 pour tous en AT/MP/trajet (non modelise) ; subrogation non acquise (examen NAO). Deces 84.3 : CHOIX exclusif des ayants droit — pose = option (b) capital 85 % + rente education 5/10/15 % (bornes texte 12/18/25, extinction 25) ; option (a) NON posee : capital 170 % + 50 % par enfant SANS rente education (controles : isole 0/2 enfants = 170/270 %). IAD cat. 3 = versement anticipe mettant fin a la garantie. Pas de clause de devolution conventionnelle (capital aux ayants droit sans cascade). Invalidite 84.2 : cibles 'en net de X % du brut' approximees en cible brute, plafond 100 % du net toutes ressources. Assiettes : brut moyen 12 mois (1/365), revalorisation au point conventionnel (84.4). Hors entree : thermalisme ex-2104 (regime propre, avenants 24/32, meme conteneur depuis fusion 2019), saisonniers maisons d'enfants (annexe II), disparus en 2009 : doublement deces accidentel et double effet conjoint (version anterieure uniquement).",
       "santeMinimum": { "TO_FILL": true }
+    },
+    "1090": {
+      "idcc": "1090",
+      "nom": "Services de l'automobile (CCN du 15 janvier 1981)",
+      "datesVerification": "2026-06-11",
+      "source": "RPO IRP AUTO Prevoyance-Sante, reglement officiel edition 06/2025 (application 01/01/2026, LDR035P), execute l'art. 1.26 CCN 15/01/1981 ; accord historique 09/04/1998 (KALITEXT000005685300). Verifie le 10/06/2026.",
+      "maintienEmployeur": {
+        "nonCadres": {
+          "carenceJours": 0,
+          "subrogation": false,
+          "paliers": [
+            { "ancienneteMois": 12, "segments": [ { "jours": 45, "pct": 100 } ] }
+          ]
+        },
+        "cadres": {
+          "carenceJours": 0,
+          "subrogation": false,
+          "paliers": [
+            { "ancienneteMois": 12, "segments": [ { "jours": 90, "pct": 100 } ] }
+          ]
+        },
+        "note": "CCN arts. 2.10-2.11 (OEA) / 4.08-4.09 (cadres) : 100 % NET 45 j (OEA) / 90 j (cadres) par annee civile, des 1 an d'anciennete, sans carence. Fenetre 'par annee civile' approximee en arret continu. pct ENTIER (100). Subrogation non acquise (examen en NAO)."
+      },
+      "devolutionCapitalDeces": {
+        "mode": "cascadeExclusive",
+        "rangs": [
+          { "qualites": ["conjoint"] },
+          { "qualites": ["pacs"] },
+          { "qualites": ["enfants"] },
+          { "qualites": ["ascendants"] },
+          { "qualites": ["devolutionSuccessorale"] }
+        ],
+        "note": "RGP art. 8 : designation libre possible (y compris concubin, non modelise) ; ordre PAR DEFAUT conjoint -> PACS (rangs SEPARES) -> enfants -> ascendants -> autres heritiers, SANS representation."
+      },
+      "plafondSalaireRefPass": 4,
+      "prevoyanceNonCadres": {
+        "garantiesMinimum": {
+          "capitalDC": {
+            "mode": "situationFamiliale",
+            "conjointInclutConcubin": false,
+            "avecConjoint": { "valeur": 72090, "unite": "euros" },
+            "sansConjoint": { "valeur": 72090, "unite": "euros" },
+            "_comment": "ARBRE 2 (pas d'unite pctPass dans le schema) : capital forfaitaire 150 % du PASS = 72 090 EUR (PASS 2026 = 48 060), UNIFORME (avecConjoint = sansConjoint), independant du salaire. Majoration OEA isole +25 % du salaire annuel NON representable (addition flat cross-unit euros + pctSR hors schema) -> non posee, sous-estime l'isole. A reviser au bareme annuel."
+          },
+          "renteConjoint": {
+            "mode": "cibleCumulable",
+            "tauxSalaireRef": 0.02,
+            "finAgeDefunt": 64,
+            "beneficiaires": ["conjoint", "pacs"],
+            "_comment": "ARBRE 3 : rente de conjoint OEA. Pose = composante VIAGERE 2 % du salaire de reference, en mode cibleCumulable (CUMULABLE, NON conditionnee a l'absence d'enfant - contrairement a substitutive qui serait bloquee par les enfants) jusqu'a l'age legal du defunt (64). Temporaire 4 % jusqu'a la reversion, majorations +10 %/enfant sur chaque rente, rente d'orphelin 50 % de la viagere (2e parent decede), interruption si remariage/PACS : NON poses (plancher conservateur)."
+          },
+          "renteEducation": null,
+          "_renteEducation_comment": "OEA stricts : pas de rente education (reservee maitrise/cadres). Un agent de maitrise reel y aurait droit - approximation de college (modelise en OEA -> rente de conjoint a la place).",
+          "ij": {
+            "mode": "complementSecu",
+            "franchise": 45,
+            "baseCalcul": "brut_total",
+            "paliers": [
+              { "deJour": 45,  "aJour": 180,  "pctSalaire": 1.00 },
+              { "deJour": 180, "aJour": 1095, "pctSalaire": 0.30 }
+            ],
+            "_comment": "RPO arts. 2/4 (mode paliers ASSUR-0). Palier 1 [45,180) : ITT 100 % du NET (pose 1.00, convention maison, plafond moteur 100 %). Palier 2 [180,1095) : longue maladie 30 % du brut. ATTENTION mecanique : l'IJ est un COMPLEMENT a une CIBLE (pas un additif) -> le palier 2 vise 30 % du revenu de reference, MASQUE par les IJSS (~64 % du ref pour un salaire moyen) tant qu'elles courent ; il n'emerge (30 %) que si les IJSS s'arretent (maladie ordinaire au-dela de J360). Le 'IJSS + 30 %' additif reel du RPO est donc SOUS-ESTIME (pas de mode additif pour l'IJ). franchise 45 (OEA). Extinction a la bascule invalidite (aJour 1095 exclusif, dernier jour servi 1094). FRACTIONS (1.00, 0.30)."
+          },
+          "invalidite": {
+            "mode": "additif",
+            "base": "brut",
+            "cat1": { "pctSalaire": 0 },
+            "cat2": { "pctSalaire": 0.30 },
+            "cat3": { "pctSalaire": 0.30 },
+            "_comment": "ARBRE 1 (pas de plafond d'assiette par categorie dans le schema) : cat. 1 (art. 6 RPO : 15 % de la TRANCHE 1, ~600 EUR/mois max 2026) NON posee (cat1 pctSalaire 0) car l'assiette T1 n'est pas representable sans surestimer les salaires > 1 PASS. cat. 2/3 : 30 % du brut ADDITIF a la pension Secu (mode additif, base brut, assiette 4 PASS), jusqu'a la retraite. Plafond 100 % du net : le moteur borne via l'etage individuel (H11, 100 % du revenu de reference) ; SANS contrat individuel, pension Secu + 30 % brut peut depasser ~100 % du revenu de reference (~102-103 %) - approximation moteur (additif collectif non borne)."
+          }
+        },
+        "note": "RPO IRP AUTO - college OEA (employes/ouvriers). Asymetrie : capital 150 % PASS + rente de conjoint (PAS de rente education)."
+      },
+      "prevoyanceCadres": {
+        "garantiesMinimum": {
+          "capitalDC": {
+            "mode": "situationFamiliale",
+            "conjointInclutConcubin": false,
+            "avecConjoint": { "valeur": 120150, "unite": "euros" },
+            "sansConjoint": { "valeur": 120150, "unite": "euros" },
+            "_comment": "ARBRE 2 : capital forfaitaire 250 % du PASS = 120 150 EUR (PASS 2026 = 48 060), UNIFORME toute situation, independant du salaire. A reviser au bareme annuel."
+          },
+          "renteConjoint": null,
+          "_renteConjoint_comment": "Cadres (et maitrise) : pas de rente de conjoint OEA ; rente education a la place.",
+          "renteEducation": {
+            "mode": "trancheAge",
+            "tranches": [
+              { "deAge": 0,  "aAge": 16, "tauxSalaireRef": 0, "minimumPass": 0.08 },
+              { "deAge": 16, "aAge": 25, "tauxSalaireRef": 0, "minimumPass": 0.10 }
+            ],
+            "_comment": "Forfait % du PASS represente via minimumPass (tauxSalaireRef 0) : 8 % PASS (< 16 ans) = 3 844,80 EUR ; 10 % PASS (16-<25 ans) = 4 806 EUR. Bornes texte, extinction 25 ans. Maitrise/cadres (art. 8 RGP). DOUBLEE orphelins pere+mere (lot transverse doublement) NON posee."
+          },
+          "ij": {
+            "mode": "complementSecu",
+            "franchise": 90,
+            "baseCalcul": "brut_total",
+            "paliers": [
+              { "deJour": 90,  "aJour": 180,  "pctSalaire": 1.00 },
+              { "deJour": 180, "aJour": 1095, "pctSalaire": 0.30 }
+            ],
+            "_comment": "RPO arts. 2/4 (mode paliers ASSUR-0). Palier 1 [90,180) : ITT 100 % du NET (pose 1.00, plafond moteur). Palier 2 [180,1095) : longue maladie 30 % du brut = CIBLE (complementSecu) masquee par les IJSS tant qu'elles courent ('IJSS + 30 %' additif reel sous-estime, pas de mode additif IJ). franchise 90 (cadres). Extinction bascule invalidite (aJour 1095 exclusif). FRACTIONS."
+          },
+          "invalidite": {
+            "mode": "additif",
+            "base": "brut",
+            "cat1": { "pctSalaire": 0 },
+            "cat2": { "pctSalaire": 0.30 },
+            "cat3": { "pctSalaire": 0.30 },
+            "_comment": "ARBRE 1 : cat. 1 non posee (pctSalaire 0, assiette T1 non representable). cat. 2/3 : 30 % du brut ADDITIF a la Secu (4 PASS), jusqu'a la retraite. Plafond 100 % du net borne via l'etage individuel (peut depasser ~100 % du ref sans contrat individuel)."
+          }
+        },
+        "note": "RPO IRP AUTO - college cadres (et maitrise pour capital/rente education). Asymetrie : capital 250 % PASS + rente education (PAS de rente de conjoint)."
+      },
+      "_comment": "RPO IRP AUTO Prevoyance-Sante, reglement officiel edition 06/2025 application 01/01/2026 (LDR035P), execute l'art. 1.26 CCN 15/01/1981 ; accord historique 09/04/1998 (KALITEXT000005685300) ; accord cotisations 23/10/2025 etendu 18/03/2026 (tarifs seuls). Colleges asymetriques : maitrise = OEA pour IJ/maintien (46e jour) mais maitrise+cadres pour capital 250 % PASS et rente education — le bloc nonCadres modelise les OEA stricts, un agent de maitrise reel est sous-estime au capital et recoit la rente de conjoint au lieu de la rente education (approximation de college type chimie). Maintien 100 % NET 45 j (OEA)/90 j (cadres) par annee civile des 1 an, arts. 2.10-2.11/4.08-4.09 CCN. IJ : ITT 100 % du NET (pose 1.00 brut, plafond moteur) du 46e/91e au 180e jour puis longue maladie 30 % du brut jusqu'a cat. 2/3 ou retraite ; fenetres annee civile approximees en arret continu ; cotisation ITT a la charge exclusive des salaries. ATTENTION : le palier 2 IJ 30 % est une CIBLE (mecanique complement), masquee par les IJSS tant qu'elles courent (le 'IJSS + 30 %' additif reel est sous-estime, pas de mode additif IJ). Invalidite ADDITIVE : cat. 2/3 30 % du brut 4 PASS en complement de la Secu, plafond 100 % du net (borne moteur via l'etage individuel ; le cumul additif collectif n'est pas borne et peut depasser ~100 % du ref), jusqu'a la retraite ; cat. 1 (art. 6 RPO : 15 % de la tranche 1, ~600 EUR/mois max 2026) NON posee (cat1 a 0) car assiette T1 non representable sans surestimer les salaires > 1 PASS [ARBRE 1]. IP AT/MP art. 9 hors perimetre. Capital forfaitaire 150 %/250 % du PASS au deces — valeurs euros 2026 (OEA 72 090, cadres 120 150, a reviser au bareme annuel) [ARBRE 2] ; OEA isole +25 % du salaire annuel NON representable (cross-unit) donc non pose ; double effet (art. 11), allocation obseques 2/1 PMSS (art. 13), capital anticipe cat. 3 (art. 12) hors perimetre. Devolution RGP art. 8 : designation libre possible (y compris concubin) ; ordre par defaut conjoint puis PACS (rangs separes) puis enfants puis ascendants puis heritiers, sans representation. Rente de conjoint OEA : viagere 2 % + temporaire 4 % jusqu'a la reversion, +10 %/enfant chacune, orphelin 50 % de la viagere, interruption si remariage/PACS ; pose = viagere 2 % seule en mode cibleCumulable (cumulable, non conditionnee aux enfants) jusqu'a l'age legal du defunt (64) [ARBRE 3]. Rente education maitrise/cadres : 8 % PASS jusqu'a 16 ans, 10 % jusqu'a 18/25 (art. 8 RGP : etudes, apprentissage, stage, demandeur d'emploi non indemnise ; invalide 2-3e cat. avant 21 ans sans limite), forfait PASS via minimumPass, DOUBLEE orphelins pere et mere (lot transverse doublement) non posee. Enfants a charge = fiscalement a charge. Capital de fin de carriere (Titre VI) = IFC, hors perimetre prevoyance. Portabilite 12 mois.",
+      "santeMinimum": { "TO_FILL": true }
     }
   }
 }
