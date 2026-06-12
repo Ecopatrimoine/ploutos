@@ -52,12 +52,12 @@ function travail(statutPro: StatutPro | ""): PayloadTravail {
   return { ...createEmptyTravail(), statutPro };
 }
 
-// Dossier 1 personne, PCS groupe "3" deja choisi, catégorie vide : le select de
-// catégorie est rendu (groupe 3 a des catégories, dont "31 Professions liberales").
-function baseData(statutP1: StatutPro | ""): PatrimonialData {
+// Dossier 1 personne. pcsGroupe parametrable : "3" deja choisi (le select de
+// catégorie est alors rendu) ou "" pour exercer le flux reel groupe -> catégorie.
+function baseData(statutP1: StatutPro | "", pcsGroupe: string): PatrimonialData {
   return {
     person1FirstName: "Pierre", person1LastName: "Martin", person1BirthDate: "1980-01-01",
-    person1JobTitle: "", person1Csp: "", person1PcsGroupe: "3",
+    person1JobTitle: "", person1Csp: "", person1PcsGroupe: pcsGroupe,
     person2FirstName: "", person2LastName: "", person2BirthDate: "",
     person2JobTitle: "", person2Csp: "", person2PcsGroupe: "",
     coupleStatus: "single", matrimonialRegime: "", singleParent: true,
@@ -74,8 +74,8 @@ function baseData(statutP1: StatutPro | ""): PatrimonialData {
   } as unknown as PatrimonialData;
 }
 
-function Harness({ statutP1 }: { statutP1: StatutPro | "" }) {
-  const [data, setData] = React.useState<PatrimonialData>(() => baseData(statutP1));
+function Harness({ statutP1, pcsGroupe = "3" }: { statutP1: StatutPro | ""; pcsGroupe?: string }) {
+  const [data, setData] = React.useState<PatrimonialData>(() => baseData(statutP1, pcsGroupe));
   const setField = (k: keyof PatrimonialData, v: unknown) =>
     setData((prev) => ({ ...prev, [k]: v }) as PatrimonialData);
   return (
@@ -93,6 +93,12 @@ function saisirCsp31() {
   fireEvent.change(select, { target: { value: "31" } });
 }
 
+// Selectionne un groupe PCS dans le 1er select (groupe de P1, premier du DOM).
+function saisirGroupeP1(code: string) {
+  const groupeSelect = screen.getAllByRole("combobox")[0] as HTMLSelectElement;
+  fireEvent.change(groupeSelect, { target: { value: code } });
+}
+
 describe("TabTravail — pre-remplissage statutPro depuis la CSP (sub-lot 2)", () => {
   it("(a) CSP 31 avec statutPro vide -> tns_liberal pose", () => {
     render(<Harness statutP1="" />);
@@ -106,5 +112,22 @@ describe("TabTravail — pre-remplissage statutPro depuis la CSP (sub-lot 2)", (
     expect(screen.getByTestId("statut").textContent).toBe("president_sas");
     saisirCsp31();
     expect(screen.getByTestId("statut").textContent).toBe("president_sas");
+  });
+
+  it("(c) flux reel : groupe 3 puis csp 31 (statutPro vide) -> tns_liberal, pas salarie_cadre", () => {
+    render(<Harness statutP1="" pcsGroupe="" />);
+    expect(screen.getByTestId("statut").textContent).toBe("VIDE");
+    // Etape GROUPE 3 : ambigu -> ne doit RIEN poser (suggestion differee).
+    saisirGroupeP1("3");
+    expect(screen.getByTestId("statut").textContent).toBe("VIDE");
+    // Etape CATEGORIE 31 : pose tns_liberal (et non salarie_cadre).
+    saisirCsp31();
+    expect(screen.getByTestId("statut").textContent).toBe("tns_liberal");
+  });
+
+  it("(d) groupe 7 -> retraite pose des l'etape groupe (derivation univoque)", () => {
+    render(<Harness statutP1="" pcsGroupe="" />);
+    saisirGroupeP1("7");
+    expect(screen.getByTestId("statut").textContent).toBe("retraite");
   });
 });

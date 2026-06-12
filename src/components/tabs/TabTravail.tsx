@@ -142,7 +142,12 @@ const TabTravail = React.memo(function TabTravail(props: any) {
               onValueChange={(v) => {
                 setField(which === 1 ? "person1PcsGroupe" : "person2PcsGroupe", v);
                 setField(which === 1 ? "person1Csp" : "person2Csp", "");
-                maybeSuggestStatut(which, v, "");
+                // Suggestion a l'etape GROUPE uniquement pour les groupes a
+                // derivation univoque (7 retraite, 8 sans activite). Les groupes
+                // 3/4/5/6 sont ambigus tant que la categorie n'est pas choisie
+                // (ex. csp 31 liberal dans le groupe 3) : on diffère la suggestion
+                // au onChange de Csp, qui dispose de l'information complete.
+                if (v === "7" || v === "8") maybeSuggestStatut(which, v, "");
               }}
             >
               <SelectTrigger className="rounded-xl"><SelectValue placeholder="Sélectionner un groupe…" /></SelectTrigger>
