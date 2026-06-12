@@ -106,6 +106,18 @@ export function resolveCapitauxDeces(
       if (montants != null && typeof montants === "object") {
         capital = safeNum(montants[entree.classeCotisationCaisse ?? ""]);
       }
+    } else if (type === "forfaitaire_par_situation_familiale") {
+      // Capital selon la SITUATION FAMILIALE du défunt (CARPIMKO) — miroir du
+      // mode "situationFamiliale" CCN (cf. FamilleCapitalDeces). SÉLECTION du cas
+      // uniquement (aucun calcul au-delà) : conjoint / PACS (entree.marie) avec
+      // ou sans descendant à charge (entree.nbEnfantsACharge), sinon "sans ayant
+      // droit". "TO_VERIFY" / absent → null + donneeIndisponible (comme les autres).
+      const conjoint = entree.marie === true;
+      const avecDescendant = (entree.nbEnfantsACharge ?? 0) > 0;
+      const champ = conjoint
+        ? (avecDescendant ? "montantConjointAvecDescendant" : "montantConjointSansDescendant")
+        : "montantSansAyantDroit";
+      capital = safeNum(cap[champ]);
     }
   }
 

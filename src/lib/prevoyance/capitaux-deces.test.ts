@@ -178,3 +178,49 @@ describe("resolveCapitauxDeces — CIPAV (capital par points)", () => {
     expect(r.donneeIndisponible).toBe(true);
   });
 });
+
+// ─── Schéma : capital par SITUATION FAMILIALE (LOT CAISSES-DC, type CARPIMKO) ──
+// Test du handler sur un caisseRef SYNTHÉTIQUE (indépendant des vraies données) :
+// sélection du cas par entree.marie + entree.nbEnfantsACharge, "TO_VERIFY" → null.
+describe("resolveCapitauxDeces — forfaitaire_par_situation_familiale (schéma)", () => {
+  const caisseRef = {
+    nom: "CAISSE TEST",
+    capitalDeces: {
+      type: "forfaitaire_par_situation_familiale",
+      montantConjointAvecDescendant: 54432,
+      montantConjointSansDescendant: 36288,
+      montantSansAyantDroit: 18144,
+    },
+  };
+
+  it("conjoint/PACS AVEC descendant à charge → montant le plus élevé", () => {
+    const r = resolveCapitauxDeces(caisseRef, makeEntree({ marie: true, nbEnfantsACharge: 2 }));
+    expect(r.capital).toBe(54432);
+    expect(r.donneeIndisponible).toBe(false);
+  });
+
+  it("conjoint/PACS SANS descendant → montant intermédiaire", () => {
+    const r = resolveCapitauxDeces(caisseRef, makeEntree({ marie: true, nbEnfantsACharge: 0 }));
+    expect(r.capital).toBe(36288);
+  });
+
+  it("aucun conjoint/PACS → montant « sans ayant droit »", () => {
+    const r = resolveCapitauxDeces(caisseRef, makeEntree({ marie: false, nbEnfantsACharge: 0 }));
+    expect(r.capital).toBe(18144);
+  });
+
+  it("montants TO_VERIFY → capital null + donnée indisponible (sans planter)", () => {
+    const ref = {
+      nom: "X",
+      capitalDeces: {
+        type: "forfaitaire_par_situation_familiale",
+        montantConjointAvecDescendant: "TO_VERIFY",
+        montantConjointSansDescendant: "TO_VERIFY",
+        montantSansAyantDroit: "TO_VERIFY",
+      },
+    };
+    const r = resolveCapitauxDeces(ref, makeEntree({ marie: true, nbEnfantsACharge: 1 }));
+    expect(r.capital).toBeNull();
+    expect(r.donneeIndisponible).toBe(true);
+  });
+});
