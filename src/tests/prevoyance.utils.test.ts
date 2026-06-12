@@ -217,4 +217,39 @@ describe("resolveSiret", () => {
       expect(res.data.sourceCCN).toBe("non_defini");
     }
   });
+
+  // ─── Multi-IDCC (LOT MULTI-IDCC) — additif, non-regression stricte ──────────
+  it("(a) mono-IDCC : comportement inchange — idccCCN = [0], multiIdcc false, idccListe complete", async () => {
+    const payload = { results: [{ nom_complet: "ACME", matching_etablissements: [{ liste_idcc: ["1486"] }] }] };
+    const res = await resolveSiret("12345678901234", mockFetchOK(payload));
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data.idccCCN).toBe("1486");
+      expect(res.data.idccListe).toEqual(["1486"]);
+      expect(res.multiIdcc).toBe(false);
+      expect(res.data.sourceCCN).toBe("auto");
+    }
+  });
+
+  it("(b) multi-IDCC : multiIdcc true + liste complete conservee + [0] pre-rempli", async () => {
+    const payload = { results: [{ nom_complet: "MULTI", matching_etablissements: [{ liste_idcc: ["1486", "3248", "1979"] }] }] };
+    const res = await resolveSiret("12345678901234", mockFetchOK(payload));
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data.idccCCN).toBe("1486"); // 1er pre-rempli (comportement par defaut inchange)
+      expect(res.data.idccListe).toEqual(["1486", "3248", "1979"]);
+      expect(res.multiIdcc).toBe(true);
+    }
+  });
+
+  it("(c) reponse sans liste_idcc : idccCCN null, idccListe [], multiIdcc false (pas de crash)", async () => {
+    const payload = { results: [{ nom_complet: "NO-IDCC", matching_etablissements: [{ activite_principale: "6820A" }] }] };
+    const res = await resolveSiret("11122233344455", mockFetchOK(payload));
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data.idccCCN).toBeNull();
+      expect(res.data.idccListe).toEqual([]);
+      expect(res.multiIdcc).toBe(false);
+    }
+  });
 });

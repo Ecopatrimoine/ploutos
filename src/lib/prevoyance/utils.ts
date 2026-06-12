@@ -46,7 +46,9 @@ export function lookupCCNName(idcc: string | null | undefined): string | null {
 }
 
 export type ResolveSiretResult =
-  | { ok: true; data: EmployeurInfo }
+  // multiIdcc additif : true si l'API a renvoye plusieurs conventions pour ce SIRET
+  // (la liste complete est dans data.idccListe ; data.idccCCN reste le 1er, pre-rempli).
+  | { ok: true; data: EmployeurInfo; multiIdcc: boolean }
   | { ok: false; reason: "invalid_format" | "not_found" | "network_error" };
 
 export async function resolveSiret(
@@ -92,12 +94,13 @@ export async function resolveSiret(
       etab?.activite_principale ?? result.activite_principale ?? null,
     idccCCN,
     nomCCN: idccCCN ? lookupCCNName(idccCCN) : null,
+    idccListe: idccList,
     sourceCCN: idccCCN ? "auto" : "non_defini",
     effectif: Number.isFinite(effectif as number) ? effectif : null,
     adresseEtablissement: etab?.adresse ?? null,
     dateCreation: result.date_creation ?? null,
   };
-  return { ok: true, data };
+  return { ok: true, data, multiIdcc: idccList.length > 1 };
 }
 
 export function createEmptyTravail(): PayloadTravail {

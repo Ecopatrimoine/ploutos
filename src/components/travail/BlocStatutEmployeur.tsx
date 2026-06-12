@@ -281,6 +281,11 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
                   {employeur.nomCCN ? ` — ${employeur.nomCCN}` : ""}
                 </div>
               )}
+              {employeur?.idccListe && employeur.idccListe.length > 1 && (
+                <div className="text-xs" style={{ color: BRAND.warning }}>
+                  ⚠ Plusieurs conventions détectées pour ce SIRET : {employeur.idccListe.join(", ")}. Vérifiez la convention applicable.
+                </div>
+              )}
             </div>
           </Field>
         </div>

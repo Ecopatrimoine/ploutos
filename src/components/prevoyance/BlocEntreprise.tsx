@@ -72,6 +72,7 @@ export const BlocEntreprise = React.memo(function BlocEntreprise({ value, onChan
           effectif: r.data.effectif,
           idccCCN: r.data.idccCCN,
           nomCCN: r.data.nomCCN ?? (r.data.idccCCN ? lookupCCNName(r.data.idccCCN) : null),
+          idccListe: r.data.idccListe,
         });
       } else if (r.ok === false && r.reason === "not_found") {
         setErreur("SIRET non trouvé dans la base entreprises.");
@@ -180,6 +181,11 @@ export const BlocEntreprise = React.memo(function BlocEntreprise({ value, onChan
             {value.idccCCN && value.nomCCN && (
               <div className="text-xs" style={{ color: BRAND.muted }}>
                 {value.nomCCN}
+              </div>
+            )}
+            {value.idccListe && value.idccListe.length > 1 && (
+              <div className="text-xs" style={{ color: BRAND.warning }}>
+                ⚠ Plusieurs conventions détectées pour ce SIRET : {value.idccListe.join(", ")}. Vérifiez la convention applicable.
               </div>
             )}
           </div>

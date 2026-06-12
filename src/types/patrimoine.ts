@@ -279,6 +279,9 @@ export type EmployeurInfo = {
   codeNAF: string | null;
   idccCCN: string | null;
   nomCCN: string | null;
+  // Liste COMPLETE des IDCC retournes par l'API pour ce SIRET (multi-conventions).
+  // Additif/optionnel : idccCCN reste le 1er, pre-rempli. Absent des dossiers anterieurs.
+  idccListe?: string[];
   sourceCCN: "auto" | "manuel" | "non_defini";
   effectif: number | null;
   adresseEtablissement: string | null;
@@ -550,6 +553,8 @@ export type EntrepriseAudit = {
   effectif: number | null;
   idccCCN: string | null;
   nomCCN: string | null;
+  // Liste complete des IDCC detectes pour ce SIRET (additif/optionnel, retro-compatible).
+  idccListe?: string[];
   codeNAF: string | null;
   // Déclarations couverture en place (saisies par le client)
   santeCollectiveEnPlace: boolean;
