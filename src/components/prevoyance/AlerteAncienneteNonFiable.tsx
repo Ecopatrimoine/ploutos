@@ -55,13 +55,17 @@ type Props = {
   statutPro: StatutPro | "";
   idccCCN: string | null;
   dateEmbauche: string | null | undefined;
+  // Classe optionnelle ajoutée à l'encart (espacement géré par le parent). Le
+  // composant rendant null quand l'alerte ne s'applique pas, aucune marge vide
+  // n'est laissée dans le DOM.
+  className?: string;
 };
 
-export function AlerteAncienneteNonFiable({ statutPro, idccCCN, dateEmbauche }: Props) {
+export function AlerteAncienneteNonFiable({ statutPro, idccCCN, dateEmbauche, className = "" }: Props) {
   if (!doitAlerterAncienneteNonFiable(statutPro, idccCCN, dateEmbauche)) return null;
   return (
     <div
-      className="rounded-xl p-3 text-sm"
+      className={`rounded-xl p-3 text-sm ${className}`.trim()}
       style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}
     >
       Date d'embauche non renseignée : le maintien de salaire employeur est calculé
