@@ -564,6 +564,26 @@ export type EntrepriseAudit = {
   prevoyanceNonCadresEnPlace: boolean;
   categoriesObjectivesDeclarees: string;   // libellé/texte libre
   retraiteSuppEnPlace: boolean;
+  // Détail OPTIONNEL des garanties réellement souscrites (Lot SOUSCRIT) — additif,
+  // rétro-compatible (absent des dossiers antérieurs). N'influence AUCUN calcul.
+  garantiesSouscrites?: GarantiesSouscrites;
+};
+
+// ─── Lot SOUSCRIT — détail OPTIONNEL des garanties souscrites ─────────────────
+// Miroir structurel des obligations de branche (cf. ObligationItem), par collège.
+// MÊMES UNITÉS que les obligations : taux/pct en FRACTIONS (ex. 2.0 = 200 %,
+// 0.80 = 80 %), JAMAIS en centièmes (piège 100 vs 1.0). franchiseJours en JOURS.
+// Tout champ absent = « non renseigné par le client » (et surtout PAS 0).
+export type GarantiesSouscritesCollege = {
+  capitalDC?: { tauxSalaireRef?: number };               // fraction (× salaire de référence)
+  renteEducation?: { tauxSalaireRefParEnfant?: number }; // fraction
+  renteConjoint?: { tauxSalaireRef?: number };           // fraction
+  ij?: { pctSalaire?: number; franchiseJours?: number }; // pctSalaire = fraction ; franchiseJours = jours
+  invalidite?: { cat1?: number; cat2?: number; cat3?: number }; // fractions
+};
+export type GarantiesSouscrites = {
+  cadres?: GarantiesSouscritesCollege;
+  nonCadres?: GarantiesSouscritesCollege;
 };
 
 // Source du contexte entreprise.

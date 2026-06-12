@@ -19,12 +19,34 @@ import {
   validateSiret,
   lookupCCNName,
 } from "../../lib/prevoyance/utils";
-import type { EntrepriseAudit } from "../../types/patrimoine";
+import type { EntrepriseAudit, GarantiesSouscrites, GarantiesSouscritesCollege } from "../../types/patrimoine";
 
 type Props = {
   value: EntrepriseAudit;
   onChange: (next: EntrepriseAudit) => void;
 };
+
+// ─── Conversion saisie % naturel <-> stockage FRACTION (Lot SOUSCRIT) ─────────
+// L'écran saisit en % naturel (200 pour 200 %) ; le stockage est en FRACTION (2.0,
+// mêmes unités que les obligations de branche). Champ vide -> undefined (JAMAIS 0).
+export function pctSaisieVersFraction(raw: string): number | undefined {
+  const t = raw.trim();
+  if (t === "") return undefined;
+  const n = Number(t.replace(",", "."));
+  return Number.isFinite(n) ? n / 100 : undefined;
+}
+export function fractionVersPctSaisie(f: number | undefined): string {
+  if (f == null) return "";
+  const p = f * 100;
+  return String(Number.isInteger(p) ? p : Number(p.toFixed(6)));
+}
+// Franchise en JOURS : entier brut, AUCUNE conversion. Vide -> undefined.
+export function joursSaisie(raw: string): number | undefined {
+  const t = raw.trim();
+  if (t === "") return undefined;
+  const n = Number(t.replace(",", "."));
+  return Number.isFinite(n) ? n : undefined;
+}
 
 export function emptyEntrepriseAudit(): EntrepriseAudit {
   return {
@@ -52,6 +74,56 @@ export const BlocEntreprise = React.memo(function BlocEntreprise({ value, onChan
   function patch(p: Partial<EntrepriseAudit>) {
     onChange({ ...value, ...p });
   }
+
+  // Met à jour un champ imbriqué de garantiesSouscrites. val undefined -> on RETIRE
+  // le champ (puis la garantie / le collège / la structure si devenus vides) :
+  // champ vide = "non renseigné", JAMAIS 0.
+  function setSouscrit(
+    college: "cadres" | "nonCadres",
+    garantie: keyof GarantiesSouscritesCollege,
+    champ: string,
+    val: number | undefined
+  ) {
+    const gs = { ...(value.garantiesSouscrites ?? {}) } as Record<string, Record<string, Record<string, number>>>;
+    const col = { ...(gs[college] ?? {}) };
+    const g = { ...(col[garantie] ?? {}) };
+    if (val === undefined) delete g[champ];
+    else g[champ] = val;
+    if (Object.keys(g).length === 0) delete col[garantie];
+    else col[garantie] = g;
+    if (Object.keys(col).length === 0) delete gs[college];
+    else gs[college] = col;
+    patch({ garantiesSouscrites: (Object.keys(gs).length === 0 ? undefined : gs) as GarantiesSouscrites | undefined });
+  }
+  function valSouscrit(college: "cadres" | "nonCadres", garantie: string, champ: string): number | undefined {
+    const col = value.garantiesSouscrites?.[college] as Record<string, Record<string, number>> | undefined;
+    return col?.[garantie]?.[champ];
+  }
+  const inputPct = (college: "cadres" | "nonCadres", garantie: keyof GarantiesSouscritesCollege, champ: string, label: string) => (
+    <Field label={label}>
+      <Input
+        type="number"
+        value={fractionVersPctSaisie(valSouscrit(college, garantie, champ))}
+        onChange={(e) => setSouscrit(college, garantie, champ, pctSaisieVersFraction(e.target.value))}
+        className="rounded-xl"
+        placeholder="ex. 200"
+      />
+    </Field>
+  );
+  const inputJours = (college: "cadres" | "nonCadres", garantie: keyof GarantiesSouscritesCollege, champ: string, label: string) => {
+    const cur = valSouscrit(college, garantie, champ);
+    return (
+      <Field label={label}>
+        <Input
+          type="number"
+          value={cur == null ? "" : String(cur)}
+          onChange={(e) => setSouscrit(college, garantie, champ, joursSaisie(e.target.value))}
+          className="rounded-xl"
+          placeholder="ex. 90"
+        />
+      </Field>
+    );
+  };
 
   async function handleResolveSiret() {
     const siret = (value.siret ?? "").replace(/\s+/g, "");
@@ -277,6 +349,34 @@ export const BlocEntreprise = React.memo(function BlocEntreprise({ value, onChan
           <span>Retraite supplémentaire en place (PERO / Art. 83 / Art. 39)</span>
         </label>
       </div>
+
+      {/* Détail optionnel des garanties souscrites (Lot SOUSCRIT) — saisie nue,
+          repliable ; la passe vendeur (design) viendra plus tard. Saisie en %
+          naturel (200 = 200 %), stockée en fraction. */}
+      <details className="rounded-xl p-3" style={{ border: `1px solid ${SURFACE.border}` }}>
+        <summary className="text-xs font-semibold uppercase tracking-widest cursor-pointer" style={{ color: BRAND.sky }}>
+          Détail des garanties souscrites (optionnel)
+        </summary>
+        <div className="mt-3 space-y-4">
+          {(["cadres", "nonCadres"] as const).map((col) => (
+            <div key={col} className="space-y-2">
+              <div className="text-xs font-bold" style={{ color: BRAND.navy }}>
+                {col === "cadres" ? "Collège cadres" : "Collège non-cadres"}
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                {inputPct(col, "capitalDC", "tauxSalaireRef", "Capital décès (% salaire réf)")}
+                {inputPct(col, "renteEducation", "tauxSalaireRefParEnfant", "Rente éducation (% / enfant)")}
+                {inputPct(col, "renteConjoint", "tauxSalaireRef", "Rente conjoint (% salaire réf)")}
+                {inputPct(col, "ij", "pctSalaire", "IJ (% salaire)")}
+                {inputJours(col, "ij", "franchiseJours", "IJ franchise (jours)")}
+                {inputPct(col, "invalidite", "cat1", "Invalidité cat1 (%)")}
+                {inputPct(col, "invalidite", "cat2", "Invalidité cat2 (%)")}
+                {inputPct(col, "invalidite", "cat3", "Invalidité cat3 (%)")}
+              </div>
+            </div>
+          ))}
+        </div>
+      </details>
     </div>
   );
 });
