@@ -380,20 +380,23 @@ function ColonnePerso({
             {Math.round(projection.revenuReferenceMensuel).toLocaleString("fr-FR")} €/mois
           </span>
         </div>
+
+        {/* Alerte ancienneté non fiable — date d'embauche manquante ALORS QUE le
+            maintien employeur applicable dépend de l'ancienneté (LOT ANCIEN-UI).
+            Placée DANS la carte récap (piste 1 du subgrid, déjà égalisée entre
+            colonnes via xl:h-full) : le corps de colonne reste donc aligné P1/P2
+            que 0, 1 ou 2 encarts se déclenchent. Aucune incidence calcul. */}
+        <AlerteAncienneteNonFiable
+          statutPro={entree.statutPro}
+          idccCCN={entree.idccCCN}
+          dateEmbauche={data.travail?.[cible]?.dateEmbauche ?? null}
+          className="mt-3"
+        />
       </div>
 
       {/* Corps de colonne — un seul conteneur, pour occuper la 2e piste du
           subgrid en mode 2 personnes (empilement normal sinon). */}
       <div className="space-y-4">
-
-      {/* Alerte ancienneté non fiable — date d'embauche manquante ALORS QUE le
-          maintien employeur applicable dépend de l'ancienneté (LOT ANCIEN-UI).
-          Aucune incidence calcul : simple relecture du maintien pour l'affichage. */}
-      <AlerteAncienneteNonFiable
-        statutPro={entree.statutPro}
-        idccCCN={entree.idccCCN}
-        dateEmbauche={data.travail?.[cible]?.dateEmbauche ?? null}
-      />
 
       {/* La SAISIE des blocs caisse (CARMF/CIPAV/CARPIMKO) est désormais dans
           l'onglet Travail, sous « Statut professionnel & employeur ». Ici, on
