@@ -52,6 +52,7 @@ import { defaultCarmf } from "../prevoyance/BlocCarmf";
 import { defaultCipav } from "../prevoyance/BlocCipav";
 import { defaultCarpimko } from "../prevoyance/BlocCarpimko";
 import { BandeauResumeClient, BlocPedagogie } from "../prevoyance/BlocPedagogie";
+import { AlerteAncienneteNonFiable } from "../prevoyance/AlerteAncienneteNonFiable";
 import { getContratsTransmissionDeces, getPrevoyancePerso, patchPrevoyancePair } from "../../lib/prevoyance/utils";
 
 type Props = {
@@ -384,6 +385,15 @@ function ColonnePerso({
       {/* Corps de colonne — un seul conteneur, pour occuper la 2e piste du
           subgrid en mode 2 personnes (empilement normal sinon). */}
       <div className="space-y-4">
+
+      {/* Alerte ancienneté non fiable — date d'embauche manquante ALORS QUE le
+          maintien employeur applicable dépend de l'ancienneté (LOT ANCIEN-UI).
+          Aucune incidence calcul : simple relecture du maintien pour l'affichage. */}
+      <AlerteAncienneteNonFiable
+        statutPro={entree.statutPro}
+        idccCCN={entree.idccCCN}
+        dateEmbauche={data.travail?.[cible]?.dateEmbauche ?? null}
+      />
 
       {/* La SAISIE des blocs caisse (CARMF/CIPAV/CARPIMKO) est désormais dans
           l'onglet Travail, sous « Statut professionnel & employeur ». Ici, on
