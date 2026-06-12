@@ -201,8 +201,10 @@
         }
       },
       "capitalDeces": {
-        "type": "forfaitaire_par_classe",
-        "montants": "TO_VERIFY"
+        "type": "forfaitaire_par_situation",
+        "montantActifOuInvalide": 71500,
+        "montantRetraite": 0,
+        "_commentaire": "Capital forfaitaire 71 500 EUR (millésime 2026, versement unique, exonéré). Condition âge < 75 ans au décès NON modélisée (non représentable dans le schéma) : _comment uniquement. EXCLUSION des retraités via le mécanisme estRetraite (comme la SSI) : un retraité CARMF ne produit AUCUN capital (montantRetraite 0). Bénéficiaires : conjoint marié >= 2 ans -> enfants < 21 ans / majeurs infirmes -> ascendants à charge. Conjoint collaborateur 17 875 / 35 750 EUR HORS périmètre. Source carmf.fr (Formalités au décès), consultée le 12/06/2026, montants millésimés 2026."
       },
       "notes": "La couverture CARMF de base est notoirement insuffisante. Le contrat Madelin individuel est quasi systématiquement requis."
     },
@@ -242,8 +244,11 @@
         }
       },
       "capitalDeces": {
-        "type": "forfaitaire",
-        "montant": "TO_VERIFY"
+        "type": "forfaitaire_par_situation_familiale",
+        "montantConjointAvecDescendant": 54432,
+        "montantConjointSansDescendant": 36288,
+        "montantSansAyantDroit": 18144,
+        "_commentaire": "Capital décès par situation familiale, exonéré. Cotisant à jour et âge < 70 ans NON modélisés (non représentables dans le schéma) : _comment uniquement. Conjoint ou PACS non dissous AVEC descendant(s) à charge : 54 432 EUR ; conjoint ou PACS SANS descendant : 36 288 EUR ; aucun ayant droit à charge (ordre enfants -> descendants -> ascendants) : 18 144 EUR. Structure 18 144 x1 / x2 / x3. Montants page officielle carpimko.com consultée le 12/06/2026, non millésimés sur la page. Rente de survie 10 080 EUR/an et rente éducation 7 560 EUR/an HORS périmètre du capital."
       }
     },
     "MSA": {

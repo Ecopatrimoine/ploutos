@@ -53,10 +53,30 @@ describe("resolveCapitauxDeces — format `type` (caisses sans moteur forfaitair
     expect(r.situationRetenue).toBe("retraite");
   });
 
-  it("CARMF : montants TO_VERIFY → capital null, donnée indisponible (sans planter)", () => {
-    const r = resolveCapitauxDeces(caisses.CARMF, makeEntree({ classeCotisationCaisse: "A" }));
-    expect(r.capital).toBeNull();
-    expect(r.donneeIndisponible).toBe(true);
+  it("CARMF actif → capital forfaitaire 71500 ; retraité → 0 (exclusion, parité SSI)", () => {
+    // Source carmf.fr (Formalités au décès), consultée 12/06/2026, millésime 2026.
+    const actif = resolveCapitauxDeces(caisses.CARMF, makeEntree({ statutPro: "tns_liberal" }));
+    expect(actif.capital).toBe(caisses.CARMF.capitalDeces.montantActifOuInvalide); // 71500
+    expect(actif.capital).toBe(71500);
+    expect(actif.situationRetenue).toBe("actif_ou_invalide");
+    expect(actif.donneeIndisponible).toBe(false);
+    const retraite = resolveCapitauxDeces(caisses.CARMF, makeEntree({ statutPro: "retraite" }));
+    expect(retraite.capital).toBe(0); // retraité CARMF : aucun capital (parité mécanisme SSI)
+    expect(retraite.situationRetenue).toBe("retraite");
+  });
+
+  it("CARPIMKO : capital par situation familiale (54432 / 36288 / 18144)", () => {
+    // Source carpimko.com, consultée 12/06/2026 ; structure 18144 x3 / x2 / x1.
+    const cd = caisses.CARPIMKO.capitalDeces;
+    const avec = resolveCapitauxDeces(caisses.CARPIMKO, makeEntree({ marie: true, nbEnfantsACharge: 1 }));
+    expect(avec.capital).toBe(cd.montantConjointAvecDescendant); // 54432
+    expect(avec.capital).toBe(54432);
+    const sans = resolveCapitauxDeces(caisses.CARPIMKO, makeEntree({ marie: true, nbEnfantsACharge: 0 }));
+    expect(sans.capital).toBe(cd.montantConjointSansDescendant); // 36288
+    expect(sans.capital).toBe(36288);
+    const seul = resolveCapitauxDeces(caisses.CARPIMKO, makeEntree({ marie: false, nbEnfantsACharge: 0 }));
+    expect(seul.capital).toBe(cd.montantSansAyantDroit); // 18144
+    expect(seul.capital).toBe(18144);
   });
 });
 
