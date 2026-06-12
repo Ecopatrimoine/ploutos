@@ -144,6 +144,77 @@ describe("CCN Banque (IDCC 2120) — maintien conventionnel plancher (art. 54, B
   });
 });
 
+// ─── Bareme COMPLET maintien art. 54 (LOT BANQ-DATA) ──────────────────────────
+// Source : SOURCING_CCN_BANQUE_2120_v2 (art. 54/56 extraits manuellement de
+// Legifrance par David le 10/06/2026). Les 5 paliers d'anciennete remplacent le
+// plancher 2+2 conservateur. resoudrePalier reproduit la regle DOCUMENTEE de
+// findPalierMaintien (engine-internal, non exporte) : palier le plus eleve dont
+// ancienneteMois <= anciennete de la personne, sinon null.
+type PalierTest = { ancienneteMois: number; segments: { jours: number; pct: number }[] };
+function resoudrePalier(paliers: PalierTest[], anc: number): PalierTest | null {
+  let best: PalierTest | null = null;
+  for (const p of paliers) {
+    if (anc >= p.ancienneteMois && (!best || p.ancienneteMois > best.ancienneteMois)) best = p;
+  }
+  return best;
+}
+
+describe("CCN Banque (IDCC 2120) — bareme complet maintien art. 54 (LOT BANQ-DATA)", () => {
+  it("5 paliers d'anciennete poses, identiques cadres / non-cadres, carence 0 (source ccn)", () => {
+    for (const col of ["cadres", "nonCadres"] as const) {
+      const m = getMaintienParams("2120", referentiels, col);
+      expect(m.source).toBe("ccn");
+      expect(m.carenceJours).toBe(0);
+      // 30 j/mois (convention du fichier, cf. 3248) ; pct ENTIERS 100/50.
+      expect(m.paliers).toEqual([
+        { ancienneteMois: 12,  segments: [{ jours: 60,  pct: 100 }, { jours: 60,  pct: 50 }] },
+        { ancienneteMois: 60,  segments: [{ jours: 90,  pct: 100 }, { jours: 90,  pct: 50 }] },
+        { ancienneteMois: 120, segments: [{ jours: 120, pct: 100 }, { jours: 120, pct: 50 }] },
+        { ancienneteMois: 180, segments: [{ jours: 150, pct: 100 }, { jours: 150, pct: 50 }] },
+        { ancienneteMois: 240, segments: [{ jours: 180, pct: 100 }, { jours: 180, pct: 50 }] },
+      ]);
+    }
+  });
+
+  it("resolution du palier selon l'anciennete (0/12/60/90/120/180/240)", () => {
+    const m = getMaintienParams("2120", referentiels, "cadres");
+    expect(resoudrePalier(m.paliers, 0)).toBeNull();                  // aucun palier -> comportement existant (pas de maintien CCN)
+    expect(resoudrePalier(m.paliers, 12)?.ancienneteMois).toBe(12);
+    expect(resoudrePalier(m.paliers, 60)?.ancienneteMois).toBe(60);
+    expect(resoudrePalier(m.paliers, 90)?.ancienneteMois).toBe(60);   // intermediaire -> palier 60
+    expect(resoudrePalier(m.paliers, 120)?.ancienneteMois).toBe(120);
+    expect(resoudrePalier(m.paliers, 180)?.ancienneteMois).toBe(180);
+    expect(resoudrePalier(m.paliers, 240)?.ancienneteMois).toBe(240);
+    expect(resoudrePalier(m.paliers, 600)?.ancienneteMois).toBe(240); // au-dela du dernier seuil -> palier 240
+  });
+
+  it("non-regression : a 24 mois (palier 12) le bareme reste 2/2 mois (60 j 100% + 60 j 50%)", () => {
+    const m = getMaintienParams("2120", referentiels, "nonCadres");
+    expect(resoudrePalier(m.paliers, 24)?.segments).toEqual([
+      { jours: 60, pct: 100 }, { jours: 60, pct: 50 },
+    ]);
+  });
+
+  it("end-to-end : un palier d'anciennete superieur etend la fenetre de maintien employeur", () => {
+    // Dernier jour (phase arret maladie) ou l'employeur complete encore. Pour un
+    // cadre 40 000, le complement n'est positif que sur le segment 100% (au 50%,
+    // les IJSS couvrent deja la cible) : la fenetre = la duree du segment 100%,
+    // qui s'allonge avec le palier (palier 12 = 60 j, palier 240 = 180 j).
+    const maxJourMaintien = (anc: number): number => {
+      const e: EntreePerso = { ...entreeBanque("salarie_cadre"), ancienneteMois: anc };
+      const r = projeterArretMaladie(e, "cat2", referentiels);
+      const jours = r.axe
+        .map((p, i) => ({ jour: p.jour, phase: p.phase, m: r.series.maintienEmployeur[i] }))
+        .filter((x) => x.phase === "am" && x.m > 0)
+        .map((x) => x.jour);
+      return jours.length ? Math.max(...jours) : 0;
+    };
+    // Preuve que le bareme complet est CONSOMME par l'engine : a 240 mois (palier
+    // 240) le maintien dure strictement plus longtemps qu'a 24 mois (palier 12).
+    expect(maxJourMaintien(240)).toBeGreaterThan(maxJourMaintien(24));
+  });
+});
+
 // ─── MICRO-LOT CCN Industries chimiques (IDCC 44, CCNIC) ──────────────────────
 // Miroir structurel de l'entree Banque 2120 : aucun regime de prevoyance assure
 // de branche (accord de methode du 24/04/2018 jamais concretise), maintien
