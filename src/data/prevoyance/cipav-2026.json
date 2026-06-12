@@ -60,7 +60,9 @@
     "diviseurPoints": 1,
     "_formule": "capital = 7 209 + points × 3,01 (points ENTIERS, pas de division). Exonéré.",
     "majorationDecesAccidentelPoints": 5000,
-    "_majoration_detail": "Décès accidentel : +5 000 points avant multiplication par 3,01."
+    "_majoration_detail": "Décès accidentel : +5 000 points avant multiplication par 3,01.",
+    "_comment_succession": "HYPOTHÈSE DOCUMENTÉE : le revenu courant saisi (cipav.revenuBNC_N2) sert de proxy du revenu N-1 pour la part proportionnelle. Majoration décès accidentel (+5 000 points) NON modélisée dans la succession (résolution toujours en décès non accidentel). Déchéance possible si cotisations impayées (non modélisée). Dévolution : conjoint -> PACS -> enfants < 21 ans / infirmes -> bénéficiaires désignés -> personnes à charge. Source lacipav.fr (capital-deces), consultée le 12/06/2026, millésime 2026.",
+    "_cas_or": "Exemple officiel caisse (revenu N-1 20 000 EUR) : proportionnel 23 153,82 + forfait 7 209 = 30 362,82 EUR. Le moteur n'arrondit pas les points (-> 30 362,85) ; la caisse arrondit les points à 1 décimale (-> 30 362,82). Écart ~0,03 EUR."
   },
 
   "rentes": {

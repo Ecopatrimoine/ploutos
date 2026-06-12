@@ -180,6 +180,27 @@ describe("resolveCapitauxDeces — CIPAV (capital par points)", () => {
     expect(r.donneeIndisponible).toBe(false);
   });
 
+  it("CAS D'OR caisse : revenu N-1 20000 → forfait 7209 + proportionnel ≈ 30362.82", () => {
+    // Exemple officiel lacipav.fr (capital-deces), consulté 12/06/2026 : 30 362,82 EUR.
+    // Le moteur n'arrondit PAS les points (7692,307...) → 30 362,85 ; la caisse arrondit
+    // les points à 1 décimale (7692,3) → 30 362,82. Écart ~0,03 EUR (tolérance documentée).
+    const e = makeEntree({
+      caisse: "CIPAV",
+      cipav: {
+        revenuBNC_N2: 20000,
+        ancienneteAffiliationMois: 60,
+        cumulEmploiRetraite: false,
+        tauxInvalidite: 100,
+        marie: false,
+        nbEnfants: 0,
+        decesAccidentel: false,
+      },
+    });
+    const r = resolveCapitauxDeces(caisses.CIPAV, e, cipavRef);
+    expect(r.capital).toBeCloseTo(30362.82, 1);
+    expect(r.donneeIndisponible).toBe(false);
+  });
+
   it("CIPAV sans cipavRef fourni : capital null + donnée indisponible (sans planter)", () => {
     const e = makeEntree({
       caisse: "CIPAV",
