@@ -40,7 +40,19 @@ export type ObligationItem = {
   resume: string;             // libelle factuel (sans assureur ni produit)
   source: "ccn" | "legal";    // maintien legal Mensualisation = repli
   donneeIndisponible?: boolean;
+  // Donnees comparables a un souscrit (Lot COMPARE) — presentes UNIQUEMENT quand
+  // l'obligation est presente ET chiffree (sinon undefined). mode "complexe" =
+  // bareme a paliers / situations / tranches multiples -> comparaison manuelle.
+  // MEMES UNITES que les garanties souscrites : FRACTIONS (capital x SR, pct),
+  // franchiseJours en jours.
+  comparable?: ObligationComparable;
 };
+
+export type ObligationComparable =
+  | { mode: "complexe" }
+  | { mode: "capitalDC_pct"; tauxSalaireRef: number }
+  | { mode: "ij_simple"; pctSalaire: number; franchiseJours: number }
+  | { mode: "invalidite"; cat1: number; cat2: number; cat3: number };
 
 export type ObligationsStatut =
   | "branche_documentee"
@@ -124,7 +136,7 @@ function resumeCapital(raw: Record<string, unknown>): string {
 function itemCapitalDC(raw: unknown, indispoResolveur: boolean): ObligationItem {
   if (raw == null) return itemNonPresente("capitalDC", "Capital deces : non prevu par la branche");
   const indispo = typeof raw === "string" ? true : indispoResolveur;
-  return {
+  const item: ObligationItem = {
     garantie: "capitalDC",
     presente: true,
     source: "ccn",
@@ -133,6 +145,13 @@ function itemCapitalDC(raw: unknown, indispoResolveur: boolean): ObligationItem 
       ? "Capital deces impose par la branche — montant a documenter"
       : resumeCapital(raw as Record<string, unknown>),
   };
+  if (!indispo) {
+    const o = raw as Record<string, unknown>;
+    const taux = o.mode === "pourcentageSalaireRef" ? safeNum(o.tauxSalaireRef) : null;
+    // pourcentageSalaireRef -> comparable ; situationFamiliale / autre -> complexe.
+    item.comparable = taux !== null ? { mode: "capitalDC_pct", tauxSalaireRef: taux } : { mode: "complexe" };
+  }
+  return item;
 }
 
 function itemRenteEducation(raw: unknown, phases: { deAge: number; aAge: number; tauxSalaireRef: number }[], indispoResolveur: boolean): ObligationItem {
@@ -145,6 +164,8 @@ function itemRenteEducation(raw: unknown, phases: { deAge: number; aAge: number;
     source: "ccn",
     donneeIndisponible: indispo,
     resume: indispo ? "Rente education imposee par la branche — bareme a documenter" : `Rente education : ${segs}`,
+    // Bareme par tranches d'age -> comparaison manuelle (jamais auto-comparee).
+    ...(indispo ? {} : { comparable: { mode: "complexe" } as ObligationComparable }),
   };
 }
 
@@ -160,7 +181,15 @@ function itemRenteConjoint(raw: unknown, conj: { montantAnnuel: number | null; d
     const duree = conj.dureeMaxAnnees != null ? ` (${num(conj.dureeMaxAnnees)} ans)` : "";
     resume = `Rente conjoint substitutive${duree}`;
   }
-  return { garantie: "renteConjoint", presente: true, source: "ccn", donneeIndisponible: indispo, resume };
+  // Modes substitutive / cibleCumulable -> comparaison manuelle (jamais auto-comparee).
+  return {
+    garantie: "renteConjoint",
+    presente: true,
+    source: "ccn",
+    donneeIndisponible: indispo,
+    resume,
+    ...(indispo ? {} : { comparable: { mode: "complexe" } as ObligationComparable }),
+  };
 }
 
 type IJResolue = { pctSalaire: number; franchise: number; plafondJours: number; paliers?: { deJour: number; aJour: number; pctSalaire: number }[] };
@@ -172,12 +201,15 @@ function itemIJ(raw: unknown, ij: IJResolue | undefined): ObligationItem {
     return { garantie: "ij", presente: true, source: "ccn", donneeIndisponible: true, resume: "IJ imposees par la branche — bareme a documenter" };
   }
   let resume: string;
+  let comparable: ObligationComparable;
   if (ij.paliers && ij.paliers.length > 0) {
     resume = "IJ : " + ij.paliers.map((p) => `${pctFraction(p.pctSalaire)} j${p.deJour}-j${p.aJour}`).join(" puis ") + ` (franchise ${ij.franchise} j)`;
+    comparable = { mode: "complexe" }; // paliers temporels -> comparaison manuelle
   } else {
     resume = `IJ : ${pctFraction(ij.pctSalaire)} (franchise ${ij.franchise} j, max ${ij.plafondJours} j)`;
+    comparable = { mode: "ij_simple", pctSalaire: ij.pctSalaire, franchiseJours: ij.franchise };
   }
-  return { garantie: "ij", presente: true, source: "ccn", donneeIndisponible: false, resume };
+  return { garantie: "ij", presente: true, source: "ccn", donneeIndisponible: false, resume, comparable };
 }
 
 type InvResolue = { cat1: { pctSalaire: number }; cat2: { pctSalaire: number }; cat3: { pctSalaire: number } };
@@ -188,7 +220,14 @@ function itemInvalidite(raw: unknown, inv: InvResolue | undefined): ObligationIt
     return { garantie: "invalidite", presente: true, source: "ccn", donneeIndisponible: true, resume: "Invalidite imposee par la branche — bareme a documenter" };
   }
   const resume = `Invalidite : cat1 ${pctFraction(inv.cat1.pctSalaire)}, cat2 ${pctFraction(inv.cat2.pctSalaire)}, cat3 ${pctFraction(inv.cat3.pctSalaire)}`;
-  return { garantie: "invalidite", presente: true, source: "ccn", donneeIndisponible: false, resume };
+  return {
+    garantie: "invalidite",
+    presente: true,
+    source: "ccn",
+    donneeIndisponible: false,
+    resume,
+    comparable: { mode: "invalidite", cat1: inv.cat1.pctSalaire, cat2: inv.cat2.pctSalaire, cat3: inv.cat3.pctSalaire },
+  };
 }
 
 function itemMaintien(idcc: string, college: "cadres" | "nonCadres", ref: Referentiels): ObligationItem {
