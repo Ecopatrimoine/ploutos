@@ -251,3 +251,50 @@ describe("non-régression — l'ajout des capitaux décès ne touche aucun champ
     expect(sAug.capitalDecesPriveDuties).toBeGreaterThan(0);
   });
 });
+
+// ─── Invariant caisses CARMF / CARPIMKO (LOT CAISSES-DC) ─────────────────────
+// Réplique pour les nouvelles caisses la non-régression du capital décès branche :
+// l'ajout du capital caisse est STRICTEMENT ADDITIF et exonéré — aucune masse
+// (activeNet / totalRights / totalSuccessionRights / totalAvRights / duties /
+// avLines) n'est modifiée. baseData = couple marié + 1 enfant à charge.
+describe("non-régression caisses CARMF / CARPIMKO — sortie additive exonérée", () => {
+  it("CARMF (71500 actif) et CARPIMKO (54432 conjoint+descendant) n'altèrent aucune masse", () => {
+    const ref = baseData({
+      properties: [RP_COMMUNE],
+      placements: [avPlacement("Enfant Martin", "300000", "300000")],
+    });
+    const sRef = computeSuccession(baseSuccession(), ref);
+
+    for (const [caisse, statut, attendu] of [
+      ["CARMF", "tns_liberal", 71500],
+      ["CARPIMKO", "tns_liberal", 54432], // marié + 1 enfant à charge (baseData)
+    ] as const) {
+      const aug = baseData({
+        properties: [RP_COMMUNE],
+        placements: [avPlacement("Enfant Martin", "300000", "300000")],
+        travail: travailPair(caisse, statut),
+      });
+      const sAug = computeSuccession(baseSuccession(), aug);
+
+      expect(sAug.activeNet).toBe(sRef.activeNet);
+      expect(sAug.totalRights).toBe(sRef.totalRights);
+      expect(sAug.totalSuccessionRights).toBe(sRef.totalSuccessionRights);
+      expect(sAug.totalAvRights).toBe(sRef.totalAvRights);
+      expect(sAug.results.map((r) => r.duties)).toEqual(sRef.results.map((r) => r.duties));
+      expect(sAug.avLines).toEqual(sRef.avLines);
+      // Capital caisse présent, exonéré, hors actif (sortie additive).
+      expect(sAug.capitalDecesCaisseExonere).toBe(attendu);
+      expect(sAug.capitalDecesLines.caisses[0].exonere).toBe(true);
+    }
+  });
+
+  it("CARMF retraité → aucun capital (0), masses inchangées (exclusion estRetraite)", () => {
+    const ref = baseData({ properties: [RP_COMMUNE] });
+    const sRef = computeSuccession(baseSuccession(), ref);
+    const aug = baseData({ properties: [RP_COMMUNE], travail: travailPair("CARMF", "retraite") });
+    const sAug = computeSuccession(baseSuccession(), aug);
+    expect(sAug.capitalDecesCaisseExonere).toBe(0);
+    expect(sAug.activeNet).toBe(sRef.activeNet);
+    expect(sAug.totalSuccessionRights).toBe(sRef.totalSuccessionRights);
+  });
+});
