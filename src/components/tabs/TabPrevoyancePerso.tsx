@@ -128,7 +128,7 @@ const TabPrevoyancePerso = React.memo(function TabPrevoyancePerso({
                   ? forceWide
                     ? "grid gap-6 grid-cols-2 xl:grid-rows-[auto_1fr]"
                     : "grid gap-6 xl:grid-cols-2 xl:grid-rows-[auto_1fr]"
-                  : "max-w-3xl mx-auto"
+                  : "max-w-5xl mx-auto"
               }
             >
               <ColonnePerso
