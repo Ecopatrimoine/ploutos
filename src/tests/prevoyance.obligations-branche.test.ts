@@ -73,7 +73,7 @@ describe("resolveObligationsBranche — cas d'or", () => {
 
 describe("resolveObligationsBranche — balayage + non-regression unites", () => {
   it("toutes les conventions reelles passent sans exception, statut valide", () => {
-    const STATUTS = ["branche_documentee", "aucune_obligation_assuree", "convention_inconnue", "idcc_absent"];
+    const STATUTS = ["branche_documentee", "donnees_incompletes", "aucune_obligation_assuree", "convention_inconnue", "idcc_absent"];
     const ids = Object.keys((referentiels.ccn as { conventions: Record<string, unknown> }).conventions);
     expect(ids.length).toBeGreaterThanOrEqual(19);
     for (const id of ids) {
@@ -83,6 +83,49 @@ describe("resolveObligationsBranche — balayage + non-regression unites", () =>
       expect(Array.isArray(r.nonCadres)).toBe(true);
       expect(r.cadres.length).toBe(6);
       expect(r.nonCadres.length).toBe(6);
+    }
+  });
+
+  it("CONTRE-EPREUVE : garanties assurees TOUTES TO_FILL -> donnees_incompletes (jamais aucune_obligation_assuree)", () => {
+    // Convention SYNTHETIQUE injectee via un referentiel derive (resolveurs et
+    // moteur lisent le meme ref). Toutes les garanties assurees = "TO_VERIFY".
+    const toFill = {
+      capitalDC: "TO_VERIFY",
+      renteEducation: "TO_VERIFY",
+      renteConjoint: "TO_VERIFY",
+      ij: "TO_VERIFY",
+      invalidite: "TO_VERIFY",
+    };
+    const synthRef = {
+      ...referentiels,
+      ccn: {
+        ...referentiels.ccn,
+        conventions: {
+          ...(referentiels.ccn as { conventions: Record<string, unknown> }).conventions,
+          TESTTOFILL: {
+            idcc: "TESTTOFILL",
+            nom: "Convention test TO_FILL",
+            maintienEmployeur: { cadres: null, nonCadres: null },
+            prevoyanceCadres: { tauxT1Minimum: 1.5, garantiesMinimum: { ...toFill } },
+            prevoyanceNonCadres: { garantiesMinimum: { ...toFill } },
+            santeMinimum: { TO_FILL: true },
+          },
+        },
+      },
+    } as unknown as typeof referentiels;
+
+    const r = resolveObligationsBranche("TESTTOFILL", synthRef);
+    // Coeur de la contre-epreuve : donnee manquante != absence d'obligation.
+    expect(r.statut).not.toBe("aucune_obligation_assuree");
+    // Statut prioritaire precis.
+    expect(r.statut).toBe("donnees_incompletes");
+    // Chaque garantie assuree : PRESENTE (obligation documentee) mais donnee indisponible.
+    for (const col of ["cadres", "nonCadres"] as const) {
+      for (const g of ["capitalDC", "renteEducation", "renteConjoint", "ij", "invalidite"] as const) {
+        const it = find(r, col, g);
+        expect(it?.presente).toBe(true);
+        expect(it?.donneeIndisponible).toBe(true);
+      }
     }
   });
 

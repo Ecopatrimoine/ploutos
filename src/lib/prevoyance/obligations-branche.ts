@@ -44,6 +44,7 @@ export type ObligationItem = {
 
 export type ObligationsStatut =
   | "branche_documentee"
+  | "donnees_incompletes"        // obligations assurees presentes mais TOUTES en donnee manquante
   | "aucune_obligation_assuree"
   | "convention_inconnue"
   | "idcc_absent";
@@ -303,15 +304,26 @@ export function resolveObligationsBranche(
   const cadres = buildCollege(idcc, conv, "cadres", ref, pass);
   const nonCadres = buildCollege(idcc, conv, "nonCadres", ref, pass);
 
-  // Statut global : au moins une garantie ASSUREE presente (le maintien employeur
-  // n'est PAS une garantie assuree -> 2120/44 restent "aucune_obligation_assuree"
-  // tout en exposant leur maintien CCN).
-  const assureePresente = [...cadres, ...nonCadres].some(
+  // Statut global. Le maintien employeur n'est PAS une garantie assuree -> 2120/44
+  // restent "aucune_obligation_assuree" tout en exposant leur maintien CCN.
+  //   - aucune garantie assuree presente          -> aucune_obligation_assuree
+  //   - >=1 presente AVEC donnee exploitable        -> branche_documentee
+  //   - >=1 presente mais TOUTES indisponibles      -> donnees_incompletes
+  //     (regle 1 : donnee manquante != absence d'obligation ; statut prioritaire).
+  const assureesPresentes = [...cadres, ...nonCadres].filter(
     (i) => GARANTIES_ASSUREES.includes(i.garantie) && i.presente
   );
+  let statut: ObligationsStatut;
+  if (assureesPresentes.length === 0) {
+    statut = "aucune_obligation_assuree";
+  } else if (assureesPresentes.some((i) => !i.donneeIndisponible)) {
+    statut = "branche_documentee";
+  } else {
+    statut = "donnees_incompletes";
+  }
 
   return {
-    statut: assureePresente ? "branche_documentee" : "aucune_obligation_assuree",
+    statut,
     idcc,
     nomCCN,
     cadres,
