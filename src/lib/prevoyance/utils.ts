@@ -25,6 +25,7 @@ import type {
   StatutPro,
 } from "../../types/patrimoine";
 import ccnReferentiel from "../../data/prevoyance/ccn-2026.json";
+import { isFonctionnaire } from "../calculs/utils";
 
 const API_RECHERCHE_ENTREPRISES =
   "https://recherche-entreprises.api.gouv.fr/search";
@@ -239,6 +240,38 @@ export function suggestCaisseFromStatut(
     default:
       return null;
   }
+}
+
+// Suggestion de STATUT professionnel (axe prévoyance) à partir de la PCS/CSP
+// saisie dans la collecte fiscale. SUGGESTION uniquement, comme
+// suggestCaisseFromStatut : l'appelant ne l'applique QUE si statutPro est encore
+// vide, et l'utilisateur peut toujours surcharger. Renvoie "" pour les cas où la
+// CSP ne suffit pas à déduire le statut (forme d'exercice inconnue) : agriculteur
+// (groupe "1"), chef d'entreprise (csp "23")… On ne devine PAS.
+//   - groupe "7"                          → "retraite"
+//   - groupe "8"                          → "sans_activite"
+//   - csp fonctionnaire (33/45/52/53)     → "fonctionnaire"
+//   - csp "31" (profession libérale)      → "tns_liberal"
+//   - csp "21"                            → "tns_artisan"
+//   - csp "22"                            → "tns_commercant"
+//   - groupe "3" (hors cas ci-dessus)     → "salarie_cadre"
+//   - groupes "4" / "5" / "6" (idem)      → "salarie_non_cadre"
+//   - reste                               → "" (pas de suggestion)
+export function suggestStatutFromCsp(
+  pcsGroupe: string | null | undefined,
+  csp: string | null | undefined
+): StatutPro | "" {
+  const g = pcsGroupe ?? "";
+  const c = csp ?? "";
+  if (g === "7") return "retraite";
+  if (g === "8") return "sans_activite";
+  if (isFonctionnaire(c)) return "fonctionnaire";
+  if (c === "31") return "tns_liberal";
+  if (c === "21") return "tns_artisan";
+  if (c === "22") return "tns_commercant";
+  if (g === "3") return "salarie_cadre";
+  if (g === "4" || g === "5" || g === "6") return "salarie_non_cadre";
+  return "";
 }
 
 export function createEmptyEmployeur(): EmployeurInfo {

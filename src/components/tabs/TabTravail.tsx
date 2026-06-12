@@ -9,7 +9,7 @@ import type { PayloadTravail, PayloadTravailPair, PayloadPrevoyancePerso } from 
 import { isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, isIndependant } from "../../lib/calculs/utils";
 import { Field, SectionTitle } from "../shared";
 import { BlocStatutEmployeur } from "../travail/BlocStatutEmployeur";
-import { createEmptyTravail, getPrevoyancePerso, patchPrevoyancePair } from "../../lib/prevoyance/utils";
+import { createEmptyTravail, getPrevoyancePerso, patchPrevoyancePair, suggestStatutFromCsp } from "../../lib/prevoyance/utils";
 import { buildEntreePerso } from "../../lib/prevoyance/mapping";
 import { BlocCarmf, defaultCarmf } from "../prevoyance/BlocCarmf";
 import { BlocCipav, defaultCipav } from "../prevoyance/BlocCipav";
@@ -54,6 +54,17 @@ const TabTravail = React.memo(function TabTravail(props: any) {
             p2: { ...(currentPair.p2 ?? createEmptyTravail()), ...patch },
           };
     setField("travail", nextPair);
+  }
+
+  // Pré-remplissage du statut prévoyance (data.travail.{p1|p2}.statutPro) à partir
+  // de la PCS/CSP — SUGGESTION uniquement (Option 2). On ne pose le statut QUE s'il
+  // est encore vide : jamais d'écrasement d'une saisie manuelle. "" = pas de
+  // suggestion (cas ambigu) → on ne touche à rien.
+  function maybeSuggestStatut(which: 1 | 2, pcsGroupe: string, csp: string) {
+    const current = (which === 1 ? data.travail?.p1 : data.travail?.p2)?.statutPro ?? "";
+    if (current !== "") return;
+    const suggestion = suggestStatutFromCsp(pcsGroupe, csp);
+    if (suggestion) patchTravail(which, { statutPro: suggestion });
   }
 
   // Saisie « activité caisse » (prévoyance) — écrit dans data.prevoyance.{p1|p2}
@@ -131,6 +142,7 @@ const TabTravail = React.memo(function TabTravail(props: any) {
               onValueChange={(v) => {
                 setField(which === 1 ? "person1PcsGroupe" : "person2PcsGroupe", v);
                 setField(which === 1 ? "person1Csp" : "person2Csp", "");
+                maybeSuggestStatut(which, v, "");
               }}
             >
               <SelectTrigger className="rounded-xl"><SelectValue placeholder="Sélectionner un groupe…" /></SelectTrigger>
@@ -149,7 +161,10 @@ const TabTravail = React.memo(function TabTravail(props: any) {
             <Field label="Catégorie socioprofessionnelle">
               <Select
                 value={categorie}
-                onValueChange={(v) => setField(which === 1 ? "person1Csp" : "person2Csp", v)}
+                onValueChange={(v) => {
+                  setField(which === 1 ? "person1Csp" : "person2Csp", v);
+                  maybeSuggestStatut(which, groupe, v);
+                }}
               >
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="Sélectionner une catégorie…">
