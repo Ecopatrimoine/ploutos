@@ -291,10 +291,26 @@ describe("c_ccn_branche_sante — flag regimeBranche (cas d'or)", () => {
     expect(sante("2120", "Banque").statut).toBe("non_applicable");
   });
 
-  it("TO_VERIFY (2264 Hospitalisation) -> vigilance, detail distinct du cas TRUE", () => {
-    const to = sante("2264", "Hospitalisation");
+  it("2264 (Hospitalisation, desormais regimeBranche false) -> non_applicable (comme Banque)", () => {
+    expect(sante("2264", "Hospitalisation").statut).toBe("non_applicable");
+  });
+
+  it("TO_VERIFY (convention synthetique) -> vigilance, detail distinct du cas TRUE (branche defensive)", () => {
+    // Plus aucune CCN reelle n'est TO_VERIFY ; on couvre la branche du controle
+    // via un referentiel derive.
+    const synthRef = {
+      ...referentiels,
+      ccn: {
+        ...referentiels.ccn,
+        conventions: {
+          ...(referentiels.ccn as { conventions: Record<string, unknown> }).conventions,
+          TESTTV: { idcc: "TESTTV", nom: "Test TO_VERIFY", santeMinimum: { TO_VERIFY: true } },
+        },
+      },
+    } as unknown as typeof referentiels;
+    const audit = runAuditConformite(baseEntreprise({ idccCCN: "TESTTV", nomCCN: "Test TO_VERIFY" }), synthRef);
+    const to = audit.controles.find((c) => c.id === "c_ccn_branche_sante")!;
     expect(to.statut).toBe("vigilance");
-    // verdict distinct du regime impose : detail 'a confirmer / a lever'.
     expect(to.detail).not.toBe(sante("1979", "HCR").detail);
     expect(to.detail).toMatch(/confirmer|lever/i);
   });

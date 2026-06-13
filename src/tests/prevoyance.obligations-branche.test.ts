@@ -142,21 +142,30 @@ describe("resolveObligationsBranche — balayage + non-regression unites", () =>
 });
 
 describe("resolveObligationsBranche — santeMinimum (LOT SANTE-FLAG)", () => {
-  it("aucune entree santeMinimum en TO_FILL (data) ; toutes ont un santeMinimum tranche", () => {
-    const conv = (referentiels.ccn as { conventions: Record<string, { santeMinimum?: { TO_FILL?: unknown } }> }).conventions;
-    for (const id of Object.keys(conv)) {
-      expect(conv[id].santeMinimum?.TO_FILL).not.toBe(true);
-      const sm = resolveObligationsBranche(id, referentiels).santeMinimum;
-      expect(sm.presente).toBe(true);
-      // forme tranchee : regimeBranche boolean OU indisponible (2264 TO_VERIFY).
-      expect(typeof sm.regimeBranche === "boolean" || sm.donneeIndisponible).toBe(true);
+  it("balayage : 8 true / 11 false / 1 panier ANI (Syntec) / 0 TO_VERIFY / 0 TO_FILL (20 entrees)", () => {
+    const conv = (referentiels.ccn as {
+      conventions: Record<string, { santeMinimum?: { TO_FILL?: unknown; TO_VERIFY?: unknown; regimeBranche?: unknown; panier?: unknown } }>;
+    }).conventions;
+    const ids = Object.keys(conv);
+    let nTrue = 0, nFalse = 0, nAni = 0, nToVerify = 0, nToFill = 0;
+    for (const id of ids) {
+      const sm = conv[id].santeMinimum ?? {};
+      if (sm.regimeBranche === true) nTrue++;
+      else if (sm.regimeBranche === false) nFalse++;
+      else if (sm.panier === "ANI") nAni++;
+      else if (sm.TO_VERIFY === true) nToVerify++;
+      else if (sm.TO_FILL === true) nToFill++;
+      // chaque entree resolue est presente.
+      expect(resolveObligationsBranche(id, referentiels).santeMinimum.presente).toBe(true);
     }
+    expect(ids).toHaveLength(20);
+    expect({ nTrue, nFalse, nAni, nToVerify, nToFill }).toEqual({ nTrue: 8, nFalse: 11, nAni: 1, nToVerify: 0, nToFill: 0 });
   });
 
-  it("2264 (Hospitalisation, TO_VERIFY) -> santeMinimum donneeIndisponible, regimeBranche null", () => {
+  it("2264 (Hospitalisation, desormais false) -> regimeBranche false, donnee disponible", () => {
     const sm = resolveObligationsBranche("2264", referentiels).santeMinimum;
-    expect(sm.donneeIndisponible).toBe(true);
-    expect(sm.regimeBranche).toBeNull();
+    expect(sm.regimeBranche).toBe(false);
+    expect(sm.donneeIndisponible).toBe(false);
   });
 
   it("entree TRUE (1979 HCR) -> regimeBranche true + accordFondateur expose", () => {
