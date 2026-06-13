@@ -69,8 +69,13 @@ export type TauxT1Minimum = {
 
 export type SanteMinimumObligation = {
   presente: boolean;
+  // true/false si la branche impose (ou non) un regime sante au-dela du panier
+  // ANI national ; null si inconnu (TO_VERIFY / TO_FILL / non documente).
+  regimeBranche: boolean | null;
   panier: string | null;
-  donneeIndisponible: boolean;    // TO_FILL / participation TO_VERIFY -> true (jamais "absent")
+  accordFondateur?: string;        // ex "accord 28/06/2022" (information)
+  organismeReference?: string;     // ex "IRP AUTO" (information, JAMAIS une reco)
+  donneeIndisponible: boolean;     // TO_VERIFY / TO_FILL / participation a documenter -> true
   resume: string;
 };
 
@@ -99,7 +104,15 @@ type ConvLecture = {
   nom?: unknown;
   prevoyanceCadres?: BlocPrev;
   prevoyanceNonCadres?: BlocPrev;
-  santeMinimum?: { panier?: unknown; participationEmployeur?: unknown; TO_FILL?: unknown } | null;
+  santeMinimum?: {
+    panier?: unknown;
+    participationEmployeur?: unknown;
+    TO_FILL?: unknown;
+    TO_VERIFY?: unknown;
+    regimeBranche?: unknown;
+    accordFondateur?: unknown;
+    organismeReference?: unknown;
+  } | null;
 };
 
 // ─── Helpers d'affichage (factuels) ──────────────────────────────────────────
@@ -295,27 +308,45 @@ function resolveTauxT1(conv: ConvLecture): TauxT1Minimum {
 function resolveSanteMinimum(conv: ConvLecture): SanteMinimumObligation {
   const sm = conv.santeMinimum;
   if (sm == null) {
-    return { presente: false, panier: null, donneeIndisponible: false, resume: "Aucun panier sante de branche documente" };
+    return { presente: false, regimeBranche: null, panier: null, donneeIndisponible: false, resume: "Aucun regime sante de branche documente" };
   }
-  if (sm.TO_FILL === true) {
-    // TO_FILL -> indisponible, JAMAIS "absent" (defaut conservateur).
-    return { presente: true, panier: null, donneeIndisponible: true, resume: "Panier sante de branche a documenter (TO_FILL)" };
+  // TO_FILL (legacy) / TO_VERIFY (statut non tranche, ex. 2264) -> indisponible,
+  // JAMAIS "absent" (defaut conservateur).
+  if (sm.TO_FILL === true || sm.TO_VERIFY === true) {
+    return { presente: true, regimeBranche: null, panier: null, donneeIndisponible: true, resume: "Statut sante de branche a confirmer (sources a lever)" };
   }
+  // Forme flag : regimeBranche pose explicitement.
+  if (typeof sm.regimeBranche === "boolean") {
+    const out: SanteMinimumObligation = {
+      presente: true,
+      regimeBranche: sm.regimeBranche,
+      panier: null,
+      donneeIndisponible: false,
+      resume: sm.regimeBranche
+        ? "Regime sante de branche impose (au-dela du panier ANI national)"
+        : "Pas de regime sante de branche au-dela du panier ANI national",
+    };
+    if (typeof sm.accordFondateur === "string") out.accordFondateur = sm.accordFondateur;
+    if (typeof sm.organismeReference === "string") out.organismeReference = sm.organismeReference;
+    return out;
+  }
+  // Forme panier ANI (Syntec) : minimum national, pas de sur-obligation de branche.
   const panier = typeof sm.panier === "string" ? sm.panier : null;
   const part = sm.participationEmployeur;
   const partIndispo = part == null || part === "TO_VERIFY" || part === "TO_FILL";
   return {
     presente: true,
+    regimeBranche: false,
     panier,
     donneeIndisponible: partIndispo,
-    resume: `Panier sante de branche${panier ? ` : ${panier}` : ""}${partIndispo ? " (participation employeur a documenter)" : ""}`,
+    resume: `Panier sante ${panier ?? "?"} (minimum national)${partIndispo ? " — participation employeur a documenter" : ""}`,
   };
 }
 
 // ─── Fonction principale ─────────────────────────────────────────────────────
 
 const T1_ABSENT: TauxT1Minimum = { taux: null, source: "ani_defaut", donneeIndisponible: true };
-const SANTE_ABSENTE: SanteMinimumObligation = { presente: false, panier: null, donneeIndisponible: false, resume: "—" };
+const SANTE_ABSENTE: SanteMinimumObligation = { presente: false, regimeBranche: null, panier: null, donneeIndisponible: false, resume: "—" };
 
 export function resolveObligationsBranche(
   idcc: string | null,

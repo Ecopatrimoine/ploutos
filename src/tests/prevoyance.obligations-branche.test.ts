@@ -140,3 +140,44 @@ describe("resolveObligationsBranche — balayage + non-regression unites", () =>
     expect(find(r, "cadres", "ij")?.resume).toMatch(/%/);
   });
 });
+
+describe("resolveObligationsBranche — santeMinimum (LOT SANTE-FLAG)", () => {
+  it("aucune entree santeMinimum en TO_FILL (data) ; toutes ont un santeMinimum tranche", () => {
+    const conv = (referentiels.ccn as { conventions: Record<string, { santeMinimum?: { TO_FILL?: unknown } }> }).conventions;
+    for (const id of Object.keys(conv)) {
+      expect(conv[id].santeMinimum?.TO_FILL).not.toBe(true);
+      const sm = resolveObligationsBranche(id, referentiels).santeMinimum;
+      expect(sm.presente).toBe(true);
+      // forme tranchee : regimeBranche boolean OU indisponible (2264 TO_VERIFY).
+      expect(typeof sm.regimeBranche === "boolean" || sm.donneeIndisponible).toBe(true);
+    }
+  });
+
+  it("2264 (Hospitalisation, TO_VERIFY) -> santeMinimum donneeIndisponible, regimeBranche null", () => {
+    const sm = resolveObligationsBranche("2264", referentiels).santeMinimum;
+    expect(sm.donneeIndisponible).toBe(true);
+    expect(sm.regimeBranche).toBeNull();
+  });
+
+  it("entree TRUE (1979 HCR) -> regimeBranche true + accordFondateur expose", () => {
+    const sm = resolveObligationsBranche("1979", referentiels).santeMinimum;
+    expect(sm.regimeBranche).toBe(true);
+    expect(typeof sm.accordFondateur).toBe("string");
+    expect(sm.accordFondateur).toBeTruthy();
+    expect(sm.donneeIndisponible).toBe(false);
+  });
+
+  it("entree FALSE (2120 Banque) -> regimeBranche false expose", () => {
+    const sm = resolveObligationsBranche("2120", referentiels).santeMinimum;
+    expect(sm.regimeBranche).toBe(false);
+    expect(sm.donneeIndisponible).toBe(false);
+  });
+
+  it("organismeReference expose en information (1090 -> IRP AUTO)", () => {
+    expect(resolveObligationsBranche("1090", referentiels).santeMinimum.organismeReference).toBe("IRP AUTO");
+  });
+
+  it("canari 9999 -> regimeBranche false", () => {
+    expect(resolveObligationsBranche("9999", referentiels).santeMinimum.regimeBranche).toBe(false);
+  });
+});

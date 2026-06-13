@@ -95,10 +95,7 @@
         },
         "note": "capital deces art 3 + rente education art 5 + IJ art 6 + invalidite art 7 accord prevoyance Syntec 27/03/1997, Legifrance, verifie 2026-06-09"
       },
-      "santeMinimum": {
-        "panier": "ANI",
-        "participationEmployeur": "TO_VERIFY"
-      },
+      "santeMinimum": { "panier": "ANI", "participationEmployeur": 0.5, "_comment": "50% legal (L.911-7) ; pas de sur-obligation de branche identifiee. SOURCING_SANTE_FLAG batch1 12/06/2026" },
       "retraiteSupplementaire": null
     },
     "3248": {
@@ -188,7 +185,7 @@
         "note": "Metallurgie non-cadres (groupes A-D)."
       },
       "_comment": "IJ art. 17.1 annexe 9 (ETENDU, consolide avenant 11/07/2023, KALIARTI000048487989, releve 10/06/2026) : cadres 100 % SR jusqu'au 180e jour puis 75 % jusqu'a expiration des droits IJSS ; non-cadres 75 % plat. Garantie differentielle (17.1.d.i) : cible sous deduction IJSS ET salaire maintenu employeur — le GMS et l'IJ de branche se combinent sans cumul au-dela de la cible. Franchise 0 pour les salaries >= 12 mois d'anciennete (hypothese de l'entree) ; salaries < 12 mois : garantie relais avec franchise 90 j continus (17.1.d.ii), non modelisee sans saisie d'anciennete. SR = brut L. 242-1 des 12 mois civils precedant l'arret (17.1.b). Hors perimetre : temps partiel therapeutique (17.1.e), indemnite temporaire d'inaptitude AT/MP (17.1.f), garanties additionnelles optionnelles (IJ 85/80, invalidite 51/85/85 — accord gouvernance 07/02/2022, NE PAS confondre avec le socle).",
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": true, "accordFondateur": "annexe 9 CCN metallurgie 07/02/2022", "_comment": "Regime sante de branche metallurgie. SOURCING_SANTE_FLAG batch1 12/06/2026" }
     },
     "1979": {
       "idcc": "1979",
@@ -250,7 +247,7 @@
         },
         "note": "regime prevoyance HCR art 18 accord 02/11/2004 (avenant 1 du 13/07/2004, modifie avenant 27 du 13/10/2017), Legifrance ; garanties identiques cadres/non-cadres ; verifie 2026-06-09"
       },
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": true, "accordFondateur": "accord 28/06/2022", "_comment": "Regime sante de branche HCR impose au-dela du panier ANI national. SOURCING_SANTE_FLAG batch1 12/06/2026" }
     },
     "1597": {
       "idcc": "1597",
@@ -312,7 +309,7 @@
         },
         "note": "Regime National de Prevoyance des Ouvriers du BTP (RNPO) - identique 1596/1597/1702 (meme regime national), duplication verrouillee par test de coherence Q6."
       },
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": false, "_comment": "Frais medicaux BTP-Prevoyance facultatifs : pas de regime sante de branche obligatoire. SOURCING_SANTE_FLAG batch2 12/06/2026" }
     },
     "1596": {
       "idcc": "1596",
@@ -374,7 +371,7 @@
         },
         "note": "Regime National de Prevoyance des Ouvriers du BTP (RNPO) - identique 1596/1597/1702 (meme regime national), duplication verrouillee par test de coherence Q6."
       },
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": false, "_comment": "Frais medicaux BTP-Prevoyance facultatifs : pas de regime sante de branche obligatoire. SOURCING_SANTE_FLAG batch2 12/06/2026" }
     },
     "1702": {
       "idcc": "1702",
@@ -436,7 +433,7 @@
         },
         "note": "Regime National de Prevoyance des Ouvriers du BTP (RNPO) - identique 1596/1597/1702 (meme regime national), duplication verrouillee par test de coherence Q6."
       },
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": false, "_comment": "Frais medicaux BTP-Prevoyance facultatifs : pas de regime sante de branche obligatoire. SOURCING_SANTE_FLAG batch2 12/06/2026" }
     },
     "2609": {
       "idcc": "2609",
@@ -491,7 +488,7 @@
         },
         "note": "Regime National de Prevoyance des ETAM du BTP (RNPE) - identique 2609/2614 (meme regime national), duplication verrouillee par test de coherence Q6."
       },
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": false, "_comment": "Frais medicaux BTP-Prevoyance facultatifs : pas de regime sante de branche obligatoire. SOURCING_SANTE_FLAG batch2 12/06/2026" }
     },
     "2614": {
       "idcc": "2614",
@@ -546,7 +543,7 @@
         },
         "note": "Regime National de Prevoyance des ETAM du BTP (RNPE) - identique 2609/2614 (meme regime national), duplication verrouillee par test de coherence Q6."
       },
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": false, "_comment": "Frais medicaux BTP-Prevoyance facultatifs : pas de regime sante de branche obligatoire. SOURCING_SANTE_FLAG batch2 12/06/2026" }
     },
     "2420": {
       "idcc": "2420",
@@ -603,7 +600,7 @@
         "note": "Regime National de Prevoyance des Cadres du BTP (RNPC) - identique 2420/3212 (meme regime national), duplication verrouillee par test de coherence Q6. Garanties dans prevoyanceCadres ; collegeImpose cadres absorbe une incoherence statutPro/IDCC (BTP-0, jamais d'indisponibilite silencieuse). Gaps non encodes : AT/MP (+300% RA), deces accidentel (+100% SB), capital orphelin 125% SB, plafond cumul 85%."
       },
       "prevoyanceNonCadres": null,
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": false, "_comment": "Frais medicaux BTP-Prevoyance facultatifs : pas de regime sante de branche obligatoire. SOURCING_SANTE_FLAG batch2 12/06/2026" }
     },
     "3212": {
       "idcc": "3212",
@@ -660,7 +657,7 @@
         "note": "Regime National de Prevoyance des Cadres du BTP (RNPC) - identique 2420/3212 (meme regime national), duplication verrouillee par test de coherence Q6. Garanties dans prevoyanceCadres ; collegeImpose cadres absorbe une incoherence statutPro/IDCC (BTP-0, jamais d'indisponibilite silencieuse). Gaps non encodes : AT/MP (+300% RA), deces accidentel (+100% SB), capital orphelin 125% SB, plafond cumul 85%."
       },
       "prevoyanceNonCadres": null,
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": false, "_comment": "Frais medicaux BTP-Prevoyance facultatifs : pas de regime sante de branche obligatoire. SOURCING_SANTE_FLAG batch2 12/06/2026" }
     },
     "1996": {
       "idcc": "1996",
@@ -747,7 +744,7 @@
         "note": "Regime APGIS pharmacie d'officine - garanties IDENTIQUES cadres/non-cadres SAUF la franchise IJ (non-cadre 3 jours)."
       },
       "_comment": "Regime de prevoyance APGIS pharmacie d'officine (plaquette Regime general juillet 2025, garanties au 01/01/2024 ; avenant 07/06/2022). Garanties IDENTIQUES cadres/non-cadres SAUF la franchise IJ (non-cadre 3 j / cadre 61e jour). Capital TA+TB plafond 4 PMSS, situationFamiliale (celib 200%, saut +50 au 1er enfant, marie/PACS 250%, +25%/charge au-dela de la 1re ; concubin NON assimile). Rente education 5% TA+TB < 28 ans (min 3% PASS). IJ 82% TA+TB sous deduction Secu. Invalidite cible 90% (cat2/3) / 67,5% (cat1) sous deduction Secu, plafond 100% SR net. Maintien : Option A (plancher legal mensualisation, le RPO porte les IJ de branche en relais). Gaps hors perimetre v1 : frais d'obseques 750 EUR, deces accidentel (capital double), double effet conjoint, predeces du conjoint, rente education en cas d'invalidite du participant (forfaits 243/405/608 EUR), franchises IJ cadre < 1 an et assimile cadre (4e/31e jour, non modelisables sans saisie d'anciennete), doublement orphelin 2 parents / enfant handicape (raffinement transverse). PMSS 2025 = 3925 EUR.",
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": true, "organismeReference": "APGIS", "_comment": "Regime sante de branche pharmacie d'officine (organisme APGIS) ; accord fondateur a preciser (sourcing pharmacie v2 non retrouve au dossier). SOURCING_SANTE_FLAG addendum 12/06/2026" }
     },
     "2120": {
       "idcc": "2120",
@@ -782,7 +779,7 @@
       "prevoyanceCadres": null,
       "prevoyanceNonCadres": null,
       "_comment": "CCN du 10/01/2000 : AUCUN regime de prevoyance assure de branche (ni capital deces, ni rentes, ni IJ, ni invalidite). Obligations reelles : maintien de salaire employeur art. 54 (avenant 26/10/2009, etendu) - BAREME COMPLET par anciennete pose (cf. maintienEmployeur.note ; paliers 12/60/120/180/240 mois = 2/2, 3/3, 4/4, 5/5, 6/6 mois 100%/50%) ; restent NON MODELISES (conservateur) : prolongation du demi-salaire avec enfant a charge et ALD art. 56 (>= 10 ans d'anciennete : 12 mois 100% + 12 mois 50%), cf. note ; cadres : financement ANI 1,50% TA sans prestations definies. Les garanties reelles relevent des accords d'ENTREPRISE (BNP, SG, LCL...) : interroger le contrat collectif du client. Perimetre : banques AFB ; CA, BPCE, Credit Mutuel = autres CCN. PAS un TO_FILL. Verifie le 10/06/2026 (Legifrance, titre VII art. 50-60 + liste des textes attaches) : aucun regime de prevoyance assure de branche pour l'IDCC 2120.",
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": false, "_comment": "Banque AFB : pas de regime sante de branche (releve des accords d'entreprise). SOURCING_SANTE_FLAG batch1 12/06/2026" }
     },
     "44": {
       "idcc": "44",
@@ -808,7 +805,7 @@
       "prevoyanceCadres": null,
       "prevoyanceNonCadres": null,
       "_comment": "Sourcing 10/06/2026. Aucun regime de prevoyance assure de branche (liste des textes attaches Legifrance KALICONT000005635613 verifiee : seul texte 'prevoyance' = accord de methode du 24/04/2018, jamais concretise ; corrobore CTIP avril 2024 et accord salaires du 09/12/2024). Maintien pose = plancher ETENDU des 12 mois d'anciennete : cadres 4 mois 100 + 4 mois 50 (av. n3 art. 7, version etendue, KALIARTI000005846305) ; ouvriers/collaborateurs 2 mois 100 + 2 mois 50 (av. n1 art. 23, version 1971 etendue, KALIARTI000005846387). Bareme conventionnel NON ETENDU (avenant du 12/12/1973, adherents France Chimie/FEBEA/FIPEC/FNCG) : 4+4 mois pour TOUS les colleges (ouvriers depuis 01/01/1976, AM depuis 01/01/1975), chaque periode +1 mois par 3 ans d'anciennete, plafond 6 mois par periode -> a activer au lot transverse saisie d'anciennete. AM/techniciens fusionnes dans nonCadres : plancher 2+2 = lecture pratique (leur texte consolide est 4+4, leur version etendue 1955 ~1,5+1,5). Carence 0. Assiette = appointements + prime anciennete (+ primes de rendement av. 1 et 2), deduction IJSS possible hors majorations 3 enfants et plus. Garantie employeur AT/MP (les 3 avenants, par. 5) : deces ou IPT par AT hors trajet ou MP = 12 derniers mois d'appointements, NON MODELISEE (perimetre AT/MP uniquement, comme rente IPP AT/MP metallurgie). Veille : negociation prevoyance de branche a l'agenda paritaire depuis 2018, relancee 12/2024.",
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": true, "accordFondateur": "accords frais de sante 2014 et 2022", "_comment": "Regime sante de branche chimie. SOURCING_SANTE_FLAG batch1 12/06/2026" }
     },
     "2216": {
       "idcc": "2216",
@@ -862,7 +859,7 @@
         },
         "note": "Regime de prevoyance NON-CADRES de la CCN commerce alimentaire (titre XIII, OCIRP/AG2R). Capital + rente education + invalidite ; NI rente conjoint NI IJ de branche. Gaps non encodes : frais d'obseques 1 PMSS (av. 40), double effet (capital integral aux enfants), portabilite 9 mois (av. 31), condition 1 an d'anciennete, definition enfant a charge CGI vs <26 ans."
       },
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": false, "_comment": "Commerce alimentaire : regime PREVOYANCE de branche existant mais PAS de regime sante de branche ; ne pas confondre avec l'IDCC 1505. SOURCING_SANTE_FLAG batch2 12/06/2026" }
     },
     "16": {
       "idcc": "16",
@@ -916,7 +913,7 @@
         },
         "note": "Regime de prevoyance des transports routiers (CARCEPT-Prevoyance), perimetre TRM et auxiliaires. CCN multi-colleges : garanties NON-CADRES uniquement, PAS de collegeImpose (un cadre sur IDCC 16 retombe sur prevoyanceCadres null -> aucune garantie de branche, routage statutPro normal). Gaps non encodes : IPRIAC (rente inaptitude conduite, conducteurs, 0,35%), garantie ALD AVC/Cancer TRV (capital 250% PMSS), regime sanitaire propre, double effet (capital 200% aux enfants si deces du conjoint < 2 ans), IAD = versement anticipe."
       },
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": true, "accordFondateur": "accords protection sante 2012", "_comment": "Regime sante de branche transports routiers ; extension a confirmer. SOURCING_SANTE_FLAG batch1 12/06/2026" }
     },
     "1672": {
       "idcc": "1672",
@@ -1029,7 +1026,7 @@
         "note": "RPP des societes d'assurances - garanties identiques cadres/non-cadres (regime de branche unique, art. 82 + reglement RPP)."
       },
       "_comment": "RPP accord 24/06/2013 (revision reglement 05/03/1962), Legifrance KALITEXT000028269637, conteneur KALICONT000005635572. Reglement NON ETENDU mais art. 82 CCN 1672 (ETENDU) y renvoie expressement ; FFA = quasi-totalite de la branche. Capital art. 7 : base 50, 100 si isole avec descendant, +125 marie/PACS, +50/personne a charge (veuf : 1er descendant +100, non modelise, sous-estime ; ascendants a charge non modelises ; beneficiaire designe hors famille -> capital reduit a 50, non modelise). PTIA art. 11 : capital par anticipation (+125 pour isole), hors perimetre. Rente educ art. 8 : minimum 1715 EUR (2016) revalorise art. 37, non pose ; borne 26 ans = convention maison (texte : 'descendant a charge' non borne) ; orphelin pere+mere cumule deux rentes SI les deux parents sont du personnel de la profession (lot transverse doublement orphelin). IJ art. 14 : paliers 85 % (mois 4-12) / 70 % (mois 13-36) ; mi-temps therapeutique 85 % (art. 15) et rechute <12 mois sans nouvelle franchise (art. 17) hors perimetre. Invalidite art. 16 : cible 70 % toutes cats sous deduction Secu (le texte deduit aussi tiers/activite/chomage/retraites - approximation moteur identique aux autres branches). Maintien art. 82 : complement au salaire NET 3 mois, carence 0, condition reelle = presence effective art. 75 (plus courte que le palier 12 mois pose, plancher conservateur) ; enveloppe 3 mois/annee civile meme maladie. Assurance deplacement professionnel (arts. 24-29, double capital) et frais de soins (RPS) hors perimetre. Avenants 2022/2023/2024 = cotisations seules (02/10/2024 verifie in extenso) ; avenant 20/10/2025 a survoler (probable cotisations). Le RPP couvre aussi IDCC 1679 (inspection) : entree dediee apres sourcing de son maintien propre.",
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": true, "accordFondateur": "RPP volet frais de soins 1962 / protocole 24/06/2013", "_comment": "Regime sante de branche assurances (RPP, volet frais de soins). SOURCING_SANTE_FLAG batch2 12/06/2026" }
     },
     "1679": {
       "idcc": "1679",
@@ -1142,7 +1139,7 @@
         "note": "RPP commun aux societes d'assurances (1672) et a l'inspection d'assurance (1679) - garanties identiques cadres/non-cadres (reglement RPP unique). Maintien propre art. 59."
       },
       "_comment": "RPP commun aux CCN 1672/1679 (accord 24/06/2013, KALITEXT000028269637) — garanties strictement identiques a l'entree 1672, voir son _comment pour le detail. Maintien : art. 59 CCN 1679 (ETENDU, arrete du 12/07/1993, KALIARTI000005793009) : allocation completant a 1/360 de la remuneration NETTE annuelle (12 derniers mois hors frais, nette de charges) pendant 3 mois, carence 0, condition presence effective art. 53, enveloppe 3 mois/annee civile meme maladie, deduction IJSS/prevoyance employeur/tiers, renvoi expres au RPP au-dela de 3 mois (al. d), avance employeur possible (al. e). Population inspecteurs : statut unique, blocs cadres/nonCadres identiques.",
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": true, "accordFondateur": "RPP partage avec 1672", "_comment": "Regime sante de branche inspection d'assurance (RPP partage) ; champ a confirmer. SOURCING_SANTE_FLAG batch2 12/06/2026" }
     },
     "2264": {
       "idcc": "2264",
@@ -1203,7 +1200,7 @@
         "note": "Regime de prevoyance hospitalisation privee art. 84 - garanties assurees IDENTIQUES cadres/non-cadres (seule la carence du maintien differe : 0 cadres / 3 j non-cadres)."
       },
       "_comment": "Regime de prevoyance art. 84 CCN 18/04/2002, ETENDU, dans le texte de base (KALIARTI000020977284), consolide avenant 24/04/2009 + avenant interpretatif 21/01/2010 (deduction des IJSS NETTES de CSG/CRDS). Tous salaries SANS condition d'anciennete (palier 0). IJ posee = lecture A plancher (90 j a 100 % net par annee civile puis 80 % du brut moyenne 6 mois jusqu'a expiration IJSS) ; lecture B jurisprudentielle NON posee : Cass. soc. 02/10/2019 n 17-28311 et 20/12/2019 n 18-19.583 lisent l'art. 84.1 comme 100 % du net pendant TOUTE l'incapacite indemnisee (texte superpose, pratiques divergentes) — la couverture reelle peut donc etre superieure au plancher affiche. Carence maladie 3 j non-cadres / 0 cadres ; 0 pour tous en AT/MP/trajet (non modelise) ; subrogation non acquise (examen NAO). Deces 84.3 : CHOIX exclusif des ayants droit — pose = option (b) capital 85 % + rente education 5/10/15 % (bornes texte 12/18/25, extinction 25) ; option (a) NON posee : capital 170 % + 50 % par enfant SANS rente education (controles : isole 0/2 enfants = 170/270 %). IAD cat. 3 = versement anticipe mettant fin a la garantie. Pas de clause de devolution conventionnelle (capital aux ayants droit sans cascade). Invalidite 84.2 : cibles 'en net de X % du brut' approximees en cible brute, plafond 100 % du net toutes ressources. Assiettes : brut moyen 12 mois (1/365), revalorisation au point conventionnel (84.4). Hors entree : thermalisme ex-2104 (regime propre, avenants 24/32, meme conteneur depuis fusion 2019), saisonniers maisons d'enfants (annexe II), disparus en 2009 : doublement deces accidentel et double effet conjoint (version anterieure uniquement).",
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "TO_VERIFY": true, "_comment": "Hospitalisation privee : sources contradictoires ; seul accord sante primaire = thermal hors champ ; a lever manuellement sur la liste des textes attaches Legifrance. SOURCING_SANTE_FLAG addendum 12/06/2026" }
     },
     "1090": {
       "idcc": "1090",
@@ -1319,7 +1316,7 @@
         "note": "RPO IRP AUTO - college cadres (et maitrise pour capital/rente education). Asymetrie : capital 250 % PASS + rente education (PAS de rente de conjoint)."
       },
       "_comment": "RPO IRP AUTO Prevoyance-Sante, reglement officiel edition 06/2025 application 01/01/2026 (LDR035P), execute l'art. 1.26 CCN 15/01/1981 ; accord historique 09/04/1998 (KALITEXT000005685300) ; accord cotisations 23/10/2025 etendu 18/03/2026 (tarifs seuls). Colleges asymetriques : maitrise = OEA pour IJ/maintien (46e jour) mais maitrise+cadres pour capital 250 % PASS et rente education — le bloc nonCadres modelise les OEA stricts, un agent de maitrise reel est sous-estime au capital et recoit la rente de conjoint au lieu de la rente education (approximation de college type chimie). Maintien 100 % NET 45 j (OEA)/90 j (cadres) par annee civile des 1 an, arts. 2.10-2.11/4.08-4.09 CCN. IJ : ITT 100 % du NET (pose 1.00 brut, plafond moteur) du 46e/91e au 180e jour puis longue maladie 30 % du brut jusqu'a cat. 2/3 ou retraite ; fenetres annee civile approximees en arret continu ; cotisation ITT a la charge exclusive des salaries. Palier 2 IJ (30 %) ADDITIF (art. 4 RPO : 30 % du brut EN COMPLEMENT des IJSS brutes), plafond cumul 100 % du net via cap collectif (LOT AUTO-0bis). Invalidite ADDITIVE : cat. 2/3 30 % du brut 4 PASS en complement de la Secu, plafond 100 % du net borne au cumul par le cap collectif (LOT AUTO-0bis), jusqu'a la retraite ; cat. 1 (art. 6 RPO : 15 % de la tranche 1, ~600 EUR/mois max 2026) NON posee (cat1 a 0) car assiette T1 non representable sans surestimer les salaires > 1 PASS [ARBRE 1]. IP AT/MP art. 9 hors perimetre. Capital forfaitaire 150 %/250 % du PASS au deces — valeurs euros 2026 (OEA 72 090, cadres 120 150, a reviser au bareme annuel) [ARBRE 2] ; OEA isole +25 % du salaire annuel NON representable (cross-unit) donc non pose ; double effet (art. 11), allocation obseques 2/1 PMSS (art. 13), capital anticipe cat. 3 (art. 12) hors perimetre. Devolution RGP art. 8 : designation libre possible (y compris concubin) ; ordre par defaut conjoint puis PACS (rangs separes) puis enfants puis ascendants puis heritiers, sans representation. Rente de conjoint OEA : viagere 2 % + temporaire 4 % jusqu'a la reversion, +10 %/enfant chacune, orphelin 50 % de la viagere, interruption si remariage/PACS ; pose = viagere 2 % seule en mode cibleCumulable (cumulable, non conditionnee aux enfants) jusqu'a l'age legal du defunt (64) [ARBRE 3]. Rente education maitrise/cadres : 8 % PASS jusqu'a 16 ans, 10 % jusqu'a 18/25 (art. 8 RGP : etudes, apprentissage, stage, demandeur d'emploi non indemnise ; invalide 2-3e cat. avant 21 ans sans limite), forfait PASS via minimumPass, DOUBLEE orphelins pere et mere (lot transverse doublement) non posee. Enfants a charge = fiscalement a charge. Capital de fin de carriere (Titre VI) = IFC, hors perimetre prevoyance. Portabilite 12 mois.",
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": true, "organismeReference": "IRP AUTO", "accordFondateur": "accord 19/09/2013 RPCS", "_comment": "Regime sante de branche automobile (RPCS) ; organisme de reference IRP AUTO (information, jamais une reco). SOURCING_SANTE_FLAG batch2 12/06/2026" }
     },
     "9999": {
       "idcc": "9999",
@@ -1329,7 +1326,7 @@
       "maintienEmployeur": { "cadres": null, "nonCadres": null },
       "prevoyanceCadres": null,
       "prevoyanceNonCadres": null,
-      "santeMinimum": { "TO_FILL": true }
+      "santeMinimum": { "regimeBranche": false, "_comment": "Temoin de test sans garantie : regimeBranche false (canari)." }
     }
   }
 }
