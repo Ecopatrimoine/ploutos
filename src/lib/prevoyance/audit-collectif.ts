@@ -200,7 +200,9 @@ function controleCcnBrancheSante(
   }
   const conv = (ref.ccn as any).conventions?.[e.idccCCN];
   const sante = conv?.santeMinimum;
-  if (!sante || sante.panier === "ANI" || sante.TO_FILL) {
+  // Pas de bloc santé, panier ANI national, ou regimeBranche explicitement FALSE
+  // → pas de régime santé de branche au-delà de l'ANI → non applicable.
+  if (!sante || sante.panier === "ANI" || sante.regimeBranche === false) {
     return {
       id: "c_ccn_branche_sante",
       axe: "ccn",
@@ -208,17 +210,32 @@ function controleCcnBrancheSante(
       statut: "non_applicable",
       reference: `CCN ${e.idccCCN}`,
       detail:
-        "Pas de plancher santé spécifique au-delà du panier ANI dans cette CCN (ou champ non documenté).",
+        "Pas de régime santé de branche au-delà du panier ANI national pour cette CCN.",
     };
   }
+  // Statut non tranché (TO_VERIFY / TO_FILL) → vigilance « à confirmer ».
+  if (sante.TO_VERIFY || sante.TO_FILL) {
+    return {
+      id: "c_ccn_branche_sante",
+      axe: "ccn",
+      libelle: `Panier santé de branche (CCN ${e.idccCCN})`,
+      statut: "vigilance",
+      reference: `CCN ${e.idccCCN} — ${e.nomCCN ?? ""}`,
+      detail:
+        "Statut du régime santé de branche à confirmer pour cette CCN (sources à lever sur les textes attachés).",
+      actionCorrective:
+        "Lever le statut du régime santé de branche (textes attachés Legifrance) avant conclusion.",
+    };
+  }
+  // regimeBranche TRUE (ou ancienne forme « panier supérieur ») → vigilance.
   return {
     id: "c_ccn_branche_sante",
     axe: "ccn",
-    libelle: `Panier santé de branche supérieur à ANI (CCN ${e.idccCCN})`,
+    libelle: `Régime santé de branche imposé (CCN ${e.idccCCN})`,
     statut: "vigilance",
     reference: `CCN ${e.idccCCN} — ${e.nomCCN ?? ""}`,
     detail:
-      "La CCN impose un panier santé supérieur au minimum ANI. " +
+      "La CCN impose un régime santé de branche au-delà du minimum ANI. " +
       "Vérifier que la couverture en place atteint ce niveau.",
     actionCorrective:
       "Vérifier que le niveau de garanties santé déclaré atteint les minima de la CCN.",

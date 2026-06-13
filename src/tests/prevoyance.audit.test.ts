@@ -275,3 +275,31 @@ describe("mapAuditEnConstats", () => {
     for (const c of constats) expect(c.cible).toBe("entreprise");
   });
 });
+
+// ─── LOT SANTE-FLAG : controleCcnBrancheSante lit regimeBranche ───────────────
+describe("c_ccn_branche_sante — flag regimeBranche (cas d'or)", () => {
+  function sante(idcc: string, nom: string) {
+    const audit = runAuditConformite(baseEntreprise({ idccCCN: idcc, nomCCN: nom }), referentiels);
+    return audit.controles.find((c) => c.id === "c_ccn_branche_sante")!;
+  }
+
+  it("TRUE (1979 HCR, regime de branche) -> vigilance", () => {
+    expect(sante("1979", "HCR").statut).toBe("vigilance");
+  });
+
+  it("FALSE (2120 Banque, pas de regime de branche) -> non_applicable", () => {
+    expect(sante("2120", "Banque").statut).toBe("non_applicable");
+  });
+
+  it("TO_VERIFY (2264 Hospitalisation) -> vigilance, detail distinct du cas TRUE", () => {
+    const to = sante("2264", "Hospitalisation");
+    expect(to.statut).toBe("vigilance");
+    // verdict distinct du regime impose : detail 'a confirmer / a lever'.
+    expect(to.detail).not.toBe(sante("1979", "HCR").detail);
+    expect(to.detail).toMatch(/confirmer|lever/i);
+  });
+
+  it("Syntec 1486 (panier ANI national) -> non_applicable", () => {
+    expect(sante("1486", "Syntec").statut).toBe("non_applicable");
+  });
+});
