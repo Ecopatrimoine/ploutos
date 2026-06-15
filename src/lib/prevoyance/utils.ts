@@ -30,6 +30,13 @@ import { isFonctionnaire } from "../calculs/utils";
 const API_RECHERCHE_ENTREPRISES =
   "https://recherche-entreprises.api.gouv.fr/search";
 
+// Code officiel DSN « aucune convention collective applicable » (nomenclature IDCC,
+// ministère du Travail). L'API recherche-entreprises peut le renvoyer dans
+// liste_idcc (ex. BNP 66204244900014 → [9999, 2120]). Ce N'EST PAS une CCN réelle :
+// on le filtre à la résolution SIRET pour ne jamais l'afficher comme convention ni
+// déclencher le faux avertissement « plusieurs conventions détectées ».
+export const IDCC_AUCUNE_CONVENTION = "9999";
+
 export function validateSiret(siret: string | null | undefined): boolean {
   if (!siret) return false;
   return /^\d{14}$/.test(siret);
@@ -74,8 +81,14 @@ export async function resolveSiret(
   // Privilégier matching_etablissements[].liste_idcc (établissement
   // résolu par le SIRET), fallback complements.liste_idcc (entreprise).
   const etab = result.matching_etablissements?.[0];
-  const idccList: string[] =
+  // Liste brute de l'API, puis filtrage du sentinelle DSN 9999 (toléré en string
+  // ET en number) et des valeurs vides. Si 9999 était seul → liste vide →
+  // idccCCN null (employeur sans convention de branche), multiIdcc false.
+  const idccListRaw: Array<string | number> =
     etab?.liste_idcc ?? result.complements?.liste_idcc ?? [];
+  const idccList: string[] = idccListRaw
+    .map((c) => String(c).trim())
+    .filter((c) => c !== "" && c !== IDCC_AUCUNE_CONVENTION);
   const idccCCN = idccList[0] ?? null;
 
   const effectifRaw =
