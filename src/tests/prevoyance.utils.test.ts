@@ -252,4 +252,40 @@ describe("resolveSiret", () => {
       expect(res.multiIdcc).toBe(false);
     }
   });
+
+  // ─── Sentinelle DSN 9999 « aucune convention applicable » ───────────────────
+  it("(d) filtre le sentinelle 9999 et garde la vraie CCN (ex. BNP [9999, 2120])", async () => {
+    const payload = { results: [{ nom_complet: "BNP", matching_etablissements: [{ liste_idcc: ["9999", "2120"] }] }] };
+    const res = await resolveSiret("66204244900014", mockFetchOK(payload));
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data.idccListe).toEqual(["2120"]);
+      expect(res.data.idccCCN).toBe("2120");
+      expect(res.multiIdcc).toBe(false);
+      expect(res.data.sourceCCN).toBe("auto");
+    }
+  });
+
+  it("(e) filtre 9999 meme renvoye en number (tolerance de type API)", async () => {
+    const payload = { results: [{ nom_complet: "BNP-NUM", matching_etablissements: [{ liste_idcc: [9999, 2120] }] }] };
+    const res = await resolveSiret("66204244900014", mockFetchOK(payload));
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data.idccListe).toEqual(["2120"]);
+      expect(res.data.idccCCN).toBe("2120");
+      expect(res.multiIdcc).toBe(false);
+    }
+  });
+
+  it("(f) 9999 seul → aucune convention de branche (idccListe [], idccCCN null)", async () => {
+    const payload = { results: [{ nom_complet: "SANS-CCN", matching_etablissements: [{ liste_idcc: ["9999"] }] }] };
+    const res = await resolveSiret("12345678901234", mockFetchOK(payload));
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data.idccListe).toEqual([]);
+      expect(res.data.idccCCN).toBeNull();
+      expect(res.multiIdcc).toBe(false);
+      expect(res.data.sourceCCN).toBe("non_defini");
+    }
+  });
 });
