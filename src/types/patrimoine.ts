@@ -563,6 +563,13 @@ export type EntrepriseAudit = {
   tauxT1Cadres: number;                    // % (0-2)
   prevoyanceNonCadresEnPlace: boolean;
   categoriesObjectivesDeclarees: string;   // libellé/texte libre
+  // Catégories objectives VALIDÉES contractuellement (lecture du contrat + actes de
+  // mise en place faite au regard des 5 critères du décret 2021-1002). Additif/
+  // optionnel, rétro-compatible (absent des dossiers antérieurs) : absent/false →
+  // la déclaration seule reste en « vigilance » (vérification à faire) ; true →
+  // l'audit passe le contrôle « conforme ». Sans effet si rien n'est déclaré
+  // (l'absence de déclaration reste prioritaire → « non conforme »).
+  categoriesObjectivesValidees?: boolean;
   retraiteSuppEnPlace: boolean;
   // Détail OPTIONNEL des garanties réellement souscrites (Lot SOUSCRIT) — additif,
   // rétro-compatible (absent des dossiers antérieurs). N'influence AUCUN calcul.
