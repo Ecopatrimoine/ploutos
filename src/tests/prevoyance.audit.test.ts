@@ -124,6 +124,45 @@ describe("c_categories_objectives", () => {
     const c = audit.controles.find((x) => x.id === "c_categories_objectives")!;
     expect(c.statut).toBe("vigilance");
   });
+
+  it("conforme si catégorie déclarée ET validée contractuellement", () => {
+    const audit = runAuditConformite(
+      baseEntreprise({
+        categoriesObjectivesDeclarees: "Cadres au sens art. 4",
+        categoriesObjectivesValidees: true,
+      }),
+      referentiels
+    );
+    const c = audit.controles.find((x) => x.id === "c_categories_objectives")!;
+    expect(c.statut).toBe("conforme");
+  });
+
+  it("validée sans déclaration → reste non_conforme (déclaration prioritaire)", () => {
+    const audit = runAuditConformite(
+      baseEntreprise({ categoriesObjectivesDeclarees: "", categoriesObjectivesValidees: true }),
+      referentiels
+    );
+    const c = audit.controles.find((x) => x.id === "c_categories_objectives")!;
+    expect(c.statut).toBe("non_conforme");
+  });
+
+  it("score 100 % atteignable : 2 conformes + catégories validées, reste non_applicable", () => {
+    // CCN Banque (2120) : pas de plancher prévoyance/santé de branche → ces 2
+    // contrôles passent non_applicable. Effectif 8 (<11) → forfait social N.A.
+    const audit = runAuditConformite(
+      baseEntreprise({
+        effectif: 8,
+        idccCCN: "2120",
+        santeCollectiveEnPlace: true,
+        prevoyanceCadresEnPlace: true,
+        tauxT1Cadres: 1.6,
+        categoriesObjectivesDeclarees: "Cadres au sens art. 4",
+        categoriesObjectivesValidees: true,
+      }),
+      referentiels
+    );
+    expect(audit.scoreGlobal).toBe(100);
+  });
 });
 
 describe("c_ccn_branche_prevoyance", () => {

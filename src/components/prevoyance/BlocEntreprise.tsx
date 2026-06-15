@@ -340,6 +340,17 @@ export const BlocEntreprise = React.memo(function BlocEntreprise({ value, onChan
           />
         </Field>
 
+        {value.categoriesObjectivesDeclarees.trim() !== "" && (
+          <label className="flex items-center gap-2 text-sm" style={{ color: BRAND.navy }}>
+            <input
+              type="checkbox"
+              checked={!!value.categoriesObjectivesValidees}
+              onChange={(e) => patch({ categoriesObjectivesValidees: e.target.checked })}
+            />
+            <span>Catégories validées contractuellement (lecture du contrat et des actes de mise en place faite)</span>
+          </label>
+        )}
+
         <label className="flex items-center gap-2 text-sm" style={{ color: BRAND.navy }}>
           <input
             type="checkbox"

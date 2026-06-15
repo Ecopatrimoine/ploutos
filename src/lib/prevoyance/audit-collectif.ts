@@ -128,6 +128,20 @@ function controleCategoriesObjectives(e: EntrepriseAudit): ControleConformite {
         "Formaliser les catégories de personnel selon les critères du décret 2021-1002 (CSP, cadres/non-cadres, sous-catégorie objective).",
     };
   }
+  // Catégorie déclarée ET validée contractuellement (lecture du contrat faite) →
+  // conforme. Sinon (déclarée seule) → vigilance, vérification à conduire.
+  if (e.categoriesObjectivesValidees) {
+    return {
+      id: "c_categories_objectives",
+      axe: "categories_objectives",
+      libelle: "Catégories objectives conformes au décret 2021-1002",
+      statut: "conforme",
+      reference: "décret n° 2021-1002 du 30 juillet 2021",
+      detail:
+        `Catégorie déclarée : "${declaree}", validée contractuellement (lecture du contrat et des ` +
+        `actes de mise en place au regard des 5 critères du décret 2021-1002).`,
+    };
+  }
   return {
     id: "c_categories_objectives",
     axe: "categories_objectives",
