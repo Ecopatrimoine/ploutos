@@ -1323,6 +1323,7 @@
       "nom": "Branche de test sans garantie",
       "datesVerification": "2026-06-11",
       "_comment": "TEMOIN DE TEST (LOT DONNEES PHARMACIE) - entree fictive SANS aucune garantie de branche (ni prevoyance, ni maintien, ni devolution), destinee aux tests 'branche non documentee' (remplace l'ancien usage de l'IDCC 1996 vide, desormais rempli avec le regime APGIS). NE PAS utiliser en production.",
+      "_commentResolution": "9999 = code officiel DSN 'aucune convention collective applicable' (nomenclature IDCC, ministere du Travail). L'API recherche-entreprises peut le renvoyer dans liste_idcc (ex. BNP -> [9999, 2120]) : resolveSiret le FILTRE (constante IDCC_AUCUNE_CONVENTION, utils.ts) pour ne jamais l'afficher comme CCN ni declencher le faux avertissement multi-conventions. Entree CONSERVEE comme temoin de test (lue par ~10 tests via conventions['9999']) - NE PAS retirer.",
       "maintienEmployeur": { "cadres": null, "nonCadres": null },
       "prevoyanceCadres": null,
       "prevoyanceNonCadres": null,
