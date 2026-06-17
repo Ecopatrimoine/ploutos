@@ -34,7 +34,7 @@ import {
   type ComparaisonCollege,
   type VerdictGarantie,
 } from "./compare-obligations";
-import type { EntrepriseAudit } from "../../types/patrimoine";
+import type { EntrepriseAudit, GarantiesSouscrites } from "../../types/patrimoine";
 import type { Referentiels } from "../../data/prevoyance";
 
 // ─── Types de vue ─────────────────────────────────────────────────────────────
@@ -61,6 +61,8 @@ export type ComparaisonBrancheVue = {
   statut: ObligationsStatut;
   statutLabel: string;
   afficherAvertissementIncomplet: boolean;
+  // true des qu'au moins une garantie souscrite est renseignee (LOT 4, additif).
+  souscritRenseigne: boolean;
   idcc: string | null;
   nomCCN: string | null;
   colleges: CollegeVue[]; // un college dont la liste d'obligations est vide est OMIS
@@ -81,10 +83,13 @@ const GARANTIE_LABEL: Record<ObligationGarantie, string> = {
   maintienEmployeur: "Maintien de salaire employeur",
 };
 
+// "A etudier" (relabel LOT 4, source unique) : un verdict moteur "indetermine"
+// (souscrit absent OU bareme complexe) reste "indetermine" cote moteur ; seul le
+// LIBELLE affiche change.
 const VERDICT_LABEL: Record<VerdictGarantie, string> = {
   conforme: "Conforme",
   insuffisant: "Insuffisant",
-  indetermine: "Indetermine",
+  indetermine: "A etudier",
   non_applicable: "Non applicable",
 };
 
@@ -108,15 +113,32 @@ const STATUTS_SANS_COLLEGES: ReadonlySet<ObligationsStatut> = new Set<Obligation
 
 // ─── (a) Orchestration : calque de runAuditConformite ─────────────────────────
 
+// true des qu'au moins une valeur numerique de garantie souscrite est renseignee
+// (n'importe quel college / garantie / champ). Champ absent = non renseigne.
+function aUnSouscritRenseigne(gs: GarantiesSouscrites | undefined): boolean {
+  if (!gs) return false;
+  for (const col of [gs.cadres, gs.nonCadres]) {
+    if (!col) continue;
+    for (const garantie of Object.values(col)) {
+      if (garantie && typeof garantie === "object") {
+        for (const v of Object.values(garantie)) {
+          if (typeof v === "number" && Number.isFinite(v)) return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 export function resolveComparaisonBranche(
   entreprise: EntrepriseAudit,
   ref: Referentiels
-): { obligations: ObligationsBranche; comparaison: ComparaisonBranche } {
+): { obligations: ObligationsBranche; comparaison: ComparaisonBranche; souscritRenseigne: boolean } {
   // Fonction totale : les deux fonctions sous-jacentes le sont deja (jamais
   // d'exception ; idcc absent / convention inconnue -> statut dedie).
   const obligations = resolveObligationsBranche(entreprise.idccCCN, ref);
   const comparaison = compareObligationsSouscrit(obligations, entreprise.garantiesSouscrites);
-  return { obligations, comparaison };
+  return { obligations, comparaison, souscritRenseigne: aUnSouscritRenseigne(entreprise.garantiesSouscrites) };
 }
 
 // ─── (b) Presentation : calque de mapAuditEnConstats ──────────────────────────
@@ -160,6 +182,7 @@ function tauxT1Label(t: ObligationsBranche["tauxT1Minimum"]): string {
 export function mapBrancheEnVue(res: {
   obligations: ObligationsBranche;
   comparaison: ComparaisonBranche;
+  souscritRenseigne?: boolean; // additif (LOT 4) : absent -> false (retro-compatible)
 }): ComparaisonBrancheVue {
   const { obligations: o, comparaison: c } = res;
 
@@ -177,6 +200,7 @@ export function mapBrancheEnVue(res: {
     statut: o.statut,
     statutLabel: STATUT_LABEL[o.statut],
     afficherAvertissementIncomplet: o.statut === "donnees_incompletes",
+    souscritRenseigne: res.souscritRenseigne ?? false,
     idcc: o.idcc,
     nomCCN: o.nomCCN,
     colleges,
@@ -191,4 +215,154 @@ export function mapBrancheEnVue(res: {
       ? { presente: o.santeMinimum.presente, label: o.santeMinimum.resume }
       : null,
   };
+}
+
+// ─── (c) Vue FUSIONNEE par garantie (LOT 4) ───────────────────────────────────
+//
+// Au-dessus de la vue par college : fusionne cadres/nonCadres PAR GARANTIE pour
+// un rendu unique consomme a l'identique par l'ecran (Lot 5) et le PDF (Lot 6).
+// Quand les deux colleges disent la meme chose -> { commun } ; sinon -> les deux.
+
+type Verdict = VerdictGarantie;
+
+export type ValeurFusionnee = { commun: string } | { cadres: string; nonCadres: string };
+export type VerdictFusionne = { commun: Verdict } | { cadres: Verdict; nonCadres: Verdict };
+
+export type LigneFusionnee = {
+  garantie: ObligationGarantie;
+  garantieLabel: string;
+  estReference: boolean;            // maintienEmployeur : ligne de reference, pas de verdict
+  obligation: ValeurFusionnee;
+  souscrit: ValeurFusionnee | null; // null : le Lot 1 ne porte pas le detail souscrit
+  verdict: VerdictFusionne | null;      // null si estReference
+  verdictLabel: ValeurFusionnee | null; // null si estReference
+  motif: ValeurFusionnee | null;        // null si estReference
+};
+
+export type VueObligationsFusionnee = {
+  statut: ObligationsStatut;
+  statutLabel: string;
+  afficherAvertissementIncomplet: boolean;
+  souscritRenseigne: boolean;
+  afficherComparaison: boolean;     // = souscritRenseigne ; pilote les colonnes souscrit/verdict
+  idcc: string | null;
+  nomCCN: string | null;
+  lignes: LigneFusionnee[];         // garanties prevues par la branche (maintien inclus, en reference)
+  nonPrevues: { garantie: ObligationGarantie; garantieLabel: string }[]; // garanties NON prevues
+  synthese: { conformes: number; insuffisants: number; aEtudier: number } | null; // null si !afficherComparaison
+};
+
+// Ordre du PIRE verdict au croisement cadres/nonCadres :
+// insuffisant > indetermine (= A etudier) > conforme > non_applicable.
+const RANG_PIRE_VERDICT: Record<Verdict, number> = {
+  insuffisant: 3,
+  indetermine: 2,
+  conforme: 1,
+  non_applicable: 0,
+};
+
+// Fusionne deux valeurs (cadres/nonCadres) : commun si egales OU si un seul
+// college present ; sinon { cadres, nonCadres }. undefined = college absent.
+function fusionnerValeur<T>(c: T | undefined, n: T | undefined): { commun: T } | { cadres: T; nonCadres: T } {
+  if (c !== undefined && n === undefined) return { commun: c };
+  if (n !== undefined && c === undefined) return { commun: n };
+  return c === n ? { commun: c as T } : { cadres: c as T, nonCadres: n as T };
+}
+
+function pireVerdict(vf: VerdictFusionne): Verdict {
+  if ("commun" in vf) return vf.commun;
+  return RANG_PIRE_VERDICT[vf.cadres] >= RANG_PIRE_VERDICT[vf.nonCadres] ? vf.cadres : vf.nonCadres;
+}
+
+// Fonction PURE testable : fusionne la vue par college (Lot 1) en vue par garantie.
+export function fusionnerColleges(vue: ComparaisonBrancheVue): VueObligationsFusionnee {
+  const base = {
+    statut: vue.statut,
+    statutLabel: vue.statutLabel,
+    afficherAvertissementIncomplet: vue.afficherAvertissementIncomplet,
+    souscritRenseigne: vue.souscritRenseigne,
+    idcc: vue.idcc,
+    nomCCN: vue.nomCCN,
+  };
+
+  // Statuts sans colleges (idcc_absent / convention_inconnue / aucune_obligation_assuree)
+  // -> etat vide propre : pas de comparaison, pas de synthese. Jamais d'exception.
+  if (vue.colleges.length === 0) {
+    return { ...base, afficherComparaison: false, lignes: [], nonPrevues: [], synthese: null };
+  }
+
+  const cadres = vue.colleges.find((c) => c.libelle === "Cadres");
+  const nonCadres = vue.colleges.find((c) => c.libelle === "Non-cadres");
+
+  // Index par garantie en preservant l'ordre d'apparition (ordre des obligations).
+  const ordre: ObligationGarantie[] = [];
+  const parGarantie = new Map<ObligationGarantie, { c?: LigneGarantieVue; n?: LigneGarantieVue }>();
+  const sources: Array<[CollegeVue | undefined, "c" | "n"]> = [[cadres, "c"], [nonCadres, "n"]];
+  for (const [col, key] of sources) {
+    if (!col) continue;
+    for (const l of col.lignes) {
+      let e = parGarantie.get(l.garantie);
+      if (!e) { e = {}; parGarantie.set(l.garantie, e); ordre.push(l.garantie); }
+      e[key] = l;
+    }
+  }
+
+  const lignes: LigneFusionnee[] = [];
+  const nonPrevues: { garantie: ObligationGarantie; garantieLabel: string }[] = [];
+
+  for (const g of ordre) {
+    const e = parGarantie.get(g)!;
+    const presentes = [e.c, e.n].filter((x): x is LigneGarantieVue => x !== undefined);
+    const garantieLabel = presentes[0].garantieLabel;
+    const estReference = g === "maintienEmployeur";
+
+    // Garantie NON prevue par la branche (presente=false dans tous les colleges
+    // ou elle apparait), hors maintien -> note de bas, PAS une ligne.
+    if (!estReference && presentes.every((l) => l.presente === false)) {
+      nonPrevues.push({ garantie: g, garantieLabel });
+      continue;
+    }
+
+    const obligation = fusionnerValeur(e.c?.obligationResume, e.n?.obligationResume);
+
+    if (estReference) {
+      // Ligne de reference : pas de verdict/souscrit (le maintien n'est pas compare).
+      lignes.push({ garantie: g, garantieLabel, estReference: true, obligation, souscrit: null, verdict: null, verdictLabel: null, motif: null });
+      continue;
+    }
+
+    lignes.push({
+      garantie: g,
+      garantieLabel,
+      estReference: false,
+      obligation,
+      souscrit: null, // pas de chaine "souscrit" cote vue Lot 1 -> on n'invente rien
+      verdict: fusionnerValeur(e.c?.verdict, e.n?.verdict),
+      verdictLabel: fusionnerValeur(e.c?.verdictLabel, e.n?.verdictLabel),
+      motif: fusionnerValeur(e.c?.motif, e.n?.motif),
+    });
+  }
+
+  const afficherComparaison = vue.souscritRenseigne;
+
+  let synthese: VueObligationsFusionnee["synthese"] = null;
+  if (afficherComparaison) {
+    let conformes = 0, insuffisants = 0, aEtudier = 0;
+    for (const l of lignes) {
+      if (l.estReference || !l.verdict) continue; // maintien exclu de la synthese
+      const pire = pireVerdict(l.verdict);
+      if (pire === "conforme") conformes++;
+      else if (pire === "insuffisant") insuffisants++;
+      else if (pire === "indetermine") aEtudier++;
+      // non_applicable : non compte
+    }
+    synthese = { conformes, insuffisants, aEtudier };
+  }
+
+  return { ...base, afficherComparaison, lignes, nonPrevues, synthese };
+}
+
+// Point d'entree unique (ecran Lot 5 + PDF Lot 6).
+export function buildVueObligationsFusionnee(entreprise: EntrepriseAudit, ref: Referentiels): VueObligationsFusionnee {
+  return fusionnerColleges(mapBrancheEnVue(resolveComparaisonBranche(entreprise, ref)));
 }

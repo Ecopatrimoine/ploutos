@@ -191,7 +191,7 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     expect(html).toContain("Obligation de branche");
     // Au moins un libelle de garantie + un libelle de verdict
     expect(html).toContain("Capital deces");
-    expect(html).toMatch(/Conforme|Insuffisant|Indetermine/);
+    expect(html).toMatch(/Conforme|Insuffisant|A etudier/); // relabel LOT 4
     // DDA : aucun assureur sur le HTML enrichi
     expect(html).not.toMatch(REGEX_ASSUREURS);
   });

@@ -16,6 +16,7 @@ const vueSyntec: ComparaisonBrancheVue = {
   statut: "branche_documentee",
   statutLabel: "Obligations de branche documentees",
   afficherAvertissementIncomplet: false,
+  souscritRenseigne: false,
   idcc: "1486",
   nomCCN: "Syntec",
   colleges: [
@@ -41,7 +42,7 @@ const vueSyntec: ComparaisonBrancheVue = {
           presente: true,
           donneeIndisponible: false,
           verdict: "indetermine",
-          verdictLabel: "Indetermine",
+          verdictLabel: "A etudier",
           motif: "Bareme conventionnel a paliers/situations : comparaison manuelle requise.",
         },
       ],
@@ -56,6 +57,7 @@ const vueVide: ComparaisonBrancheVue = {
   statut: "idcc_absent",
   statutLabel: "Aucune convention de branche renseignee",
   afficherAvertissementIncomplet: false,
+  souscritRenseigne: false,
   idcc: null,
   nomCCN: null,
   colleges: [],
@@ -70,8 +72,8 @@ describe("BlocObligationsBranche — rendu (LOT 2)", () => {
     expect(screen.getByText("Rente education")).toBeInTheDocument();
     // "Insuffisant" apparait au moins une fois (badge college + badge ligne).
     expect(screen.getAllByText("Insuffisant").length).toBeGreaterThanOrEqual(1);
-    // "Indetermine" : badge de la ligne renteEducation.
-    expect(screen.getByText("Indetermine")).toBeInTheDocument();
+    // "A etudier" : badge de la ligne renteEducation (relabel LOT 4).
+    expect(screen.getByText("A etudier")).toBeInTheDocument();
     // Le motif distingue "comparaison manuelle requise" -> rendu.
     expect(screen.getByText(/comparaison manuelle requise/i)).toBeInTheDocument();
   });

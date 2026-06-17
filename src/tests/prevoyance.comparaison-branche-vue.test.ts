@@ -158,7 +158,7 @@ describe("mapBrancheEnVue — presentation", () => {
     expect(vue.afficherAvertissementIncomplet).toBe(true);
     const nc = college(vue, "Non-cadres");
     expect(nc?.verdictGlobal).toBe("indetermine");
-    expect(nc?.verdictGlobalLabel).toBe("Indetermine");
+    expect(nc?.verdictGlobalLabel).toBe("A etudier"); // relabel LOT 4 (indetermine -> "A etudier")
   });
 
   it("branche_documentee -> pas d'avertissement incomplet", () => {
