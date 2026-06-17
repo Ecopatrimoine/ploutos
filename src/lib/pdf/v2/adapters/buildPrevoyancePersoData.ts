@@ -20,6 +20,7 @@ import { buildContexteRegle } from "../../../prevoyance/contexte";
 import { evaluerToutesLesRegles } from "../../../prevoyance/regles";
 import { WARNING_MICRO_TNS } from "../../../prevoyance/constants";
 import { referentiels } from "../../../../data/prevoyance";
+import { mentionDDAPrevoyance } from "../textesLegaux";
 
 export type BuildPrevoyancePersoDataParams = {
   data: Record<string, any>;
@@ -173,12 +174,7 @@ export function buildPrevoyancePersoData(p: BuildPrevoyancePersoDataParams): Pre
 
   const cabinetNom = cabinet.cabinetName || cabinet.nom || "Cabinet";
   const orias = cabinet.orias || "—";
-  const mentionDDA =
-    `Document remis à titre indicatif — analyse non contractuelle. Ne constitue ni un conseil en ` +
-    `investissement au sens de l'art. L.541-1 et s. CMF, ni un conseil en distribution d'assurance au ` +
-    `sens de l'art. L.521-4 C. ass. Toute mise en place de couverture doit faire l'objet d'un devoir de ` +
-    `conseil formalisé et d'une recommandation personnalisée par un intermédiaire habilité. ` +
-    `${cabinetNom} — ORIAS n° ${orias}.`;
+  const mentionDDA = mentionDDAPrevoyance(cabinetNom, orias);
   const cabinetLibellePied = `${cabinetNom} · Prévoyance personnelle — confidentiel`;
 
   // Construction de l'entrée moteur.

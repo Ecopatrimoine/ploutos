@@ -206,7 +206,17 @@ function sectionObligationsFusionnee(t: Tokens, vue: VueObligationsFusionnee): s
 // ─── Page (2 feuilles) ────────────────────────────────────────────────────────
 
 export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string {
-  // Module inactif : une seule feuille (pas de page vide inutile).
+  const pied = piedPage(t, { gauche: d.cabinetLibellePied, droite: d.pagePosition });
+  // Mention DDA : rendue UNE seule fois par document collectif, en FIN de la
+  // DERNIERE feuille du module (feuille Obligations en mode actif ; feuille unique
+  // en mode inactif). Texte centralise (mentionDDAPrevoyance) via d.mentionDDA.
+  const ddaNote = noteIconee(t, {
+    iconeSvg: icones.infoCircle(t.eyebrowOr, 14),
+    texteHtml: d.mentionDDA,
+    style: "discrete",
+  });
+
+  // Module inactif : une seule feuille (pas de page vide inutile) + DDA en fin.
   if (!d.active) {
     const contenu = `
       ${header(t, {
@@ -219,28 +229,18 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
         Aucun dirigeant détecté dans le foyer et analyse externe non activée.<br/>
         Activer le module Prévoyance collective pour produire l'audit conformité.
       </div>
+      ${ddaNote}
     `;
-    return coquillePage(t, {
-      contenu,
-      pied: piedPage(t, { gauche: d.cabinetLibellePied, droite: d.pagePosition }),
-    });
+    return coquillePage(t, { contenu, pied });
   }
 
-  // En-tete/pied reutilises a l'identique sur la conformite et les constats.
-  const pied = piedPage(t, { gauche: d.cabinetLibellePied, droite: d.pagePosition });
+  // En-tete des feuilles conformite + constats.
   const enTeteConformite = header(t, {
     eyebrow: "Prévoyance",
     titre: "Prévoyance collective",
     sousTitre: d.sousTitre,
     droiteHaut: d.clientName,
     droiteBas: d.dateStr,
-  });
-  // Mention DDA : rendue UNE seule fois, en fin de la DERNIERE feuille de constats
-  // (garde-fou : exactement une occurrence dans le document collectif).
-  const ddaNote = noteIconee(t, {
-    iconeSvg: icones.infoCircle(t.eyebrowOr, 14),
-    texteHtml: d.mentionDDA,
-    style: "discrete",
   });
 
   // ── Feuille 1 : Conformité — BORNEE (header + KPI + matrice d'audit seule) ──
@@ -284,7 +284,8 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
   // Cap prudent (pas de mesure DOM cote string ; a ajuster par validation visuelle).
   const CAP_CONSTATS_PAR_FEUILLE = 4;
 
-  const construireFeuilleConstats = (cartes: string, titre: string, avecDDA: boolean): string =>
+  // DDA n'est PLUS sur les feuilles de constats (deplacee en fin de feuille Obligations).
+  const construireFeuilleConstats = (cartes: string, titre: string): string =>
     coquillePage(t, {
       contenu: `
         ${enTeteConformite}
@@ -292,7 +293,6 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
           ${sousTitreSection(t, titre)}
           ${cartes}
         </div>
-        ${avecDDA ? ddaNote : ""}
       `,
       pied,
     });
@@ -300,7 +300,7 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
   let feuillesConstats: string;
   if (d.constats.length === 0) {
     const message = `<div style="margin-top:8px;font-size:10.5px;color:${t.texteFaible};font-style:italic">Aucune non-conformité ni point de vigilance relevé sur la base des éléments déclarés.</div>`;
-    feuillesConstats = construireFeuilleConstats(message, "Constats et pistes", true);
+    feuillesConstats = construireFeuilleConstats(message, "Constats et pistes");
   } else {
     const paquets: Constat[][] = [];
     for (let i = 0; i < d.constats.length; i += CAP_CONSTATS_PAR_FEUILLE) {
@@ -310,12 +310,12 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
       .map((paquet, idx) => {
         const cartes = paquet.map((c) => renderConstatHTML(t, c)).join("");
         const titre = idx === 0 ? "Constats et pistes" : "Constats et pistes (suite)";
-        return construireFeuilleConstats(cartes, titre, idx === paquets.length - 1);
+        return construireFeuilleConstats(cartes, titre);
       })
       .join("");
   }
 
-  // ── Feuille "Obligations de branche" — section inchangee (DDA deja rendue) ──
+  // ── Feuille "Obligations de branche" (DERNIERE feuille) + DDA en fin de module ──
   const sectionObl = d.vueObligations
     ? sectionObligationsFusionnee(t, d.vueObligations)
     : `${sousTitreSection(t, "Obligations de prevoyance de branche")}<div style="font-size:10.5px;color:${t.texteFaible};margin-top:2px">Donnees de branche indisponibles.</div>`;
@@ -332,6 +332,7 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
       <div style="margin-top:16px">
         ${sectionObl}
       </div>
+      ${ddaNote}
     `,
     pied,
   });

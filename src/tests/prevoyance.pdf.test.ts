@@ -15,6 +15,7 @@ import { pagePrevoyancePerso } from "../lib/pdf/v2/pages/pagePrevoyancePerso";
 import { buildPrevoyanceCollData } from "../lib/pdf/v2/adapters/buildPrevoyanceCollData";
 import { pagePrevoyanceColl } from "../lib/pdf/v2/pages/pagePrevoyanceColl";
 import type { Constat } from "../lib/prevoyance/types";
+import { mentionDDAPrevoyance } from "../lib/pdf/v2/textesLegaux";
 
 const t = buildTokens("encreOr");
 const dateLettre = "28 mai 2026";
@@ -214,11 +215,14 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     expect(html).not.toMatch(REGEX_ASSUREURS);
   });
 
-  it("affiche un état inactif si aucun dirigeant ni collective enregistrée", () => {
+  it("module inactif : une feuille unique, DDA presente exactement une fois", () => {
     const d = buildPrevoyanceCollData({ data: dataSalarie(), cabinet, dateLettre });
     expect(d.active).toBe(false);
     const html = pagePrevoyanceColl(t, d);
     expect(html).toContain("Activer le module Prévoyance collective");
+    const feuilles = html.split("width:210mm;height:297mm").slice(1);
+    expect(feuilles.length).toBe(1);
+    expect(html.split("L.521-4").length - 1).toBe(1); // DDA une seule fois
   });
 
   it("Syntec riche (garanties renseignees) : verdicts + synthese (feuille 2)", () => {
@@ -237,7 +241,7 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     expect(html).not.toMatch(REGEX_ASSUREURS);
   });
 
-  it("decoupage : feuille 1 = Audit borne (sans constats, sans DDA, sans obligations)", () => {
+  it("decoupage : feuille 1 = Audit borne ; obligations + DDA sur la DERNIERE feuille", () => {
     const data = dataAvecSouscrit({ cadres: { capitalDC: { tauxSalaireRef: 1.0 } } });
     const d = buildPrevoyanceCollData({ data, cabinet, dateLettre });
     const html = pagePrevoyanceColl(t, d);
@@ -248,8 +252,12 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     expect(f1).not.toContain("Constats et pistes");   // constats sur feuille(s) dediee(s)
     expect(f1).not.toContain("L.521-4");               // DDA pas sur la feuille 1
     expect(f1).not.toContain("Obligation de branche"); // obligations ailleurs
-    // obligations sur la DERNIERE feuille
-    expect(feuilles[feuilles.length - 1]).toContain("Obligation de branche");
+    // obligations ET DDA sur la DERNIERE feuille
+    const fObl = feuilles[feuilles.length - 1];
+    expect(fObl).toContain("Obligation de branche");
+    expect(fObl).toContain("L.521-4");
+    // les feuilles de constats (entre Conformite et Obligations) ne portent pas la DDA
+    for (const f of feuilles.slice(1, -1)) expect(f).not.toContain("L.521-4");
   });
 
   it("Syntec garanties vides : bandeau 'comparaison non realisee', pas de colonne Verdict", () => {
@@ -280,12 +288,14 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     expect(feuilles.length).toBe(5);
     // aucune carte perdue au chunk
     for (let i = 1; i <= 9; i++) expect(html).toContain(`Constat numero ${i}`);
-    // mention DDA EXACTEMENT une fois
+    // mention DDA EXACTEMENT une fois, sur la DERNIERE feuille (obligations)
     expect(html.split("L.521-4").length - 1).toBe(1);
+    for (const f of feuilles.slice(1, -1)) expect(f).not.toContain("L.521-4"); // pas sur les constats
+    expect(feuilles[feuilles.length - 1]).toContain("L.521-4");
     expect(html).not.toMatch(REGEX_ASSUREURS);
   });
 
-  it("aucun constat : une feuille Constats avec le message + DDA unique", () => {
+  it("aucun constat : une feuille Constats avec le message + DDA unique (sur obligations)", () => {
     const base = buildPrevoyanceCollData({ data: dataDirigeant("1486", "Syntec"), cabinet, dateLettre });
     const d = { ...base, constats: [] };
     const html = pagePrevoyanceColl(t, d);
@@ -294,5 +304,20 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     expect(feuilles.length).toBe(3);
     expect(html).toContain("Aucune non-conformité");
     expect(html.split("L.521-4").length - 1).toBe(1);
+    expect(feuilles[feuilles.length - 1]).toContain("L.521-4"); // sur la feuille obligations
+  });
+
+  it("DDA centralisee : texte legal byte-a-byte inchange (anti-divergence)", () => {
+    const s = mentionDDAPrevoyance("EcoPatrimoine Conseil", "25006907");
+    for (const m of ["non contractuelle", "L.541-1", "L.521-4", "devoir de conseil", "ORIAS"]) {
+      expect(s).toContain(m);
+    }
+    expect(s).toBe(
+      "Document remis à titre indicatif — analyse non contractuelle. Ne constitue ni un conseil en " +
+      "investissement au sens de l'art. L.541-1 et s. CMF, ni un conseil en distribution d'assurance au " +
+      "sens de l'art. L.521-4 C. ass. Toute mise en place de couverture doit faire l'objet d'un devoir de " +
+      "conseil formalisé et d'une recommandation personnalisée par un intermédiaire habilité. " +
+      "EcoPatrimoine Conseil — ORIAS n° 25006907."
+    );
   });
 });
