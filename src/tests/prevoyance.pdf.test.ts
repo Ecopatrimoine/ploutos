@@ -82,6 +82,31 @@ function dataDirigeant(idccCCN: string, nomCCN: string): Record<string, any> {
   });
 }
 
+// Dossier dont la collective enregistree porte des garanties souscrites
+// (-> afficherComparaison = true cote vue fusionnee).
+function dataAvecSouscrit(garantiesSouscrites: Record<string, any>): Record<string, any> {
+  return dataSalarie({
+    prevoyance: {
+      version: 1,
+      p1: { contratsIndividuels: [], couvertureCollective: null, categorieInvaliditeProjetee: "cat2" },
+      p2: null,
+      collective: {
+        active: true,
+        source: "analyse_externe",
+        entreprise: {
+          siret: "12345678901234", nom: "SARL DUPONT", formeJuridique: "SARL",
+          effectif: 12, idccCCN: "1486", nomCCN: "Syntec", codeNAF: "4321A",
+          santeCollectiveEnPlace: false, participationEmployeurSante: 0.5,
+          prevoyanceCadresEnPlace: false, tauxT1Cadres: 1.5,
+          prevoyanceNonCadresEnPlace: false, categoriesObjectivesDeclarees: "",
+          retraiteSuppEnPlace: false,
+          garantiesSouscrites,
+        },
+      },
+    },
+  });
+}
+
 describe("pagePrevoyancePerso — sentinelles", () => {
   it("rend une page complète avec SVG + jalons + mention DDA pour un salarié P1", () => {
     const d = buildPrevoyancePersoData({ data: dataSalarie(), cabinet, which: "p1", dateLettre });
@@ -181,27 +206,50 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     expect(html).toContain("Activer le module Prévoyance collective");
   });
 
-  it("enrichit la section obligations de branche + verdicts gap (Syntec 1486)", () => {
-    const d = buildPrevoyanceCollData({ data: dataDirigeant("1486", "Syntec"), cabinet, dateLettre });
+  it("Syntec riche (garanties renseignees) : verdicts + synthese (feuille 2)", () => {
+    const data = dataAvecSouscrit({ cadres: { capitalDC: { tauxSalaireRef: 1.0 } } });
+    const d = buildPrevoyanceCollData({ data, cabinet, dateLettre });
     expect(d.active).toBe(true);
     const html = pagePrevoyanceColl(t, d);
-    // Section presente
     expect(html).toContain("Obligations de prevoyance de branche");
-    // En-tete de tableau -> la table par college est bien rendue
-    expect(html).toContain("Obligation de branche");
-    // Au moins un libelle de garantie + un libelle de verdict
     expect(html).toContain("Capital deces");
-    expect(html).toMatch(/Conforme|Insuffisant|A etudier/); // relabel LOT 4
-    // DDA : aucun assureur sur le HTML enrichi
+    expect(html).toContain("Verdict"); // colonne presente -> comparaison active
+    expect(html).toMatch(/Conforme|Insuffisant|A etudier/);
+    // compteurs de synthese
+    expect(html).toContain("conformes");
+    expect(html).toContain("insuffisante(s)");
+    expect(html).toContain("a etudier");
     expect(html).not.toMatch(REGEX_ASSUREURS);
   });
 
-  it("etat vide propre quand la branche n'impose pas de prevoyance (Banque 2120)", () => {
+  it("decoupage 2 feuilles : Conformite (Audit + Constats) puis Obligations", () => {
+    const data = dataAvecSouscrit({ cadres: { capitalDC: { tauxSalaireRef: 1.0 } } });
+    const d = buildPrevoyanceCollData({ data, cabinet, dateLettre });
+    const html = pagePrevoyanceColl(t, d);
+    const feuilles = html.split("width:210mm;height:297mm").slice(1);
+    expect(feuilles.length).toBe(2); // deux feuilles A4
+    const [f1, f2] = feuilles;
+    expect(f1).toContain("Audit de conformit");
+    expect(f1).toContain("Constats et pistes");
+    expect(f1).not.toContain("Obligation de branche"); // obligations PAS sur la feuille 1
+    expect(f2).toContain("Obligation de branche");      // ... mais sur la feuille 2
+  });
+
+  it("Syntec garanties vides : bandeau 'comparaison non realisee', pas de colonne Verdict", () => {
+    const d = buildPrevoyanceCollData({ data: dataDirigeant("1486", "Syntec"), cabinet, dateLettre });
+    const html = pagePrevoyanceColl(t, d);
+    expect(html).toContain("comparaison non realisee");
+    expect(html).not.toContain("Verdict");
+    expect(html).not.toMatch(REGEX_ASSUREURS);
+  });
+
+  it("Banque 2120 (etat vide) : statut sur la feuille 2, pas de tableau, feuille non blanche", () => {
     const d = buildPrevoyanceCollData({ data: dataDirigeant("2120", "Banque"), cabinet, dateLettre });
     const html = pagePrevoyanceColl(t, d);
-    // Statut rendu, sans tableau (pas d'en-tete de colonne "Obligation de branche")
-    expect(html).toContain("Aucune obligation de prevoyance de branche");
-    expect(html).not.toContain("Obligation de branche");
-    expect(html).not.toMatch(REGEX_ASSUREURS);
+    const feuilles = html.split("width:210mm;height:297mm").slice(1);
+    expect(feuilles.length).toBe(2);
+    const f2 = feuilles[1];
+    expect(f2).toContain("Aucune obligation de prevoyance de branche");
+    expect(f2).not.toContain("Obligation de branche"); // pas de tableau obligations
   });
 });

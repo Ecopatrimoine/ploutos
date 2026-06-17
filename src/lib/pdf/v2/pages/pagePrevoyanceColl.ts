@@ -1,8 +1,12 @@
-// ─── Lot 9 — Page Prévoyance collective v2 (module Prévoyance) ──────────
+// ─── Page Prévoyance collective v2 — 2 feuilles A4 (LOT 6) ─────────────────────
 //
-// Remplace l'ancienne pagePrevoyanceColl (générique). Consomme l'audit
-// conformité réel (audit-collectif.ts) : KPI + matrice des 6 contrôles
-// + constats + mention DDA.
+// Feuille 1 "Conformité" : header + KPI + Audit de conformité + Constats + DDA.
+// Feuille 2 "Obligations de branche" : synthèse + tableau UNIQUE fusionné (miroir
+// de l'ecran Lot 5), consommant la MEME vue (buildVueObligationsFusionnee).
+// Decoupage en 2 feuilles -> zero troncature (les constats ne sont plus repousses
+// hors page par le tableau d'obligations). Chaque coquillePage = une feuille A4 ;
+// retourner feuille1 + feuille2 emet deux pages a la suite (l'assemblage du pack
+// concatene la string telle quelle).
 
 import {
   header,
@@ -16,7 +20,11 @@ import {
 } from "../primitives";
 import type { Tokens } from "../tokens";
 import type { Constat, ControleConformite, ControleStatut } from "../../../prevoyance/types";
-import type { ComparaisonBrancheVue } from "../../../prevoyance/comparaison-branche-vue";
+import type {
+  VueObligationsFusionnee,
+  ValeurFusionnee,
+  VerdictFusionne,
+} from "../../../prevoyance/comparaison-branche-vue";
 
 export type PrevoyanceCollPageData = {
   active: boolean;
@@ -29,10 +37,9 @@ export type PrevoyanceCollPageData = {
   ccnLibelle: string;         // "IDCC 1486" ou "—"
   controles: ControleConformite[];
   constats: Constat[];
-  // Vue partagee obligations de branche + verdicts gap (meme source que l'ecran).
-  // null en etat inactif. La section PDF rend la prevoyance de branche + gap par
-  // college ; elle NE rend PAS vue.sante / vue.tauxT1 (deja dans la matrice d'audit).
-  comparaisonVue: ComparaisonBrancheVue | null;
+  // Vue FUSIONNEE obligations de branche + gap (meme source que l'ecran Lot 5).
+  // null en etat inactif. Rendue sur la feuille 2.
+  vueObligations: VueObligationsFusionnee | null;
   mentionDDA: string;
   pagePosition: string;
   cabinetLibellePied: string;
@@ -52,6 +59,15 @@ const COULEUR_SEVERITE: Record<string, { bg: string; border: string; texte: stri
   info:           { bg: "#EEF1F5", border: "#3B82F6", texte: "#1E3A8A", label: "INFO" },
 };
 
+// Code couleur des verdicts gap — aligne sur STATUT_LABEL de l'audit (coherence) :
+// conforme=vert, insuffisant=rouge, indetermine(=A etudier)=ambre, non_applicable=gris.
+const VERDICT_COULEUR: Record<string, string> = {
+  conforme: "#2F7D5B",
+  insuffisant: "#DC2626",
+  indetermine: "#B07A1E",
+  non_applicable: "#6B7280",
+};
+
 function renderConstatHTML(t: Tokens, c: Constat): string {
   const couleur = COULEUR_SEVERITE[c.severite] ?? COULEUR_SEVERITE.info;
   const ref = c.reference
@@ -68,63 +84,129 @@ function renderConstatHTML(t: Tokens, c: Constat): string {
   `;
 }
 
-// Code couleur des verdicts gap — aligne sur STATUT_LABEL de l'audit (coherence) :
-// conforme=vert, insuffisant=rouge, indetermine=ambre, non_applicable=gris attenue.
-const VERDICT_COULEUR: Record<string, string> = {
-  conforme: "#2F7D5B",
-  insuffisant: "#DC2626",
-  indetermine: "#B07A1E",
-  non_applicable: "#6B7280",
-};
+// ─── Helpers section obligations fusionnees (feuille 2) ───────────────────────
 
-// Section "Obligations de prevoyance de branche" + verdicts gap par college.
-// Lisibilite avant densite : tableaux a 4 colonnes (memes titres dores que
-// l'audit), lignes confortables, motif vide -> cellule vide propre. Ne rend QUE
-// les chaines de la vue (source unique) -> rien a ajouter cote DDA.
-function sectionObligationsBranche(t: Tokens, vue: ComparaisonBrancheVue): string {
+// ValeurFusionnee -> HTML cellule. null -> "—" ; commun -> texte ; split -> 2 lignes.
+function valeurHTML(t: Tokens, v: ValeurFusionnee | null): string {
+  if (!v) return `<span style="color:${t.texteFaible}">—</span>`;
+  if ("commun" in v) return v.commun;
+  return (
+    `<div><span style="color:${t.texteFaible};font-weight:600">Cadres :</span> ${v.cadres}</div>` +
+    `<div style="margin-top:2px"><span style="color:${t.texteFaible};font-weight:600">Non-cadres :</span> ${v.nonCadres}</div>`
+  );
+}
+
+function pastilleHTML(label: string, color: string): string {
+  return `<span style="display:inline-block;border:1px solid ${color};border-radius:4px;padding:1px 6px;font-size:9.5px;font-weight:700;color:${color};background:#fff">${label}</span>`;
+}
+
+// VerdictFusionne (+ libelle parallele) -> pastille(s) colorees.
+function verdictHTML(t: Tokens, verdict: VerdictFusionne | null, label: ValeurFusionnee | null): string {
+  if (!verdict) return "";
+  if ("commun" in verdict) {
+    const lab = label && "commun" in label ? label.commun : "";
+    return pastilleHTML(lab, VERDICT_COULEUR[verdict.commun] ?? t.texteFaible);
+  }
+  const lc = label && "cadres" in label ? label.cadres : "";
+  const ln = label && "cadres" in label ? label.nonCadres : "";
+  return (
+    `<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">` +
+    pastilleHTML(`Cadres : ${lc}`, VERDICT_COULEUR[verdict.cadres] ?? t.texteFaible) +
+    pastilleHTML(`Non-cadres : ${ln}`, VERDICT_COULEUR[verdict.nonCadres] ?? t.texteFaible) +
+    `</div>`
+  );
+}
+
+function compteurHTML(n: number, label: string, color: string, bg: string): string {
+  return `<span style="display:inline-block;border:1px solid ${color};border-radius:8px;padding:3px 10px;font-size:10px;font-weight:700;color:${color};background:${bg}">${n} ${label}</span>`;
+}
+
+// Section obligations fusionnees — miroir de l'ecran (Lot 5). Ne rend QUE des
+// chaines de la vue (source unique) -> rien a verifier cote DDA.
+function sectionObligationsFusionnee(t: Tokens, vue: VueObligationsFusionnee): string {
+  const titre = sousTitreSection(t, "Obligations de prevoyance de branche");
   const statut = `<div style="font-size:10.5px;color:${t.texteFaible};margin-top:2px;margin-bottom:4px">${vue.statutLabel}</div>`;
-
   const avertissement = vue.afficherAvertissementIncomplet
     ? `<div style="break-inside:avoid;border:1px solid ${COULEUR_SEVERITE.attention.border};border-radius:8px;background:${COULEUR_SEVERITE.attention.bg};padding:8px 12px;margin-top:6px;font-size:10px;color:${COULEUR_SEVERITE.attention.texte}">Donnees de branche partiellement documentees : verification manuelle conseillee.</div>`
     : "";
 
-  const titre = sousTitreSection(t, "Obligations de prevoyance de branche");
-
-  // Etat vide propre : aucun college a afficher -> uniquement le statut.
-  if (vue.colleges.length === 0) {
+  // Etat vide propre : aucune ligne -> statutLabel seul, pas de tableau.
+  if (vue.lignes.length === 0) {
     return `${titre}${statut}${avertissement}`;
   }
 
-  const colleges = vue.colleges
-    .map((col) => {
-      const couleurGlobal = VERDICT_COULEUR[col.verdictGlobal] ?? t.texteFaible;
-      const enTete = `
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:13px;margin-bottom:1px">
-          <div style="font-size:11.5px;font-weight:700;color:${t.navy}">${col.libelle}</div>
-          <div style="font-size:10px;font-weight:700;color:${couleurGlobal}">Verdict global : ${col.verdictGlobalLabel}</div>
-        </div>`;
-      const tableau = tableauTitresDores(t, {
+  // Synthese chiffree (uniquement si comparaison realisee).
+  const synthese =
+    vue.afficherComparaison && vue.synthese
+      ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;margin-bottom:2px">` +
+        compteurHTML(vue.synthese.conformes, "conformes", "#2F7D5B", "rgba(47,125,91,0.08)") +
+        compteurHTML(vue.synthese.insuffisants, "insuffisante(s)", "#DC2626", "rgba(220,38,38,0.08)") +
+        compteurHTML(vue.synthese.aEtudier, "a etudier", "#B07A1E", "rgba(176,122,30,0.10)") +
+        `</div>`
+      : "";
+
+  // Bandeau "comparaison non realisee" si aucun souscrit (chaine miroir de l'ecran).
+  const bandeau = !vue.afficherComparaison
+    ? `<div style="break-inside:avoid;border:1px solid ${t.bordureClaire};border-radius:8px;background:${t.fondTableauAlt};padding:8px 12px;margin-top:6px;font-size:10px;color:${t.texteFaible}">Aucune garantie souscrite renseignee — comparaison non realisee.</div>`
+    : "";
+
+  // Tableau unique : colonnes selon afficherComparaison.
+  const tableau = vue.afficherComparaison
+    ? tableauTitresDores(t, {
         cols: [
           { label: "Garantie", align: "left", width: "20%" },
-          { label: "Obligation de branche", align: "left", width: "38%" },
-          { label: "Verdict", align: "left", width: "15%" },
-          { label: "Observation", align: "left", width: "27%" },
+          { label: "Obligation de branche", align: "left", width: "34%" },
+          { label: "Souscrit", align: "left", width: "24%" },
+          { label: "Verdict", align: "left", width: "22%" },
         ],
-        rows: col.lignes.map((l) => [
+        rows: vue.lignes.map((l) =>
+          l.estReference
+            ? [
+                { value: l.garantieLabel, bold: true },
+                { value: valeurHTML(t, l.obligation), color: t.texte },
+                { value: `<span style="font-style:italic;color:${t.texteFaible}">reference</span>` },
+                { value: "" },
+              ]
+            : [
+                { value: l.garantieLabel, bold: true },
+                { value: valeurHTML(t, l.obligation), color: t.texte },
+                { value: valeurHTML(t, l.souscrit), color: t.texte },
+                { value: verdictHTML(t, l.verdict, l.verdictLabel) },
+              ]
+        ),
+      })
+    : tableauTitresDores(t, {
+        cols: [
+          { label: "Garantie", align: "left", width: "30%" },
+          { label: "Obligation de branche", align: "left", width: "70%" },
+        ],
+        rows: vue.lignes.map((l) => [
           { value: l.garantieLabel, bold: true },
-          { value: l.obligationResume, color: t.texte },
-          { value: l.verdictLabel, color: VERDICT_COULEUR[l.verdict] ?? t.texteFaible, bold: true },
-          { value: l.motif, color: t.texteFaible },
+          { value: valeurHTML(t, l.obligation), color: t.texte },
         ]),
       });
-      return enTete + tableau;
-    })
-    .join("");
 
-  return `${titre}${statut}${avertissement}${colleges}`;
+  // Notes de bas de feuille.
+  const notes: string[] = [];
+  if (vue.nonPrevues.length > 0) {
+    notes.push(`Non prevue par la branche : ${vue.nonPrevues.map((n) => n.garantieLabel).join(", ")}.`);
+  }
+  // Decision David : la note maintien s'affiche des qu'une ligne estReference existe.
+  if (vue.lignes.some((l) => l.estReference)) {
+    notes.push("Le maintien employeur est deja integre a la projection (Prevoyance personnelle).");
+  }
+  const notesHTML =
+    notes.length > 0
+      ? `<div style="margin-top:8px;font-size:9.5px;color:${t.texteFaible};line-height:1.5">${notes.map((n) => `<div>${n}</div>`).join("")}</div>`
+      : "";
+
+  return `${titre}${statut}${avertissement}${synthese}${bandeau}${tableau}${notesHTML}`;
 }
 
+// ─── Page (2 feuilles) ────────────────────────────────────────────────────────
+
 export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string {
+  // Module inactif : une seule feuille (pas de page vide inutile).
   if (!d.active) {
     const contenu = `
       ${header(t, {
@@ -144,6 +226,7 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
     });
   }
 
+  // ── Feuille 1 : Conformité ──
   const kpis = [
     { label: "Score conformité", value: d.scoreGlobal, type: "main" as const },
     { label: "Entreprise", value: d.entrepriseLibelle, type: "normal" as const, valueFontSize: "12px" },
@@ -172,7 +255,7 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
       ? d.constats.map((c) => renderConstatHTML(t, c)).join("")
       : `<div style="margin-top:8px;font-size:10.5px;color:${t.texteFaible};font-style:italic">Aucune non-conformité ni point de vigilance relevé sur la base des éléments déclarés.</div>`;
 
-  const contenu = `
+  const contenuConformite = `
     ${header(t, {
       eyebrow: "Prévoyance",
       titre: "Prévoyance collective",
@@ -188,8 +271,6 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
       ${matrice}
     </div>
 
-    ${d.comparaisonVue ? `<div style="margin-top:14px">${sectionObligationsBranche(t, d.comparaisonVue)}</div>` : ""}
-
     <div style="margin-top:14px">
       ${sousTitreSection(t, "Constats et pistes")}
       ${constatsHTML}
@@ -202,8 +283,40 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
     })}
   `;
 
-  return coquillePage(t, {
-    contenu,
+  const feuilleConformite = coquillePage(t, {
+    contenu: contenuConformite,
     pied: piedPage(t, { gauche: d.cabinetLibellePied, droite: d.pagePosition }),
   });
+
+  // ── Feuille 2 : Obligations de branche ──
+  const sectionObl = d.vueObligations
+    ? sectionObligationsFusionnee(t, d.vueObligations)
+    : `${sousTitreSection(t, "Obligations de prevoyance de branche")}<div style="font-size:10.5px;color:${t.texteFaible};margin-top:2px">Donnees de branche indisponibles.</div>`;
+
+  const contenuObligations = `
+    ${header(t, {
+      eyebrow: "Prévoyance collective",
+      titre: "Obligations de branche",
+      sousTitre: d.sousTitre,
+      droiteHaut: d.clientName,
+      droiteBas: d.dateStr,
+    })}
+
+    <div style="margin-top:16px">
+      ${sectionObl}
+    </div>
+
+    ${noteIconee(t, {
+      iconeSvg: icones.infoCircle(t.eyebrowOr, 14),
+      texteHtml: d.mentionDDA,
+      style: "discrete",
+    })}
+  `;
+
+  const feuilleObligations = coquillePage(t, {
+    contenu: contenuObligations,
+    pied: piedPage(t, { gauche: d.cabinetLibellePied, droite: d.pagePosition }),
+  });
+
+  return feuilleConformite + feuilleObligations;
 }

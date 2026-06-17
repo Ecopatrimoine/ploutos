@@ -172,15 +172,21 @@ export const BlocObligationsBranche = React.memo(function BlocObligationsBranche
             </table>
           </div>
 
-          {/* 6. Notes de bas : garanties non prevues + maintien deja projete */}
-          {vue.nonPrevues.length > 0 && (
+          {/* 6. Notes de bas : garanties non prevues + maintien deja projete.
+              La note maintien s'affiche des qu'une ligne estReference existe
+              (decision David, alignee sur le PDF Lot 6). */}
+          {(vue.nonPrevues.length > 0 || vue.lignes.some((l) => l.estReference)) && (
             <div className="text-xs space-y-1" style={{ color: BRAND.muted }}>
-              <div>
-                Non prevue par la branche : {vue.nonPrevues.map((n) => n.garantieLabel).join(", ")}.
-              </div>
-              <div>
-                Le maintien employeur est deja integre a la projection (Prevoyance personnelle).
-              </div>
+              {vue.nonPrevues.length > 0 && (
+                <div>
+                  Non prevue par la branche : {vue.nonPrevues.map((n) => n.garantieLabel).join(", ")}.
+                </div>
+              )}
+              {vue.lignes.some((l) => l.estReference) && (
+                <div>
+                  Le maintien employeur est deja integre a la projection (Prevoyance personnelle).
+                </div>
+              )}
             </div>
           )}
         </>
