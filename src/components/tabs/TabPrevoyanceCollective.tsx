@@ -28,9 +28,11 @@ import { CardAccentTop } from "../CardAccentTop";
 import { SectionTitle } from "../shared";
 import { BlocEntreprise, emptyEntrepriseAudit } from "../prevoyance/BlocEntreprise";
 import { BlocAuditConformite } from "../prevoyance/BlocAuditConformite";
+import { BlocObligationsBranche } from "../prevoyance/BlocObligationsBranche";
 import { BlocConstats } from "../prevoyance/BlocConstats";
 import { runAuditConformite } from "../../lib/prevoyance/audit-collectif";
 import { mapAuditEnConstats } from "../../lib/prevoyance/regles";
+import { resolveComparaisonBranche, mapBrancheEnVue } from "../../lib/prevoyance/comparaison-branche-vue";
 import { referentiels } from "../../data/prevoyance";
 
 const STATUTS_DIRIGEANT = ["gerant_majoritaire", "president_sas", "eurl_unique"];
@@ -121,6 +123,16 @@ const TabPrevoyanceCollective = React.memo(function TabPrevoyanceCollective({
   );
   const constats = React.useMemo(() => (audit ? mapAuditEnConstats(audit) : []), [audit]);
 
+  // Vue obligations de branche + gap-analysis (calque du pattern audit ci-dessus,
+  // memes dependances). Composant purement presentationnel en aval.
+  const comparaisonVue = React.useMemo(
+    () =>
+      effective.active
+        ? mapBrancheEnVue(resolveComparaisonBranche(effective.entreprise, referentiels))
+        : null,
+    [effective.active, effective.entreprise]
+  );
+
   function setEntreprise(next: EntrepriseAudit) {
     patchCollective({ ...effective, entreprise: next });
   }
@@ -185,6 +197,15 @@ const TabPrevoyanceCollective = React.memo(function TabPrevoyanceCollective({
                   style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}
                 >
                   <BlocAuditConformite audit={audit} />
+                </div>
+              )}
+
+              {comparaisonVue && (
+                <div
+                  className="rounded-xl p-4"
+                  style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}
+                >
+                  <BlocObligationsBranche vue={comparaisonVue} />
                 </div>
               )}
 
