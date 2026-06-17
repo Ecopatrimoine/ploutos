@@ -14,6 +14,7 @@ import { buildPrevoyancePersoData } from "../lib/pdf/v2/adapters/buildPrevoyance
 import { pagePrevoyancePerso } from "../lib/pdf/v2/pages/pagePrevoyancePerso";
 import { buildPrevoyanceCollData } from "../lib/pdf/v2/adapters/buildPrevoyanceCollData";
 import { pagePrevoyanceColl } from "../lib/pdf/v2/pages/pagePrevoyanceColl";
+import type { Constat } from "../lib/prevoyance/types";
 
 const t = buildTokens("encreOr");
 const dateLettre = "28 mai 2026";
@@ -105,6 +106,20 @@ function dataAvecSouscrit(garantiesSouscrites: Record<string, any>): Record<stri
       },
     },
   });
+}
+
+// Constat synthetique (controle deterministe du nombre de constats / du chunk).
+function fakeConstat(i: number): Constat {
+  return {
+    id: `c${i}`,
+    severite: "non_conformite",
+    axe: "conformite",
+    cible: "entreprise",
+    titre: `Constat numero ${i}`,
+    detail: "Detail synthetique du constat.",
+    action: "Action proposee.",
+    reference: "art. L.911-7 CSS",
+  };
 }
 
 describe("pagePrevoyancePerso — sentinelles", () => {
@@ -222,17 +237,19 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     expect(html).not.toMatch(REGEX_ASSUREURS);
   });
 
-  it("decoupage 2 feuilles : Conformite (Audit + Constats) puis Obligations", () => {
+  it("decoupage : feuille 1 = Audit borne (sans constats, sans DDA, sans obligations)", () => {
     const data = dataAvecSouscrit({ cadres: { capitalDC: { tauxSalaireRef: 1.0 } } });
     const d = buildPrevoyanceCollData({ data, cabinet, dateLettre });
     const html = pagePrevoyanceColl(t, d);
     const feuilles = html.split("width:210mm;height:297mm").slice(1);
-    expect(feuilles.length).toBe(2); // deux feuilles A4
-    const [f1, f2] = feuilles;
+    expect(feuilles.length).toBeGreaterThanOrEqual(2);
+    const f1 = feuilles[0];
     expect(f1).toContain("Audit de conformit");
-    expect(f1).toContain("Constats et pistes");
-    expect(f1).not.toContain("Obligation de branche"); // obligations PAS sur la feuille 1
-    expect(f2).toContain("Obligation de branche");      // ... mais sur la feuille 2
+    expect(f1).not.toContain("Constats et pistes");   // constats sur feuille(s) dediee(s)
+    expect(f1).not.toContain("L.521-4");               // DDA pas sur la feuille 1
+    expect(f1).not.toContain("Obligation de branche"); // obligations ailleurs
+    // obligations sur la DERNIERE feuille
+    expect(feuilles[feuilles.length - 1]).toContain("Obligation de branche");
   });
 
   it("Syntec garanties vides : bandeau 'comparaison non realisee', pas de colonne Verdict", () => {
@@ -243,13 +260,39 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     expect(html).not.toMatch(REGEX_ASSUREURS);
   });
 
-  it("Banque 2120 (etat vide) : statut sur la feuille 2, pas de tableau, feuille non blanche", () => {
+  it("Banque 2120 (etat vide) : statut sur la DERNIERE feuille (obligations), pas de tableau", () => {
     const d = buildPrevoyanceCollData({ data: dataDirigeant("2120", "Banque"), cabinet, dateLettre });
     const html = pagePrevoyanceColl(t, d);
     const feuilles = html.split("width:210mm;height:297mm").slice(1);
-    expect(feuilles.length).toBe(2);
-    const f2 = feuilles[1];
-    expect(f2).toContain("Aucune obligation de prevoyance de branche");
-    expect(f2).not.toContain("Obligation de branche"); // pas de tableau obligations
+    expect(feuilles.length).toBeGreaterThanOrEqual(2);
+    const fObl = feuilles[feuilles.length - 1];
+    expect(fObl).toContain("Aucune obligation de prevoyance de branche");
+    expect(fObl).not.toContain("Obligation de branche"); // pas de tableau obligations
+  });
+
+  it("beaucoup de constats (9) : audit borne + constats chunkes (cap 4) + DDA unique", () => {
+    const base = buildPrevoyanceCollData({ data: dataDirigeant("1486", "Syntec"), cabinet, dateLettre });
+    const constats: Constat[] = Array.from({ length: 9 }, (_, i) => fakeConstat(i + 1));
+    const d = { ...base, constats };
+    const html = pagePrevoyanceColl(t, d);
+    const feuilles = html.split("width:210mm;height:297mm").slice(1);
+    // Conformite (1) + ceil(9/4)=3 feuilles constats + Obligations (1) = 5
+    expect(feuilles.length).toBe(5);
+    // aucune carte perdue au chunk
+    for (let i = 1; i <= 9; i++) expect(html).toContain(`Constat numero ${i}`);
+    // mention DDA EXACTEMENT une fois
+    expect(html.split("L.521-4").length - 1).toBe(1);
+    expect(html).not.toMatch(REGEX_ASSUREURS);
+  });
+
+  it("aucun constat : une feuille Constats avec le message + DDA unique", () => {
+    const base = buildPrevoyanceCollData({ data: dataDirigeant("1486", "Syntec"), cabinet, dateLettre });
+    const d = { ...base, constats: [] };
+    const html = pagePrevoyanceColl(t, d);
+    const feuilles = html.split("width:210mm;height:297mm").slice(1);
+    // Conformite + 1 feuille Constats (message) + Obligations = 3
+    expect(feuilles.length).toBe(3);
+    expect(html).toContain("Aucune non-conformité");
+    expect(html.split("L.521-4").length - 1).toBe(1);
   });
 });

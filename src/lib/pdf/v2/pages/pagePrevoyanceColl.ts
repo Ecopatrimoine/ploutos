@@ -226,7 +226,25 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
     });
   }
 
-  // ── Feuille 1 : Conformité ──
+  // En-tete/pied reutilises a l'identique sur la conformite et les constats.
+  const pied = piedPage(t, { gauche: d.cabinetLibellePied, droite: d.pagePosition });
+  const enTeteConformite = header(t, {
+    eyebrow: "Prévoyance",
+    titre: "Prévoyance collective",
+    sousTitre: d.sousTitre,
+    droiteHaut: d.clientName,
+    droiteBas: d.dateStr,
+  });
+  // Mention DDA : rendue UNE seule fois, en fin de la DERNIERE feuille de constats
+  // (garde-fou : exactement une occurrence dans le document collectif).
+  const ddaNote = noteIconee(t, {
+    iconeSvg: icones.infoCircle(t.eyebrowOr, 14),
+    texteHtml: d.mentionDDA,
+    style: "discrete",
+  });
+
+  // ── Feuille 1 : Conformité — BORNEE (header + KPI + matrice d'audit seule) ──
+  // Plus de constats ni de DDA ici -> hauteur fixe -> ne deborde JAMAIS.
   const kpis = [
     { label: "Score conformité", value: d.scoreGlobal, type: "main" as const },
     { label: "Entreprise", value: d.entrepriseLibelle, type: "normal" as const, valueFontSize: "12px" },
@@ -250,73 +268,74 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
     }),
   });
 
-  const constatsHTML =
-    d.constats.length > 0
-      ? d.constats.map((c) => renderConstatHTML(t, c)).join("")
-      : `<div style="margin-top:8px;font-size:10.5px;color:${t.texteFaible};font-style:italic">Aucune non-conformité ni point de vigilance relevé sur la base des éléments déclarés.</div>`;
-
-  const contenuConformite = `
-    ${header(t, {
-      eyebrow: "Prévoyance",
-      titre: "Prévoyance collective",
-      sousTitre: d.sousTitre,
-      droiteHaut: d.clientName,
-      droiteBas: d.dateStr,
-    })}
-
-    ${bandeKPI(t, kpis)}
-
-    <div style="margin-top:16px">
-      ${sousTitreSection(t, "Audit de conformité")}
-      ${matrice}
-    </div>
-
-    <div style="margin-top:14px">
-      ${sousTitreSection(t, "Constats et pistes")}
-      ${constatsHTML}
-    </div>
-
-    ${noteIconee(t, {
-      iconeSvg: icones.infoCircle(t.eyebrowOr, 14),
-      texteHtml: d.mentionDDA,
-      style: "discrete",
-    })}
-  `;
-
   const feuilleConformite = coquillePage(t, {
-    contenu: contenuConformite,
-    pied: piedPage(t, { gauche: d.cabinetLibellePied, droite: d.pagePosition }),
+    contenu: `
+      ${enTeteConformite}
+      ${bandeKPI(t, kpis)}
+      <div style="margin-top:16px">
+        ${sousTitreSection(t, "Audit de conformité")}
+        ${matrice}
+      </div>
+    `,
+    pied,
   });
 
-  // ── Feuille 2 : Obligations de branche ──
+  // ── Feuille(s) "Constats et pistes" — VARIABLE : ecoulees par paquets ──
+  // Cap prudent (pas de mesure DOM cote string ; a ajuster par validation visuelle).
+  const CAP_CONSTATS_PAR_FEUILLE = 4;
+
+  const construireFeuilleConstats = (cartes: string, titre: string, avecDDA: boolean): string =>
+    coquillePage(t, {
+      contenu: `
+        ${enTeteConformite}
+        <div style="margin-top:16px">
+          ${sousTitreSection(t, titre)}
+          ${cartes}
+        </div>
+        ${avecDDA ? ddaNote : ""}
+      `,
+      pied,
+    });
+
+  let feuillesConstats: string;
+  if (d.constats.length === 0) {
+    const message = `<div style="margin-top:8px;font-size:10.5px;color:${t.texteFaible};font-style:italic">Aucune non-conformité ni point de vigilance relevé sur la base des éléments déclarés.</div>`;
+    feuillesConstats = construireFeuilleConstats(message, "Constats et pistes", true);
+  } else {
+    const paquets: Constat[][] = [];
+    for (let i = 0; i < d.constats.length; i += CAP_CONSTATS_PAR_FEUILLE) {
+      paquets.push(d.constats.slice(i, i + CAP_CONSTATS_PAR_FEUILLE));
+    }
+    feuillesConstats = paquets
+      .map((paquet, idx) => {
+        const cartes = paquet.map((c) => renderConstatHTML(t, c)).join("");
+        const titre = idx === 0 ? "Constats et pistes" : "Constats et pistes (suite)";
+        return construireFeuilleConstats(cartes, titre, idx === paquets.length - 1);
+      })
+      .join("");
+  }
+
+  // ── Feuille "Obligations de branche" — section inchangee (DDA deja rendue) ──
   const sectionObl = d.vueObligations
     ? sectionObligationsFusionnee(t, d.vueObligations)
     : `${sousTitreSection(t, "Obligations de prevoyance de branche")}<div style="font-size:10.5px;color:${t.texteFaible};margin-top:2px">Donnees de branche indisponibles.</div>`;
 
-  const contenuObligations = `
-    ${header(t, {
-      eyebrow: "Prévoyance collective",
-      titre: "Obligations de branche",
-      sousTitre: d.sousTitre,
-      droiteHaut: d.clientName,
-      droiteBas: d.dateStr,
-    })}
-
-    <div style="margin-top:16px">
-      ${sectionObl}
-    </div>
-
-    ${noteIconee(t, {
-      iconeSvg: icones.infoCircle(t.eyebrowOr, 14),
-      texteHtml: d.mentionDDA,
-      style: "discrete",
-    })}
-  `;
-
   const feuilleObligations = coquillePage(t, {
-    contenu: contenuObligations,
-    pied: piedPage(t, { gauche: d.cabinetLibellePied, droite: d.pagePosition }),
+    contenu: `
+      ${header(t, {
+        eyebrow: "Prévoyance collective",
+        titre: "Obligations de branche",
+        sousTitre: d.sousTitre,
+        droiteHaut: d.clientName,
+        droiteBas: d.dateStr,
+      })}
+      <div style="margin-top:16px">
+        ${sectionObl}
+      </div>
+    `,
+    pied,
   });
 
-  return feuilleConformite + feuilleObligations;
+  // Ordre : Conformite -> Constats (1..N) -> Obligations.
+  return feuilleConformite + feuillesConstats + feuilleObligations;
 }
