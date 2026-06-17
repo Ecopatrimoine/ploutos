@@ -16,6 +16,7 @@ import {
 } from "../primitives";
 import type { Tokens } from "../tokens";
 import type { Constat, ControleConformite, ControleStatut } from "../../../prevoyance/types";
+import type { ComparaisonBrancheVue } from "../../../prevoyance/comparaison-branche-vue";
 
 export type PrevoyanceCollPageData = {
   active: boolean;
@@ -28,6 +29,10 @@ export type PrevoyanceCollPageData = {
   ccnLibelle: string;         // "IDCC 1486" ou "—"
   controles: ControleConformite[];
   constats: Constat[];
+  // Vue partagee obligations de branche + verdicts gap (meme source que l'ecran).
+  // null en etat inactif. La section PDF rend la prevoyance de branche + gap par
+  // college ; elle NE rend PAS vue.sante / vue.tauxT1 (deja dans la matrice d'audit).
+  comparaisonVue: ComparaisonBrancheVue | null;
   mentionDDA: string;
   pagePosition: string;
   cabinetLibellePied: string;
@@ -61,6 +66,62 @@ function renderConstatHTML(t: Tokens, c: Constat): string {
       ${ref}
     </div>
   `;
+}
+
+// Code couleur des verdicts gap — aligne sur STATUT_LABEL de l'audit (coherence) :
+// conforme=vert, insuffisant=rouge, indetermine=ambre, non_applicable=gris attenue.
+const VERDICT_COULEUR: Record<string, string> = {
+  conforme: "#2F7D5B",
+  insuffisant: "#DC2626",
+  indetermine: "#B07A1E",
+  non_applicable: "#6B7280",
+};
+
+// Section "Obligations de prevoyance de branche" + verdicts gap par college.
+// Lisibilite avant densite : tableaux a 4 colonnes (memes titres dores que
+// l'audit), lignes confortables, motif vide -> cellule vide propre. Ne rend QUE
+// les chaines de la vue (source unique) -> rien a ajouter cote DDA.
+function sectionObligationsBranche(t: Tokens, vue: ComparaisonBrancheVue): string {
+  const statut = `<div style="font-size:10.5px;color:${t.texteFaible};margin-top:2px;margin-bottom:4px">${vue.statutLabel}</div>`;
+
+  const avertissement = vue.afficherAvertissementIncomplet
+    ? `<div style="break-inside:avoid;border:1px solid ${COULEUR_SEVERITE.attention.border};border-radius:8px;background:${COULEUR_SEVERITE.attention.bg};padding:8px 12px;margin-top:6px;font-size:10px;color:${COULEUR_SEVERITE.attention.texte}">Donnees de branche partiellement documentees : verification manuelle conseillee.</div>`
+    : "";
+
+  const titre = sousTitreSection(t, "Obligations de prevoyance de branche");
+
+  // Etat vide propre : aucun college a afficher -> uniquement le statut.
+  if (vue.colleges.length === 0) {
+    return `${titre}${statut}${avertissement}`;
+  }
+
+  const colleges = vue.colleges
+    .map((col) => {
+      const couleurGlobal = VERDICT_COULEUR[col.verdictGlobal] ?? t.texteFaible;
+      const enTete = `
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:13px;margin-bottom:1px">
+          <div style="font-size:11.5px;font-weight:700;color:${t.navy}">${col.libelle}</div>
+          <div style="font-size:10px;font-weight:700;color:${couleurGlobal}">Verdict global : ${col.verdictGlobalLabel}</div>
+        </div>`;
+      const tableau = tableauTitresDores(t, {
+        cols: [
+          { label: "Garantie", align: "left", width: "20%" },
+          { label: "Obligation de branche", align: "left", width: "38%" },
+          { label: "Verdict", align: "left", width: "15%" },
+          { label: "Observation", align: "left", width: "27%" },
+        ],
+        rows: col.lignes.map((l) => [
+          { value: l.garantieLabel, bold: true },
+          { value: l.obligationResume, color: t.texte },
+          { value: l.verdictLabel, color: VERDICT_COULEUR[l.verdict] ?? t.texteFaible, bold: true },
+          { value: l.motif, color: t.texteFaible },
+        ]),
+      });
+      return enTete + tableau;
+    })
+    .join("");
+
+  return `${titre}${statut}${avertissement}${colleges}`;
 }
 
 export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string {
@@ -126,6 +187,8 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
       ${sousTitreSection(t, "Audit de conformité")}
       ${matrice}
     </div>
+
+    ${d.comparaisonVue ? `<div style="margin-top:14px">${sectionObligationsBranche(t, d.comparaisonVue)}</div>` : ""}
 
     <div style="margin-top:14px">
       ${sousTitreSection(t, "Constats et pistes")}

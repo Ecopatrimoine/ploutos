@@ -9,6 +9,7 @@ import type { PrevoyanceCollPageData } from "../pages/pagePrevoyanceColl";
 import type { EntrepriseAudit } from "../../../../types/patrimoine";
 import { runAuditConformite } from "../../../prevoyance/audit-collectif";
 import { mapAuditEnConstats } from "../../../prevoyance/regles";
+import { resolveComparaisonBranche, mapBrancheEnVue } from "../../../prevoyance/comparaison-branche-vue";
 import { referentiels } from "../../../../data/prevoyance";
 
 export type BuildPrevoyanceCollDataParams = {
@@ -105,6 +106,7 @@ export function buildPrevoyanceCollData(p: BuildPrevoyanceCollDataParams): Prevo
       ccnLibelle: "—",
       controles: [],
       constats: [],
+      comparaisonVue: null,
       mentionDDA,
       pagePosition: p.pagePosition || "— / —",
       cabinetLibellePied,
@@ -113,6 +115,8 @@ export function buildPrevoyanceCollData(p: BuildPrevoyanceCollDataParams): Prevo
 
   const audit = runAuditConformite(entreprise, referentiels);
   const constats = mapAuditEnConstats(audit);
+  // Memes entrees que l'ecran (Lot 2) -> contenu identique garanti.
+  const comparaisonVue = mapBrancheEnVue(resolveComparaisonBranche(entreprise, referentiels));
 
   return {
     active: true,
@@ -125,6 +129,7 @@ export function buildPrevoyanceCollData(p: BuildPrevoyanceCollDataParams): Prevo
     ccnLibelle: entreprise.idccCCN ? `IDCC ${entreprise.idccCCN}` : "—",
     controles: audit.controles,
     constats,
+    comparaisonVue,
     mentionDDA,
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied,
