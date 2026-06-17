@@ -285,7 +285,10 @@ function fmtMultiple(x: number): string {
 }
 function fmtPct(x: number): string {
   const v = x * 100;
-  return (Number.isInteger(v) ? String(v) : v.toFixed(2)).replace(".", ",") + " %";
+  const r = Math.round(v);
+  // Tolerance flottante (LOT 9) : 1.10*100 = 110.000…01 -> entier 110 (et non
+  // "110,00 %"). Une vraie valeur fractionnaire (66,66 %) garde ses 2 decimales.
+  return (Math.abs(v - r) < 1e-9 ? String(r) : v.toFixed(2)).replace(".", ",") + " %";
 }
 
 // Formate la garantie SOUSCRITE en miroir de l'obligation correspondante.
@@ -384,12 +387,22 @@ export function fusionnerColleges(vue: ComparaisonBrancheVue, souscrit?: Garanti
       continue;
     }
 
-    // Colonne "Souscrit" (LOT 4bis) : formatee EN MIROIR de l'obligation, par
-    // college present. null des deux cotes -> souscrit null (rien renseigne).
+    // Colonne "Souscrit" (LOT 4bis ; aligne LOT 9 sur le verdict) : formatee EN
+    // MIROIR de l'obligation, par college present. commun UNIQUEMENT si les DEUX
+    // colleges sont presents ET renseignes a la MEME valeur ; sinon split, un cote
+    // non renseigne -> "non renseigne" (JAMAIS la valeur de l'autre college, jamais
+    // "0"). -> coherent avec le verdict (qui est deja split dans ce cas).
     const sc = e.c ? formatSouscritResume(g, souscrit?.cadres) : null;
     const sn = e.n ? formatSouscritResume(g, souscrit?.nonCadres) : null;
-    const souscritFusionne: ValeurFusionnee | null =
-      sc === null && sn === null ? null : fusionnerValeur(sc ?? undefined, sn ?? undefined);
+    let souscritFusionne: ValeurFusionnee | null;
+    if (e.c && e.n) {
+      if (sc === null && sn === null) souscritFusionne = null;
+      else if (sc === sn) souscritFusionne = { commun: sc as string };
+      else souscritFusionne = { cadres: sc ?? "non renseigne", nonCadres: sn ?? "non renseigne" };
+    } else {
+      const seul = e.c ? sc : sn; // un seul college present
+      souscritFusionne = seul === null ? null : { commun: seul };
+    }
 
     lignes.push({
       garantie: g,

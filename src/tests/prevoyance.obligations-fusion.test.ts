@@ -294,4 +294,49 @@ describe("colonne souscrit — formatSouscritResume via la fusion", () => {
       expect(t).not.toMatch(REGEX_ASSUREURS);
     }
   });
+
+  // ─── LOT 9 — correctifs de rendu ──────────────────────────────────────────
+
+  it("CORRECTIF 1 : souscrit renseigne d'un seul cote -> split avec 'non renseigne'", () => {
+    // capitalDC souscrit cadres uniquement (1.5) ; nonCadres absent.
+    // Obligation Syntec 1,70 sur les 2 colleges -> cadres insuffisant (1,5 < 1,70),
+    // nonCadres indetermine (souscrit absent) -> verdict split -> souscrit DOIT etre split.
+    const vue = buildVueObligationsFusionnee(
+      ent({ idccCCN: "1486", garantiesSouscrites: { cadres: { capitalDC: { tauxSalaireRef: 1.5 } } } }),
+      referentiels
+    );
+    const cap = vue.lignes.find((l) => l.garantie === "capitalDC");
+    expect(cap?.souscrit).toEqual({ cadres: "1,5x salaire de reference", nonCadres: "non renseigne" });
+    expect(cap?.verdict).toEqual({ cadres: "insuffisant", nonCadres: "indetermine" }); // coherence
+  });
+
+  it("CORRECTIF 1 : souscrit identique des deux cotes -> reste { commun } (pas de regression)", () => {
+    const vue = buildVueObligationsFusionnee(
+      ent({
+        idccCCN: "1486",
+        garantiesSouscrites: {
+          cadres: { capitalDC: { tauxSalaireRef: 1.2 } },
+          nonCadres: { capitalDC: { tauxSalaireRef: 1.2 } },
+        },
+      }),
+      referentiels
+    );
+    const cap = vue.lignes.find((l) => l.garantie === "capitalDC");
+    expect(cap?.souscrit).toEqual({ commun: "1,2x salaire de reference" });
+  });
+
+  it("CORRECTIF 2 : invalidite cat3 souscrite 1.10 -> 'cat3 110 %' (pas '110,00 %')", () => {
+    const vue = buildVueObligationsFusionnee(
+      ent({
+        idccCCN: "1486",
+        garantiesSouscrites: {
+          cadres: { invalidite: { cat1: 0.4, cat2: 0.8, cat3: 1.1 } },
+          nonCadres: { invalidite: { cat1: 0.4, cat2: 0.8, cat3: 1.1 } },
+        },
+      }),
+      referentiels
+    );
+    const inv = vue.lignes.find((l) => l.garantie === "invalidite");
+    expect(inv?.souscrit).toEqual({ commun: "cat1 40 %, cat2 80 %, cat3 110 %" });
+  });
 });
