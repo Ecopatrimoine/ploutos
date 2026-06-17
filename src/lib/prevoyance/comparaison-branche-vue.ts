@@ -34,7 +34,7 @@ import {
   type ComparaisonCollege,
   type VerdictGarantie,
 } from "./compare-obligations";
-import type { EntrepriseAudit, GarantiesSouscrites } from "../../types/patrimoine";
+import type { EntrepriseAudit, GarantiesSouscrites, GarantiesSouscritesCollege } from "../../types/patrimoine";
 import type { Referentiels } from "../../data/prevoyance";
 
 // ─── Types de vue ─────────────────────────────────────────────────────────────
@@ -274,8 +274,61 @@ function pireVerdict(vf: VerdictFusionne): Verdict {
   return RANG_PIRE_VERDICT[vf.cadres] >= RANG_PIRE_VERDICT[vf.nonCadres] ? vf.cadres : vf.nonCadres;
 }
 
+// ─── Formatage "Souscrit" (LOT 4bis) ──────────────────────────────────────────
+// Repliques EXACTES des formateurs d'obligations-branche.ts (num / pctFraction),
+// que ce fichier ne peut ni importer (non exportes) ni modifier : on garantit
+// ainsi un rendu EN MIROIR de l'obligation (memes unites, memes separateurs).
+//   - fmtMultiple : capital en multiple du salaire de reference (1.7 -> "1,7").
+//   - fmtPct      : fraction -> pourcentage entier (0.80 -> "80 %").
+function fmtMultiple(x: number): string {
+  return String(x).replace(".", ",");
+}
+function fmtPct(x: number): string {
+  const v = x * 100;
+  return (Number.isInteger(v) ? String(v) : v.toFixed(2)).replace(".", ",") + " %";
+}
+
+// Formate la garantie SOUSCRITE en miroir de l'obligation correspondante.
+// Valeur absente / non comparable -> null (jamais de valeur inventee, jamais "0").
+export function formatSouscritResume(
+  garantie: ObligationGarantie,
+  souscritCollege: GarantiesSouscritesCollege | undefined
+): string | null {
+  if (!souscritCollege) return null;
+  switch (garantie) {
+    case "capitalDC": {
+      const t = souscritCollege.capitalDC?.tauxSalaireRef;
+      // multiple du salaire de reference, comme l'obligation ; pas de minimum PASS
+      // cote souscrit (on n'a que le taux).
+      return typeof t === "number" && Number.isFinite(t) ? `${fmtMultiple(t)}x salaire de reference` : null;
+    }
+    case "ij": {
+      const pct = souscritCollege.ij?.pctSalaire;
+      if (typeof pct !== "number" || !Number.isFinite(pct)) return null;
+      const fr = souscritCollege.ij?.franchiseJours;
+      const franchise = typeof fr === "number" && Number.isFinite(fr) ? ` (franchise ${fr} j)` : "";
+      return `${fmtPct(pct)}${franchise}`;
+    }
+    case "invalidite": {
+      const inv = souscritCollege.invalidite;
+      if (!inv) return null;
+      const parts: string[] = [];
+      for (const k of ["cat1", "cat2", "cat3"] as const) {
+        const v = inv[k];
+        if (typeof v === "number" && Number.isFinite(v)) parts.push(`${k} ${fmtPct(v)}`);
+      }
+      return parts.length > 0 ? parts.join(", ") : null;
+    }
+    // renteEducation : obligation toujours "complexe" (non auto-comparee) -> null.
+    // renteConjoint  : si prevue, forme souscrit non encore definie -> null.
+    // maintienEmployeur : ligne de reference -> formatSouscritResume non appele.
+    default:
+      return null;
+  }
+}
+
 // Fonction PURE testable : fusionne la vue par college (Lot 1) en vue par garantie.
-export function fusionnerColleges(vue: ComparaisonBrancheVue): VueObligationsFusionnee {
+export function fusionnerColleges(vue: ComparaisonBrancheVue, souscrit?: GarantiesSouscrites): VueObligationsFusionnee {
   const base = {
     statut: vue.statut,
     statutLabel: vue.statutLabel,
@@ -331,12 +384,19 @@ export function fusionnerColleges(vue: ComparaisonBrancheVue): VueObligationsFus
       continue;
     }
 
+    // Colonne "Souscrit" (LOT 4bis) : formatee EN MIROIR de l'obligation, par
+    // college present. null des deux cotes -> souscrit null (rien renseigne).
+    const sc = e.c ? formatSouscritResume(g, souscrit?.cadres) : null;
+    const sn = e.n ? formatSouscritResume(g, souscrit?.nonCadres) : null;
+    const souscritFusionne: ValeurFusionnee | null =
+      sc === null && sn === null ? null : fusionnerValeur(sc ?? undefined, sn ?? undefined);
+
     lignes.push({
       garantie: g,
       garantieLabel,
       estReference: false,
       obligation,
-      souscrit: null, // pas de chaine "souscrit" cote vue Lot 1 -> on n'invente rien
+      souscrit: souscritFusionne,
       verdict: fusionnerValeur(e.c?.verdict, e.n?.verdict),
       verdictLabel: fusionnerValeur(e.c?.verdictLabel, e.n?.verdictLabel),
       motif: fusionnerValeur(e.c?.motif, e.n?.motif),
@@ -364,5 +424,5 @@ export function fusionnerColleges(vue: ComparaisonBrancheVue): VueObligationsFus
 
 // Point d'entree unique (ecran Lot 5 + PDF Lot 6).
 export function buildVueObligationsFusionnee(entreprise: EntrepriseAudit, ref: Referentiels): VueObligationsFusionnee {
-  return fusionnerColleges(mapBrancheEnVue(resolveComparaisonBranche(entreprise, ref)));
+  return fusionnerColleges(mapBrancheEnVue(resolveComparaisonBranche(entreprise, ref)), entreprise.garantiesSouscrites);
 }

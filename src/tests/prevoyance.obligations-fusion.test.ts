@@ -177,3 +177,121 @@ describe("fusionnerColleges — conformite DDA", () => {
     }
   });
 });
+
+// ─── Colonne "Souscrit" chiffree (LOT 4bis) ────────────────────────────────────
+
+describe("colonne souscrit — formatSouscritResume via la fusion", () => {
+  const byG = (vue: ReturnType<typeof buildVueObligationsFusionnee>, g: string) =>
+    vue.lignes.find((l) => l.garantie === g);
+
+  it("1. capitalDC souscrit < obligation -> souscrit en multiple miroir, verdict insuffisant", () => {
+    const vue = buildVueObligationsFusionnee(
+      ent({
+        idccCCN: "1486",
+        garantiesSouscrites: {
+          cadres: { capitalDC: { tauxSalaireRef: 1.2 } },
+          nonCadres: { capitalDC: { tauxSalaireRef: 1.2 } },
+        },
+      }),
+      referentiels
+    );
+    const cap = byG(vue, "capitalDC");
+    // unite affichee = multiple du salaire de reference (comme l'obligation)
+    expect(cap?.souscrit).toEqual({ commun: "1,2x salaire de reference" });
+    expect(cap?.verdict).toEqual({ commun: "insuffisant" }); // 1,2 < 1,7
+  });
+
+  it("2. ij souscrit = obligation -> souscrit '80 % (franchise 90 j)', verdict conforme", () => {
+    const vue = buildVueObligationsFusionnee(
+      ent({
+        idccCCN: "1486",
+        garantiesSouscrites: {
+          cadres: { ij: { pctSalaire: 0.8, franchiseJours: 90 } },
+          nonCadres: { ij: { pctSalaire: 0.8, franchiseJours: 90 } },
+        },
+      }),
+      referentiels
+    );
+    const ij = byG(vue, "ij");
+    expect(ij?.souscrit).toEqual({ commun: "80 % (franchise 90 j)" });
+    expect(ij?.verdict).toEqual({ commun: "conforme" });
+  });
+
+  it("3. invalidite cat souscrites -> souscrit miroir 'cat1 .. cat2 .. cat3 ..'", () => {
+    const vue = buildVueObligationsFusionnee(
+      ent({
+        idccCCN: "1486",
+        garantiesSouscrites: {
+          cadres: { invalidite: { cat1: 0.4, cat2: 0.8, cat3: 0.8 } },
+          nonCadres: { invalidite: { cat1: 0.4, cat2: 0.8, cat3: 0.8 } },
+        },
+      }),
+      referentiels
+    );
+    const inv = byG(vue, "invalidite");
+    expect(inv?.souscrit).toEqual({ commun: "cat1 40 %, cat2 80 %, cat3 80 %" });
+    expect(inv?.verdict).toEqual({ commun: "conforme" });
+  });
+
+  it("4. renteEducation souscrite renseignee -> souscrit reste null (complexe, non comparee)", () => {
+    const vue = buildVueObligationsFusionnee(
+      ent({
+        idccCCN: "1486",
+        garantiesSouscrites: {
+          cadres: { renteEducation: { tauxSalaireRefParEnfant: 0.15 } },
+          nonCadres: { renteEducation: { tauxSalaireRefParEnfant: 0.15 } },
+        },
+      }),
+      referentiels
+    );
+    const re = byG(vue, "renteEducation");
+    expect(re).toBeDefined();
+    expect(re?.souscrit).toBeNull();
+  });
+
+  it("5. souscrit different entre colleges -> souscrit { cadres, nonCadres }", () => {
+    const vue = buildVueObligationsFusionnee(
+      ent({
+        idccCCN: "1486",
+        garantiesSouscrites: {
+          cadres: { capitalDC: { tauxSalaireRef: 1.0 } },
+          nonCadres: { capitalDC: { tauxSalaireRef: 1.5 } },
+        },
+      }),
+      referentiels
+    );
+    const cap = byG(vue, "capitalDC");
+    expect(cap?.souscrit).toEqual({ cadres: "1x salaire de reference", nonCadres: "1,5x salaire de reference" });
+  });
+
+  it("6. garantiesSouscrites undefined -> souscrit null partout, afficherComparaison false (inchange Lot 4)", () => {
+    const vue = buildVueObligationsFusionnee(ent({ idccCCN: "1486" }), referentiels);
+    expect(vue.afficherComparaison).toBe(false);
+    for (const l of vue.lignes) {
+      expect(l.souscrit).toBeNull();
+    }
+  });
+
+  it("7. DDA : aucune chaine souscrit/obligation/verdict ne nomme un assureur", () => {
+    const vue = buildVueObligationsFusionnee(
+      ent({
+        idccCCN: "1486",
+        garantiesSouscrites: {
+          cadres: {
+            capitalDC: { tauxSalaireRef: 1.0 },
+            ij: { pctSalaire: 0.5, franchiseJours: 120 },
+            invalidite: { cat1: 0.3, cat2: 0.5, cat3: 0.5 },
+          },
+        },
+      }),
+      referentiels
+    );
+    const textes: string[] = [];
+    for (const l of vue.lignes) {
+      textes.push(...chaines(l.obligation), ...chaines(l.souscrit), ...chaines(l.verdictLabel), ...chaines(l.motif));
+    }
+    for (const t of textes) {
+      expect(t).not.toMatch(REGEX_ASSUREURS);
+    }
+  });
+});
