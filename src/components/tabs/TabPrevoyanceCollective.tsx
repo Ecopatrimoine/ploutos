@@ -32,7 +32,7 @@ import { BlocObligationsBranche } from "../prevoyance/BlocObligationsBranche";
 import { BlocConstats } from "../prevoyance/BlocConstats";
 import { runAuditConformite } from "../../lib/prevoyance/audit-collectif";
 import { mapAuditEnConstats } from "../../lib/prevoyance/regles";
-import { resolveComparaisonBranche, mapBrancheEnVue } from "../../lib/prevoyance/comparaison-branche-vue";
+import { buildVueObligationsFusionnee } from "../../lib/prevoyance/comparaison-branche-vue";
 import { referentiels } from "../../data/prevoyance";
 
 const STATUTS_DIRIGEANT = ["gerant_majoritaire", "president_sas", "eurl_unique"];
@@ -123,13 +123,10 @@ const TabPrevoyanceCollective = React.memo(function TabPrevoyanceCollective({
   );
   const constats = React.useMemo(() => (audit ? mapAuditEnConstats(audit) : []), [audit]);
 
-  // Vue obligations de branche + gap-analysis (calque du pattern audit ci-dessus,
-  // memes dependances). Composant purement presentationnel en aval.
-  const comparaisonVue = React.useMemo(
-    () =>
-      effective.active
-        ? mapBrancheEnVue(resolveComparaisonBranche(effective.entreprise, referentiels))
-        : null,
+  // Vue fusionnee obligations de branche + gap-analysis (Lots 4/4bis : synthese +
+  // tableau unique). Calque du pattern audit ci-dessus, memes dependances.
+  const vueObligations = React.useMemo(
+    () => (effective.active ? buildVueObligationsFusionnee(effective.entreprise, referentiels) : null),
     [effective.active, effective.entreprise]
   );
 
@@ -200,12 +197,12 @@ const TabPrevoyanceCollective = React.memo(function TabPrevoyanceCollective({
                 </div>
               )}
 
-              {comparaisonVue && (
+              {vueObligations && (
                 <div
                   className="rounded-xl p-4"
                   style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}
                 >
-                  <BlocObligationsBranche vue={comparaisonVue} />
+                  <BlocObligationsBranche vue={vueObligations} />
                 </div>
               )}
 
