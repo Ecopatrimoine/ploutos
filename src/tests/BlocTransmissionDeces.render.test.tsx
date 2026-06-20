@@ -53,7 +53,7 @@ const LABEL_PRIMES = /Primes versées avant 70 ans/i;
 describe("BlocTransmissionDeces — montage RTL", () => {
   it("monte sans crash, vide", () => {
     render(<BlocTransmissionDeces contrats={[]} onChange={() => {}} />);
-    expect(screen.getByText("Transmission décès")).toBeInTheDocument();
+    expect(screen.getByText("Capital décès")).toBeInTheDocument();
     expect(screen.getByText(/Aucun contrat de transmission/i)).toBeInTheDocument();
   });
 

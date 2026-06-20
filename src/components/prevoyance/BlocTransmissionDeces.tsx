@@ -87,7 +87,7 @@ export const BlocTransmissionDeces = React.memo(function BlocTransmissionDeces({
     >
       <div className="flex items-center justify-between">
         <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>
-          Transmission décès
+          Capital décès
         </div>
         <Button
           type="button"
