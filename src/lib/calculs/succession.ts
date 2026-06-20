@@ -553,16 +553,19 @@ export function getSuccessionTaxProfile(relation: string, handicap = false) {
  * FIX #3 — cette fonction est appelée UNE SEULE FOIS dans avLines ; results la réutilise depuis avLines.
  */
 export function computeAvTax(relation: string, amountBefore70Capital: number, amountAfter70TaxableShare: number) {
-  const isConjoint = relation === "conjoint";
-  const before70Taxable = isConjoint ? 0 : Math.max(0, amountBefore70Capital - 152500);
-  const before70Tax = isConjoint
+  // Exonération TEPA (art. 796-0 bis CGI) : le conjoint marié ET le partenaire de
+  // PACS sont exonérés du prélèvement 990 I (avant 70 ans) comme des droits de
+  // succession (après 70 ans). Le concubin ("autre") reste TAXÉ comme un tiers.
+  const isExoneraTEPA = relation === "conjoint" || relation === "pacs_partner";
+  const before70Taxable = isExoneraTEPA ? 0 : Math.max(0, amountBefore70Capital - 152500);
+  const before70Tax = isExoneraTEPA
     ? 0
     : before70Taxable <= 700000
       ? before70Taxable * 0.2
       : 700000 * 0.2 + (before70Taxable - 700000) * 0.3125;
   const profile = getSuccessionTaxProfile(relation);
-  const after70Taxable = isConjoint ? 0 : Math.max(0, amountAfter70TaxableShare - profile.allowance);
-  const after70Tax = isConjoint
+  const after70Taxable = isExoneraTEPA ? 0 : Math.max(0, amountAfter70TaxableShare - profile.allowance);
+  const after70Tax = isExoneraTEPA
     ? 0
     : computeTaxFromBrackets(after70Taxable, profile.brackets).tax;
   return {

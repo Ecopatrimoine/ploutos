@@ -35,7 +35,7 @@ export function buildSuccessionAData(p: BuildSuccessionADataParams): SuccessionA
     const partRecue = num(h.partRecueFiscale ?? 0);
     const abattement = num(h.allowance ?? 0);
     const droits = num(h.successionDuties ?? 0);
-    const droitsExonere = droits === 0 && h.relation === "conjoint" && isCouple;
+    const droitsExonere = droits === 0 && (h.relation === "conjoint" || h.relation === "pacs_partner") && isCouple;
     const net = Math.max(0, partRecue - droits);
     return {
       nom: h.name || "Héritier",

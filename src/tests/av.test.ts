@@ -220,3 +220,36 @@ describe("computeAvTax — invariants", () => {
     })
   })
 })
+
+// ─── PACS — exonération TEPA (art. 796-0 bis CGI), 990 I avant 70 + après 70 ──
+
+describe("computeAvTax — partenaire de PACS exonéré (TEPA)", () => {
+  const CAPITAL = 300000 // > abattement 152 500 -> taxable si NON exonéré
+
+  it("avant 70 ans : pacs_partner exonéré (before70Tax = 0), identique au conjoint", () => {
+    const pacs = computeAvTax("pacs_partner", CAPITAL, 0)
+    expect(pacs.before70Tax).toBe(0)
+    expect(pacs.before70Taxable).toBe(0)
+    expect(pacs.totalTax).toBe(0)
+    // Strictement identique au conjoint marié sur le même montant.
+    expect(pacs).toEqual(computeAvTax("conjoint", CAPITAL, 0))
+  })
+
+  it("après 70 ans : pacs_partner reste exonéré (after70Tax = 0)", () => {
+    const pacs = computeAvTax("pacs_partner", 0, CAPITAL)
+    expect(pacs.after70Tax).toBe(0)
+    expect(pacs.totalTax).toBe(0)
+    expect(pacs).toEqual(computeAvTax("conjoint", 0, CAPITAL))
+  })
+
+  it("GARDE-FOU : concubin ('autre') reste TAXÉ avant 70 (152 500 puis 20%)", () => {
+    const autre = computeAvTax("autre", CAPITAL, 0)
+    expect(autre.before70Taxable).toBe(CAPITAL - 152500) // 147 500
+    expect(autre.before70Tax).toBeCloseTo((CAPITAL - 152500) * 0.2, 6) // 29 500
+    expect(autre.before70Tax).toBeGreaterThan(0)
+  })
+
+  it("GARDE-FOU : enfant non sur-exonéré (taxe avant 70 > 0)", () => {
+    expect(computeAvTax("enfant", CAPITAL, 0).before70Tax).toBeGreaterThan(0)
+  })
+})
