@@ -10,6 +10,7 @@ import { isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, isIn
 import { Field, SectionTitle } from "../shared";
 import { BlocStatutEmployeur } from "../travail/BlocStatutEmployeur";
 import { createEmptyTravail, getPrevoyancePerso, patchPrevoyancePair, suggestStatutFromCsp } from "../../lib/prevoyance/utils";
+import { STATUTS_TNS, STATUTS_SALARIE } from "../../lib/prevoyance/constants";
 import { buildEntreePerso } from "../../lib/prevoyance/mapping";
 import { BlocCarmf, defaultCarmf } from "../prevoyance/BlocCarmf";
 import { BlocCipav, defaultCipav } from "../prevoyance/BlocCipav";
@@ -203,6 +204,24 @@ const TabTravail = React.memo(function TabTravail(props: any) {
               {["3","4","5","6"].includes(groupe) && !isProfessionLiberale(categorie) && !isFonctionnaire(categorie) && "🔵 Salarié — revenus traitement & salaires"}
             </div>
           )}
+
+          {/* Avertissement (Lot WARN-STATUT) — incohérence entre la situation (PCS,
+              qui pilote le bénéfice imposable) et le statut professionnel (qui pilote
+              prévoyance + Madelin). Passif : aucun champ modifié, aucun onChange. */}
+          {(() => {
+            const statutPro = (which === 1 ? data.travail?.p1 : data.travail?.p2)?.statutPro ?? "";
+            const isIndepPCS = isIndependant(groupe) || isProfessionLiberale(categorie);
+            const isSalariePCS = ["3", "4", "5", "6"].includes(groupe) && !isProfessionLiberale(categorie);
+            const isTNS = (STATUTS_TNS as readonly string[]).includes(statutPro);
+            const isSalarieStatut = (STATUTS_SALARIE as readonly string[]).includes(statutPro);
+            const incoherent = (isIndepPCS && isSalarieStatut) || (isSalariePCS && isTNS);
+            if (!incoherent) return null;
+            return (
+              <div className="rounded-xl px-3 py-2 text-xs" style={{ background: BRAND.warningBg, color: BRAND.warning, border: `1px solid ${BRAND.warningBorder}` }}>
+                Incohérence : la situation professionnelle (PCS) et le statut professionnel ne concordent pas. Le module Prévoyance et le calcul Madelin utilisent le statut professionnel ; le calcul du bénéfice imposable utilise la situation (PCS). Vérifiez la cohérence pour un résultat fiscal correct.
+              </div>
+            );
+          })()}
         </div>
       );
     })}
