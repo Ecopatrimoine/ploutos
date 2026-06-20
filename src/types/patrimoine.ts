@@ -212,6 +212,11 @@ export type PatrimonialData = {
   perDeduction: string;
   pensionDeductible: string;
   otherDeductible: string;
+  // ── Madelin prévoyance (Lot B) — case « autre cotisation » libre par personne,
+  // additionnée aux cotisations lues en prévoyance par le helper madelin.ts.
+  // Optionnel/additif (number, pas string : agrégé numériquement). Absent → 0.
+  madelinAutreCotisation1?: number;
+  madelinAutreCotisation2?: number;
   // ── Revenus indépendants personne 1 ──
   ca1: string;               // Chiffre d'affaires
   bicType1: string;          // "vente" | "services" (pour BIC)
@@ -307,6 +312,11 @@ export type PayloadTravail = {
   revenuBNC: number | null;
   revenuBIC: number | null;
   optionMadelin: boolean;
+  // ── Madelin prévoyance (Lot B) — toggle GLOBAL par personne sur la nature du
+  // bénéfice saisi. Absent/false = le bénéfice saisi est « AVANT déduction
+  // Madelin » → Ploutos applique la déduction (DÉFAUT). true = bénéfice déjà net
+  // de Madelin → Ploutos ne re-déduit pas. Additif, rétro-compatible.
+  beneficeDejaDeduitMadelin?: boolean;
 };
 
 export type PayloadTravailPair = {
@@ -429,6 +439,12 @@ export type PayloadContratIndividuel = {
   // ou forfaitaire (versé en plein). Optionnel → rétrocompatible.
   nature?: NatureContrat;
   conditions?: string;
+  // ── Madelin prévoyance (Lot B) — additif, rétro-compatible (optionnel). N'a de
+  // sens fiscal que sur les types "ij" et "invalidite" (incapacité/invalidité) ;
+  // le helper madelin.ts ignore tout autre type même marqué. Absent → contrat
+  // NON déductible Madelin.
+  deductibleMadelin?: boolean;
+  cotisationMadelinAnnuelle?: number;  // cotisation annuelle (€) déductible Madelin
 };
 
 export type PayloadCouvertureCollective = {
@@ -541,6 +557,10 @@ export type ContratTransmissionDeces = {
   primesAvant70?: number;       // requis si natureAssiette === "primes_avant70"
   beneficiaires: ContratTransmissionDecesBeneficiaire[];
   conditions?: string;          // texte libre, affichage
+  // ── Madelin prévoyance (Lot B) — additif, rétro-compatible (optionnel).
+  // Absent → contrat NON déductible Madelin.
+  deductibleMadelin?: boolean;
+  cotisationMadelinAnnuelle?: number;  // cotisation annuelle (€) déductible Madelin
 };
 
 // ─── Lot 8 — Prévoyance collective d'entreprise (audit conformité) ────
