@@ -660,16 +660,15 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
 
   // ── Calculs mémoïsés — dépendances précises par calcul ──
   // IR : dépend de tous les revenus, placements, properties (foncier), enfants, options
+  // Dépendances = objet `data` ENTIER (et non un sous-ensemble de champs), comme le
+  // useMemo succession ci-dessous. computeIR est une fonction pure de
+  // (data, irOptions, concubinPerson) et lit largement data — revenus, mais aussi
+  // data.prevoyance / data.travail / data.madelinAutreCotisation* (déduction Madelin).
+  // setData renvoie une nouvelle référence à chaque modification → dépendre de `data`
+  // garantit le recalcul sur TOUTE modification et élimine la classe de bugs
+  // « dépendance oubliée » (ex. cotisation Madelin cochée → IR non recalculé).
   const ir = useMemo(() => computeIR(data, irOptions, concubinPerson), [
-    data.salary1, data.salary2, data.pensions, data.pensions1, data.pensions2,
-    data.ca1, data.ca2, data.bicType1, data.bicType2, data.microRegime1, data.microRegime2,
-    data.chargesReelles1, data.chargesReelles2, data.chargesDetail1, data.chargesDetail2,
-    data.baRevenue1, data.baRevenue2, data.perDeduction, data.pensionDeductible,
-    data.otherDeductible, data.csgDeductibleFoncier, data.perRentes,
-    data.properties, data.placements, data.childrenData,
-    data.coupleStatus, data.matrimonialRegime, data.singleParent,
-    data.person1Handicap, data.person2Handicap,
-    irOptions, concubinPerson,
+    data, irOptions, concubinPerson,
   ]);
   // IFI : seulement les biens immobiliers + régime matrimonial
   const ifi = useMemo(() => computeIFI(data), [
