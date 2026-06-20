@@ -8,31 +8,35 @@ import { Plus, Trash2 } from "lucide-react";
 import { BRAND, SURFACE } from "../../constants";
 import { Field } from "../shared";
 import type { NatureContrat, PayloadContratIndividuel } from "../../types/patrimoine";
+import {
+  splitContratsIndividuels,
+  mergeContratsIndividuels,
+  categorieDeType,
+} from "../../lib/prevoyance/contrats-individuels-split";
 
 type Props = {
   contrats: PayloadContratIndividuel[];
   onChange: (next: PayloadContratIndividuel[]) => void;
 };
 
-// Types CRÉABLES (VOIE A — R3) : "deces_capital" RETIRÉ. Le capital décès se
-// saisit désormais UNIQUEMENT dans le bloc « Transmission décès » (bénéficiaires
-// + 990 I), visible dans le même onglet. Les anciens contrats deces_capital déjà
-// enregistrés restent LISIBLES (cf. item legacy désactivé plus bas) et continuent
-// d'alimenter la succession via le pont R2 — on n'en crée simplement plus.
+// Types CRÉABLES (Lot A2) : ce bloc n'édite plus que l'INCAPACITÉ (revenus de
+// remplacement) → seuls "ij" et "invalidite" sont créables. Les rentes de
+// survivants (deces_rente_*) partent au sous-bloc « Rentes de survivants ».
+// ptia/dependance/gav (et deces_capital) sont RETIRÉS de la création mais
+// restent LISIBLES, éditables et supprimables si un dossier en porte encore
+// (type affiché en item désactivé via le fallback du Select, cf. plus bas).
 const TYPES: Array<{ value: PayloadContratIndividuel["type"]; label: string; hint: string }> = [
-  { value: "deces_rente_conj", label: "Rente conjoint (décès)",       hint: "Rente mensuelle (€) au conjoint" },
-  { value: "deces_rente_educ", label: "Rente éducation (décès)",      hint: "Rente mensuelle (€) par enfant" },
-  { value: "ij",               label: "IJ complémentaires",           hint: "IJ journalière (€)" },
-  { value: "invalidite",       label: "Rente invalidité",             hint: "% du revenu (0-1)" },
-  { value: "ptia",             label: "PTIA",                         hint: "Capital (€)" },
-  { value: "dependance",       label: "Dépendance",                   hint: "Rente mensuelle (€)" },
-  { value: "gav",              label: "Garantie accidents de la vie", hint: "Capital (€)" },
+  { value: "ij",         label: "IJ complémentaires", hint: "IJ journalière (€)" },
+  { value: "invalidite", label: "Rente invalidité",   hint: "% du revenu (0-1)" },
 ];
 
-// Libellés d'AFFICHAGE de TOUS les types, y compris ceux retirés des options de
-// création (deces_capital legacy) — pour qu'un ancien contrat reste lisible.
+// Libellés d'AFFICHAGE de TOUS les types lisibles, y compris ceux retirés des
+// options de création (legacy) — pour qu'un ancien contrat reste lisible.
 const LIBELLES_TOUS: Record<string, { label: string; hint: string }> = {
-  deces_capital: { label: "Capital décès", hint: "Capital (€) versé aux bénéficiaires" },
+  deces_capital: { label: "Capital décès",                hint: "Capital (€) versé aux bénéficiaires" },
+  ptia:          { label: "PTIA",                         hint: "Capital (€)" },
+  dependance:    { label: "Dépendance",                   hint: "Rente mensuelle (€)" },
+  gav:           { label: "Garantie accidents de la vie", hint: "Capital (€)" },
   ...Object.fromEntries(TYPES.map((t) => [t.value, { label: t.label, hint: t.hint }])),
 };
 
@@ -52,14 +56,37 @@ export const BlocContratsIndividuels = React.memo(function BlocContratsIndividue
   contrats,
   onChange,
 }: Props) {
+  // Ce bloc édite l'INCAPACITÉ (ij + invalidite) ET les garanties LEGACY
+  // (ptia/dependance/gav/deces_capital) encore présentes — toutes dans une seule
+  // liste éditable. Les rentes de survivants (deces_rente_*) ne sont PAS exposées
+  // ici (sous-bloc dédié au Lot A3).
+  const parts = splitContratsIndividuels(contrats);
+  const vue = [...parts.incapacite, ...parts.legacy];
+
+  // Recompose le tableau complet depuis la VUE éditée : on re-catégorise chaque
+  // ligne (un legacy peut être reclassé en ij/invalidite, ou supprimé), puis on
+  // merge incapacite' puis legacy'. Les survivants (parts.survivants) ne sont
+  // jamais touchés ; l'ordre fixe (incapacite → survivants → legacy) est garanti
+  // par l'util A1.
+  function commit(vueEditee: PayloadContratIndividuel[]) {
+    const incapacitePrime = vueEditee.filter((c) => categorieDeType(c.type) === "incapacite");
+    const legacyPrime = vueEditee.filter((c) => categorieDeType(c.type) === "legacy");
+    onChange(
+      mergeContratsIndividuels(
+        mergeContratsIndividuels(contrats, "incapacite", incapacitePrime),
+        "legacy",
+        legacyPrime,
+      ),
+    );
+  }
   function updateAt(idx: number, patch: Partial<PayloadContratIndividuel>) {
-    onChange(contrats.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
+    commit(vue.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
   }
   function removeAt(idx: number) {
-    onChange(contrats.filter((_, i) => i !== idx));
+    commit(vue.filter((_, i) => i !== idx));
   }
   function add() {
-    onChange([...contrats, newContrat()]);
+    commit([...vue, newContrat()]);
   }
 
   return (
@@ -68,8 +95,13 @@ export const BlocContratsIndividuels = React.memo(function BlocContratsIndividue
       style={{ borderColor: SURFACE.border, background: "rgba(227,175,100,0.05)" }}
     >
       <div className="flex items-center justify-between">
-        <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>
-          Contrats individuels
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>
+            Incapacité et invalidité
+          </div>
+          <div className="text-xs mt-0.5" style={{ color: BRAND.muted }}>
+            Garanties qui remplacent un revenu (arrêt de travail, invalidité).
+          </div>
         </div>
         <Button
           type="button"
@@ -81,13 +113,13 @@ export const BlocContratsIndividuels = React.memo(function BlocContratsIndividue
         </Button>
       </div>
 
-      {contrats.length === 0 && (
+      {vue.length === 0 && (
         <div className="text-xs" style={{ color: BRAND.muted, fontStyle: "italic" }}>
-          Aucun contrat individuel renseigné (Madelin, GAV, prévoyance individuelle…).
+          Aucun contrat d'incapacité ou d'invalidité saisi.
         </div>
       )}
 
-      {contrats.map((c, idx) => {
+      {vue.map((c, idx) => {
         const meta = typeMeta(c.type);
         const isIJ = c.type === "ij";
         const isInvalidite = c.type === "invalidite";
