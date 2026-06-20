@@ -5,6 +5,7 @@ import { n, computeTaxFromBrackets, isAV, isPERType, fractionRVTO, getHandicapAb
   isProfessionLiberale, computeKilometricAllowance } from './utils';
 import { resolveLoanValuesMulti } from './credit';
 import { referentiels } from '../../data/prevoyance';
+import { sommeCotisationsMadelin, plafondMadelinPrevoyance, estEligibleMadelin } from '../prevoyance/madelin';
 
 // ─── CALCUL IR ────────────────────────────────────────────────────────────────
 
@@ -294,8 +295,22 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     perRentesPS += montant * fraction * 0.172;
   }
 
+  // ── Déduction Madelin prévoyance (Lot B2) — POSTE SÉPARÉ du PER, plafond
+  // INDÉPENDANT (art. 154 bis CGI). Appliquée PAR PERSONNE si : statut TNS
+  // (estEligibleMadelin) ET bénéfice saisi « avant déduction » (toggle
+  // beneficeDejaDeduitMadelin absent/false). Réduit UNIQUEMENT le revenu imposable
+  // (aucune assiette sociale ici). Sommée sur le foyer (p1 + p2), EXACTEMENT comme
+  // perDeductionCalc. Réutilise benefice1/2 + PASS_2026 (source unique).
+  function madelinDeductionPourPersonne(which: 1 | 2, benefice: number): number {
+    if (!estEligibleMadelin(data, which)) return 0;
+    if (data.travail?.[which === 1 ? "p1" : "p2"]?.beneficeDejaDeduitMadelin === true) return 0;
+    return Math.min(sommeCotisationsMadelin(data, which), plafondMadelinPrevoyance(benefice, PASS_2026));
+  }
+  const madelinDed1 = madelinDeductionPourPersonne(1, benefice1);
+  const madelinDed2 = madelinDeductionPourPersonne(2, benefice2);
+
   const deductibleCharges = perDeductionCalc + n(data.pensionDeductible) + n(data.otherDeductible)
-    + n(data.csgDeductibleFoncier); // CSG déductible revenus fonciers N-1 (6,8% des rev. fonciers nets — ligne 6DE)
+    + n(data.csgDeductibleFoncier) + madelinDed1 + madelinDed2; // CSG déductible foncier N-1 (ligne 6DE) + Madelin prévoyance (B2)
   // Abattement handicap personne 1 et/ou 2 — CGI art. 157 bis (2 627 € si rev ≤ 16 410 €, 1 313 € si ≤ 26 831 €)
   const handicapAbatt1 = data.person1Handicap ? getHandicapAbattement(n(data.salary1) + n(data.ca1) + n(data.baRevenue1)) : 0;
   const handicapAbatt2 = data.person2Handicap ? getHandicapAbattement(n(data.salary2) + n(data.ca2) + n(data.baRevenue2)) : 0;
@@ -458,10 +473,10 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     // ── Revenus nets par personne ──
     const rev1 = Math.max(0, (isIndep1 ? benefice1 : salary1) + pensionP1 - retained1
       + foncier1.taxable + taxablePlac1 + perCapital1 + perRentes1
-      - perDeduction1 - csgFoncierP1 - autresNonVentilable / 2 - hAbatt1);
+      - perDeduction1 - csgFoncierP1 - autresNonVentilable / 2 - hAbatt1 - madelinDed1);
     const rev2 = Math.max(0, (isIndep2 ? benefice2 : salary2) + pensionP2 - retained2
       + foncier2.taxable + taxablePlac2 + perCapital2 + perRentes2
-      - perDeduction2 - csgFoncierP2 - autresNonVentilable / 2 - hAbatt2);
+      - perDeduction2 - csgFoncierP2 - autresNonVentilable / 2 - hAbatt2 - madelinDed2);
 
     const r1 = computeIRConcubin(rev1, parts1);
     const r2 = computeIRConcubin(rev2, parts2);
