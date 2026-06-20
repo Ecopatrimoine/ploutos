@@ -545,6 +545,8 @@ function ColonnePerso({
       <BlocContratsIndividuels
         contrats={prevoyancePerso.contratsIndividuels}
         onChange={(next) => onChangePrevoyance({ contratsIndividuels: next })}
+        data={data}
+        which={cible === "p1" ? 1 : 2}
       />
 
       {/* Décès — regroupe Capital décès (transmission, lu par la succession au

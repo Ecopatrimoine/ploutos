@@ -7,16 +7,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2 } from "lucide-react";
 import { BRAND, SURFACE } from "../../constants";
 import { Field } from "../shared";
-import type { NatureContrat, PayloadContratIndividuel } from "../../types/patrimoine";
+import type { NatureContrat, PayloadContratIndividuel, PatrimonialData } from "../../types/patrimoine";
 import {
   splitContratsIndividuels,
   mergeContratsIndividuels,
   categorieDeType,
 } from "../../lib/prevoyance/contrats-individuels-split";
+import { estEligibleMadelin } from "../../lib/prevoyance/madelin";
+import { CadreMadelin } from "./CadreMadelin";
 
 type Props = {
   contrats: PayloadContratIndividuel[];
   onChange: (next: PayloadContratIndividuel[]) => void;
+  // Optionnels (Lot B3) : activent le cadre Madelin sur les lignes ij/invalidite
+  // SI la personne est TNS. Absents -> cadre masqué (dégradation gracieuse).
+  data?: PatrimonialData;
+  which?: 1 | 2;
 };
 
 // Types CRÉABLES (Lot A2) : ce bloc n'édite plus que l'INCAPACITÉ (revenus de
@@ -55,6 +61,8 @@ function newContrat(): PayloadContratIndividuel {
 export const BlocContratsIndividuels = React.memo(function BlocContratsIndividuels({
   contrats,
   onChange,
+  data,
+  which,
 }: Props) {
   // Ce bloc édite l'INCAPACITÉ (ij + invalidite) ET les garanties LEGACY
   // (ptia/dependance/gav/deces_capital) encore présentes — toutes dans une seule
@@ -62,6 +70,12 @@ export const BlocContratsIndividuels = React.memo(function BlocContratsIndividue
   // ici (sous-bloc dédié au Lot A3).
   const parts = splitContratsIndividuels(contrats);
   const vue = [...parts.incapacite, ...parts.legacy];
+  // Cadre Madelin (B3) : affiché uniquement si la personne est TNS (statutPro).
+  const eligibleMadelin = data && which ? estEligibleMadelin(data, which) : false;
+  // Avertissement (B3) : donnée Madelin DORMANTE — statut connu NON-TNS mais un
+  // contrat porte deductibleMadelin. On NE l'efface PAS (pas de perte silencieuse) ;
+  // le calcul l'ignore déjà (estEligibleMadelin protège la déduction en B2).
+  const madelinDormant = !!(data && which) && !eligibleMadelin && contrats.some((c) => c.deductibleMadelin === true);
 
   // Recompose le tableau complet depuis la VUE éditée : on re-catégorise chaque
   // ligne (un legacy peut être reclassé en ij/invalidite, ou supprimé), puis on
@@ -112,6 +126,12 @@ export const BlocContratsIndividuels = React.memo(function BlocContratsIndividue
           <Plus className="h-3.5 w-3.5 mr-1" /> Ajouter un contrat
         </Button>
       </div>
+
+      {madelinDormant && (
+        <div className="rounded-xl px-3 py-2 text-xs" style={{ background: BRAND.warningBg, color: BRAND.warning, border: `1px solid ${BRAND.warningBorder}` }}>
+          Une cotisation Madelin est déclarée sur ce bloc, mais le statut n'est pas TNS. Cette déduction n'est pas appliquée à l'impôt sur le revenu.
+        </div>
+      )}
 
       {vue.length === 0 && (
         <div className="text-xs" style={{ color: BRAND.muted, fontStyle: "italic" }}>
@@ -227,6 +247,14 @@ export const BlocContratsIndividuels = React.memo(function BlocContratsIndividue
                   Forfaitaire : le montant souscrit est versé intégralement. Vérifiez vos conditions générales.
                 </div>
               </div>
+            )}
+            {/* Cadre Madelin (B3) — seulement ij/invalidite + personne TNS */}
+            {(isIJ || isInvalidite) && eligibleMadelin && (
+              <CadreMadelin
+                deductible={!!c.deductibleMadelin}
+                cotisation={c.cotisationMadelinAnnuelle}
+                onChange={(p) => updateAt(idx, p)}
+              />
             )}
             <div className="text-xs" style={{ color: BRAND.muted }}>
               {meta.hint}

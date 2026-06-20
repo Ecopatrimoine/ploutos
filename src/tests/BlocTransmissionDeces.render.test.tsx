@@ -188,3 +188,58 @@ describe("BlocTransmissionDeces — picker « depuis la famille » (Lot P2)", ()
     expect(next[0].beneficiaires).toHaveLength(1);
   });
 });
+
+describe("BlocTransmissionDeces — Lot B3 cadre Madelin", () => {
+  it("défunt TNS -> cadre Madelin présent sur le contrat", () => {
+    render(
+      <BlocTransmissionDeces
+        contrats={[contratVide()]}
+        onChange={() => {}}
+        data={makeData({ travail: { p1: { statutPro: "tns_artisan" }, p2: null } as any })}
+        whichDefunt={1}
+      />
+    );
+    expect(screen.getByText(/Cotisation déductible de l'IR/i)).toBeInTheDocument();
+    expect(screen.getByRole("checkbox")).toBeInTheDocument();
+  });
+
+  it("défunt non-TNS -> cadre Madelin absent", () => {
+    render(
+      <BlocTransmissionDeces
+        contrats={[contratVide()]}
+        onChange={() => {}}
+        data={makeData({ travail: { p1: { statutPro: "salarie_cadre" }, p2: null } as any })}
+        whichDefunt={1}
+      />
+    );
+    expect(screen.queryByText(/Cotisation déductible de l'IR/i)).toBeNull();
+    expect(screen.queryByRole("checkbox")).toBeNull();
+  });
+
+  it("AVERTISSEMENT : défunt non-TNS avec cotisation Madelin dormante -> encart, cadre absent, donnée intacte", () => {
+    const onChange = vi.fn();
+    render(
+      <BlocTransmissionDeces
+        contrats={[contratVide({ deductibleMadelin: true, cotisationMadelinAnnuelle: 800 })]}
+        onChange={onChange}
+        data={makeData({ travail: { p1: { statutPro: "salarie_cadre" }, p2: null } as any })}
+        whichDefunt={1}
+      />
+    );
+    expect(screen.getByText(/statut n'est pas TNS/i)).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("pas d'avertissement : défunt non-TNS sans cotisation Madelin", () => {
+    render(
+      <BlocTransmissionDeces
+        contrats={[contratVide()]}
+        onChange={() => {}}
+        data={makeData({ travail: { p1: { statutPro: "salarie_cadre" }, p2: null } as any })}
+        whichDefunt={1}
+      />
+    );
+    expect(screen.queryByText(/statut n'est pas TNS/i)).toBeNull();
+  });
+});

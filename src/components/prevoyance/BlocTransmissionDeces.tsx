@@ -16,6 +16,8 @@ import { BRAND, SURFACE } from "../../constants";
 import { Field } from "../shared";
 import type { ContratTransmissionDeces, PatrimonialData } from "../../types/patrimoine";
 import { membresFamille, type MembreFamille } from "../../lib/prevoyance/membres-famille";
+import { estEligibleMadelin } from "../../lib/prevoyance/madelin";
+import { CadreMadelin } from "./CadreMadelin";
 
 type Props = {
   contrats: ContratTransmissionDeces[];
@@ -66,6 +68,11 @@ export const BlocTransmissionDeces = React.memo(function BlocTransmissionDeces({
   // picker (dégradation gracieuse). N'affecte PAS le calcul succession : alimente
   // seulement name/relation en amont (valeurs du vocabulaire RELATIONS).
   const membres: MembreFamille[] = data && whichDefunt ? membresFamille(data, whichDefunt) : [];
+  // Cadre Madelin (B3) : affiché uniquement si le défunt (personne courante) est TNS.
+  const eligibleMadelin = data && whichDefunt ? estEligibleMadelin(data, whichDefunt) : false;
+  // Avertissement (B3) : donnée Madelin DORMANTE — statut connu NON-TNS mais un
+  // contrat porte deductibleMadelin. On NE l'efface PAS ; le calcul l'ignore déjà.
+  const madelinDormant = !!(data && whichDefunt) && !eligibleMadelin && contrats.some((c) => c.deductibleMadelin === true);
 
   function updateAt(idx: number, patch: Partial<ContratTransmissionDeces>) {
     onChange(contrats.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
@@ -125,6 +132,12 @@ export const BlocTransmissionDeces = React.memo(function BlocTransmissionDeces({
         Ils <strong>transmettent un capital</strong> et ne remplacent pas un revenu —
         distincts des contrats de prévoyance « revenus de remplacement » saisis plus haut.
       </div>
+
+      {madelinDormant && (
+        <div className="rounded-xl px-3 py-2 text-xs" style={{ background: BRAND.warningBg, color: BRAND.warning, border: `1px solid ${BRAND.warningBorder}` }}>
+          Une cotisation Madelin est déclarée sur ce bloc, mais le statut n'est pas TNS. Cette déduction n'est pas appliquée à l'impôt sur le revenu.
+        </div>
+      )}
 
       {contrats.length === 0 && (
         <div className="text-xs" style={{ color: BRAND.muted, fontStyle: "italic" }}>
@@ -350,6 +363,15 @@ export const BlocTransmissionDeces = React.memo(function BlocTransmissionDeces({
                 placeholder="ex. clause bénéficiaire démembrée"
               />
             </Field>
+
+            {/* Cadre Madelin (B3) — saisie cotisation déductible, si défunt TNS */}
+            {eligibleMadelin && (
+              <CadreMadelin
+                deductible={!!c.deductibleMadelin}
+                cotisation={c.cotisationMadelinAnnuelle}
+                onChange={(p) => updateAt(idx, p)}
+              />
+            )}
           </div>
         );
       })}

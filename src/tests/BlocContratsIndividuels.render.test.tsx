@@ -35,8 +35,8 @@ function ouvrirSelect(trigger: HTMLElement) {
 }
 
 // Fabrique un contrat ; cast pour autoriser les types LEGACY hors union créable.
-function contrat(id: string, type: string, capitalOuMontant = 0): PayloadContratIndividuel {
-  return { id, type, capitalOuMontant } as unknown as PayloadContratIndividuel;
+function contrat(id: string, type: string, capitalOuMontant = 0, over: Record<string, unknown> = {}): PayloadContratIndividuel {
+  return { id, type, capitalOuMontant, ...over } as unknown as PayloadContratIndividuel;
 }
 
 describe("BlocContratsIndividuels — Lot A2 « Incapacité et invalidité »", () => {
@@ -125,5 +125,90 @@ describe("BlocContratsIndividuels — Lot A2 « Incapacité et invalidité »", 
     const ponts = getContratsTransmissionDecesAvecLegacy(perso);
     expect(ponts).toHaveLength(1);
     expect(ponts[0].capitalTransmis).toBe(50000);
+  });
+});
+
+// ─── Lot B3 — cadre Madelin (saisie déductible) ──────────────────────────────
+
+const tnsData = () => ({ travail: { p1: { statutPro: "tns_artisan" }, p2: null } }) as any;
+const nonTnsData = () => ({ travail: { p1: { statutPro: "salarie_cadre" }, p2: null } }) as any;
+
+describe("BlocContratsIndividuels — Lot B3 cadre Madelin", () => {
+  it("personne TNS : ligne ij affiche le cadre Madelin, ligne legacy (gav) non", () => {
+    render(
+      <BlocContratsIndividuels
+        contrats={[contrat("a", "ij"), contrat("z", "gav")]}
+        onChange={() => {}}
+        data={tnsData()}
+        which={1}
+      />
+    );
+    expect(screen.getAllByText(/Cotisation déductible de l'IR/i)).toHaveLength(1);
+    expect(screen.getAllByRole("checkbox")).toHaveLength(1);
+  });
+
+  it("personne NON-TNS : aucune ligne n'affiche le cadre Madelin", () => {
+    render(
+      <BlocContratsIndividuels
+        contrats={[contrat("a", "ij"), contrat("b", "invalidite")]}
+        onChange={() => {}}
+        data={nonTnsData()}
+        which={1}
+      />
+    );
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    expect(screen.queryByText(/Cotisation déductible de l'IR/i)).toBeNull();
+  });
+
+  it("ANTI-PERTE : cocher déductible sur une ligne ij préserve survivants + legacy", () => {
+    const onChange = vi.fn();
+    const initial = [contrat("a", "ij", 100), contrat("b", "deces_rente_conj", 500), contrat("z", "gav", 20000)];
+    render(<BlocContratsIndividuels contrats={initial} onChange={onChange} data={tnsData()} which={1} />);
+    fireEvent.click(screen.getByRole("checkbox")); // cadre Madelin de la ligne ij
+    const next = onChange.mock.calls[0][0] as PayloadContratIndividuel[];
+    expect(next.find((x) => x.id === "a")).toMatchObject({ type: "ij", deductibleMadelin: true });
+    expect(next.find((x) => x.id === "b")?.type).toBe("deces_rente_conj");
+    expect(next.find((x) => x.id === "z")?.type).toBe("gav");
+  });
+
+  it("ANTI-PERTE : saisir la cotisation (ij déjà coché) préserve survivants + legacy", () => {
+    const onChange = vi.fn();
+    const initial = [
+      contrat("a", "ij", 100, { deductibleMadelin: true }),
+      contrat("b", "deces_rente_conj", 500),
+      contrat("z", "gav", 20000),
+    ];
+    render(<BlocContratsIndividuels contrats={initial} onChange={onChange} data={tnsData()} which={1} />);
+    fireEvent.change(screen.getByPlaceholderText("ex. 1200"), { target: { value: "1500" } });
+    const next = onChange.mock.calls[0][0] as PayloadContratIndividuel[];
+    expect(next.find((x) => x.id === "a")).toMatchObject({ deductibleMadelin: true, cotisationMadelinAnnuelle: 1500 });
+    expect(next.find((x) => x.id === "b")?.type).toBe("deces_rente_conj");
+    expect(next.find((x) => x.id === "z")?.type).toBe("gav");
+  });
+
+  it("AVERTISSEMENT : non-TNS avec cotisation Madelin dormante -> encart, cadre absent, donnée intacte", () => {
+    const onChange = vi.fn();
+    render(
+      <BlocContratsIndividuels
+        contrats={[contrat("a", "ij", 0, { deductibleMadelin: true, cotisationMadelinAnnuelle: 1000 })]}
+        onChange={onChange}
+        data={nonTnsData()}
+        which={1}
+      />
+    );
+    expect(screen.getByText(/statut n'est pas TNS/i)).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).toBeNull();   // cadre masqué
+    expect(onChange).not.toHaveBeenCalled();              // aucune donnée effacée
+  });
+
+  it("pas d'avertissement : non-TNS sans cotisation Madelin", () => {
+    render(<BlocContratsIndividuels contrats={[contrat("a", "ij")]} onChange={() => {}} data={nonTnsData()} which={1} />);
+    expect(screen.queryByText(/statut n'est pas TNS/i)).toBeNull();
+  });
+
+  it("pas d'avertissement : personne TNS (cadre normal)", () => {
+    render(<BlocContratsIndividuels contrats={[contrat("a", "ij", 0, { deductibleMadelin: true })]} onChange={() => {}} data={tnsData()} which={1} />);
+    expect(screen.queryByText(/statut n'est pas TNS/i)).toBeNull();
+    expect(screen.getByRole("checkbox")).toBeInTheDocument();
   });
 });
