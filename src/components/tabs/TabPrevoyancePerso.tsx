@@ -44,6 +44,7 @@ import { BlocConstats } from "../prevoyance/BlocConstats";
 import { BlocCouvertureCollective } from "../prevoyance/BlocCouvertureCollective";
 import { BlocContratsIndividuels } from "../prevoyance/BlocContratsIndividuels";
 import { BlocTransmissionDeces } from "../prevoyance/BlocTransmissionDeces";
+import { RentesSurvivants } from "../prevoyance/RentesSurvivants";
 import { BlocTpt } from "../prevoyance/BlocTpt";
 // defaultCarmf/Cipav/Carpimko restent importés : ils seedent les configs
 // injectées dans l'entrée de projection. La SAISIE des blocs caisse a été
@@ -546,12 +547,23 @@ function ColonnePerso({
         onChange={(next) => onChangePrevoyance({ contratsIndividuels: next })}
       />
 
-      {/* Transmission décès — contrats privés versant un capital aux
-          bénéficiaires (hors 9 séries ; lus par la succession au Lot 3). */}
-      <BlocTransmissionDeces
-        contrats={getContratsTransmissionDeces(prevoyancePerso)}
-        onChange={(next) => onChangePrevoyance({ contratsTransmissionDeces: next })}
-      />
+      {/* Décès — regroupe Capital décès (transmission, lu par la succession au
+          Lot 3) et Rentes de survivants (deces_rente_*, lues par regles.ts).
+          Séparateur de section léger (pas de carte englobante) ; les 2 cartes
+          restent autoportantes. */}
+      <div className="space-y-3">
+        <div className="text-sm font-bold" style={{ color: BRAND.navy }}>
+          Décès
+        </div>
+        <BlocTransmissionDeces
+          contrats={getContratsTransmissionDeces(prevoyancePerso)}
+          onChange={(next) => onChangePrevoyance({ contratsTransmissionDeces: next })}
+        />
+        <RentesSurvivants
+          contrats={prevoyancePerso.contratsIndividuels}
+          onChange={(next) => onChangePrevoyance({ contratsIndividuels: next })}
+        />
+      </div>
 
       {/* Constats */}
       <div className="space-y-2">
