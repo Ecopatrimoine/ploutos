@@ -13,12 +13,37 @@ import type { Child, Property, Placement, PatrimonialData, IrOptions, Succession
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
+import { computeBeneficeImposable } from "../../lib/calculs/ir";
+import { BlocMadelinSynthese } from "../prevoyance/BlocMadelinSynthese";
 
 
 // ── TabRevenus ─────────────────────────────────────────────────────────────────────
 const TabRevenus = React.memo(function TabRevenus(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
   const { data, setField, setData, setChargesDialogOpen, irOptions, setIrOptions, ir, person1, person2 } = props;
+
+  // ── Madelin (Lot B4) : bénéfice imposable + versements PER par personne, pour
+  // alimenter le bloc de synthèse Madelin (lecture/affichage ; le bloc se masque
+  // lui-même si la personne n'est pas TNS). ──
+  const beneficeMadelin = (which: 1 | 2): number => {
+    const groupe = which === 1 ? data.person1PcsGroupe : data.person2PcsGroupe;
+    const cat = which === 1 ? data.person1Csp : data.person2Csp;
+    const isIndep = groupe === "1" || groupe === "2" || isProfessionLiberale(cat);
+    if (!isIndep) return 0;
+    return computeBeneficeImposable(
+      n(which === 1 ? data.ca1 : data.ca2),
+      which === 1 ? data.bicType1 : data.bicType2,
+      isProfessionLiberale(cat),
+      groupe === "1",
+      which === 1 ? data.microRegime1 : data.microRegime2,
+      n(which === 1 ? data.chargesReelles1 : data.chargesReelles2),
+      n(which === 1 ? data.baRevenue1 : data.baRevenue2),
+    );
+  };
+  const versementsPERMadelin = (which: 1 | 2): number =>
+    (data.placements || [])
+      .filter((p: any) => isPERType(p.type) && p.ownership === (which === 1 ? "person1" : "person2"))
+      .reduce((s: number, p: any) => s + n(p.annualContribution || ""), 0);
 
   return (
 <TabsContent value="revenus" className="space-y-4">
@@ -361,13 +386,16 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
     <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Charges déductibles du revenu global</div>
     {/* Versements PER déplacés dans l'onglet Placements */}
     <MoneyField label="Pensions alimentaires déductibles" tooltip="Pensions alimentaires versées à un enfant majeur ou à un ex-conjoint, déductibles sous conditions." value={data.pensionDeductible} onChange={(e) => setField("pensionDeductible", e.target.value)} />
-    <MoneyField label="Autres charges déductibles" tooltip="Autres déductions du revenu global : épargne retraite PERP, cotisations Madelin, etc." value={data.otherDeductible} onChange={(e) => setField("otherDeductible", e.target.value)} />
+    <MoneyField label="Autres charges déductibles" tooltip="Autres déductions du revenu global : épargne retraite PERP, déduction épargne handicap, etc. Les cotisations Madelin ont leur poste dédié ci-dessous." value={data.otherDeductible} onChange={(e) => setField("otherDeductible", e.target.value)} />
     <MoneyField
       label="CSG déductible — revenus fonciers N-1 (ligne 6DE)"
       tooltip="CSG déductible sur les revenus fonciers de l'année précédente. Correspond à 6,8% des revenus fonciers nets N-1. Montant indiqué sur votre avis d'imposition à la ligne 6DE — à reporter directement ici."
       value={data.csgDeductibleFoncier || ""}
       onChange={(e) => setField("csgDeductibleFoncier", e.target.value)}
     />
+    {/* Madelin prévoyance (Lot B4) — synthèse par personne TNS (auto-masquée sinon) */}
+    <BlocMadelinSynthese data={data} which={1} benefice={beneficeMadelin(1)} plafondPER={ir.plafondPER1 ?? 0} versementsPER={versementsPERMadelin(1)} setField={setField} />
+    <BlocMadelinSynthese data={data} which={2} benefice={beneficeMadelin(2)} plafondPER={ir.plafondPER2 ?? 0} versementsPER={versementsPERMadelin(2)} setField={setField} />
   </div>
 </TabsContent>
 

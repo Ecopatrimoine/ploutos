@@ -8,6 +8,7 @@
 import { describe, it, expect } from "vitest";
 import {
   sommeCotisationsMadelin,
+  detailCotisationsMadelin,
   plafondMadelinPrevoyance,
   enveloppeMadelinPrevoyance,
   estEligibleMadelin,
@@ -188,5 +189,42 @@ describe("garde-fou : aucun PASS en dur", () => {
     const avec50000 = plafondMadelinPrevoyance(0, 50000); // 3500
     expect(avec50000).not.toBeCloseTo(avec48060, 1);
     expect(avec50000).toBeCloseTo(3500, 4); // 0.07 * 50000
+  });
+});
+
+describe("detailCotisationsMadelin", () => {
+  it("détaille ij + invalidite + transmission marqués (libellés + montants), ignore le reste", () => {
+    const data = makeData({
+      prevoyance: { version: 1, p1: perso({
+        contratsIndividuels: [
+          ci("a", "ij", { deductibleMadelin: true, cotisationMadelinAnnuelle: 1000 }),
+          ci("b", "invalidite", { deductibleMadelin: true, cotisationMadelinAnnuelle: 500 }),
+          ci("c", "gav", { deductibleMadelin: true, cotisationMadelinAnnuelle: 999 }), // hors périmètre -> ignoré
+          ci("d", "ij", { cotisationMadelinAnnuelle: 999 }),                            // non marqué -> ignoré
+        ],
+        contratsTransmissionDeces: [ctd("t", { libelle: "Temporaire décès", deductibleMadelin: true, cotisationMadelinAnnuelle: 300 })],
+      }), p2: null },
+    } as any);
+    const detail = detailCotisationsMadelin(data, 1);
+    expect(detail.map((l) => l.montant)).toEqual([1000, 500, 300]);
+    expect(detail[0].libelle).toMatch(/IJ|journalières/i);
+    expect(detail[2].libelle).toBe("Temporaire décès");
+  });
+
+  it("vide si aucune cotisation marquée / pas de prévoyance", () => {
+    expect(detailCotisationsMadelin(makeData({}), 1)).toEqual([]);
+  });
+
+  it("COHÉRENCE : somme === Σ(détail) + autre cotisation", () => {
+    const data = makeData({
+      prevoyance: { version: 1, p1: perso({
+        contratsIndividuels: [ci("a", "ij", { deductibleMadelin: true, cotisationMadelinAnnuelle: 1000 })],
+        contratsTransmissionDeces: [ctd("t", { deductibleMadelin: true, cotisationMadelinAnnuelle: 300 })],
+      }), p2: null },
+      madelinAutreCotisation1: 200,
+    } as any);
+    const detailTotal = detailCotisationsMadelin(data, 1).reduce((s, l) => s + l.montant, 0);
+    expect(sommeCotisationsMadelin(data, 1)).toBe(detailTotal + 200);
+    expect(sommeCotisationsMadelin(data, 1)).toBe(1500);
   });
 });

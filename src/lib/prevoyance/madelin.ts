@@ -23,33 +23,47 @@ function num(v: unknown): number {
   return typeof v === "number" && Number.isFinite(v) ? v : 0;
 }
 
-// Somme des cotisations Madelin déductibles d'une personne (`which` = 1 | 2).
-// Lit la prévoyance via la clé p1/p2 et la case « autre cotisation » racine via le
-// suffixe 1/2 (mêmes conventions partout). Ne compte QUE les contrats marqués
-// `deductibleMadelin === true`, et seulement les types du périmètre.
-export function sommeCotisationsMadelin(data: PatrimonialData, which: 1 | 2): number {
+export type LigneCotisationMadelin = { libelle: string; montant: number };
+
+// Libellés d'affichage des cotisations d'incapacité/invalidité (le décès porte son
+// propre libellé de contrat).
+const LIBELLE_INCAPACITE: Record<string, string> = {
+  ij: "Indemnités journalières (IJ)",
+  invalidite: "Rente invalidité",
+};
+
+// Détail des cotisations Madelin LUES en prévoyance (hors « autre cotisation »
+// racine, éditée à part). SOURCE UNIQUE DE FILTRAGE : contrats individuels "ij" /
+// "invalidite" + contrats de transmission décès, marqués `deductibleMadelin === true`.
+// Montant absent/NaN -> 0. Déterministe.
+export function detailCotisationsMadelin(data: PatrimonialData, which: 1 | 2): LigneCotisationMadelin[] {
   const perso = data.prevoyance?.[which === 1 ? "p1" : "p2"];
-  let total = 0;
+  const lignes: LigneCotisationMadelin[] = [];
 
   // Contrats individuels : SEULEMENT "ij" et "invalidite" (tout autre type ignoré,
   // même marqué deductibleMadelin).
   for (const c of perso?.contratsIndividuels ?? []) {
     if ((c.type === "ij" || c.type === "invalidite") && c.deductibleMadelin === true) {
-      total += num(c.cotisationMadelinAnnuelle);
+      lignes.push({ libelle: LIBELLE_INCAPACITE[c.type] ?? c.type, montant: num(c.cotisationMadelinAnnuelle) });
     }
   }
-
   // Contrats de transmission décès (capital) : tous, s'ils sont marqués déductibles.
   for (const c of perso?.contratsTransmissionDeces ?? []) {
     if (c.deductibleMadelin === true) {
-      total += num(c.cotisationMadelinAnnuelle);
+      lignes.push({ libelle: c.libelle || "Capital décès", montant: num(c.cotisationMadelinAnnuelle) });
     }
   }
+  return lignes;
+}
 
-  // Case « autre cotisation » libre (racine, par personne).
-  total += num(which === 1 ? data.madelinAutreCotisation1 : data.madelinAutreCotisation2);
-
-  return total;
+// Somme des cotisations Madelin déductibles d'une personne (`which` = 1 | 2) =
+// total du DÉTAIL (contrats prévoyance) + la case « autre cotisation » racine
+// (suffixe 1/2). detailCotisationsMadelin est la source unique de filtrage →
+// cohérence garantie : somme === Σ(détail) + autre cotisation.
+export function sommeCotisationsMadelin(data: PatrimonialData, which: 1 | 2): number {
+  const detailTotal = detailCotisationsMadelin(data, which).reduce((s, l) => s + l.montant, 0);
+  const autre = num(which === 1 ? data.madelinAutreCotisation1 : data.madelinAutreCotisation2);
+  return detailTotal + autre;
 }
 
 // Plafond de déduction Madelin prévoyance-santé (art. 154 bis CGI) :
