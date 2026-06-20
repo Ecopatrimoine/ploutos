@@ -461,11 +461,11 @@ describe("computeIR — concubinage (2 foyers)", () => {
       person2FirstName: "Conj", person2LastName: "Test",
       placements: [per],
     }, STD_OPTIONS)
-    // Plafond PER salarié : max(40000×10%, PASS×10%) = max(4000, 4710) = 4710
-    // perDeduction1 = min(5000, 4710) = 4710 (plafonné)
-    // rev1 = 40000 - 4000 (abatt salaire) - 4710 (PER plafonné) = 31290
+    // Plafond PER salarié : max(40000×10%, PASS×10%) = max(4000, 4806) = 4806 (PASS 2026 = 48060)
+    // perDeduction1 = min(5000, 4806) = 4806 (plafonné)
+    // rev1 = 40000 - 4000 (abatt salaire) - 4806 (PER plafonné) = 31194
     // rev2 = 30000 - 3000 = 27000 (pas de PER)
-    expect(ir.rev1).toBeCloseTo(31290, 0)
+    expect(ir.rev1).toBeCloseTo(31194, 0)
     expect(ir.rev2).toBeCloseTo(27000, 0)
   })
 

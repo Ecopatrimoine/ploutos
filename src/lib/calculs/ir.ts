@@ -4,6 +4,7 @@ import { n, computeTaxFromBrackets, isAV, isPERType, fractionRVTO, getHandicapAb
   getChildrenFiscalParts, getBaseFiscalParts, computeIRConcubin, getQuotientCapPerHalfPart,
   isProfessionLiberale, computeKilometricAllowance } from './utils';
 import { resolveLoanValuesMulti } from './credit';
+import { referentiels } from '../../data/prevoyance';
 
 // ─── CALCUL IR ────────────────────────────────────────────────────────────────
 
@@ -220,7 +221,7 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
 
   // ── Calcul PER par personne + plafond individuel ──
   function isPER(type: string) { return ["PER bancaire", "PER assurantiel", "Madelin"].includes(type); }
-  const PASS_2026 = 47100; // PASS 2026
+  const PASS_2026 = referentiels.pass.pass.annuel; // PASS source unique (pass-2026.json)
 
   // Helper plafond PER par revenu/statut
   function calcPlafondPER(revenu: number, isIndep: boolean): number {
