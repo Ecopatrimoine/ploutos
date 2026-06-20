@@ -14,11 +14,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, UserPlus } from "lucide-react";
 import { BRAND, SURFACE } from "../../constants";
 import { Field } from "../shared";
-import type { ContratTransmissionDeces } from "../../types/patrimoine";
+import type { ContratTransmissionDeces, PatrimonialData } from "../../types/patrimoine";
+import { membresFamille, type MembreFamille } from "../../lib/prevoyance/membres-famille";
 
 type Props = {
   contrats: ContratTransmissionDeces[];
   onChange: (next: ContratTransmissionDeces[]) => void;
+  // Optionnels : si fournis, activent le picker « depuis la famille » (Lot P2).
+  // Absents -> aucun picker, comportement inchangé (dégradation gracieuse).
+  data?: PatrimonialData;
+  whichDefunt?: 1 | 2;
 };
 
 // Vocabulaire de relation ALIGNÉ sur getSuccessionTaxProfile (succession.ts) :
@@ -53,7 +58,15 @@ function newBeneficiaire(): ContratTransmissionDeces["beneficiaires"][number] {
 export const BlocTransmissionDeces = React.memo(function BlocTransmissionDeces({
   contrats,
   onChange,
+  data,
+  whichDefunt,
 }: Props) {
+  // Membres de la famille proposables comme bénéficiaires (pré-remplissage Lot P2).
+  // Recalculé à CHAQUE render (suit data) ; vide si data/whichDefunt absents -> aucun
+  // picker (dégradation gracieuse). N'affecte PAS le calcul succession : alimente
+  // seulement name/relation en amont (valeurs du vocabulaire RELATIONS).
+  const membres: MembreFamille[] = data && whichDefunt ? membresFamille(data, whichDefunt) : [];
+
   function updateAt(idx: number, patch: Partial<ContratTransmissionDeces>) {
     onChange(contrats.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
   }
@@ -75,6 +88,14 @@ export const BlocTransmissionDeces = React.memo(function BlocTransmissionDeces({
   }
   function addBenef(ci: number) {
     updateAt(ci, { beneficiaires: [...contrats[ci].beneficiaires, newBeneficiaire()] });
+  }
+  // Ajoute un bénéficiaire PRÉ-REMPLI depuis un membre de la famille (name +
+  // relation issus de membresFamille). Reste pleinement éditable ensuite ; share
+  // toujours saisi à la main.
+  function addBenefFromMembre(ci: number, m: MembreFamille) {
+    updateAt(ci, {
+      beneficiaires: [...contrats[ci].beneficiaires, { name: m.name, relation: m.relation, share: 0 }],
+    });
   }
   function removeBenef(ci: number, bi: number) {
     updateAt(ci, { beneficiaires: contrats[ci].beneficiaires.filter((_, i) => i !== bi) });
@@ -228,6 +249,31 @@ export const BlocTransmissionDeces = React.memo(function BlocTransmissionDeces({
                   <UserPlus className="h-3.5 w-3.5 mr-1" /> Ajouter un bénéficiaire
                 </Button>
               </div>
+
+              {/* Picker « depuis la famille » (Lot P2) : une puce par membre,
+                  pré-remplit name + relation (éditables ensuite). Absent si pas
+                  de famille exploitable -> on retombe sur la saisie libre. */}
+              {membres.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs" style={{ color: BRAND.muted }}>Depuis la famille :</span>
+                  {membres.map((m, mi) => {
+                    const dejaPresent = c.beneficiaires.some((b) => b.name === m.name);
+                    return (
+                      <Button
+                        key={mi}
+                        type="button"
+                        variant="outline"
+                        disabled={dejaPresent}
+                        onClick={() => addBenefFromMembre(idx, m)}
+                        className="rounded-full text-xs h-7 px-3"
+                        title={dejaPresent ? "Bénéficiaire déjà ajouté" : `Ajouter ${m.name} (${m.relation})`}
+                      >
+                        <UserPlus className="h-3 w-3 mr-1" /> {m.name}
+                      </Button>
+                    );
+                  })}
+                </div>
+              )}
 
               {c.beneficiaires.length === 0 && (
                 <div className="text-xs" style={{ color: BRAND.muted, fontStyle: "italic" }}>

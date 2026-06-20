@@ -558,6 +558,8 @@ function ColonnePerso({
         <BlocTransmissionDeces
           contrats={getContratsTransmissionDeces(prevoyancePerso)}
           onChange={(next) => onChangePrevoyance({ contratsTransmissionDeces: next })}
+          data={data}
+          whichDefunt={cible === "p1" ? 1 : 2}
         />
         <RentesSurvivants
           contrats={prevoyancePerso.contratsIndividuels}
