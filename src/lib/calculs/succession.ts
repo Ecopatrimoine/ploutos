@@ -12,6 +12,7 @@ import { resolveCapitauxDeces } from '../prevoyance/capitaux-deces';
 import { resolveCapitalDecesBranche, resolveRenteEducationBranche, resolveRenteConjointSubstitutiveBranche } from '../prevoyance/capitaux-deces-branche';
 import { categorieBranche } from '../prevoyance/categorie-branche';
 import { getContratsTransmissionDecesAvecLegacy, getPrevoyancePerso } from '../prevoyance/utils';
+import { splitContratsIndividuels } from '../prevoyance/contrats-individuels-split';
 import { referentiels, type Referentiels } from '../../data/prevoyance';
 
 // ─── Capitaux décès HORS actif successoral (module « Capitaux décès dans la
@@ -1275,6 +1276,27 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
     if (cap.renteSurvieOrphelinAnnuelle != null)
       rentesSurvieAnnuelles.push({ source: cap.source, type: "survie_orphelin", montantAnnuel: cap.renteSurvieOrphelinAnnuelle });
   }
+
+  // ── Source 1 bis : rentes de survie SAISIES par le conseiller (contrats
+  // individuels du MÊME défunt). Flux EXONÉRÉ hors masse taxable : aucun 990 I,
+  // aucun droit, aucun abattement, aucune dévolution — on alimente UNIQUEMENT le
+  // poste annuel rentesSurvieAnnuelles, jamais les capitaux. Le helper Lot A
+  // isole la catégorie « survivants » (deces_rente_conj / deces_rente_educ) ;
+  // tout autre type éventuel y est ignoré. Montant saisi MENSUEL → ANNUEL (×12).
+  // La rente éducation est saisie PAR ENFANT : ×12 UNIQUEMENT, jamais × nombre
+  // d'enfants à charge (le « par enfant » est porté par l'affichage).
+  const rentesSurvivants = splitContratsIndividuels(
+    getPrevoyancePerso(data, whichDefunt)?.contratsIndividuels ?? []
+  ).survivants;
+  for (const c of rentesSurvivants) {
+    const montantMensuel = typeof c.capitalOuMontant === "number" ? c.capitalOuMontant : 0;
+    if (!(montantMensuel > 0)) continue;
+    if (c.type === "deces_rente_conj")
+      rentesSurvieAnnuelles.push({ source: "Contrat individuel", type: "conjoint", montantAnnuel: montantMensuel * 12 });
+    else if (c.type === "deces_rente_educ")
+      rentesSurvieAnnuelles.push({ source: "Contrat individuel", type: "education", montantAnnuel: montantMensuel * 12 });
+  }
+
   const capitalDecesCaisseExonere = capitalDecesCaisseLines.reduce((s, l) => s + (l.capital ?? 0), 0);
 
   // ── Source 2 : contrats de prévoyance décès PRIVÉS (transmission) ──

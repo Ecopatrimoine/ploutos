@@ -264,8 +264,15 @@ export function BlocCapitauxDeces({
                 </div>
               ))}
 
-              {/* Rentes de survie / éducation — montants ANNUELS, distincts des capitaux */}
-              {rentes.length > 0 && (
+              {/* Rentes de survie / éducation — montants ANNUELS, distincts des
+                  capitaux. Sous-groupées par source : rentes versées par les
+                  caisses obligatoires vs rentes saisies au contrat individuel
+                  (LOT RENTES-SURVIE-INDIV). Le badge « exonéré · hors succession »
+                  du header du sous-bloc couvre l'ensemble (réutilisé tel quel). */}
+              {rentes.length > 0 && (() => {
+                const rentesCaisse = rentes.filter((r) => r.source !== "Contrat individuel");
+                const rentesIndiv = rentes.filter((r) => r.source === "Contrat individuel");
+                return (
                 <div style={{ marginTop: "4px", borderRadius: "10px", border: `1px solid ${SURFACE.border}`, background: SURFACE.app, padding: "10px 12px" }}>
                   <div style={{ fontSize: "11px", fontWeight: 600, color: BRAND.sky, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>
                     Rentes de survie / éducation (annuelles)
@@ -273,14 +280,41 @@ export function BlocCapitauxDeces({
                   <div style={{ fontSize: "11px", color: BRAND.muted, marginBottom: "8px" }}>
                     Versées chaque année aux ayants droit — distinctes des capitaux, jamais additionnées à ceux-ci.
                   </div>
-                  {rentes.map((r, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", padding: "2px 0" }}>
-                      <span style={{ color: BRAND.navy }}>{renteLabel(r.type)} <span style={{ color: BRAND.muted }}>({r.source})</span></span>
-                      <span style={{ fontWeight: 600, color: BRAND.navy }}>{euro(r.montantAnnuel)} /an</span>
+                  {rentesCaisse.length > 0 && (
+                    <div style={{ marginBottom: rentesIndiv.length > 0 ? "8px" : 0 }}>
+                      <div style={{ fontSize: "10px", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "2px" }}>
+                        Caisses obligatoires
+                      </div>
+                      {rentesCaisse.map((r, i) => (
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", padding: "2px 0" }}>
+                          <span style={{ color: BRAND.navy }}>{renteLabel(r.type)} <span style={{ color: BRAND.muted }}>({r.source})</span></span>
+                          <span style={{ fontWeight: 600, color: BRAND.navy }}>{euro(r.montantAnnuel)} /an</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+                  {rentesIndiv.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: "10px", fontWeight: 600, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "2px" }}>
+                        Contrat individuel
+                      </div>
+                      {rentesIndiv.map((r, i) => {
+                        // « par enfant » réservé à la rente éducation SAISIE au
+                        // contrat individuel (montant unitaire). Les rentes
+                        // éducation de CAISSE sont des totaux : affichage inchangé.
+                        const parEnfant = r.type === "education";
+                        return (
+                          <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", padding: "2px 0" }}>
+                            <span style={{ color: BRAND.navy }}>{renteLabel(r.type)}{parEnfant ? " (par enfant)" : ""}</span>
+                            <span style={{ fontWeight: 600, color: BRAND.navy }}>{euro(r.montantAnnuel)} /an{parEnfant ? "/enfant" : ""}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
+                );
+              })()}
 
               {/* ── Surcharge manuelle de la dévolution (Volet B) ── */}
               {editable && (
