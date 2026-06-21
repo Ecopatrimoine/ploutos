@@ -29,6 +29,7 @@ import { SectionTitle } from "../shared";
 import { BlocEntreprise, emptyEntrepriseAudit } from "../prevoyance/BlocEntreprise";
 import { BlocAuditConformite } from "../prevoyance/BlocAuditConformite";
 import { BlocObligationsBranche } from "../prevoyance/BlocObligationsBranche";
+import { BlocContenuCCN } from "../prevoyance/BlocContenuCCN";
 import { runAuditConformite } from "../../lib/prevoyance/audit-collectif";
 import { buildVueObligationsFusionnee } from "../../lib/prevoyance/comparaison-branche-vue";
 import { referentiels } from "../../data/prevoyance";
@@ -143,15 +144,18 @@ const TabPrevoyanceCollective = React.memo(function TabPrevoyanceCollective({
       <Card className="border-0 relative overflow-hidden">
         <CardAccentTop />
         <CardHeader>
-          <SectionTitle
-            icon={Building2}
-            title="Prévoyance collective"
-            subtitle={
-              personneDirigeante
-                ? `Dirigeant analysé : ${personneDirigeante}`
-                : "Audit conformité de la couverture collective en place"
-            }
-          />
+          <div className="flex items-start justify-between gap-3">
+            <SectionTitle
+              icon={Building2}
+              title="Prévoyance collective"
+              subtitle={
+                personneDirigeante
+                  ? `Dirigeant analysé : ${personneDirigeante}`
+                  : "Audit conformité de la couverture collective en place"
+              }
+            />
+            {vueObligations && <BlocContenuCCN vue={vueObligations} />}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {!autoActive && (
