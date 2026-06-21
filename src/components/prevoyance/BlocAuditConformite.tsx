@@ -42,6 +42,7 @@ export const BlocAuditConformite = React.memo(function BlocAuditConformite({ aud
         </div>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
       {audit.controles.map((c) => {
         const couleur = COULEURS_STATUT[c.statut];
         return (
@@ -70,14 +71,15 @@ export const BlocAuditConformite = React.memo(function BlocAuditConformite({ aud
             <div className="text-sm leading-relaxed" style={{ color: BRAND.navy }}>
               {c.detail}
             </div>
-            {c.actionCorrective && (
+            {(c.actionCorrective || c.statut === "non_conforme" || c.statut === "vigilance") && (
               <div className="text-sm mt-2" style={{ color: BRAND.sky, fontWeight: 600 }}>
-                → {c.actionCorrective}
+                → {c.actionCorrective ?? "Vérifier la conformité du dispositif déclaré et le formaliser au regard de la référence légale citée."}
               </div>
             )}
           </div>
         );
       })}
+      </div>
     </div>
   );
 });
