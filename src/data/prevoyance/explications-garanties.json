@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "description": "Explications generiques par type de garantie de prevoyance/sante collective, communes a toutes les CCN. Lues par le helper Contenu CCN et fusionnees avec les valeurs et references propres a chaque convention (ccn-2026.json). Non millesime : texte stable, hors bump annuel.",
+    "dateVerification": "2026-06-21"
+  },
+  "capitalDC": {
+    "enClair": "Somme versée en une fois aux bénéficiaires désignés au décès du salarié, pour aider les proches à faire face aux conséquences financières immédiates.",
+    "quiConcerne": "Les salariés couverts par le régime de prévoyance de la branche ; le montant est souvent distinct entre cadres et non-cadres.",
+    "_source": "Définition standard de la prévoyance collective ; montant et conditions propres à chaque accord de branche (voir fiche CCN). Vérifié 2026-06-21."
+  },
+  "renteConjoint": {
+    "enClair": "Revenu régulier versé au conjoint survivant après le décès du salarié, pour compenser la perte de ressources du foyer. Toutes les branches ne la prévoient pas.",
+    "quiConcerne": "Le conjoint (et, selon les accords, le partenaire de PACS) du salarié décédé, sous les conditions fixées par la branche.",
+    "_source": "Définition standard ; existence et montant propres à chaque accord de branche (voir fiche CCN). Vérifié 2026-06-21."
+  },
+  "renteEducation": {
+    "enClair": "Revenu régulier versé pour chaque enfant à charge après le décès du salarié, pour financer sa scolarité et son entretien jusqu'à un âge limite (souvent prolongé en cas d'études).",
+    "quiConcerne": "Les enfants à charge du salarié décédé ; le montant varie souvent par tranche d'âge.",
+    "_source": "Définition standard ; barème par âge propre à chaque accord de branche (voir fiche CCN). Vérifié 2026-06-21."
+  },
+  "ij": {
+    "enClair": "Complément de revenu versé pendant un arrêt de travail pour maladie ou accident, en plus des indemnités de la Sécurité sociale, après un délai de franchise, pour limiter la perte de salaire.",
+    "quiConcerne": "Les salariés en arrêt de travail couverts par le régime de branche, une fois la franchise écoulée.",
+    "_source": "Définition standard ; taux, franchise et durée propres à chaque accord de branche (voir fiche CCN). Vérifié 2026-06-21."
+  },
+  "invalidite": {
+    "enClair": "Rente versée lorsqu'un salarié est reconnu invalide et ne peut plus travailler normalement, pour compenser durablement la perte de revenus. Le montant dépend de la catégorie d'invalidité (1, 2 ou 3).",
+    "quiConcerne": "Les salariés reconnus invalides par la Sécurité sociale, couverts par le régime de branche.",
+    "_source": "Définition standard ; catégories d'invalidité art. L.341-4 CSS ; pourcentages propres à chaque accord de branche (voir fiche CCN). Vérifié 2026-06-21."
+  },
+  "maintienEmployeur": {
+    "enClair": "Pendant un arrêt maladie, l'employeur complète les indemnités de la Sécurité sociale pour maintenir tout ou partie du salaire, selon l'ancienneté. Un minimum légal existe, que la convention de branche peut améliorer.",
+    "quiConcerne": "Les salariés en arrêt, sous condition d'ancienneté ; les durées et pourcentages varient selon la branche et le statut (cadre ou non-cadre).",
+    "_source": "Minimum légal : loi de mensualisation du 19/01/1978, art. L.1226-1 C. trav. ; conditions améliorées propres à chaque accord de branche (voir fiche CCN). Vérifié 2026-06-21."
+  },
+  "santeMinimum": {
+    "enClair": "Mutuelle d'entreprise obligatoire : l'employeur du secteur privé doit proposer une complémentaire santé à ses salariés, financée à au moins 50 %, couvrant un panier de soins minimal en complément de la Sécurité sociale.",
+    "quiConcerne": "Tous les salariés du secteur privé depuis le 1er janvier 2016, sauf cas de dispense ; les TNS et professions libérales ne sont pas concernés.",
+    "_source": "Loi n° 2013-504 du 14/06/2013 (ANI 11/01/2013), art. L.911-7 et D.911-1 CSS ; service-public.gouv.fr. Vérifié 2026-06-21."
+  }
+}
