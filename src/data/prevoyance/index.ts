@@ -17,6 +17,7 @@ import ccn from "./ccn-2026.json";
 import carmf from "./carmf-2026.json";
 import cipav from "./cipav-2026.json";
 import carpimko from "./carpimko-2026.json";
+import explicationsGaranties from "./explications-garanties.json";
 
 export const CURRENT_YEAR = 2026;
 
@@ -38,7 +39,8 @@ export type CcnReferentiel = typeof ccn;
 // IJ propre J91) mais prestations entièrement FORFAITAIRES (indépendantes
 // du revenu). Consommé par la branche CARPIMKO du moteur (cf. carpimko.ts).
 // Source : carpimko.com + agrégateurs concordants, vérifié 2026-05-29.
-export const referentiels = { pass, caisses, ccn, carmf, cipav, carpimko };
+// explicationsGaranties : couche generique non millesimee (texte stable), hors bump annuel.
+export const referentiels = { pass, caisses, ccn, carmf, cipav, carpimko, explicationsGaranties };
 export type Referentiels = typeof referentiels;
 
 if (typeof window !== "undefined" && new Date().getFullYear() > CURRENT_YEAR + 1) {
