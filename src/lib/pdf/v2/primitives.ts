@@ -827,9 +827,9 @@ export function coquillePage(_t: Tokens, opts: {
 // ── Géométrie de la feuille (px @ 96 dpi ; cf. coquillePage) ──
 const HAUTEUR_FEUILLE_PX = 1122;   // 297mm @ 96 dpi (coquillePage height:297mm)
 const PADDING_HAUT_PX = 32;        // coquillePage : padding:32px 38px 0
-const RESERVE_BAS_PX = 120;        // bande basse PHYSIQUE : pied + slot DDA (réserve la place
+export const RESERVE_BAS_PX = 120; // bande basse PHYSIQUE : pied + slot DDA (réserve la place
                                    // de la DDA quoi qu'il arrive — anti-chevauchement façon pageProfil)
-const RESERVE_PIED_PX = 30;        // pied SEUL (piedPage : border-top + padding-top 8 + texte ~ 25, arrondi)
+export const RESERVE_PIED_PX = 30; // pied SEUL (piedPage : border-top + padding-top 8 + texte ~ 25, arrondi)
 const MARGE_SECURITE_PX = 120;     // sécurité d'ESTIMATION uniquement — seule molette réglable du doute
 const PLAFOND_BLANC_HAUT_PX = 90;  // blanc max au-dessus du corps centré (jamais une page de titre)
 
@@ -837,12 +837,12 @@ const PLAFOND_BLANC_HAUT_PX = 90;  // blanc max au-dessus du corps centré (jama
 const BUDGET_CONTENU_FUSION_PX = HAUTEUR_FEUILLE_PX - PADDING_HAUT_PX - RESERVE_BAS_PX; // = 970
 
 // ── Hauteurs FIXES par bloc (conservatrices ; source = helper correspondant) ──
-const H_HEADER_PX = 80;            // header() : eyebrow + titre + sousTitre + filet + marges
-const H_BANDE_KPI_PX = 90;         // bandeKPI compact : margin-top 18 + cellule ~ 66 + jeu
+export const H_HEADER_PX = 80;     // header() : eyebrow + titre + sousTitre + filet + marges
+export const H_BANDE_KPI_PX = 90;  // bandeKPI compact : margin-top 18 + cellule ~ 66 + jeu
 const H_SOUSTITRE_PX = 26;         // sousTitreSection .sct + marge
-const H_SOUSTITRE_SERIF_PX = 30;   // sousTitreSection serif (13.5px) + margin-bottom 8
-const H_LIGNE_TEXTE_PX = 20;       // texte 11px line-height 1.6 (~ 17.6 arrondi haut)
-const CHARS_PAR_LIGNE_CONVENTION = 60; // largeur utile ~ 718px : 60 = SUR-compte les lignes
+export const H_SOUSTITRE_SERIF_PX = 30; // sousTitreSection serif (13.5px) + margin-bottom 8
+export const H_LIGNE_TEXTE_PX = 20; // texte 11px line-height 1.6 (~ 17.6 arrondi haut)
+export const CHARS_PAR_LIGNE_CONVENTION = 60; // largeur utile ~ 718px : 60 = SUR-compte les lignes
 const H_TABLE_ENTETE_PX = 28;      // tableauTitresDores thead (.th padding 7 + font 8.5)
 const H_LIGNE_AUDIT_PX = 34;       // .td 1-2 lignes (la référence peut wrapper) — conservateur
 const H_OBLIG_STATUT_PX = 18;      // ligne statutLabel des obligations
