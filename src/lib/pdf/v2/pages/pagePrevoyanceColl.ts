@@ -1,12 +1,16 @@
-// ─── Page Prévoyance collective v2 — 2 feuilles A4 ─────────────────────────────
+// ─── Page Prévoyance collective v2 — pagination adaptative (1 ou 2 feuilles) ────
 //
-// Feuille 1 "Conformité" : header + KPI + (convention applicable) + Audit de conformité.
-// Feuille 2 "Obligations de branche" : synthèse + tableau UNIQUE fusionné (miroir
-// de l'ecran), consommant la MEME vue (buildVueObligationsFusionnee), + mention DDA
-// EPINGLEE EN BAS via le slot signature de coquillePage. Chaque coquillePage = une
-// feuille A4 ; retourner feuille1 + feuille2 emet deux pages a la suite (l'assemblage
-// du pack concatene la string telle quelle). Le bloc "Constats" (doublon de l'audit)
-// a ete retire du PDF, aligne sur l'ecran.
+// Trois chemins (Lot pagination) :
+//   a) inactif        -> 1 feuille : message centré (regionCorpsCentree) + DDA en slot.
+//   b) actif & fusion -> 1 feuille PLEINE : header + KPI + convention + audit +
+//                        obligations + DDA en slot (decide par tientSurUneFeuille,
+//                        conservateur : jamais de clip).
+//   c) actif & 2-feuilles -> feuille 1 « Conformité » (header + KPI + convention en
+//                        zone haute, PUIS corps audit CENTRÉ via regionCorpsCentree)
+//                        + feuille 2 « Obligations » (inchangée, DDA en slot, v1.20.0).
+// La DDA est TOUJOURS sur le slot signature NATIF de coquillePage (epinglee bottom:42px),
+// presente exactement une fois, sur la derniere/unique feuille. Le bloc "Constats"
+// (doublon de l'audit) reste retire du PDF.
 
 import {
   header,
@@ -17,6 +21,16 @@ import {
   piedPage,
   coquillePage,
   icones,
+  tientSurUneFeuille,
+  regionCorpsCentree,
+  H_HEADER_PX,
+  H_BANDE_KPI_PX,
+  H_SOUSTITRE_SERIF_PX,
+  H_LIGNE_TEXTE_PX,
+  CHARS_PAR_LIGNE_CONVENTION,
+  RESERVE_BAS_PX,
+  RESERVE_PIED_PX,
+  type CountsFeuilleCollective,
 } from "../primitives";
 import type { Tokens } from "../tokens";
 import type { ControleConformite, ControleStatut } from "../../../prevoyance/types";
@@ -187,21 +201,26 @@ function sectionObligationsFusionnee(t: Tokens, vue: VueObligationsFusionnee): s
   return `${titre}${statut}${avertissement}${synthese}${bandeau}${tableau}${notesHTML}`;
 }
 
-// ─── Page (2 feuilles) ────────────────────────────────────────────────────────
+// ─── Page (pagination adaptative : 1 ou 2 feuilles) ───────────────────────────
 
 export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string {
   const pied = piedPage(t, { gauche: d.cabinetLibellePied, droite: d.pagePosition });
-  // Mention DDA : rendue UNE seule fois par document collectif, en FIN de la
-  // DERNIERE feuille du module (feuille Obligations en mode actif ; feuille unique
-  // en mode inactif). Texte centralise (mentionDDAPrevoyance) via d.mentionDDA.
+  // Mention DDA : rendue UNE seule fois, en bas de la DERNIERE (ou unique) feuille,
+  // via le slot signature NATIF de coquillePage (epinglee bottom:42px, v1.20.0).
   const ddaNote = noteIconee(t, {
     iconeSvg: icones.infoCircle(t.eyebrowOr, 14),
     texteHtml: d.mentionDDA,
     style: "discrete",
   });
 
-  // Module inactif : une seule feuille (pas de page vide inutile) + DDA en fin.
+  // ── Chemin a) Module inactif : 1 feuille, message centre, DDA en slot ──
+  // reserveBas = RESERVE_BAS_PX (120) : la DDA est sur CETTE feuille -> on reserve
+  // sa place pour eviter tout chevauchement avec le corps centre.
   if (!d.active) {
+    const message = `<div style="text-align:center;font-size:12px;color:${t.texteFaible};line-height:1.6">
+        Aucun dirigeant détecté dans le foyer et analyse externe non activée.<br/>
+        Activer le module Prévoyance collective pour produire l'audit conformité.
+      </div>`;
     const contenu = `
       ${header(t, {
         eyebrow: "Prévoyance",
@@ -209,16 +228,12 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
         droiteHaut: d.clientName,
         droiteBas: d.dateStr,
       })}
-      <div style="margin-top:40px;text-align:center;font-size:12px;color:${t.texteFaible};line-height:1.6">
-        Aucun dirigeant détecté dans le foyer et analyse externe non activée.<br/>
-        Activer le module Prévoyance collective pour produire l'audit conformité.
-      </div>
-      ${ddaNote}
+      ${regionCorpsCentree(message, { hauteurZoneHautPx: H_HEADER_PX, reserveBasPx: RESERVE_BAS_PX })}
     `;
-    return coquillePage(t, { contenu, pied });
+    return coquillePage(t, { contenu, signature: ddaNote, pied });
   }
 
-  // En-tete des feuilles conformite + constats.
+  // ── Pieces partagees (chemins fusion + 2-feuilles) ──
   const enTeteConformite = header(t, {
     eyebrow: "Prévoyance",
     titre: "Prévoyance collective",
@@ -227,14 +242,19 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
     droiteBas: d.dateStr,
   });
 
-  // ── Feuille 1 : Conformité — BORNEE (header + KPI + matrice d'audit seule) ──
-  // Plus de constats ni de DDA ici -> hauteur fixe -> ne deborde JAMAIS.
   const kpis = [
     { label: "Score conformité", value: d.scoreGlobal, type: "main" as const },
     { label: "Entreprise", value: d.entrepriseLibelle, type: "normal" as const, valueFontSize: "12px" },
     { label: "Effectif", value: d.effectifLibelle, type: "normal" as const },
     { label: "Convention collective", value: d.ccnLibelle, type: "normal" as const, valueFontSize: "11px" },
   ];
+
+  const conventionBloc = d.champApplicationCCN
+    ? `<div style="margin-top:16px">
+        ${sousTitreSection(t, "Convention applicable", { style: "serif" })}
+        <div class="lt" style="font-size:11px;line-height:1.6;color:${t.texte}">${d.champApplicationCCN}</div>
+      </div>`
+    : "";
 
   const matrice = tableauTitresDores(t, {
     cols: [
@@ -252,28 +272,65 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
     }),
   });
 
+  // Corps audit (sans marge externe : la position verticale est gérée par le
+  // conteneur — flux en fusion, region centree en 2-feuilles).
+  const corpsAudit = `${sousTitreSection(t, "Audit de conformité")}${matrice}`;
+
+  const sectionObl = d.vueObligations
+    ? sectionObligationsFusionnee(t, d.vueObligations)
+    : `${sousTitreSection(t, "Obligations de prevoyance de branche")}<div style="font-size:10.5px;color:${t.texteFaible};margin-top:2px">Donnees de branche indisponibles.</div>`;
+
+  // ── Decision de fusion CONSERVATRICE (Lot 1) ──
+  const vue = d.vueObligations;
+  const nbNotes = vue
+    ? (vue.nonPrevues.length > 0 ? 1 : 0) + (vue.lignes.some((l) => l.estReference) ? 1 : 0)
+    : 0;
+  const counts: CountsFeuilleCollective = {
+    modeActif: true,
+    nbControles: d.controles.length,
+    conventionLongueur: d.champApplicationCCN ? d.champApplicationCCN.length : 0,
+    nbLignesObligations: vue ? vue.lignes.length : 0,
+    nbNotesObligations: nbNotes,
+    syntheseObligations: !!(vue && vue.afficherComparaison && vue.synthese),
+  };
+
+  // ── Chemin b) Fusion : 1 feuille PLEINE (pas de centrage), DDA en slot ──
+  if (tientSurUneFeuille(counts)) {
+    const contenu = `
+      ${enTeteConformite}
+      ${bandeKPI(t, kpis)}
+      ${conventionBloc}
+      <div style="margin-top:16px">
+        ${corpsAudit}
+      </div>
+      <div style="margin-top:16px">
+        ${sectionObl}
+      </div>
+    `;
+    return coquillePage(t, { contenu, signature: ddaNote, pied });
+  }
+
+  // ── Chemin c) 2 feuilles : Conformite (corps audit centre) + Obligations ──
+  // Zone haute fixe de la feuille 1 = header + KPI + convention(opt) ; le centrage
+  // n'enveloppe QUE le corps audit (jamais le KPI). reserveBas = RESERVE_PIED_PX
+  // (30 : la DDA est sur la feuille 2, pas ici). hauteurZoneHautPx calculee depuis
+  // les constantes figees (Lot 1), pas de nombre magique.
+  const lignesConvention =
+    counts.conventionLongueur > 0 ? Math.ceil(counts.conventionLongueur / CHARS_PAR_LIGNE_CONVENTION) : 0;
+  const hauteurZoneHautConformite =
+    H_HEADER_PX +
+    H_BANDE_KPI_PX +
+    (counts.conventionLongueur > 0 ? H_SOUSTITRE_SERIF_PX + lignesConvention * H_LIGNE_TEXTE_PX : 0);
+
   const feuilleConformite = coquillePage(t, {
     contenu: `
       ${enTeteConformite}
       ${bandeKPI(t, kpis)}
-      ${d.champApplicationCCN ? `
-        <div style="margin-top:16px">
-          ${sousTitreSection(t, "Convention applicable", { style: "serif" })}
-          <div class="lt" style="font-size:11px;line-height:1.6;color:${t.texte}">${d.champApplicationCCN}</div>
-        </div>
-      ` : ""}
-      <div style="margin-top:16px">
-        ${sousTitreSection(t, "Audit de conformité")}
-        ${matrice}
-      </div>
+      ${conventionBloc}
+      ${regionCorpsCentree(corpsAudit, { hauteurZoneHautPx: hauteurZoneHautConformite, reserveBasPx: RESERVE_PIED_PX })}
     `,
     pied,
   });
-
-  // ── Feuille "Obligations de branche" (DERNIERE feuille) + DDA epinglee en bas ──
-  const sectionObl = d.vueObligations
-    ? sectionObligationsFusionnee(t, d.vueObligations)
-    : `${sousTitreSection(t, "Obligations de prevoyance de branche")}<div style="font-size:10.5px;color:${t.texteFaible};margin-top:2px">Donnees de branche indisponibles.</div>`;
 
   const feuilleObligations = coquillePage(t, {
     contenu: `
