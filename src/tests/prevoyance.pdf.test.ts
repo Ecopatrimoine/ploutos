@@ -14,7 +14,6 @@ import { buildPrevoyancePersoData } from "../lib/pdf/v2/adapters/buildPrevoyance
 import { pagePrevoyancePerso } from "../lib/pdf/v2/pages/pagePrevoyancePerso";
 import { buildPrevoyanceCollData } from "../lib/pdf/v2/adapters/buildPrevoyanceCollData";
 import { pagePrevoyanceColl } from "../lib/pdf/v2/pages/pagePrevoyanceColl";
-import type { Constat } from "../lib/prevoyance/types";
 import { mentionDDAPrevoyance } from "../lib/pdf/v2/textesLegaux";
 
 const t = buildTokens("encreOr");
@@ -107,20 +106,6 @@ function dataAvecSouscrit(garantiesSouscrites: Record<string, any>): Record<stri
       },
     },
   });
-}
-
-// Constat synthetique (controle deterministe du nombre de constats / du chunk).
-function fakeConstat(i: number): Constat {
-  return {
-    id: `c${i}`,
-    severite: "non_conformite",
-    axe: "conformite",
-    cible: "entreprise",
-    titre: `Constat numero ${i}`,
-    detail: "Detail synthetique du constat.",
-    action: "Action proposee.",
-    reference: "art. L.911-7 CSS",
-  };
 }
 
 describe("pagePrevoyancePerso — sentinelles", () => {
@@ -249,7 +234,7 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     expect(feuilles.length).toBeGreaterThanOrEqual(2);
     const f1 = feuilles[0];
     expect(f1).toContain("Audit de conformit");
-    expect(f1).not.toContain("Constats et pistes");   // constats sur feuille(s) dediee(s)
+    expect(f1).not.toContain("Constats et pistes");   // plus de feuille constats (doublon retire du PDF)
     expect(f1).not.toContain("L.521-4");               // DDA pas sur la feuille 1
     expect(f1).not.toContain("Obligation de branche"); // obligations ailleurs
     // obligations ET DDA sur la DERNIERE feuille
@@ -276,35 +261,6 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     const fObl = feuilles[feuilles.length - 1];
     expect(fObl).toContain("Aucune obligation de prevoyance de branche");
     expect(fObl).not.toContain("Obligation de branche"); // pas de tableau obligations
-  });
-
-  it("beaucoup de constats (9) : audit borne + constats chunkes (cap 4) + DDA unique", () => {
-    const base = buildPrevoyanceCollData({ data: dataDirigeant("1486", "Syntec"), cabinet, dateLettre });
-    const constats: Constat[] = Array.from({ length: 9 }, (_, i) => fakeConstat(i + 1));
-    const d = { ...base, constats };
-    const html = pagePrevoyanceColl(t, d);
-    const feuilles = html.split("width:210mm;height:297mm").slice(1);
-    // Conformite (1) + ceil(9/4)=3 feuilles constats + Obligations (1) = 5
-    expect(feuilles.length).toBe(5);
-    // aucune carte perdue au chunk
-    for (let i = 1; i <= 9; i++) expect(html).toContain(`Constat numero ${i}`);
-    // mention DDA EXACTEMENT une fois, sur la DERNIERE feuille (obligations)
-    expect(html.split("L.521-4").length - 1).toBe(1);
-    for (const f of feuilles.slice(1, -1)) expect(f).not.toContain("L.521-4"); // pas sur les constats
-    expect(feuilles[feuilles.length - 1]).toContain("L.521-4");
-    expect(html).not.toMatch(REGEX_ASSUREURS);
-  });
-
-  it("aucun constat : une feuille Constats avec le message + DDA unique (sur obligations)", () => {
-    const base = buildPrevoyanceCollData({ data: dataDirigeant("1486", "Syntec"), cabinet, dateLettre });
-    const d = { ...base, constats: [] };
-    const html = pagePrevoyanceColl(t, d);
-    const feuilles = html.split("width:210mm;height:297mm").slice(1);
-    // Conformite + 1 feuille Constats (message) + Obligations = 3
-    expect(feuilles.length).toBe(3);
-    expect(html).toContain("Aucune non-conformité");
-    expect(html.split("L.521-4").length - 1).toBe(1);
-    expect(feuilles[feuilles.length - 1]).toContain("L.521-4"); // sur la feuille obligations
   });
 
   it("DDA centralisee : texte legal byte-a-byte inchange (anti-divergence)", () => {
