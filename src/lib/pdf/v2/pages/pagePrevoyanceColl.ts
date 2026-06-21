@@ -1,12 +1,12 @@
-// ─── Page Prévoyance collective v2 — 2 feuilles A4 (LOT 6) ─────────────────────
+// ─── Page Prévoyance collective v2 — 2 feuilles A4 ─────────────────────────────
 //
-// Feuille 1 "Conformité" : header + KPI + Audit de conformité + Constats + DDA.
+// Feuille 1 "Conformité" : header + KPI + (convention applicable) + Audit de conformité.
 // Feuille 2 "Obligations de branche" : synthèse + tableau UNIQUE fusionné (miroir
-// de l'ecran Lot 5), consommant la MEME vue (buildVueObligationsFusionnee).
-// Decoupage en 2 feuilles -> zero troncature (les constats ne sont plus repousses
-// hors page par le tableau d'obligations). Chaque coquillePage = une feuille A4 ;
-// retourner feuille1 + feuille2 emet deux pages a la suite (l'assemblage du pack
-// concatene la string telle quelle).
+// de l'ecran), consommant la MEME vue (buildVueObligationsFusionnee), + mention DDA
+// EPINGLEE EN BAS via le slot signature de coquillePage. Chaque coquillePage = une
+// feuille A4 ; retourner feuille1 + feuille2 emet deux pages a la suite (l'assemblage
+// du pack concatene la string telle quelle). Le bloc "Constats" (doublon de l'audit)
+// a ete retire du PDF, aligne sur l'ecran.
 
 import {
   header,
@@ -19,7 +19,7 @@ import {
   icones,
 } from "../primitives";
 import type { Tokens } from "../tokens";
-import type { Constat, ControleConformite, ControleStatut } from "../../../prevoyance/types";
+import type { ControleConformite, ControleStatut } from "../../../prevoyance/types";
 import type {
   VueObligationsFusionnee,
   ValeurFusionnee,
@@ -36,7 +36,7 @@ export type PrevoyanceCollPageData = {
   entrepriseLibelle: string;  // "SARL DUPONT"
   ccnLibelle: string;         // "IDCC 1486" ou "—"
   controles: ControleConformite[];
-  constats: Constat[];
+  champApplicationCCN: string | null;
   // Vue FUSIONNEE obligations de branche + gap (meme source que l'ecran Lot 5).
   // null en etat inactif. Rendue sur la feuille 2.
   vueObligations: VueObligationsFusionnee | null;
@@ -67,22 +67,6 @@ const VERDICT_COULEUR: Record<string, string> = {
   indetermine: "#B07A1E",
   non_applicable: "#6B7280",
 };
-
-function renderConstatHTML(t: Tokens, c: Constat): string {
-  const couleur = COULEUR_SEVERITE[c.severite] ?? COULEUR_SEVERITE.info;
-  const ref = c.reference
-    ? `<div style="margin-top:5px;font-size:9px;font-style:italic;color:${t.texteFaible}">Référence : ${c.reference}</div>`
-    : "";
-  return `
-    <div style="break-inside:avoid;page-break-inside:avoid;border:1px solid ${couleur.border};border-radius:8px;background:${couleur.bg};padding:10px 12px;margin-top:8px">
-      <div style="font-size:9px;font-weight:800;letter-spacing:0.06em;color:${couleur.texte};margin-bottom:3px">${couleur.label}</div>
-      <div style="font-size:11.5px;font-weight:700;color:${t.navy};margin-bottom:4px">${c.titre}</div>
-      <div style="font-size:10.5px;line-height:1.45;color:${t.texte}">${c.detail}</div>
-      <div style="font-size:10.5px;line-height:1.45;color:${t.navy};font-weight:600;margin-top:5px">→ ${c.action}</div>
-      ${ref}
-    </div>
-  `;
-}
 
 // ─── Helpers section obligations fusionnees (feuille 2) ───────────────────────
 
@@ -272,6 +256,12 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
     contenu: `
       ${enTeteConformite}
       ${bandeKPI(t, kpis)}
+      ${d.champApplicationCCN ? `
+        <div style="margin-top:16px">
+          ${sousTitreSection(t, "Convention applicable", { style: "serif" })}
+          <div class="lt" style="font-size:11px;line-height:1.6;color:${t.texte}">${d.champApplicationCCN}</div>
+        </div>
+      ` : ""}
       <div style="margin-top:16px">
         ${sousTitreSection(t, "Audit de conformité")}
         ${matrice}
@@ -280,42 +270,7 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
     pied,
   });
 
-  // ── Feuille(s) "Constats et pistes" — VARIABLE : ecoulees par paquets ──
-  // Cap prudent (pas de mesure DOM cote string ; a ajuster par validation visuelle).
-  const CAP_CONSTATS_PAR_FEUILLE = 4;
-
-  // DDA n'est PLUS sur les feuilles de constats (deplacee en fin de feuille Obligations).
-  const construireFeuilleConstats = (cartes: string, titre: string): string =>
-    coquillePage(t, {
-      contenu: `
-        ${enTeteConformite}
-        <div style="margin-top:16px">
-          ${sousTitreSection(t, titre)}
-          ${cartes}
-        </div>
-      `,
-      pied,
-    });
-
-  let feuillesConstats: string;
-  if (d.constats.length === 0) {
-    const message = `<div style="margin-top:8px;font-size:10.5px;color:${t.texteFaible};font-style:italic">Aucune non-conformité ni point de vigilance relevé sur la base des éléments déclarés.</div>`;
-    feuillesConstats = construireFeuilleConstats(message, "Constats et pistes");
-  } else {
-    const paquets: Constat[][] = [];
-    for (let i = 0; i < d.constats.length; i += CAP_CONSTATS_PAR_FEUILLE) {
-      paquets.push(d.constats.slice(i, i + CAP_CONSTATS_PAR_FEUILLE));
-    }
-    feuillesConstats = paquets
-      .map((paquet, idx) => {
-        const cartes = paquet.map((c) => renderConstatHTML(t, c)).join("");
-        const titre = idx === 0 ? "Constats et pistes" : "Constats et pistes (suite)";
-        return construireFeuilleConstats(cartes, titre);
-      })
-      .join("");
-  }
-
-  // ── Feuille "Obligations de branche" (DERNIERE feuille) + DDA en fin de module ──
+  // ── Feuille "Obligations de branche" (DERNIERE feuille) + DDA epinglee en bas ──
   const sectionObl = d.vueObligations
     ? sectionObligationsFusionnee(t, d.vueObligations)
     : `${sousTitreSection(t, "Obligations de prevoyance de branche")}<div style="font-size:10.5px;color:${t.texteFaible};margin-top:2px">Donnees de branche indisponibles.</div>`;
@@ -332,11 +287,11 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
       <div style="margin-top:16px">
         ${sectionObl}
       </div>
-      ${ddaNote}
     `,
+    signature: ddaNote,
     pied,
   });
 
-  // Ordre : Conformite -> Constats (1..N) -> Obligations.
-  return feuilleConformite + feuillesConstats + feuilleObligations;
+  // Ordre : Conformite -> Obligations (DDA epinglee en bas de cette derniere).
+  return feuilleConformite + feuilleObligations;
 }
