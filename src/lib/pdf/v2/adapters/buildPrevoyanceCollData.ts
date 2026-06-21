@@ -8,7 +8,6 @@
 import type { PrevoyanceCollPageData } from "../pages/pagePrevoyanceColl";
 import type { EntrepriseAudit } from "../../../../types/patrimoine";
 import { runAuditConformite } from "../../../prevoyance/audit-collectif";
-import { mapAuditEnConstats } from "../../../prevoyance/regles";
 import { buildVueObligationsFusionnee } from "../../../prevoyance/comparaison-branche-vue";
 import { referentiels } from "../../../../data/prevoyance";
 import { mentionDDAPrevoyance } from "../textesLegaux";
@@ -101,7 +100,7 @@ export function buildPrevoyanceCollData(p: BuildPrevoyanceCollDataParams): Prevo
       entrepriseLibelle: "—",
       ccnLibelle: "—",
       controles: [],
-      constats: [],
+      champApplicationCCN: null,
       vueObligations: null,
       mentionDDA,
       pagePosition: p.pagePosition || "— / —",
@@ -110,9 +109,16 @@ export function buildPrevoyanceCollData(p: BuildPrevoyanceCollDataParams): Prevo
   }
 
   const audit = runAuditConformite(entreprise, referentiels);
-  const constats = mapAuditEnConstats(audit);
   // Memes entrees que l'ecran (Lot 5) -> contenu identique garanti (vue fusionnee).
   const vueObligations = buildVueObligationsFusionnee(entreprise, referentiels);
+  // Phrase d'explication de la CCN (champ d'application) — meme cast local que
+  // obligations-branche.ts / le helper ecran. Affichee en tete de la feuille 1.
+  const idcc = entreprise.idccCCN;
+  const champApplicationCCN =
+    idcc
+      ? (referentiels.ccn as { conventions?: Record<string, { champApplication?: string } | undefined> })
+          .conventions?.[idcc]?.champApplication ?? null
+      : null;
 
   return {
     active: true,
@@ -124,7 +130,7 @@ export function buildPrevoyanceCollData(p: BuildPrevoyanceCollDataParams): Prevo
     entrepriseLibelle: entreprise.nom || "Entreprise",
     ccnLibelle: entreprise.idccCCN ? `IDCC ${entreprise.idccCCN}` : "—",
     controles: audit.controles,
-    constats,
+    champApplicationCCN,
     vueObligations,
     mentionDDA,
     pagePosition: p.pagePosition || "— / —",
