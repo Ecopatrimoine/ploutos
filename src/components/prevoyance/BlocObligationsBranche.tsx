@@ -49,7 +49,7 @@ function pastilleVerdict(verdict: Verdict, label: string, prefixe?: string): Rea
   const c = COULEURS_VERDICT[verdict];
   return (
     <span
-      className="inline-block rounded px-2 py-0.5 text-xs font-bold"
+      className="block w-full text-center rounded px-2 py-0.5 text-xs font-bold"
       style={{ background: "#fff", border: `1px solid ${c.border}`, color: c.texte }}
     >
       {prefixe ? `${prefixe} ` : ""}{label}
@@ -67,7 +67,7 @@ function renderVerdict(verdict: VerdictFusionne | null, verdictLabel: ValeurFusi
   const lc = verdictLabel && "cadres" in verdictLabel ? verdictLabel.cadres : "";
   const ln = verdictLabel && "cadres" in verdictLabel ? verdictLabel.nonCadres : "";
   return (
-    <div className="flex flex-col items-start gap-1">
+    <div className="flex flex-col gap-1">
       {pastilleVerdict(verdict.cadres, lc, "Cadres :")}
       {pastilleVerdict(verdict.nonCadres, ln, "Non-cadres :")}
     </div>
@@ -136,7 +136,13 @@ export const BlocObligationsBranche = React.memo(function BlocObligationsBranche
 
           {/* 5bis. Tableau unique */}
           <div className="rounded-xl p-3 overflow-x-auto" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}>
-            <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+            <table className="w-full text-sm" style={{ borderCollapse: "collapse", tableLayout: "fixed" }}>
+              <colgroup>
+                <col style={{ width: afficherComparaison ? "16%" : "22%" }} />
+                <col style={{ width: afficherComparaison ? "40%" : "78%" }} />
+                {afficherComparaison && <col style={{ width: "24%" }} />}
+                {afficherComparaison && <col style={{ width: "20%" }} />}
+              </colgroup>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${SURFACE.border}` }}>
                   <th className={thStyle} style={{ color: BRAND.sky }}>Garantie</th>
