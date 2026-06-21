@@ -191,16 +191,22 @@ describe("tientSurUneFeuille — cas-limite verrouillant les constantes", () => 
 
 // ─── 3. regionCorpsCentree — assertions structurelles ────────────────────────
 
-describe("regionCorpsCentree — structure + hauteur bornée + plafond", () => {
-  it("flex colonne centrée, hauteur = formule, plafond appliqué, corps intact", () => {
+describe("regionCorpsCentree — deux entretoises déterministes + hauteur bornée", () => {
+  it("flex colonne, DEUX entretoises (haut plafonné, bas libre), sans justify-content, corps intact", () => {
     const html = regionCorpsCentree("<p>CORPS_AUDIT</p>", { hauteurZoneHautPx: 300 });
     expect(html).toContain("display:flex");
     expect(html).toContain("flex-direction:column");
-    expect(html).toContain("justify-content:center");
+    // forme déterministe : pas de justify-content
+    expect(html).not.toContain("justify-content");
+    // 2 entretoises flex:1 1 0 exactement
+    const nbEntretoises = (html.match(/flex:1 1 0/g) || []).length;
+    expect(nbEntretoises).toBe(2);
+    // entretoise HAUTE plafonnée (max-height = PLAFOND_BLANC_HAUT par défaut)
+    expect(html).toContain('<div style="flex:1 1 0;max-height:90px"></div>');
+    // entretoise BASSE libre (sans max-height)
+    expect(html).toContain('<div style="flex:1 1 0"></div>');
     // hauteur = 1122 - 32 - 300 - RESERVE_PIED(30) = 760
     expect(html).toContain("height:760px");
-    // plafond de blanc en haut (entretoise haute) = PLAFOND_BLANC_HAUT par défaut
-    expect(html).toContain("max-height:90px");
     expect(html).toContain("<p>CORPS_AUDIT</p>");
   });
 
@@ -208,7 +214,9 @@ describe("regionCorpsCentree — structure + hauteur bornée + plafond", () => {
     const html = regionCorpsCentree("X", { hauteurZoneHautPx: 200, reserveBasPx: 120, plafondBlancHautPx: 50 });
     // hauteur = 1122 - 32 - 200 - 120 = 770
     expect(html).toContain("height:770px");
-    expect(html).toContain("max-height:50px");
+    expect(html).toContain('<div style="flex:1 1 0;max-height:50px"></div>'); // entretoise haute plafonnée à 50
+    expect(html).toContain('<div style="flex:1 1 0"></div>');                  // entretoise basse libre
+    expect(html).not.toContain("justify-content");
     expect(html).toContain("X");
   });
 
