@@ -191,6 +191,24 @@ describe("Famille E — Conformité DDA", () => {
     expect(html).toContain("L.521-4");
     expect(html).toContain("25006907");
   });
+
+  it("DDA collective epinglee en bas via le slot signature", () => {
+    const t = buildTokens("encreOr");
+    const cabinet = { cabinetName: "EcoPatrimoine Conseil", orias: "25006907" };
+    const data = makeDataDirigeant();
+    const d = buildPrevoyanceCollData({ data, cabinet, dateLettre: "28 mai 2026" });
+    const html = pagePrevoyanceColl(t, d);
+    // Feuille Obligations = derniere feuille A4 du module.
+    const feuilles = html.split("width:210mm;height:297mm").slice(1);
+    const fObl = feuilles[feuilles.length - 1];
+    // Le slot signature de coquillePage est un wrapper absolu ancre a bottom:42px.
+    const idxSlot = fObl.indexOf("bottom:42px");
+    const idxDDA = fObl.indexOf("L.521-4");
+    expect(idxSlot).toBeGreaterThan(-1);   // slot signature present sur la feuille
+    expect(idxDDA).toBeGreaterThan(-1);    // mention DDA presente
+    // DDA situee APRES l'ouverture du slot -> epinglee en bas (pas dans le flux).
+    expect(idxDDA).toBeGreaterThan(idxSlot);
+  });
 });
 
 // ── fixtures payload PDF ──
