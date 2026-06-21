@@ -565,6 +565,17 @@ export type ContratTransmissionDeces = {
 
 // ─── Lot 8 — Prévoyance collective d'entreprise (audit conformité) ────
 
+// Critère objectif de catégorie au sens de l'art. R.242-1-1 CSS (décret
+// n° 2021-1002 du 30/07/2021). Sélecteur fermé : SEULS ces 5 critères licites
+// sont autorisés (les critères interdits — temps de travail, nature du contrat,
+// âge, ancienneté hors sous-critère 4, discriminatoire — ne figurent pas).
+export type CritereR242 =
+  | "cadres_non_cadres"
+  | "seuil_pass"
+  | "classifications"
+  | "sous_categories"
+  | "regime_obligatoire_usages";
+
 // Données entreprise saisies/auto-résolues pour l'audit collectif.
 export type EntrepriseAudit = {
   siret: string | null;
@@ -590,6 +601,12 @@ export type EntrepriseAudit = {
   // l'audit passe le contrôle « conforme ». Sans effet si rien n'est déclaré
   // (l'absence de déclaration reste prioritaire → « non conforme »).
   categoriesObjectivesValidees?: boolean;
+  // Critère R.242-1-1 sélectionné via le sélecteur fermé (MVP). Additif/optionnel,
+  // rétro-compatible (absent des dossiers antérieurs). Purement informatif côté
+  // saisie : l'audit (controleCategoriesObjectives) reste piloté par
+  // categoriesObjectivesDeclarees + categoriesObjectivesValidees — ce champ n'est
+  // lu par AUCUNE logique d'audit.
+  critereR242?: CritereR242;
   retraiteSuppEnPlace: boolean;
   // Détail OPTIONNEL des garanties réellement souscrites (Lot SOUSCRIT) — additif,
   // rétro-compatible (absent des dossiers antérieurs). N'influence AUCUN calcul.

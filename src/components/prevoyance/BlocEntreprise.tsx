@@ -12,6 +12,7 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BRAND, SURFACE } from "../../constants";
 import { Field } from "../shared";
 import {
@@ -19,7 +20,7 @@ import {
   validateSiret,
   lookupCCNName,
 } from "../../lib/prevoyance/utils";
-import type { EntrepriseAudit, GarantiesSouscrites, GarantiesSouscritesCollege } from "../../types/patrimoine";
+import type { EntrepriseAudit, GarantiesSouscrites, GarantiesSouscritesCollege, CritereR242 } from "../../types/patrimoine";
 
 type Props = {
   value: EntrepriseAudit;
@@ -46,6 +47,39 @@ export function joursSaisie(raw: string): number | undefined {
   if (t === "") return undefined;
   const n = Number(t.replace(",", "."));
   return Number.isFinite(n) ? n : undefined;
+}
+
+// ─── Critères objectifs R.242-1-1 (décret n° 2021-1002) — sélecteur fermé ─────
+// Liste FERMÉE des 5 critères licites (ordre du décret). Les critères interdits
+// (temps de travail, nature du contrat, âge, ancienneté hors sous-critère 4,
+// discriminatoire) ne sont PAS proposés — seulement rappelés en aide statique.
+const CRITERES_R242: ReadonlyArray<{ value: CritereR242; label: string }> = [
+  { value: "cadres_non_cadres", label: "1 - Cadres / non-cadres (ANI 2017)" },
+  { value: "seuil_pass", label: "2 - Seuil de rémunération (PASS)" },
+  { value: "classifications", label: "3 - Classifications professionnelles de branche" },
+  { value: "sous_categories", label: "4 - Sous-catégories (responsabilité, fonctions, autonomie)" },
+  { value: "regime_obligatoire_usages", label: "5 - Régime obligatoire / usages de la profession" },
+];
+
+// Libellé de pré-remplissage DOUX du texte libre (sans préfixe numérique).
+export const LIBELLE_CRITERE_R242: Record<CritereR242, string> = {
+  cadres_non_cadres: "Cadres / non-cadres (ANI 2017)",
+  seuil_pass: "Seuil de rémunération (PASS)",
+  classifications: "Classifications professionnelles de branche",
+  sous_categories: "Sous-catégories (responsabilité, fonctions, autonomie)",
+  regime_obligatoire_usages: "Régime obligatoire / usages de la profession",
+};
+
+// Patch produit à la sélection d'un critère R.242-1-1 : pose `critereR242` et
+// PRÉ-REMPLIT le texte libre UNIQUEMENT s'il est vide après trim (jamais
+// d'écrasement d'une saisie existante ; pas de re-remplissage ultérieur).
+// ADDITIF : ne touche à aucun autre champ → l'audit reste inchangé.
+export function patchCritereR242(value: EntrepriseAudit, critere: CritereR242): Partial<EntrepriseAudit> {
+  const p: Partial<EntrepriseAudit> = { critereR242: critere };
+  if ((value.categoriesObjectivesDeclarees ?? "").trim() === "") {
+    p.categoriesObjectivesDeclarees = LIBELLE_CRITERE_R242[critere];
+  }
+  return p;
 }
 
 export function emptyEntrepriseAudit(): EntrepriseAudit {
@@ -331,7 +365,21 @@ export const BlocEntreprise = React.memo(function BlocEntreprise({ value, onChan
           <span>Prévoyance non-cadres en place</span>
         </label>
 
-        <Field label="Catégorie objective déclarée">
+        <Field label="Critère R.242-1-1">
+          <Select
+            value={value.critereR242 ?? ""}
+            onValueChange={(v) => patch(patchCritereR242(value, v as CritereR242))}
+          >
+            <SelectTrigger className="rounded-xl"><SelectValue placeholder="Sélectionner un critère…" /></SelectTrigger>
+            <SelectContent>
+              {CRITERES_R242.map((c) => (
+                <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+
+        <Field label="Précision / libellé (complément)">
           <Input
             value={value.categoriesObjectivesDeclarees}
             onChange={(e) => patch({ categoriesObjectivesDeclarees: e.target.value })}
@@ -350,6 +398,15 @@ export const BlocEntreprise = React.memo(function BlocEntreprise({ value, onChan
             <span>Catégories validées contractuellement (lecture du contrat et des actes de mise en place faite)</span>
           </label>
         )}
+
+        {/* Aide statique (non saisissable) : critères interdits + base légale. */}
+        <div className="text-xs" style={{ color: BRAND.muted }}>
+          <div>
+            Non autorisés comme critère de catégorie : temps de travail, nature du contrat,
+            âge, ancienneté (sauf sous-critère 4°), tout critère discriminatoire.
+          </div>
+          <div className="mt-1">Art. R.242-1-1 CSS, décret n° 2021-1002 du 30/07/2021.</div>
+        </div>
 
         <label className="flex items-center gap-2 text-sm" style={{ color: BRAND.navy }}>
           <input
