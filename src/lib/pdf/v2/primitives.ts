@@ -901,18 +901,18 @@ export function tientSurUneFeuille(c: CountsFeuilleCollective): boolean {
 // avec un PLAFOND de blanc en haut (corps un peu au-dessus du centre, jamais une
 // page de titre). Corps long => remonte en haut sans dilution. PUR.
 //
-// Mécanique du plafond : 2 entretoises flex. L'entretoise HAUTE est plafonnée
-// (max-height = plafond) -> le blanc en haut ne dépasse jamais le plafond ;
-// l'entretoise BASSE est plus grande (flex:2) -> le corps se cale un peu
-// au-dessus du centre. Corps plus haut que la région -> les entretoises se
-// réduisent à 0 (shrink) -> aucune dilution, corps en haut, clip en extrême.
-// justify-content:center est conservé comme garde-fou (sans effet tant que les
-// entretoises consomment l'espace libre).
+// Mécanique DÉTERMINISTE : 2 entretoises flex, SANS justify-content. L'entretoise
+// HAUTE pousse (flex:1 1 0) mais est plafonnée (max-height = plafond) -> le blanc
+// en haut ne dépasse jamais le plafond ; l'entretoise BASSE pousse librement
+// (flex:1 1 0). Tant que le plafond n'est pas atteint, les deux poussées égales
+// centrent le corps ; au-delà, le haut reste bloqué au plafond et le bas absorbe
+// le surplus (corps légèrement au-dessus du centre). Corps plus haut que la région
+// -> entretoises réduites à 0 (shrink) -> aucune dilution, corps en haut, clip en
+// extrême.
 //
-// NB : la consigne mentionnait un "padding-top plafonné", mais un padding-top
-// combiné à justify-content:center AUGMENTERAIT le blanc en haut au lieu de le
-// borner. Le plafond est donc réalisé par l'entretoise haute max-height:plafond,
-// qui borne réellement le blanc tout en gardant le centrage.
+// NB : la consigne initiale mentionnait un "padding-top plafonné" ; un padding-top
+// fixe n'aurait pas borné le blanc selon la hauteur du corps. L'entretoise haute
+// max-height:plafond borne réellement le blanc.
 export function regionCorpsCentree(
   corpsHTML: string,
   opts: { hauteurZoneHautPx: number; reserveBasPx?: number; plafondBlancHautPx?: number }
@@ -924,10 +924,10 @@ export function regionCorpsCentree(
     HAUTEUR_FEUILLE_PX - PADDING_HAUT_PX - opts.hauteurZoneHautPx - reserveBas
   );
   return (
-    `<div style="height:${hauteurRegion}px;display:flex;flex-direction:column;justify-content:center;overflow:hidden;box-sizing:border-box">` +
+    `<div style="height:${hauteurRegion}px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box">` +
     `<div style="flex:1 1 0;max-height:${plafond}px"></div>` +
     `<div>${corpsHTML}</div>` +
-    `<div style="flex:2 1 0"></div>` +
+    `<div style="flex:1 1 0"></div>` +
     `</div>`
   );
 }
