@@ -29,9 +29,7 @@ import { SectionTitle } from "../shared";
 import { BlocEntreprise, emptyEntrepriseAudit } from "../prevoyance/BlocEntreprise";
 import { BlocAuditConformite } from "../prevoyance/BlocAuditConformite";
 import { BlocObligationsBranche } from "../prevoyance/BlocObligationsBranche";
-import { BlocConstats } from "../prevoyance/BlocConstats";
 import { runAuditConformite } from "../../lib/prevoyance/audit-collectif";
-import { mapAuditEnConstats } from "../../lib/prevoyance/regles";
 import { buildVueObligationsFusionnee } from "../../lib/prevoyance/comparaison-branche-vue";
 import { referentiels } from "../../data/prevoyance";
 
@@ -121,7 +119,6 @@ const TabPrevoyanceCollective = React.memo(function TabPrevoyanceCollective({
     () => (effective.active ? runAuditConformite(effective.entreprise, referentiels) : null),
     [effective.active, effective.entreprise]
   );
-  const constats = React.useMemo(() => (audit ? mapAuditEnConstats(audit) : []), [audit]);
 
   // Vue fusionnee obligations de branche + gap-analysis (Lots 4/4bis : synthese +
   // tableau unique). Calque du pattern audit ci-dessus, memes dependances.
@@ -205,13 +202,6 @@ const TabPrevoyanceCollective = React.memo(function TabPrevoyanceCollective({
                   <BlocObligationsBranche vue={vueObligations} />
                 </div>
               )}
-
-              <div className="space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>
-                  Constats et pistes (entreprise)
-                </div>
-                <BlocConstats constats={constats} />
-              </div>
             </>
           )}
 
