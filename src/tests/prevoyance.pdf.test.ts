@@ -253,14 +253,18 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     expect(html).not.toMatch(REGEX_ASSUREURS);
   });
 
-  it("Banque 2120 (etat vide) : statut sur la DERNIERE feuille (obligations), pas de tableau", () => {
+  it("Banque 2120 (etat vide, contenu court) : FUSION en 1 feuille, statut obligations sans tableau", () => {
+    // Changement de comportement ASSUME (Lot pagination) : contenu court (peu de
+    // controles, 0 convention, 0 obligation) -> fusion en UNE feuille au lieu de deux.
     const d = buildPrevoyanceCollData({ data: dataDirigeant("2120", "Banque"), cabinet, dateLettre });
     const html = pagePrevoyanceColl(t, d);
     const feuilles = html.split("width:210mm;height:297mm").slice(1);
-    expect(feuilles.length).toBeGreaterThanOrEqual(2);
-    const fObl = feuilles[feuilles.length - 1];
-    expect(fObl).toContain("Aucune obligation de prevoyance de branche");
-    expect(fObl).not.toContain("Obligation de branche"); // pas de tableau obligations
+    expect(feuilles.length).toBe(1);
+    const fUnique = feuilles[0];
+    expect(fUnique).toContain("Audit de conformité");                        // audit sur la feuille fusionnee
+    expect(fUnique).toContain("Aucune obligation de prevoyance de branche");  // statut obligations (etat vide)
+    expect(fUnique).not.toContain("Obligation de branche");                  // pas de tableau obligations
+    expect(html.split("L.521-4").length - 1).toBe(1);                        // DDA une seule fois
   });
 
   it("DDA centralisee : texte legal byte-a-byte inchange (anti-divergence)", () => {
