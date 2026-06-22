@@ -13,6 +13,9 @@ import {
   encartNotreLecture,
   piedPage,
   coquillePage,
+  regionCorpsCentree,
+  H_HEADER_PX,
+  RESERVE_PIED_PX,
   type Col,
   type Cell,
 } from "../primitives";
@@ -95,14 +98,17 @@ export function pageFamille(t: Tokens, d: FamillePageData): string {
     { value: e.handicap ? "✓" : "—", align: "center", color: e.handicap ? t.thOr : t.texteFaibleClair },
   ]));
 
-  const contenu = `
-    ${header(t, {
-      eyebrow: "Composition du foyer",
-      titre: "Situation familiale",
-      droiteHaut: d.clientName,
-      droiteBas: d.dateStr,
-    })}
+  // ZONE HAUTE : header seul (pas d'intro/legende sur cette page) -> reste en haut.
+  const zoneHaute = header(t, {
+    eyebrow: "Composition du foyer",
+    titre: "Situation familiale",
+    droiteHaut: d.clientName,
+    droiteBas: d.dateStr,
+  });
 
+  // CORPS : la composition du foyer (cards personnes/situation + table enfants +
+  // notre lecture). C'est lui qu'on centre verticalement sur un foyer court.
+  const corps = `
     <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
       ${renderPersonne(d.personne1, "Personne 1")}
       ${d.personne2 ? renderPersonne(d.personne2, "Personne 2") : cardSituation}
@@ -118,6 +124,15 @@ export function pageFamille(t: Tokens, d: FamillePageData): string {
     ` : ""}
 
     ${d.notreLecture ? encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) : ""}
+  `;
+
+  // Centrage (pilote generalisation, regionCorpsCentree du Lot 1) : header en haut,
+  // corps centre dans la zone restante. hauteurZoneHaut = H_HEADER_PX (header seul),
+  // reserveBas = RESERVE_PIED_PX (pied simple, aucune signature/DDA epinglee ici).
+  // Constantes FIGEES Lot 1 -> aucun nombre magique nouveau. Pied inchange (coquille).
+  const contenu = `
+    ${zoneHaute}
+    ${regionCorpsCentree(corps, { hauteurZoneHautPx: H_HEADER_PX, reserveBasPx: RESERVE_PIED_PX })}
   `;
 
   const pied = piedPage(t, {
