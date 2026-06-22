@@ -910,7 +910,16 @@ export const RESERVE_BAS_PX = 120; // bande basse PHYSIQUE : pied + slot DDA (r�
                                    // de la DDA quoi qu'il arrive — anti-chevauchement façon pageProfil)
 export const RESERVE_PIED_PX = 30; // pied SEUL (piedPage : border-top + padding-top 8 + texte ~ 25, arrondi)
 const MARGE_SECURITE_PX = 120;     // sécurité d'ESTIMATION uniquement — seule molette réglable du doute
-const PLAFOND_BLANC_HAUT_PX = 90;  // blanc max au-dessus du corps centré (jamais une page de titre)
+// Repartition du blanc autour du corps centre, en RATIO (pas un cap pixel) :
+// l'entretoise HAUTE prend RATIO_HAUT_CORPS parts, la BASSE RATIO_BAS_CORPS parts de
+// l'espace libre. 2:3 => corps a 40% du blanc, un peu AU-DESSUS du centre.
+// POURQUOI un ratio et non un cap pixel : le ratio se transfere a TOUTE taille de
+// region. L'ancien cap (max-height 90px sur l'entretoise haute) bornait le blanc du
+// HAUT ; sur une grande region (page header-seul type pageFamille) tout le surplus se
+// deversait alors EN BAS -> corps colle en haut + gros blanc en bas. Le ratio garde la
+// meme proportion quelle que soit la hauteur libre.
+const RATIO_HAUT_CORPS = 2;
+const RATIO_BAS_CORPS = 3;
 
 // Budget de FLUX en feuille fusionnée = feuille - haut - bande basse (DDA réservée).
 const BUDGET_CONTENU_FUSION_PX = HAUTEUR_FEUILLE_PX - PADDING_HAUT_PX - RESERVE_BAS_PX; // = 970
@@ -976,37 +985,30 @@ export function tientSurUneFeuille(c: CountsFeuilleCollective): boolean {
   return h + MARGE_SECURITE_PX <= BUDGET_CONTENU_FUSION_PX;
 }
 
-// Enveloppe un corps dans une région à hauteur BORNEE, centrée verticalement,
-// avec un PLAFOND de blanc en haut (corps un peu au-dessus du centre, jamais une
-// page de titre). Corps long => remonte en haut sans dilution. PUR.
+// Enveloppe un corps dans une région à hauteur BORNEE, centrée verticalement par
+// RATIO d'entretoises (corps un peu au-dessus du centre). Corps long => remonte en
+// haut sans dilution (les entretoises se reduisent par shrink). PUR.
 //
-// Mécanique DÉTERMINISTE : 2 entretoises flex, SANS justify-content. L'entretoise
-// HAUTE pousse (flex:1 1 0) mais est plafonnée (max-height = plafond) -> le blanc
-// en haut ne dépasse jamais le plafond ; l'entretoise BASSE pousse librement
-// (flex:1 1 0). Tant que le plafond n'est pas atteint, les deux poussées égales
-// centrent le corps ; au-delà, le haut reste bloqué au plafond et le bas absorbe
-// le surplus (corps légèrement au-dessus du centre). Corps plus haut que la région
-// -> entretoises réduites à 0 (shrink) -> aucune dilution, corps en haut, clip en
-// extrême.
-//
-// NB : la consigne initiale mentionnait un "padding-top plafonné" ; un padding-top
-// fixe n'aurait pas borné le blanc selon la hauteur du corps. L'entretoise haute
-// max-height:plafond borne réellement le blanc.
+// Mécanique DÉTERMINISTE : 2 entretoises flex, SANS justify-content. La HAUTE pousse
+// avec RATIO_HAUT_CORPS parts, la BASSE avec RATIO_BAS_CORPS parts (flex-grow). Le
+// blanc libre se repartit donc 2:3 quelle que soit la hauteur de la region (corps a
+// ~40% du blanc, juste au-dessus du centre) -- aucun cap pixel (cf RATIO_*). Corps
+// plus haut que la région -> entretoises réduites à 0 (shrink) -> aucune dilution,
+// corps en haut, clip en extrême.
 export function regionCorpsCentree(
   corpsHTML: string,
-  opts: { hauteurZoneHautPx: number; reserveBasPx?: number; plafondBlancHautPx?: number }
+  opts: { hauteurZoneHautPx: number; reserveBasPx?: number }
 ): string {
   const reserveBas = opts.reserveBasPx ?? RESERVE_PIED_PX;
-  const plafond = opts.plafondBlancHautPx ?? PLAFOND_BLANC_HAUT_PX;
   const hauteurRegion = Math.max(
     0,
     HAUTEUR_FEUILLE_PX - PADDING_HAUT_PX - opts.hauteurZoneHautPx - reserveBas
   );
   return (
     `<div style="height:${hauteurRegion}px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box">` +
-    `<div style="flex:1 1 0;max-height:${plafond}px"></div>` +
+    `<div style="flex:${RATIO_HAUT_CORPS} 1 0"></div>` +
     `<div>${corpsHTML}</div>` +
-    `<div style="flex:1 1 0"></div>` +
+    `<div style="flex:${RATIO_BAS_CORPS} 1 0"></div>` +
     `</div>`
   );
 }
