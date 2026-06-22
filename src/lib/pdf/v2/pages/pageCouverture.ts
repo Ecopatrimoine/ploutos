@@ -11,7 +11,7 @@
 //   • titre principal serif Fraunces 33px (multi-ligne possible)
 //   • pied texte simple « Document strictement confidentiel — <cabinet> »
 
-import { motifArcsBasDroit, initialesDe } from "../primitives";
+import { motifArcsBasDroit, initialesDe, bandePiedAncree } from "../primitives";
 import type { Tokens } from "../tokens";
 
 export type CouverturePageData = {
@@ -74,6 +74,17 @@ export function pageCouverture(t: Tokens, d: CouverturePageData): string {
   // Titre principal — supporte "\n" pour des sauts de ligne explicites
   const titreHtml = d.titreDocument.split("\n").join("<br>");
 
+  // Pied de couverture (LOT #3 etape 3.4) : contenu interne (bloc cabinet a gauche +
+  // mention a droite) bati ici ; le div pied absolu (56/42, bottom 30) est produit
+  // par bandePiedAncree en mode construirePied. Bytes inchanges (cf golden cas 7).
+  const piedContenu = `
+        <div style="line-height:1.2">
+          <div class="ser" style="font-size:18px;font-weight:600;color:${t.navy};letter-spacing:-0.01em">${cabinetTitrePrincipal}</div>
+          ${sousTitre ? `<div class="lt" style="font-size:9.5px;letter-spacing:.22em;color:${t.eyebrowOr};margin-top:3px;font-weight:600;text-transform:uppercase">${sousTitre}</div>` : ""}
+        </div>
+        <span class="lt" style="font-size:10px;color:${t.texteFaible};text-align:right">${mentionPied}</span>
+      `;
+
   return `
     <div style="position:relative;width:210mm;height:297mm;overflow:hidden;background:${t.cream}">
       <!-- Liseré latéral gauche : 10px navy + 3px or -->
@@ -108,13 +119,7 @@ export function pageCouverture(t: Tokens, d: CouverturePageData): string {
       </div>
 
       <!-- Pied : trait + nom cabinet (gauche) + mention confidentialité (droite) -->
-      <div style="position:absolute;left:56px;right:42px;bottom:30px;border-top:1px solid ${t.bordureMoyenne};padding-top:11px;display:flex;justify-content:space-between;align-items:flex-end;gap:18px">
-        <div style="line-height:1.2">
-          <div class="ser" style="font-size:18px;font-weight:600;color:${t.navy};letter-spacing:-0.01em">${cabinetTitrePrincipal}</div>
-          ${sousTitre ? `<div class="lt" style="font-size:9.5px;letter-spacing:.22em;color:${t.eyebrowOr};margin-top:3px;font-weight:600;text-transform:uppercase">${sousTitre}</div>` : ""}
-        </div>
-        <span class="lt" style="font-size:10px;color:${t.texteFaible};text-align:right">${mentionPied}</span>
-      </div>
+      ${bandePiedAncree(t, { construirePied: true, left: 56, right: 42, piedBottom: 30, piedPaddingTop: 11, piedFont: 10, piedExtraStyle: ";align-items:flex-end;gap:18px", pied: piedContenu })}
     </div>
   `;
 }
