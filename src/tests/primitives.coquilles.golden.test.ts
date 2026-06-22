@@ -25,6 +25,9 @@ import {
 } from "../lib/pdf/v2/primitives";
 import { pageCouverture } from "../lib/pdf/v2/pages/pageCouverture";
 import { pageFamille, type FamillePageData } from "../lib/pdf/v2/pages/pageFamille";
+import { pageSuccessionA, type SuccessionAPageData } from "../lib/pdf/v2/pages/pageSuccessionA";
+import { pageSuccessionB, type SuccessionBPageData } from "../lib/pdf/v2/pages/pageSuccessionB";
+import { pageBilanEndettement, type BilanEndettementPageData } from "../lib/pdf/v2/pages/pageBilanEndettement";
 
 const t = buildTokens("encreOr");
 
@@ -173,5 +176,79 @@ describe("GOLDEN — pageFamille centrage (foyer court : corps centre, header en
     expect(html.indexOf("Composition du foyer")).toBeLessThan(html.indexOf("flex:2 1 0"));
     // Corps DANS la region : "Personne 1" suit la 1re entretoise.
     expect(html.indexOf("Personne 1")).toBeGreaterThan(html.indexOf("flex:2 1 0"));
+  });
+});
+
+// ─── Lot groupe centrage : SuccessionA / SuccessionB / BilanEndettement ───────
+// Meme patron que pageFamille : zone haute (header + KPI + note) fixe, CORPS centre
+// via regionCorpsCentree. Cas court par page = base de regression + entretoises 2:3
+// + header hors region (token CLIENT_TEST en header, token corps dans la region).
+const HAUTE = '<div style="flex:2 1 0"></div>';
+const BASSE = '<div style="flex:3 1 0"></div>';
+
+const dSuccA: SuccessionAPageData = {
+  clientName: "CLIENT_TEST", dateStr: "01 janvier 2026",
+  masseSuccessoraleNette: 500000, droitsSuccession: 20000, netTransmis: 480000, tauxMoyen: "4 %",
+  noteKpi: "Masse civile de test.",
+  devolutionBadge: "Devolution legale", devolutionDescription: "1 enfant, conjoint",
+  reservePct: 50, reserveLabel: "Reserve", reserveMontant: 250000,
+  quotitePct: 50, quotiteLabel: "Quotite dispo", quotiteMontant: 250000,
+  heritiers: [{ nom: "HERITIER_TEST", lien: "Conjoint", partRecue: 240000, droits: 0, droitsExonere: true, net: 240000 }],
+  notreLecture: "Lecture de test succession A.",
+  pagePosition: "1 / 8", cabinetLibellePied: "Cabinet Test - confidentiel",
+};
+
+const dSuccB: SuccessionBPageData = {
+  clientName: "CLIENT_TEST", dateStr: "01 janvier 2026",
+  capitauxTransmis: 100000, fiscaliteTotale: 0, netAuxBeneficiaires: 100000, abattementRestant: 52500,
+  noteKpi: "Regime 990 I de test.",
+  beneficiaires: [{ nom: "BENEF_TEST", lien: "Enfant", capital: 100000, abattement990I: 152500, fiscalite: 0, net: 100000 }],
+  clauseBeneficiaireHtml: "Clause de test.",
+  totalNetTransmis: 600000, totalLabelHaut: "Total transmis net", totalLabelBas: "(succession + AV)",
+  notreLecture: "Lecture de test succession B.",
+  pagePosition: "2 / 8", cabinetLibellePied: "Cabinet Test - confidentiel",
+};
+
+const dBilan: BilanEndettementPageData = {
+  clientName: "CLIENT_TEST", dateStr: "01 janvier 2026",
+  patrimoineNet: 300000, actifBrut: 400000, passifTotal: 100000, tauxEndettement: "20 %",
+  noteKpi: "Methode bancaire de test.",
+  calculTaux: { chargesCreditAnnuelles: 12000, assuranceCreditAnnuelle: 600, salairesNetsAnnuels: 60000, loyersBrutsAnnuels: 0 },
+  immobilier: 300000, placementsFinanciers: 80000, assuranceVieEtPER: 20000,
+  creditImmobilier: 90000, autresCredits: 10000,
+  notreLecture: "LECTURE_BILAN_TEST lecture de test bilan.",
+  pagePosition: "1 / 8", cabinetLibellePied: "Cabinet Test - confidentiel",
+};
+
+describe("GOLDEN — pageSuccessionA centrage (cas court)", () => {
+  it("9. cas court : base de regression + entretoises 2:3, header hors region", () => {
+    const html = pageSuccessionA(t, dSuccA);
+    expect(html).toMatchSnapshot();
+    expect(html).toContain(HAUTE);
+    expect(html).toContain(BASSE);
+    expect(html.indexOf("CLIENT_TEST")).toBeLessThan(html.indexOf(HAUTE));
+    expect(html.indexOf("HERITIER_TEST")).toBeGreaterThan(html.indexOf(HAUTE));
+  });
+});
+
+describe("GOLDEN — pageSuccessionB centrage (cas court)", () => {
+  it("10. cas court : base de regression + entretoises 2:3, header hors region", () => {
+    const html = pageSuccessionB(t, dSuccB);
+    expect(html).toMatchSnapshot();
+    expect(html).toContain(HAUTE);
+    expect(html).toContain(BASSE);
+    expect(html.indexOf("CLIENT_TEST")).toBeLessThan(html.indexOf(HAUTE));
+    expect(html.indexOf("BENEF_TEST")).toBeGreaterThan(html.indexOf(HAUTE));
+  });
+});
+
+describe("GOLDEN — pageBilanEndettement centrage (cas court)", () => {
+  it("11. cas court : base de regression + entretoises 2:3, header hors region", () => {
+    const html = pageBilanEndettement(t, dBilan);
+    expect(html).toMatchSnapshot();
+    expect(html).toContain(HAUTE);
+    expect(html).toContain(BASSE);
+    expect(html.indexOf("CLIENT_TEST")).toBeLessThan(html.indexOf(HAUTE));
+    expect(html.indexOf("LECTURE_BILAN_TEST")).toBeGreaterThan(html.indexOf(HAUTE));
   });
 });
