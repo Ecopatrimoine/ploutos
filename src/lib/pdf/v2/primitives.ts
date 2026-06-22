@@ -776,6 +776,40 @@ export function piedPage(t: Tokens, opts: { gauche: string; droite: string }): s
   `;
 }
 
+// ─── bandePiedAncree : bande basse ancree (slot signature optionnel + pied) ──
+// Primitive partagee par coquillePage et coquillePageDocReg (LOT #3, etape 3.2).
+// Emet, dans l'ORDRE HTML historique, le slot signature absolu (si `signature`
+// fourni) PUIS le pied, separes par "\n" + 6 espaces (l'indentation des coquilles).
+//
+// MODE ACTUEL (3.2) : `pied` est fourni DEJA CONSTRUIT par l'appelant (piedPage /
+// piedPageDocReg cote builders) et injecte VERBATIM. C'est ce que figent les
+// snapshots golden (primitives.coquilles) -> rendu byte-identique exige.
+//
+// PARAMETRES RESERVES (mode futur, lot #2) : `t`, `piedBottom`, `piedPaddingTop`,
+// `piedFont` figent des maintenant l'interface dont le cablage pagination
+// dependra (construction du pied ICI, par feuille). Ils ne sont PAS consommes
+// tant que `pied` est passe pre-construit ; le pied reste donc bati par
+// piedPage / piedPageDocReg (toujours appeles par les ~19 builders et re-emis
+// par feuille dans pagePrevoyanceColl). Reimplementer ces deux fonctions comme
+// de fins wrappers est differe a ce mode futur (sinon perte de byte-identite).
+export function bandePiedAncree(t: Tokens, opts: {
+  left: number;
+  right: number;
+  piedBottom: number;
+  piedPaddingTop: number;
+  piedFont: number;
+  pied: string;
+  signature?: string;
+  signatureBottom?: number;
+}): string {
+  const signatureBottom = opts.signatureBottom ?? 42;
+  const slotSignature = opts.signature
+    ? `<div style="position:absolute;left:${opts.left}px;right:${opts.right}px;bottom:${signatureBottom}px">${opts.signature}</div>`
+    : "";
+  return `${slotSignature}
+      ${opts.pied}`;
+}
+
 // ─── coquillePage : structure A4 complète d'une page (avec padding standard
 //                   + pied absolute + slot signature absolute optionnel). ─
 // Le slot `signature` est calé en bas absolu (au-dessus du pied) pour que
@@ -805,8 +839,7 @@ export function coquillePage(_t: Tokens, opts: {
       <div style="padding:32px 38px 0">
         ${opts.contenu}
       </div>
-      ${opts.signature ? `<div style="position:absolute;left:38px;right:38px;bottom:42px">${opts.signature}</div>` : ""}
-      ${opts.pied}
+      ${bandePiedAncree(_t, { left: 38, right: 38, piedBottom: 16, piedPaddingTop: 8, piedFont: 10, pied: opts.pied, signature: opts.signature, signatureBottom: 42 })}
     </div>
   `;
 }
@@ -958,8 +991,7 @@ export function coquillePageDocReg(t: Tokens, opts: {
       <div style="padding:30px 36px 0 44px">
         ${opts.contenu}
       </div>
-      ${opts.signature ? `<div style="position:absolute;left:44px;right:36px;bottom:42px">${opts.signature}</div>` : ""}
-      ${opts.pied}
+      ${bandePiedAncree(t, { left: 44, right: 36, piedBottom: 15, piedPaddingTop: 7, piedFont: 9.5, pied: opts.pied, signature: opts.signature, signatureBottom: 42 })}
     </div>
   `;
 }
