@@ -259,7 +259,11 @@
       "datesVerification": "2026-06-10",
       "source": "BTP-PREVOYANCE Textes de reference 2026 (RNPO, annexe des garanties au 01/01/2026), SR 6,71 EUR au 01/07/2025",
       "collegeImpose": "nonCadres",
-      "maintienEmployeur": { "cadres": null, "nonCadres": null, "_comment_TO_NOTE": "Option A = plancher legal mensualisation (defaut moteur). Paliers conventionnels CCN categorielle ouvriers BTP a sourcer (lot complementaire)." },
+      "maintienEmployeur": {
+        "cadres": { "carenceJours": 3, "paliers": [ { "ancienneteMois": 3, "segments": [ { "jours": 45, "pct": 100 }, { "jours": 42, "pct": 75 } ] } ] },
+        "nonCadres": { "carenceJours": 3, "paliers": [ { "ancienneteMois": 3, "segments": [ { "jours": 45, "pct": 100 }, { "jours": 42, "pct": 75 } ] } ] },
+        "_comment": "CCN ouvriers bat/TP art 6.13 (1597)/6.3 (TP). Carence 3j, 100pct J4-J48, 75pct J49-J90, relais PRO BTP J91. Eligibilite 1 mois (<25 ans) / 3 mois (>=25 ans) : seuil pose a 3 mois, variante age non modelisable -> plancher legal. Mono-college BTP (collegeImpose) : meme valeur cadres/nonCadres, robuste au routage statutPro. Primaire Legifrance."
+      },
       "devolutionCapitalDeces": {
         "mode": "cascadeExclusive",
         "rangs": [
@@ -321,7 +325,11 @@
       "datesVerification": "2026-06-10",
       "source": "BTP-PREVOYANCE Textes de reference 2026 (RNPO, annexe des garanties au 01/01/2026), SR 6,71 EUR au 01/07/2025",
       "collegeImpose": "nonCadres",
-      "maintienEmployeur": { "cadres": null, "nonCadres": null, "_comment_TO_NOTE": "Option A = plancher legal mensualisation (defaut moteur). Paliers conventionnels CCN categorielle ouvriers BTP a sourcer (lot complementaire)." },
+      "maintienEmployeur": {
+        "cadres": { "carenceJours": 3, "paliers": [ { "ancienneteMois": 3, "segments": [ { "jours": 45, "pct": 100 }, { "jours": 42, "pct": 75 } ] } ] },
+        "nonCadres": { "carenceJours": 3, "paliers": [ { "ancienneteMois": 3, "segments": [ { "jours": 45, "pct": 100 }, { "jours": 42, "pct": 75 } ] } ] },
+        "_comment": "CCN ouvriers bat/TP art 6.13 (1597)/6.3 (TP). Carence 3j, 100pct J4-J48, 75pct J49-J90, relais PRO BTP J91. Eligibilite 1 mois (<25 ans) / 3 mois (>=25 ans) : seuil pose a 3 mois, variante age non modelisable -> plancher legal. Mono-college BTP (collegeImpose) : meme valeur cadres/nonCadres, robuste au routage statutPro. Primaire Legifrance."
+      },
       "devolutionCapitalDeces": {
         "mode": "cascadeExclusive",
         "rangs": [
@@ -383,7 +391,11 @@
       "datesVerification": "2026-06-10",
       "source": "BTP-PREVOYANCE Textes de reference 2026 (RNPO, annexe des garanties au 01/01/2026), SR 6,71 EUR au 01/07/2025",
       "collegeImpose": "nonCadres",
-      "maintienEmployeur": { "cadres": null, "nonCadres": null, "_comment_TO_NOTE": "Option A = plancher legal mensualisation (defaut moteur). Paliers conventionnels CCN categorielle ouvriers BTP a sourcer (lot complementaire)." },
+      "maintienEmployeur": {
+        "cadres": { "carenceJours": 3, "paliers": [ { "ancienneteMois": 3, "segments": [ { "jours": 45, "pct": 100 }, { "jours": 42, "pct": 75 } ] } ] },
+        "nonCadres": { "carenceJours": 3, "paliers": [ { "ancienneteMois": 3, "segments": [ { "jours": 45, "pct": 100 }, { "jours": 42, "pct": 75 } ] } ] },
+        "_comment": "CCN ouvriers bat/TP art 6.13 (1597)/6.3 (TP). Carence 3j, 100pct J4-J48, 75pct J49-J90, relais PRO BTP J91. Eligibilite 1 mois (<25 ans) / 3 mois (>=25 ans) : seuil pose a 3 mois, variante age non modelisable -> plancher legal. Mono-college BTP (collegeImpose) : meme valeur cadres/nonCadres, robuste au routage statutPro. Primaire Legifrance."
+      },
       "devolutionCapitalDeces": {
         "mode": "cascadeExclusive",
         "rangs": [
@@ -445,7 +457,11 @@
       "datesVerification": "2026-06-10",
       "source": "BTP-PREVOYANCE Textes de reference 2026 (RNPE, annexe des garanties au 01/01/2026)",
       "collegeImpose": "nonCadres",
-      "maintienEmployeur": { "cadres": null, "nonCadres": null, "_comment_TO_NOTE": "Option A = plancher legal mensualisation (defaut moteur). Paliers conventionnels CCN categorielle ETAM BTP a sourcer (lot complementaire)." },
+      "maintienEmployeur": {
+        "cadres": { "carenceJours": 0, "paliers": [ { "ancienneteMois": 12, "segments": [ { "jours": 90, "pct": 100 } ] } ] },
+        "nonCadres": { "carenceJours": 0, "paliers": [ { "ancienneteMois": 12, "segments": [ { "jours": 90, "pct": 100 } ] } ] },
+        "_comment": "CCN ETAM bat/TP art 6.5. 100pct appointements J1-J90 IJSS deduite, relais J91. Eligibilite 1 an presence ou 5 ans services BTP. Mono-college BTP (collegeImpose) : meme valeur cadres/nonCadres, robuste au routage statutPro. Primaire Legifrance."
+      },
       "devolutionCapitalDeces": {
         "mode": "cascadeExclusive",
         "rangs": [
@@ -500,7 +516,11 @@
       "datesVerification": "2026-06-10",
       "source": "BTP-PREVOYANCE Textes de reference 2026 (RNPE, annexe des garanties au 01/01/2026)",
       "collegeImpose": "nonCadres",
-      "maintienEmployeur": { "cadres": null, "nonCadres": null, "_comment_TO_NOTE": "Option A = plancher legal mensualisation (defaut moteur). Paliers conventionnels CCN categorielle ETAM BTP a sourcer (lot complementaire)." },
+      "maintienEmployeur": {
+        "cadres": { "carenceJours": 0, "paliers": [ { "ancienneteMois": 12, "segments": [ { "jours": 90, "pct": 100 } ] } ] },
+        "nonCadres": { "carenceJours": 0, "paliers": [ { "ancienneteMois": 12, "segments": [ { "jours": 90, "pct": 100 } ] } ] },
+        "_comment": "CCN ETAM bat/TP art 6.5. 100pct appointements J1-J90 IJSS deduite, relais J91. Eligibilite 1 an presence ou 5 ans services BTP. Mono-college BTP (collegeImpose) : meme valeur cadres/nonCadres, robuste au routage statutPro. Primaire Legifrance."
+      },
       "devolutionCapitalDeces": {
         "mode": "cascadeExclusive",
         "rangs": [
@@ -555,7 +575,11 @@
       "datesVerification": "2026-06-10",
       "source": "BTP-PREVOYANCE Textes de reference 2026 (RNPC, annexe des garanties au 01/01/2026)",
       "collegeImpose": "cadres",
-      "maintienEmployeur": { "cadres": null, "nonCadres": null, "_comment_TO_NOTE": "Option A = plancher legal mensualisation (defaut moteur). Paliers conventionnels CCN cadres BTP a sourcer (lot complementaire)." },
+      "maintienEmployeur": {
+        "cadres": { "carenceJours": 0, "paliers": [ { "ancienneteMois": 12, "segments": [ { "jours": 90, "pct": 100 } ] } ] },
+        "nonCadres": { "carenceJours": 0, "paliers": [ { "ancienneteMois": 12, "segments": [ { "jours": 90, "pct": 100 } ] } ] },
+        "_comment": "CCN cadres bat/TP art 5.3/5.4. 100pct appointements J1-J90 IJSS deduite, relais cadres J91. Eligibilite 1 an presence ou 5 ans services BTP. Mono-college BTP (collegeImpose) : meme valeur cadres/nonCadres, robuste au routage statutPro. Primaire Legifrance."
+      },
       "devolutionCapitalDeces": {
         "mode": "cascadeExclusive",
         "rangs": [
@@ -612,7 +636,11 @@
       "datesVerification": "2026-06-10",
       "source": "BTP-PREVOYANCE Textes de reference 2026 (RNPC, annexe des garanties au 01/01/2026)",
       "collegeImpose": "cadres",
-      "maintienEmployeur": { "cadres": null, "nonCadres": null, "_comment_TO_NOTE": "Option A = plancher legal mensualisation (defaut moteur). Paliers conventionnels CCN cadres BTP a sourcer (lot complementaire)." },
+      "maintienEmployeur": {
+        "cadres": { "carenceJours": 0, "paliers": [ { "ancienneteMois": 12, "segments": [ { "jours": 90, "pct": 100 } ] } ] },
+        "nonCadres": { "carenceJours": 0, "paliers": [ { "ancienneteMois": 12, "segments": [ { "jours": 90, "pct": 100 } ] } ] },
+        "_comment": "CCN cadres bat/TP art 5.3/5.4. 100pct appointements J1-J90 IJSS deduite, relais cadres J91. Eligibilite 1 an presence ou 5 ans services BTP. Mono-college BTP (collegeImpose) : meme valeur cadres/nonCadres, robuste au routage statutPro. Primaire Legifrance."
+      },
       "devolutionCapitalDeces": {
         "mode": "cascadeExclusive",
         "rangs": [
@@ -870,7 +898,25 @@
       "nom": "Transports routiers et activites auxiliaires du transport",
       "datesVerification": "2026-06-10",
       "source": "Reglement CARCEPT-Prevoyance (decret 55-1297 modifie, accord-cadre 20/04/2016) + accord incapacite 03/02/2022. Perimetre modelise : TRM et auxiliaires.",
-      "maintienEmployeur": { "cadres": null, "nonCadres": null, "_comment_TO_NOTE": "Option A = plancher legal mensualisation (defaut moteur). Paliers de maintien conventionnels CCN 16 a sourcer (lot complementaire). Trou de couverture reel entre la fin du maintien et J180 pour les faibles anciennetes : comportement reglementaire, a expliquer, pas a corriger." },
+      "maintienEmployeur": {
+        "cadres": {
+          "carenceJours": 0,
+          "paliers": [
+            { "ancienneteMois": 36,  "segments": [ { "jours": 60,  "pct": 100 }, { "jours": 60,  "pct": 75 } ] },
+            { "ancienneteMois": 60,  "segments": [ { "jours": 90,  "pct": 100 }, { "jours": 90,  "pct": 75 } ] },
+            { "ancienneteMois": 120, "segments": [ { "jours": 120, "pct": 100 }, { "jours": 120, "pct": 75 } ] }
+          ]
+        },
+        "nonCadres": {
+          "carenceJours": 5,
+          "paliers": [
+            { "ancienneteMois": 36,  "segments": [ { "jours": 30, "pct": 100 }, { "jours": 60,  "pct": 75 } ] },
+            { "ancienneteMois": 60,  "segments": [ { "jours": 60, "pct": 100 }, { "jours": 90,  "pct": 75 } ] },
+            { "ancienneteMois": 120, "segments": [ { "jours": 90, "pct": 100 }, { "jours": 120, "pct": 75 } ] }
+          ]
+        },
+        "_comment": "CCN transports IDCC 16 garantie de ressources. nonCadres = annexe II employes (accord 27/02/1951), franchise 5j (3j hospitalisation marchandises non modelise). cadres = annexe IV (accord 30/10/1951), sans carence. TAM (annexe III) ranges en nonCadres au plancher ouvriers/employes (reel >= plancher, conservateur). AT/MP (des 1 an, sans franchise) HORS perimetre = gap. Demi-salaire enfant a charge + ALD non modelisables par segments. <3 ans -> plancher legal via max(). Primaire Legifrance."
+      },
       "devolutionCapitalDeces": {
         "mode": "cascadeExclusive",
         "rangs": [
