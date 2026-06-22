@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`GOLDEN — pageBilanEndettement centrage (cas court) > 11. cas court : base de regression + entretoises 2:3, header hors region 1`] = `
+exports[`GOLDEN — pageBilanEndettement centrage (cas court) > 11. cas court : base de regression + entretoises 1:2, header hors region 1`] = `
 "
     <div style="position:relative;width:210mm;height:297mm;overflow:hidden">
       <div style="padding:32px 38px 0">
@@ -35,7 +35,7 @@ exports[`GOLDEN — pageBilanEndettement centrage (cas court) > 11. cas court : 
   </div>
     <div class="foot">Methode bancaire de test.</div>
   
-    <div style="height:870px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box"><div style="flex:2 1 0"></div><div>
+    <div style="height:870px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box"><div style="flex:1 1 0"></div><div>
 
     
     <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:18px;border:0.5px solid #EEE7D8;border-radius:8px;padding:11px 14px;background:#FBF9F4">
@@ -114,7 +114,7 @@ exports[`GOLDEN — pageBilanEndettement centrage (cas court) > 11. cas court : 
       <div class="lt" style="font-size:12.5px;color:#3A352B;line-height:1.6">LECTURE_BILAN_TEST lecture de test bilan.</div>
     </div>
   
-  </div><div style="flex:3 1 0"></div></div>
+  </div><div style="flex:2 1 0"></div></div>
   
       </div>
       
@@ -199,7 +199,7 @@ exports[`GOLDEN — pageFamille centrage (foyer court : corps centre, header en 
     </div>
     <div style="height:2px;background:#C4973D;margin-top:12px;opacity:.9"></div>
   
-    <div style="height:980px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box"><div style="flex:2 1 0"></div><div>
+    <div style="height:980px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box"><div style="flex:1 1 0"></div><div>
     <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
       
     <div style="background:#FBF8F1;border:0.5px solid #EEE7D8;border-radius:10px;padding:14px 16px">
@@ -288,7 +288,7 @@ exports[`GOLDEN — pageFamille centrage (foyer court : corps centre, header en 
     
 
     
-  </div><div style="flex:3 1 0"></div></div>
+  </div><div style="flex:2 1 0"></div></div>
   
       </div>
       
@@ -302,7 +302,7 @@ exports[`GOLDEN — pageFamille centrage (foyer court : corps centre, header en 
   "
 `;
 
-exports[`GOLDEN — pageSuccessionA centrage (cas court) > 9. cas court : base de regression + entretoises 2:3, header hors region 1`] = `
+exports[`GOLDEN — pageSuccessionA centrage (cas court) > 9. cas court : base de regression + entretoises 1:2, header hors region 1`] = `
 "
     <div style="position:relative;width:210mm;height:297mm;overflow:hidden">
       <div style="padding:32px 38px 0">
@@ -337,7 +337,7 @@ exports[`GOLDEN — pageSuccessionA centrage (cas court) > 9. cas court : base d
   </div>
     <div class="foot">Masse civile de test.</div>
   
-    <div style="height:870px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box"><div style="flex:2 1 0"></div><div>
+    <div style="height:870px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box"><div style="flex:1 1 0"></div><div>
 
     <div style="margin-top:18px">
       <div class="sct">Dévolution</div>
@@ -388,7 +388,7 @@ exports[`GOLDEN — pageSuccessionA centrage (cas court) > 9. cas court : base d
       <div class="lt" style="font-size:12.5px;color:#3A352B;line-height:1.6">Lecture de test succession A.</div>
     </div>
   
-  </div><div style="flex:3 1 0"></div></div>
+  </div><div style="flex:2 1 0"></div></div>
   
       </div>
       
@@ -402,7 +402,7 @@ exports[`GOLDEN — pageSuccessionA centrage (cas court) > 9. cas court : base d
   "
 `;
 
-exports[`GOLDEN — pageSuccessionB centrage (cas court) > 10. cas court : base de regression + entretoises 2:3, header hors region 1`] = `
+exports[`GOLDEN — pageSuccessionB centrage (cas court) > 10. cas court : base de regression + entretoises 1:2, header hors region 1`] = `
 "
     <div style="position:relative;width:210mm;height:297mm;overflow:hidden">
       <div style="padding:32px 38px 0">
@@ -437,7 +437,7 @@ exports[`GOLDEN — pageSuccessionB centrage (cas court) > 10. cas court : base 
   </div>
     <div class="foot">Regime 990 I de test.</div>
   
-    <div style="height:870px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box"><div style="flex:2 1 0"></div><div>
+    <div style="height:870px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box"><div style="flex:1 1 0"></div><div>
 
     <div style="margin-top:24px">
       <div class="sct">Détail par bénéficiaire</div>
@@ -477,7 +477,7 @@ exports[`GOLDEN — pageSuccessionB centrage (cas court) > 10. cas court : base 
       <div class="lt" style="font-size:12.5px;color:#3A352B;line-height:1.6">Lecture de test succession B.</div>
     </div>
   
-  </div><div style="flex:3 1 0"></div></div>
+  </div><div style="flex:2 1 0"></div></div>
   
       </div>
       

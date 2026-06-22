@@ -164,27 +164,27 @@ describe("GOLDEN — pageFamille centrage (foyer court : corps centre, header en
     expect(pageFamille(t, dFamilleCourt)).toMatchSnapshot();
   });
 
-  it("8b. structure : 2 entretoises ratio 2:3 autour du corps, header hors region", () => {
+  it("8b. structure : 2 entretoises ratio 1:2 autour du corps, header hors region", () => {
     const html = pageFamille(t, dFamilleCourt);
     // Region centree = colonne flex a hauteur bornee.
     expect(html).toMatch(/height:\d+px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box/);
     // Les 2 entretoises ratio (haute 2 parts, basse 3 parts) ; le cap pixel disparu
     // est verrouille par le snapshot de regression cas 8.
-    expect(html).toContain('<div style="flex:2 1 0"></div>');   // entretoise HAUTE (2 parts)
-    expect(html).toContain('<div style="flex:3 1 0"></div>');   // entretoise BASSE (3 parts)
+    expect(html).toContain('<div style="flex:1 1 0"></div>');   // entretoise HAUTE (1 part)
+    expect(html).toContain('<div style="flex:2 1 0"></div>');   // entretoise BASSE (2 parts)
     // Header HORS region : l'eyebrow (unique au header) precede la 1re entretoise.
-    expect(html.indexOf("Composition du foyer")).toBeLessThan(html.indexOf("flex:2 1 0"));
+    expect(html.indexOf("Composition du foyer")).toBeLessThan(html.indexOf("flex:1 1 0"));
     // Corps DANS la region : "Personne 1" suit la 1re entretoise.
-    expect(html.indexOf("Personne 1")).toBeGreaterThan(html.indexOf("flex:2 1 0"));
+    expect(html.indexOf("Personne 1")).toBeGreaterThan(html.indexOf("flex:1 1 0"));
   });
 });
 
 // ─── Lot groupe centrage : SuccessionA / SuccessionB / BilanEndettement ───────
 // Meme patron que pageFamille : zone haute (header + KPI + note) fixe, CORPS centre
-// via regionCorpsCentree. Cas court par page = base de regression + entretoises 2:3
+// via regionCorpsCentree. Cas court par page = base de regression + entretoises 1:2
 // + header hors region (token CLIENT_TEST en header, token corps dans la region).
-const HAUTE = '<div style="flex:2 1 0"></div>';
-const BASSE = '<div style="flex:3 1 0"></div>';
+const HAUTE = '<div style="flex:1 1 0"></div>';
+const BASSE = '<div style="flex:2 1 0"></div>';
 
 const dSuccA: SuccessionAPageData = {
   clientName: "CLIENT_TEST", dateStr: "01 janvier 2026",
@@ -221,7 +221,7 @@ const dBilan: BilanEndettementPageData = {
 };
 
 describe("GOLDEN — pageSuccessionA centrage (cas court)", () => {
-  it("9. cas court : base de regression + entretoises 2:3, header hors region", () => {
+  it("9. cas court : base de regression + entretoises 1:2, header hors region", () => {
     const html = pageSuccessionA(t, dSuccA);
     expect(html).toMatchSnapshot();
     expect(html).toContain(HAUTE);
@@ -232,7 +232,7 @@ describe("GOLDEN — pageSuccessionA centrage (cas court)", () => {
 });
 
 describe("GOLDEN — pageSuccessionB centrage (cas court)", () => {
-  it("10. cas court : base de regression + entretoises 2:3, header hors region", () => {
+  it("10. cas court : base de regression + entretoises 1:2, header hors region", () => {
     const html = pageSuccessionB(t, dSuccB);
     expect(html).toMatchSnapshot();
     expect(html).toContain(HAUTE);
@@ -243,7 +243,7 @@ describe("GOLDEN — pageSuccessionB centrage (cas court)", () => {
 });
 
 describe("GOLDEN — pageBilanEndettement centrage (cas court)", () => {
-  it("11. cas court : base de regression + entretoises 2:3, header hors region", () => {
+  it("11. cas court : base de regression + entretoises 1:2, header hors region", () => {
     const html = pageBilanEndettement(t, dBilan);
     expect(html).toMatchSnapshot();
     expect(html).toContain(HAUTE);
