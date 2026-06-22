@@ -17,6 +17,12 @@ import {
   encartNotreLecture,
   piedPage,
   coquillePage,
+  regionCorpsCentree,
+  H_HEADER_PX,
+  H_BANDE_KPI_PX,
+  H_LIGNE_TEXTE_PX,
+  CHARS_PAR_LIGNE_CONVENTION,
+  RESERVE_PIED_PX,
   euro,
   icones,
   type Col,
@@ -90,7 +96,7 @@ export function pageSuccessionB(t: Tokens, d: SuccessionBPageData): string {
   ]));
 
   // ─── Assemblage ──
-  const contenu = `
+  const zoneHaute = `
     ${header(t, {
       eyebrow: "Transmission — volet 2 / 2",
       titre: "Assurance-vie & PER",
@@ -100,6 +106,9 @@ export function pageSuccessionB(t: Tokens, d: SuccessionBPageData): string {
 
     ${bandeKPI(t, kpis)}
     <div class="foot">${d.noteKpi}</div>
+  `;
+
+  const corps = `
 
     <div style="margin-top:24px">
       ${sousTitreSection(t, "Détail par bénéficiaire")}
@@ -117,6 +126,18 @@ export function pageSuccessionB(t: Tokens, d: SuccessionBPageData): string {
     })}
 
     ${encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture })}
+  `;
+
+  // Zone haute = header + bandeKPI + note de synthese (recap fixe en haut). Hauteur
+  // estimee depuis les constantes FIGEES Lot 1 : H_HEADER_PX + H_BANDE_KPI_PX + lignes
+  // de note (CHARS_PAR_LIGNE_CONVENTION, meme convention que tientSurUneFeuille).
+  // Aucun nombre magique nouveau. Pied inchange via la coquille ; pas de DDA ici.
+  const lignesNote = Math.max(1, Math.ceil(d.noteKpi.length / CHARS_PAR_LIGNE_CONVENTION));
+  const hauteurZoneHautPx = H_HEADER_PX + H_BANDE_KPI_PX + lignesNote * H_LIGNE_TEXTE_PX;
+
+  const contenu = `
+    ${zoneHaute}
+    ${regionCorpsCentree(corps, { hauteurZoneHautPx, reserveBasPx: RESERVE_PIED_PX })}
   `;
 
   const pied = piedPage(t, {
