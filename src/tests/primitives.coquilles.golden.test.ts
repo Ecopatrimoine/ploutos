@@ -24,6 +24,7 @@ import {
   piedPageDocReg,
 } from "../lib/pdf/v2/primitives";
 import { pageCouverture } from "../lib/pdf/v2/pages/pageCouverture";
+import { pageFamille, type FamillePageData } from "../lib/pdf/v2/pages/pageFamille";
 
 const t = buildTokens("encreOr");
 
@@ -135,5 +136,41 @@ describe("GOLDEN — pageCouverture (page complete, pied bespoke 56/42)", () => 
       dateStr: "01 janvier 2026",
     });
     expect(html).toMatchSnapshot();
+  });
+});
+
+// ─── Pilote generalisation centrage (regionCorpsCentree) sur pageFamille ──────
+// pageFamille mono-feuille, pied simple, AUCUNE DDA. Le CORPS (foyer) est enveloppe
+// dans regionCorpsCentree ; le header reste en haut. Cas court (2 adultes + 1 enfant)
+// = base de regression + assertions structurelles (entretoises + header hors region).
+const dFamilleCourt: FamillePageData = {
+  clientName: "CLIENT_TEST",
+  dateStr: "01 janvier 2026",
+  personne1: { prenom: "Alex", nom: "Martin", dateNaissance: "01/01/1980", age: 46, profession: "Cadre" },
+  personne2: { prenom: "Sam", nom: "Martin", dateNaissance: "01/01/1982", age: 44, profession: "Profession liberale" },
+  statutCouple: "Marie - communaute legale",
+  parts: 3,
+  nbEnfants: 1,
+  enfants: [{ prenom: "Lou", dateNaissance: "01/01/2015", lien: "Commun", garde: "Pleine", rattache: true, handicap: false }],
+  pagePosition: "1 / 8",
+  cabinetLibellePied: "Cabinet Test",
+};
+
+describe("GOLDEN — pageFamille centrage (foyer court : corps centre, header en haut)", () => {
+  it("8. foyer court (2 adultes + 1 enfant) : base de regression (snapshot externe)", () => {
+    expect(pageFamille(t, dFamilleCourt)).toMatchSnapshot();
+  });
+
+  it("8b. structure : 2 entretoises (flex:1 1 0, haute max-height:90) autour du corps, header hors region", () => {
+    const html = pageFamille(t, dFamilleCourt);
+    // Region centree = colonne flex a hauteur bornee.
+    expect(html).toMatch(/height:\d+px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box/);
+    // Les 2 entretoises de regionCorpsCentree.
+    expect(html).toContain("flex:1 1 0;max-height:90px");      // entretoise HAUTE plafonnee
+    expect(html).toContain('<div style="flex:1 1 0"></div>');   // entretoise BASSE
+    // Header HORS region : l'eyebrow (unique au header) precede la 1re entretoise.
+    expect(html.indexOf("Composition du foyer")).toBeLessThan(html.indexOf("flex:1 1 0"));
+    // Corps DANS la region : "Personne 1" suit la 1re entretoise.
+    expect(html.indexOf("Personne 1")).toBeGreaterThan(html.indexOf("flex:1 1 0"));
   });
 });
