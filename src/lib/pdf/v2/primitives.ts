@@ -785,13 +785,14 @@ export function piedPage(t: Tokens, opts: { gauche: string; droite: string }): s
 // piedPageDocReg cote builders) et injecte VERBATIM. C'est ce que figent les
 // snapshots golden (primitives.coquilles) -> rendu byte-identique exige.
 //
-// PARAMETRES RESERVES (mode futur, lot #2) : `t`, `piedBottom`, `piedPaddingTop`,
-// `piedFont` figent des maintenant l'interface dont le cablage pagination
-// dependra (construction du pied ICI, par feuille). Ils ne sont PAS consommes
-// tant que `pied` est passe pre-construit ; le pied reste donc bati par
-// piedPage / piedPageDocReg (toujours appeles par les ~19 builders et re-emis
-// par feuille dans pagePrevoyanceColl). Reimplementer ces deux fonctions comme
-// de fins wrappers est differe a ce mode futur (sinon perte de byte-identite).
+// MODE construirePied (LOT #3 etape 3.4) : si construirePied=true, bandePiedAncree
+// BATIT le div pied absolu (left/right/piedBottom/piedPaddingTop + bordureMoyenne)
+// autour de `pied` (contenu interne), avec piedExtraStyle ajoute au style du div.
+// Active pour le pied bespoke de la couverture (56/42, bottom 30, flex-end + gap).
+// `piedFont` reste reserve (la police vit dans les spans internes, pas sur le div) ;
+// migrer piedPage / piedPageDocReg vers ce mode est differe au lot #2. Defaut
+// (construirePied absent/false) = comportement historique : `pied` deja construit,
+// injecte VERBATIM apres le slot signature -> golden cas 1-6 inchanges.
 export function bandePiedAncree(t: Tokens, opts: {
   left: number;
   right: number;
@@ -801,7 +802,13 @@ export function bandePiedAncree(t: Tokens, opts: {
   pied: string;
   signature?: string;
   signatureBottom?: number;
+  construirePied?: boolean;
+  piedExtraStyle?: string;
 }): string {
+  if (opts.construirePied) {
+    const extra = opts.piedExtraStyle ?? "";
+    return `<div style="position:absolute;left:${opts.left}px;right:${opts.right}px;bottom:${opts.piedBottom}px;border-top:1px solid ${t.bordureMoyenne};padding-top:${opts.piedPaddingTop}px;display:flex;justify-content:space-between${extra}">${opts.pied}</div>`;
+  }
   const signatureBottom = opts.signatureBottom ?? 42;
   const slotSignature = opts.signature
     ? `<div style="position:absolute;left:${opts.left}px;right:${opts.right}px;bottom:${signatureBottom}px">${opts.signature}</div>`
