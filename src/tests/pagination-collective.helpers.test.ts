@@ -191,32 +191,32 @@ describe("tientSurUneFeuille — cas-limite verrouillant les constantes", () => 
 
 // ─── 3. regionCorpsCentree — assertions structurelles ────────────────────────
 
-describe("regionCorpsCentree — deux entretoises déterministes + hauteur bornée", () => {
-  it("flex colonne, DEUX entretoises (haut plafonné, bas libre), sans justify-content, corps intact", () => {
+describe("regionCorpsCentree — deux entretoises ratio 2:3 + hauteur bornée", () => {
+  it("flex colonne, DEUX entretoises (ratio 2:3), sans justify-content ni cap pixel, corps intact", () => {
     const html = regionCorpsCentree("<p>CORPS_AUDIT</p>", { hauteurZoneHautPx: 300 });
     expect(html).toContain("display:flex");
     expect(html).toContain("flex-direction:column");
-    // forme déterministe : pas de justify-content
+    // forme déterministe : pas de justify-content, plus de cap pixel
     expect(html).not.toContain("justify-content");
-    // 2 entretoises flex:1 1 0 exactement
-    const nbEntretoises = (html.match(/flex:1 1 0/g) || []).length;
+    expect(html).not.toContain("max-height");
+    // 2 entretoises ratio (haute 2 parts, basse 3 parts) exactement
+    const nbEntretoises = (html.match(/flex:\d 1 0/g) || []).length;
     expect(nbEntretoises).toBe(2);
-    // entretoise HAUTE plafonnée (max-height = PLAFOND_BLANC_HAUT par défaut)
-    expect(html).toContain('<div style="flex:1 1 0;max-height:90px"></div>');
-    // entretoise BASSE libre (sans max-height)
-    expect(html).toContain('<div style="flex:1 1 0"></div>');
+    expect(html).toContain('<div style="flex:2 1 0"></div>'); // entretoise HAUTE (2 parts)
+    expect(html).toContain('<div style="flex:3 1 0"></div>'); // entretoise BASSE (3 parts)
     // hauteur = 1122 - 32 - 300 - RESERVE_PIED(30) = 760
     expect(html).toContain("height:760px");
     expect(html).toContain("<p>CORPS_AUDIT</p>");
   });
 
-  it("reserveBasPx et plafondBlancHautPx surchargés sont pris en compte", () => {
-    const html = regionCorpsCentree("X", { hauteurZoneHautPx: 200, reserveBasPx: 120, plafondBlancHautPx: 50 });
+  it("reserveBasPx surchargé est pris en compte", () => {
+    const html = regionCorpsCentree("X", { hauteurZoneHautPx: 200, reserveBasPx: 120 });
     // hauteur = 1122 - 32 - 200 - 120 = 770
     expect(html).toContain("height:770px");
-    expect(html).toContain('<div style="flex:1 1 0;max-height:50px"></div>'); // entretoise haute plafonnée à 50
-    expect(html).toContain('<div style="flex:1 1 0"></div>');                  // entretoise basse libre
+    expect(html).toContain('<div style="flex:2 1 0"></div>'); // entretoise HAUTE
+    expect(html).toContain('<div style="flex:3 1 0"></div>'); // entretoise BASSE
     expect(html).not.toContain("justify-content");
+    expect(html).not.toContain("max-height");
     expect(html).toContain("X");
   });
 
