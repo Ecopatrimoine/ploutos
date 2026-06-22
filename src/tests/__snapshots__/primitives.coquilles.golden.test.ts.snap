@@ -1,0 +1,56 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`GOLDEN — pageCouverture (page complete, pied bespoke 56/42) > 7. page complete (snapshot externe) 1`] = `
+"
+    <div style="position:relative;width:210mm;height:297mm;overflow:hidden;background:#FAF7F0">
+      <!-- Liseré latéral gauche : 10px navy + 3px or -->
+      <div style="position:absolute;left:0;top:0;bottom:0;width:10px;background:#0F172A"></div>
+      <div style="position:absolute;left:10px;top:0;bottom:0;width:3px;background:#C4973D"></div>
+
+      <!-- Motif décoratif d'arcs or en bas à droite -->
+      <svg width="300" height="300" viewBox="0 0 200 200" style="position:absolute;right:0;bottom:0" aria-hidden="true">
+    <g fill="none" stroke="#C4973D" stroke-width="1.4">
+      <path d="M200 56 A144 144 0 0 0 56 200" opacity=".2"/>
+      <path d="M200 100 A100 100 0 0 0 100 200" opacity=".28"/>
+      <path d="M200 140 A60 60 0 0 0 140 200" opacity=".38"/>
+    </g>
+    <circle cx="200" cy="200" r="6" fill="#C4973D" opacity=".5"/>
+  </svg>
+
+      <!-- Contenu principal (avec padding adapté au liseré) -->
+      <div style="padding:40px 42px 0 56px;position:relative;z-index:1">
+        <!-- Bandeau identité cabinet : logo XL à gauche, ORIAS à droite (nom du cabinet en bas à gauche) -->
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:24px">
+          <div style="flex-shrink:0"><div style="width:130px;height:130px;border-radius:50%;border:2px solid #C4973D;display:flex;align-items:center;justify-content:center;flex:none">
+        <span class="ser" style="font-size:42px;font-weight:600;color:#0F172A">CT</span>
+      </div></div>
+          <div style="flex-shrink:0"></div>
+        </div>
+
+        <div style="height:1px;background:#E4DDCF;margin-top:24px"></div>
+
+        <!-- Bloc central : titre du document + nom + date -->
+        <!-- Lot 9 itération : polices centrales × 2 vs maquette (titre 33→66, nom 19→38, date 11.5→23, eyebrows 10/11→20/22). -->
+        <!-- Margin réduit (90→50) pour compenser le bandeau identité plus haut (logo 130px). -->
+        <div style="margin-top:50px">
+          <div class="lt" style="font-size:22px;letter-spacing:.2em;text-transform:uppercase;color:#8A6A1E">EYEBROW_TEST</div>
+          <div class="ser" style="font-size:66px;font-weight:600;color:#0F172A;line-height:1.08;margin-top:18px">TITRE_TEST</div>
+          <div style="width:96px;height:6px;background:#C4973D;margin:34px 0 40px"></div>
+          <div class="lt" style="font-size:20px;letter-spacing:.2em;text-transform:uppercase;color:#6B6353">Préparé pour</div>
+          <div class="ser" style="font-size:38px;color:#0F172A;margin-top:8px">CLIENT_TEST</div>
+          <div class="lt" style="margin-top:10px;font-size:23px;color:#6B6353">01 janvier 2026</div>
+          
+        </div>
+      </div>
+
+      <!-- Pied : trait + nom cabinet (gauche) + mention confidentialité (droite) -->
+      <div style="position:absolute;left:56px;right:42px;bottom:30px;border-top:1px solid #E4DDCF;padding-top:11px;display:flex;justify-content:space-between;align-items:flex-end;gap:18px">
+        <div style="line-height:1.2">
+          <div class="ser" style="font-size:18px;font-weight:600;color:#0F172A;letter-spacing:-0.01em">Cabinet</div>
+          <div class="lt" style="font-size:9.5px;letter-spacing:.22em;color:#8A6A1E;margin-top:3px;font-weight:600;text-transform:uppercase">TEST</div>
+        </div>
+        <span class="lt" style="font-size:10px;color:#6B6353;text-align:right">Document strictement confidentiel — Cabinet Test</span>
+      </div>
+    </div>
+  "
+`;
