@@ -912,14 +912,16 @@ export const RESERVE_PIED_PX = 30; // pied SEUL (piedPage : border-top + padding
 const MARGE_SECURITE_PX = 120;     // sécurité d'ESTIMATION uniquement — seule molette réglable du doute
 // Repartition du blanc autour du corps centre, en RATIO (pas un cap pixel) :
 // l'entretoise HAUTE prend RATIO_HAUT_CORPS parts, la BASSE RATIO_BAS_CORPS parts de
-// l'espace libre. 2:3 => corps a 40% du blanc, un peu AU-DESSUS du centre.
+// l'espace libre. 1:2 => le corps est ancre dans le TIERS SUPERIEUR (1/3 du blanc
+// au-dessus, 2/3 en dessous) -- choix David 22/06 : prominence des inscriptions en
+// haut > centrage strict. AUCUN plafond.
 // POURQUOI un ratio et non un cap pixel : le ratio se transfere a TOUTE taille de
-// region. L'ancien cap (max-height 90px sur l'entretoise haute) bornait le blanc du
-// HAUT ; sur une grande region (page header-seul type pageFamille) tout le surplus se
-// deversait alors EN BAS -> corps colle en haut + gros blanc en bas. Le ratio garde la
-// meme proportion quelle que soit la hauteur libre.
-const RATIO_HAUT_CORPS = 2;
-const RATIO_BAS_CORPS = 3;
+// region. Un cap pixel sur l'entretoise haute bornait le blanc du HAUT ; sur une
+// grande region (page header-seul type pageFamille) tout le surplus se deversait alors
+// EN BAS -> corps colle en haut + gros blanc en bas. Le ratio garde la meme proportion
+// quelle que soit la hauteur libre.
+const RATIO_HAUT_CORPS = 1;
+const RATIO_BAS_CORPS = 2;
 
 // Budget de FLUX en feuille fusionnée = feuille - haut - bande basse (DDA réservée).
 const BUDGET_CONTENU_FUSION_PX = HAUTEUR_FEUILLE_PX - PADDING_HAUT_PX - RESERVE_BAS_PX; // = 970
@@ -985,16 +987,16 @@ export function tientSurUneFeuille(c: CountsFeuilleCollective): boolean {
   return h + MARGE_SECURITE_PX <= BUDGET_CONTENU_FUSION_PX;
 }
 
-// Enveloppe un corps dans une région à hauteur BORNEE, centrée verticalement par
-// RATIO d'entretoises (corps un peu au-dessus du centre). Corps long => remonte en
-// haut sans dilution (les entretoises se reduisent par shrink). PUR.
+// Enveloppe un corps dans une région à hauteur BORNEE, ancré dans le TIERS SUPERIEUR
+// par RATIO d'entretoises. Corps long => remonte en haut sans dilution (les
+// entretoises se reduisent par shrink). PUR.
 //
 // Mécanique DÉTERMINISTE : 2 entretoises flex, SANS justify-content. La HAUTE pousse
 // avec RATIO_HAUT_CORPS parts, la BASSE avec RATIO_BAS_CORPS parts (flex-grow). Le
-// blanc libre se repartit donc 2:3 quelle que soit la hauteur de la region (corps a
-// ~40% du blanc, juste au-dessus du centre) -- aucun cap pixel (cf RATIO_*). Corps
-// plus haut que la région -> entretoises réduites à 0 (shrink) -> aucune dilution,
-// corps en haut, clip en extrême.
+// blanc libre se repartit donc 1:2 quelle que soit la hauteur de la region (1/3 au
+// dessus du corps, 2/3 en dessous) -- aucun cap pixel (cf RATIO_*). Corps plus haut
+// que la région -> entretoises réduites à 0 (shrink) -> aucune dilution, corps en
+// haut, clip en extrême.
 export function regionCorpsCentree(
   corpsHTML: string,
   opts: { hauteurZoneHautPx: number; reserveBasPx?: number }
