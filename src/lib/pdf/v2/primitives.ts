@@ -810,6 +810,46 @@ export function bandePiedAncree(t: Tokens, opts: {
       ${opts.pied}`;
 }
 
+// ─── coquilleBase : base A4 commune (conteneur + liseres? + padding + ancre) ──
+// Base INTERNE partagee par coquillePage et coquillePageDocReg (LOT #3, etape 3.3).
+// Conteneur A4 identique ; ordre HTML inchange : [liseres?] [div padding contenu]
+// [bandePiedAncree]. Les valeurs DIVERGENTES (padding top 30 vs 32, marges 44/36 vs
+// 38/38, etc.) ne sont PAS unifiees : elles restent passees PAR PARAMETRE, pour un
+// rendu byte-identique (cf golden master primitives.coquilles).
+function coquilleBase(t: Tokens, opts: {
+  contenu: string;
+  paddingTop: number;
+  paddingRight: number;
+  paddingBottom: number;
+  paddingLeft: number;
+  liseres?: string;
+  pied: string;
+  signature?: string;
+  ancre: {
+    left: number;
+    right: number;
+    piedBottom: number;
+    piedPaddingTop: number;
+    piedFont: number;
+    signatureBottom: number;
+  };
+}): string {
+  // Reproduit EXACTEMENT les deux formes de padding existantes (byte-identique) :
+  //   coquillePage       -> "32px 38px 0"       (left == right : 3 valeurs, bas nu "0")
+  //   coquillePageDocReg -> "30px 36px 0 44px"  (left != right : 4 valeurs)
+  const bas = opts.paddingBottom === 0 ? "0" : `${opts.paddingBottom}px`;
+  const gauche = opts.paddingLeft !== opts.paddingRight ? ` ${opts.paddingLeft}px` : "";
+  const padding = `${opts.paddingTop}px ${opts.paddingRight}px ${bas}${gauche}`;
+  return `
+    <div style="position:relative;width:210mm;height:297mm;overflow:hidden">${opts.liseres ?? ""}
+      <div style="padding:${padding}">
+        ${opts.contenu}
+      </div>
+      ${bandePiedAncree(t, { left: opts.ancre.left, right: opts.ancre.right, piedBottom: opts.ancre.piedBottom, piedPaddingTop: opts.ancre.piedPaddingTop, piedFont: opts.ancre.piedFont, pied: opts.pied, signature: opts.signature, signatureBottom: opts.ancre.signatureBottom })}
+    </div>
+  `;
+}
+
 // ─── coquillePage : structure A4 complète d'une page (avec padding standard
 //                   + pied absolute + slot signature absolute optionnel). ─
 // Le slot `signature` est calé en bas absolu (au-dessus du pied) pour que
@@ -834,14 +874,13 @@ export function coquillePage(_t: Tokens, opts: {
   pied: string;
   signature?: string;
 }): string {
-  return `
-    <div style="position:relative;width:210mm;height:297mm;overflow:hidden">
-      <div style="padding:32px 38px 0">
-        ${opts.contenu}
-      </div>
-      ${bandePiedAncree(_t, { left: 38, right: 38, piedBottom: 16, piedPaddingTop: 8, piedFont: 10, pied: opts.pied, signature: opts.signature, signatureBottom: 42 })}
-    </div>
-  `;
+  return coquilleBase(_t, {
+    contenu: opts.contenu,
+    paddingTop: 32, paddingRight: 38, paddingBottom: 0, paddingLeft: 38,
+    pied: opts.pied,
+    signature: opts.signature,
+    ancre: { left: 38, right: 38, piedBottom: 16, piedPaddingTop: 8, piedFont: 10, signatureBottom: 42 },
+  });
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -984,16 +1023,17 @@ export function coquillePageDocReg(t: Tokens, opts: {
   pied: string;
   signature?: string;
 }): string {
-  return `
-    <div style="position:relative;width:210mm;height:297mm;overflow:hidden">
-      <div style="position:absolute;top:0;left:0;bottom:0;width:7px;background:${t.navy}"></div>
-      <div style="position:absolute;top:0;left:7px;bottom:0;width:2px;background:${t.or}"></div>
-      <div style="padding:30px 36px 0 44px">
-        ${opts.contenu}
-      </div>
-      ${bandePiedAncree(t, { left: 44, right: 36, piedBottom: 15, piedPaddingTop: 7, piedFont: 9.5, pied: opts.pied, signature: opts.signature, signatureBottom: 42 })}
-    </div>
-  `;
+  const liseres =
+    `\n      <div style="position:absolute;top:0;left:0;bottom:0;width:7px;background:${t.navy}"></div>` +
+    `\n      <div style="position:absolute;top:0;left:7px;bottom:0;width:2px;background:${t.or}"></div>`;
+  return coquilleBase(t, {
+    contenu: opts.contenu,
+    paddingTop: 30, paddingRight: 36, paddingBottom: 0, paddingLeft: 44,
+    liseres,
+    pied: opts.pied,
+    signature: opts.signature,
+    ancre: { left: 44, right: 36, piedBottom: 15, piedPaddingTop: 7, piedFont: 9.5, signatureBottom: 42 },
+  });
 }
 
 // ─── piedPageDocReg : pied compact (police 9.5px, espacement ajusté) ───
