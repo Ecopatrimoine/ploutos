@@ -191,8 +191,8 @@ describe("tientSurUneFeuille — cas-limite verrouillant les constantes", () => 
 
 // ─── 3. regionCorpsCentree — assertions structurelles ────────────────────────
 
-describe("regionCorpsCentree — deux entretoises ratio 2:3 + hauteur bornée", () => {
-  it("flex colonne, DEUX entretoises (ratio 2:3), sans justify-content ni cap pixel, corps intact", () => {
+describe("regionCorpsCentree — deux entretoises ratio 1:2 + hauteur bornée", () => {
+  it("flex colonne, DEUX entretoises (ratio 1:2), sans justify-content ni cap pixel, corps intact", () => {
     const html = regionCorpsCentree("<p>CORPS_AUDIT</p>", { hauteurZoneHautPx: 300 });
     expect(html).toContain("display:flex");
     expect(html).toContain("flex-direction:column");
@@ -202,8 +202,8 @@ describe("regionCorpsCentree — deux entretoises ratio 2:3 + hauteur bornée", 
     // 2 entretoises ratio (haute 2 parts, basse 3 parts) exactement
     const nbEntretoises = (html.match(/flex:\d 1 0/g) || []).length;
     expect(nbEntretoises).toBe(2);
-    expect(html).toContain('<div style="flex:2 1 0"></div>'); // entretoise HAUTE (2 parts)
-    expect(html).toContain('<div style="flex:3 1 0"></div>'); // entretoise BASSE (3 parts)
+    expect(html).toContain('<div style="flex:1 1 0"></div>'); // entretoise HAUTE (1 part)
+    expect(html).toContain('<div style="flex:2 1 0"></div>'); // entretoise BASSE (2 parts)
     // hauteur = 1122 - 32 - 300 - RESERVE_PIED(30) = 760
     expect(html).toContain("height:760px");
     expect(html).toContain("<p>CORPS_AUDIT</p>");
@@ -213,8 +213,8 @@ describe("regionCorpsCentree — deux entretoises ratio 2:3 + hauteur bornée", 
     const html = regionCorpsCentree("X", { hauteurZoneHautPx: 200, reserveBasPx: 120 });
     // hauteur = 1122 - 32 - 200 - 120 = 770
     expect(html).toContain("height:770px");
-    expect(html).toContain('<div style="flex:2 1 0"></div>'); // entretoise HAUTE
-    expect(html).toContain('<div style="flex:3 1 0"></div>'); // entretoise BASSE
+    expect(html).toContain('<div style="flex:1 1 0"></div>'); // entretoise HAUTE
+    expect(html).toContain('<div style="flex:2 1 0"></div>'); // entretoise BASSE
     expect(html).not.toContain("justify-content");
     expect(html).not.toContain("max-height");
     expect(html).toContain("X");

@@ -1,7 +1,7 @@
 // Lot pagination collective — tests BUILDER de pagePrevoyanceColl :
 //  - fusion (contenu court) -> 1 feuille ; CCN lourde -> 2 feuilles ; inactif -> 1.
 //  - DDA exactement une fois, en bande ancree (bottom:42px) sur la derniere feuille.
-//  - chemin 2-feuilles : marqueur de centrage (entretoise region flex 2:3) present
+//  - chemin 2-feuilles : marqueur de centrage (entretoise region flex 1:2) present
 //    sur la feuille 1, ABSENT de la feuille 2.
 //  - aucun contenu perdu : tous les libelles de controles + tous les garantieLabel
 //    presents (fusion ET 2-feuilles).
@@ -77,7 +77,7 @@ describe("pagePrevoyanceColl — pagination adaptative (builder)", () => {
     const html = pagePrevoyanceColl(t, d);
     expect(nbFeuilles(html)).toBe(1);
     // pas de region de centrage sur la feuille fusionnee (feuille PLEINE)
-    expect(html).not.toContain("flex:2 1 0");
+    expect(html).not.toContain("flex:1 1 0");
     // DDA exactement une fois, ancree bottom:42px, et apres le contenu
     expect(nbOcc(html, "L.521-4")).toBe(1);
     expect(html).toContain("bottom:42px");
@@ -99,9 +99,9 @@ describe("pagePrevoyanceColl — pagination adaptative (builder)", () => {
     const feuilles = html.split("width:210mm;height:297mm").slice(1);
     expect(feuilles.length).toBe(2);
     const [f1, f2] = feuilles;
-    // centrage : la region (entretoises flex 2:3) est sur la feuille 1, pas la feuille 2
-    expect(f1).toContain("flex:2 1 0");
-    expect(f2).not.toContain("flex:2 1 0");
+    // centrage : la region (entretoises flex 1:2) est sur la feuille 1, pas la feuille 2
+    expect(f1).toContain("flex:1 1 0");
+    expect(f2).not.toContain("flex:1 1 0");
     expect(f1).toContain("Audit de conformité");
     // DDA exactement une fois, sur la DERNIERE feuille, ancree bottom:42px
     expect(nbOcc(html, "L.521-4")).toBe(1);
@@ -118,7 +118,7 @@ describe("pagePrevoyanceColl — pagination adaptative (builder)", () => {
     const html = pagePrevoyanceColl(t, d);
     expect(nbFeuilles(html)).toBe(1);
     expect(html).toContain("Activer le module Prévoyance collective");
-    expect(html).toContain("flex:2 1 0");          // message centre (region)
+    expect(html).toContain("flex:1 1 0");          // message centre (region)
     expect(html).not.toContain("Audit de conformité");
     expect(nbOcc(html, "L.521-4")).toBe(1);
     expect(html).toContain("bottom:42px");
