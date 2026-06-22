@@ -71,7 +71,7 @@ exports[`GOLDEN — pageFamille centrage (foyer court : corps centre, header en 
     </div>
     <div style="height:2px;background:#C4973D;margin-top:12px;opacity:.9"></div>
   
-    <div style="height:980px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box"><div style="flex:1 1 0;max-height:90px"></div><div>
+    <div style="height:980px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box"><div style="flex:2 1 0"></div><div>
     <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
       
     <div style="background:#FBF8F1;border:0.5px solid #EEE7D8;border-radius:10px;padding:14px 16px">
@@ -160,7 +160,7 @@ exports[`GOLDEN — pageFamille centrage (foyer court : corps centre, header en 
     
 
     
-  </div><div style="flex:1 1 0"></div></div>
+  </div><div style="flex:3 1 0"></div></div>
   
       </div>
       
