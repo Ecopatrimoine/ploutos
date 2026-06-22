@@ -15,6 +15,12 @@ import {
   encartNotreLecture,
   piedPage,
   coquillePage,
+  regionCorpsCentree,
+  H_HEADER_PX,
+  H_BANDE_KPI_PX,
+  H_LIGNE_TEXTE_PX,
+  CHARS_PAR_LIGNE_CONVENTION,
+  RESERVE_PIED_PX,
   euro,
   type CascadeItem,
 } from "../primitives";
@@ -119,7 +125,7 @@ export function pageBilanEndettement(t: Tokens, d: BilanEndettementPageData): st
     { label: "= Patrimoine net",                 pct: 100,                          valeur: euro(d.patrimoineNet),         type: "total",   valeurFontSize: "12.5px" },
   ];
 
-  const contenu = `
+  const zoneHaute = `
     ${header(t, {
       eyebrow: "Vue d'ensemble",
       titre: "Bilan patrimonial",
@@ -129,6 +135,9 @@ export function pageBilanEndettement(t: Tokens, d: BilanEndettementPageData): st
 
     ${bandeKPI(t, kpis)}
     <div class="foot">${d.noteKpi}</div>
+  `;
+
+  const corps = `
 
     ${encartCalcul}
 
@@ -142,6 +151,18 @@ export function pageBilanEndettement(t: Tokens, d: BilanEndettementPageData): st
     </div>
 
     ${encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture })}
+  `;
+
+  // Zone haute = header + bandeKPI + note de synthese (recap fixe en haut). Hauteur
+  // estimee depuis les constantes FIGEES Lot 1 : H_HEADER_PX + H_BANDE_KPI_PX + lignes
+  // de note (CHARS_PAR_LIGNE_CONVENTION, meme convention que tientSurUneFeuille).
+  // Aucun nombre magique nouveau. Pied inchange via la coquille ; pas de DDA ici.
+  const lignesNote = Math.max(1, Math.ceil(d.noteKpi.length / CHARS_PAR_LIGNE_CONVENTION));
+  const hauteurZoneHautPx = H_HEADER_PX + H_BANDE_KPI_PX + lignesNote * H_LIGNE_TEXTE_PX;
+
+  const contenu = `
+    ${zoneHaute}
+    ${regionCorpsCentree(corps, { hauteurZoneHautPx, reserveBasPx: RESERVE_PIED_PX })}
   `;
 
   const pied = piedPage(t, {
