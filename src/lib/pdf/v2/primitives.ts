@@ -468,10 +468,16 @@ export type Cell = {
   bold?: boolean;
 };
 
-export function tableauTitresDores(t: Tokens, opts: {
+// ─── construireTableEcoulable : thead + lignes <tr> SÉPARÉS, pour les tables
+//     ListeEcoulable du contrat (engine/contrat.ts). Helper PARTAGÉ qui factorise le
+//     rendu .th/.td jadis dupliqué inline dans pageIFI (dette Phase 3).
+//     tableauTitresDores le réutilise pour l'intérieur de sa table → rendu INCHANGÉ
+//     au byte près (goldens stables) : enteteHtml conserve EXACTEMENT le whitespace
+//     (saut + indentation) de l'ancien template de tableauTitresDores.
+export function construireTableEcoulable(t: Tokens, opts: {
   cols: Col[];
-  rows: Cell[][];        // chaque ligne = tableau de Cell, dans l'ordre des cols
-}): string {
+  rows: Cell[][];
+}): { enteteHtml: string; lignesHtml: string[] } {
   const renderTh = (c: Col) =>
     `<th class="th" style="text-align:${c.align || "left"};${c.width ? `width:${c.width}` : ""}">${c.label}</th>`;
   const renderTd = (cell: Cell, col: Col) => {
@@ -480,16 +486,26 @@ export function tableauTitresDores(t: Tokens, opts: {
     const weight = cell.bold ? "font-weight:700;" : "";
     return `<td class="td" style="text-align:${align};${color}${weight}">${cell.value}</td>`;
   };
-  const renderRow = (row: Cell[], idx: number) =>
-    `<tr${idx % 2 === 1 ? ` style="background:${t.fondTableauAlt}"` : ""}>${row.map((cell, i) => renderTd(cell, opts.cols[i])).join("")}</tr>`;
+  const enteteHtml = `<thead><tr style="background:${t.fondTableau};border-bottom:1px solid ${t.bordureSeuilRail}">
+          ${opts.cols.map(renderTh).join("")}
+        </tr></thead>`;
+  const lignesHtml = opts.rows.map((row, idx) =>
+    `<tr${idx % 2 === 1 ? ` style="background:${t.fondTableauAlt}"` : ""}>${row.map((cell, i) => renderTd(cell, opts.cols[i])).join("")}</tr>`
+  );
+  return { enteteHtml, lignesHtml };
+}
+
+export function tableauTitresDores(t: Tokens, opts: {
+  cols: Col[];
+  rows: Cell[][];        // chaque ligne = tableau de Cell, dans l'ordre des cols
+}): string {
+  const { enteteHtml, lignesHtml } = construireTableEcoulable(t, opts);
   return `
     <div style="border:0.5px solid ${t.bordureClaire};border-radius:10px;margin-top:12px">
       <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-        <thead><tr style="background:${t.fondTableau};border-bottom:1px solid ${t.bordureSeuilRail}">
-          ${opts.cols.map(renderTh).join("")}
-        </tr></thead>
+        ${enteteHtml}
         <tbody>
-          ${opts.rows.map(renderRow).join("")}
+          ${lignesHtml.join("")}
         </tbody>
       </table>
     </div>
