@@ -7,7 +7,6 @@
 // revue-preview/pdf/refonte_pdf_*.html — c'est la source de vérité visuelle.
 
 import { FONTS_HTML_LINKS, type Tokens } from "./tokens";
-import { repartirLignesEnFeuilles } from "./paginationListe";
 
 // ─── CSS commun (classes utilitaires partagées) ──────────────────────────
 // Reproduit les classes .ser/.lt/.eb/.sct/.kpi/.klbl/.kval/.foot/.th/.td
@@ -1041,64 +1040,6 @@ export function regionCorpsCentree(
     `<div style="flex:${RATIO_BAS_CORPS} 1 0"></div>` +
     `</div>`
   );
-}
-
-// ─── paginerLignesSurFeuilles : découpe une liste de rows homogènes en fragments
-//     de CORPS (table thead+rows + queue), un par feuille A4. Généralise la concat
-//     2-feuilles de pagePrevoyanceColl au cas « liste longue ». Le builder enveloppe
-//     ensuite chaque fragment dans coquillePage (header / pied / numérotation gérés
-//     côté builder, inchangés). PUR (HTML). Conserve le débordement-zéro : on
-//     SUR-compte (cf. constantes mesurées) puis on découpe par comptage.
-//
-// Le thead est ré-émis dans CHAQUE fragment (tableauTitresDores le porte) : son
-// budget (H_TABLE_ENTETE_PX) est donc soustrait UNE fois par feuille, des deux
-// régions. La queue (blocQueueHTML) n'est ajoutée que sur la DERNIÈRE feuille.
-export function paginerLignesSurFeuilles<T>(opts: {
-  t: Tokens;
-  lignes: T[];
-  cols: Col[];
-  rendreLigne: (ligne: T) => Cell[];
-  poidsLigne: (ligne: T) => number;
-  blocQueueHTML: string;
-  /** Hauteur fixe (px) au-dessus de la table, feuille 1 (header + KPI + note + Dévolution + sous-titre). */
-  zoneHaute1Px: number;
-  /** Hauteur fixe (px) au-dessus de la table, feuilles de continuation (header + sous-titre). */
-  zoneHauteContPx: number;
-  /** Hauteur (px) du bloc de queue, épinglé sur la dernière feuille. */
-  hauteurBlocQueuePx: number;
-  /** Hauteur d'une unité-ligne (défaut H_LIGNE_LISTE_PX). */
-  hauteurLignePx?: number;
-  /** Réserve basse (défaut RESERVE_PIED_PX : pied seul, ni DDA ni signature sur Succession). */
-  reserveBasPx?: number;
-}): string[] {
-  const hLigne = opts.hauteurLignePx ?? H_LIGNE_LISTE_PX;
-  const reserveBas = opts.reserveBasPx ?? RESERVE_PIED_PX;
-  // Région de ROWS = feuille − padding haut − zone haute fixe − réserve basse − thead (répété).
-  const regionFeuille1Px =
-    HAUTEUR_FEUILLE_PX - PADDING_HAUT_PX - opts.zoneHaute1Px - reserveBas - H_TABLE_ENTETE_PX;
-  const regionContinuationPx =
-    HAUTEUR_FEUILLE_PX - PADDING_HAUT_PX - opts.zoneHauteContPx - reserveBas - H_TABLE_ENTETE_PX;
-
-  const poids = opts.lignes.map(opts.poidsLigne);
-  const feuilles = repartirLignesEnFeuilles(poids, {
-    hauteurLignePx: hLigne,
-    regionFeuille1Px,
-    regionContinuationPx,
-    hauteurBlocQueuePx: opts.hauteurBlocQueuePx,
-    margeSecuritePx: MARGE_SECURITE_PX,
-  });
-
-  return feuilles.map((indices, f) => {
-    const estDerniere = f === feuilles.length - 1;
-    const table =
-      indices.length > 0
-        ? tableauTitresDores(opts.t, {
-            cols: opts.cols,
-            rows: indices.map((i) => opts.rendreLigne(opts.lignes[i])),
-          })
-        : "";
-    return `${table}${estDerniere ? opts.blocQueueHTML : ""}`;
-  });
 }
 
 // ════════════════════════════════════════════════════════════════════════
