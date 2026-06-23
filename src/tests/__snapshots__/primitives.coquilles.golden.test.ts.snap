@@ -1,5 +1,130 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`CONTRAT — pageSuccessionA (flux paged.js) > 9. blocs declares : header, table heritiers ecoulable, queue (foot-note CGI + Notre lecture) 1`] = `
+"<div class="pdf-contrat" style="padding:32px 38px 0;orphans:2;widows:2">
+<div style="break-inside:avoid">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end">
+      <div>
+        <div class="eb">Transmission — volet 1 / 2</div>
+        <div class="ser" style="font-size:21px;font-weight:600;color:#0F172A;margin-top:5px">Dévolution & droits</div>
+        
+      </div>
+      <div class="lt" style="font-size:11px;color:#6B6353;text-align:right">CLIENT_TEST<br>01 janvier 2026</div>
+    </div>
+    <div style="height:2px;background:#C4973D;margin-top:12px;opacity:.9"></div>
+  </div>
+<div style="break-inside:avoid"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px">
+    <div style="background:#0F172A;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
+        <div class="lt" style="font-size:9px;color:#E3C485cc;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Masse successorale nette</div>
+        <div class="lt" style="font-weight:700;font-size:15px;color:#E3C485;margin-top:5px;line-height:1">500 000 €</div>
+      </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
+      <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Droits de succession</div>
+      <div class="lt" style="font-weight:700;font-size:15px;color:#0F172A;margin-top:5px;line-height:1">20 000 €</div>
+    </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
+      <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Net transmis</div>
+      <div class="lt" style="font-weight:700;font-size:15px;color:#0F172A;margin-top:5px;line-height:1">480 000 €</div>
+    </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
+      <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Taux moyen</div>
+      <div class="lt" style="font-weight:700;font-size:15px;color:#0F172A;margin-top:5px;line-height:1">4 %</div>
+    </div>
+  </div>
+    <div class="foot">Masse civile de test.</div></div>
+<div style="break-inside:avoid"><div style="margin-top:18px">
+      <div class="sct">Dévolution</div>
+      
+    <div style="border:0.5px solid #EEE7D8;border-radius:10px;padding:13px 16px;margin-top:10px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span class="lt" style="font-size:10px;font-weight:700;letter-spacing:.04em;color:#0F172A;background:#FBF7EF;border:0.5px solid #E7D9BF;padding:3px 9px;border-radius:6px">Devolution legale</span>
+        <span class="lt" style="font-size:11.5px;color:#3A352B">1 enfant, conjoint</span>
+      </div>
+      <div style="display:flex;height:16px;border-radius:4px;overflow:hidden;margin-top:12px">
+        <div style="width:50%;background:#0F172A;display:flex;align-items:center;justify-content:center">
+          <span class="lt" style="font-size:10px;color:#E3C485;font-weight:700">Reserve</span>
+        </div>
+        <div style="width:50%;background:#C4973D;display:flex;align-items:center;justify-content:center">
+          <span class="lt" style="font-size:10px;color:#3A2A07;font-weight:700">Quotite dispo</span>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px">
+        <span class="lt" style="font-size:10.5px;color:#6B6353">Réserve : <strong style="color:#0F172A">250 000 €</strong></span>
+        <span class="lt" style="font-size:10.5px;color:#6B6353">Quotité disponible : <strong style="color:#8A6A1E">250 000 €</strong></span>
+      </div>
+    </div>
+  
+    </div></div>
+<div style="break-inside:avoid;break-after:avoid"><div style="margin-top:18px"><div class="sct">Détail par héritier</div></div></div>
+<table data-pdf-tbl style="width:100%;border-collapse:collapse;table-layout:fixed;border:0.5px solid #EEE7D8;margin-top:12px"><thead><tr style="background:#FBF7EF;border-bottom:1px solid #E7D9BF">
+          <th class="th" style="text-align:left;width:25%">Héritier</th><th class="th" style="text-align:left;width:18%">Lien</th><th class="th" style="text-align:right;width:16%">Part reçue</th><th class="th" style="text-align:right;width:13%">Abatt.</th><th class="th" style="text-align:right;width:13%">Droits</th><th class="th" style="text-align:right;width:15%">Net</th>
+        </tr></thead><tbody><tr><td class="td" style="text-align:left;">HERITIER_TEST</td><td class="td" style="text-align:left;color:#6B6353;">Conjoint</td><td class="td" style="text-align:right;">240 000 €</td><td class="td" style="text-align:right;color:#A39A88;">—</td><td class="td" style="text-align:right;color:#2F7D5B;font-weight:700;">exonéré</td><td class="td" style="text-align:right;font-weight:700;">240 000 €</td></tr></tbody></table>
+<div class="pdf-queue" style="break-inside:avoid"><div class="foot" style="margin-top:6px">
+        Part reçue = pleine propriété + nue-propriété fiscale + usufruit valorisé selon le coefficient Duvergier (CGI art. 669). Le conjoint marié ou partenaire de PACS est exonéré de droits (CGI art. 796-0 bis).
+      </div></div>
+<div class="pdf-queue" style="break-inside:avoid">
+    <div style="margin-top:20px;background:#FBF8F1;border:0.5px solid #ECE3CF;border-left:3px solid #C4973D;border-radius:8px;padding:15px 17px">
+      <div class="ser" style="font-size:14px;color:#0F172A;margin-bottom:6px">Notre lecture</div>
+      <div class="lt" style="font-size:12.5px;color:#3A352B;line-height:1.6">Lecture de test succession A.</div>
+    </div>
+  </div>
+</div>"
+`;
+
+exports[`CONTRAT — pageSuccessionB (flux paged.js) > 10. blocs declares : header, table beneficiaires ecoulable, queue (clause + Total consolide + Notre lecture) 1`] = `
+"<div class="pdf-contrat" style="padding:32px 38px 0;orphans:2;widows:2">
+<div style="break-inside:avoid">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end">
+      <div>
+        <div class="eb">Transmission — volet 2 / 2</div>
+        <div class="ser" style="font-size:21px;font-weight:600;color:#0F172A;margin-top:5px">Assurance-vie & PER</div>
+        
+      </div>
+      <div class="lt" style="font-size:11px;color:#6B6353;text-align:right">CLIENT_TEST<br>01 janvier 2026</div>
+    </div>
+    <div style="height:2px;background:#C4973D;margin-top:12px;opacity:.9"></div>
+  </div>
+<div style="break-inside:avoid"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px">
+    <div style="background:#0F172A;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
+        <div class="lt" style="font-size:9px;color:#E3C485cc;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Capitaux transmis</div>
+        <div class="lt" style="font-weight:700;font-size:15px;color:#E3C485;margin-top:5px;line-height:1">100 000 €</div>
+      </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
+      <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Fiscalité totale</div>
+      <div class="lt" style="font-weight:700;font-size:15px;color:#2F7D5B;margin-top:5px;line-height:1">0 €</div>
+    </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
+      <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Net aux bénéficiaires</div>
+      <div class="lt" style="font-weight:700;font-size:15px;color:#0F172A;margin-top:5px;line-height:1">100 000 €</div>
+    </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
+      <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Abattement restant</div>
+      <div class="lt" style="font-weight:700;font-size:15px;color:#0F172A;margin-top:5px;line-height:1">52 500 €</div>
+    </div>
+  </div>
+    <div class="foot">Regime 990 I de test.</div></div>
+<div style="break-inside:avoid;break-after:avoid"><div style="margin-top:24px"><div class="sct">Détail par bénéficiaire</div></div></div>
+<table data-pdf-tbl style="width:100%;border-collapse:collapse;table-layout:fixed;border:0.5px solid #EEE7D8;margin-top:12px"><thead><tr style="background:#FBF7EF;border-bottom:1px solid #E7D9BF">
+          <th class="th" style="text-align:left;width:24%">Bénéficiaire</th><th class="th" style="text-align:left;width:14%">Lien</th><th class="th" style="text-align:right;width:16%">Capital</th><th class="th" style="text-align:right;width:18%">Abatt. 990 I</th><th class="th" style="text-align:right;width:12%">Fiscalité</th><th class="th" style="text-align:right;width:16%">Net</th>
+        </tr></thead><tbody><tr><td class="td" style="text-align:left;">BENEF_TEST</td><td class="td" style="text-align:left;color:#6B6353;">Enfant</td><td class="td" style="text-align:right;">100 000 €</td><td class="td" style="text-align:right;">152 500 €</td><td class="td" style="text-align:right;color:#2F7D5B;font-weight:700;">0 €</td><td class="td" style="text-align:right;font-weight:700;">100 000 €</td></tr></tbody></table>
+<div class="pdf-queue" style="break-inside:avoid">
+    <div style="display:flex;align-items:center;gap:9px;margin-top:11px;border:0.5px solid #EEE7D8;border-radius:8px;padding:9px 12px;background:#FBF9F4">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A6A1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex:none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>
+      <span class="lt" style="font-size:11px;color:#3A352B;line-height:1.4">Clause de test.</span>
+    </div>
+  </div>
+<div class="pdf-queue" style="break-inside:avoid">
+    <div style="margin-top:22px;background:#0F172A;border-radius:9px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center">
+      <div style="line-height:1.3">
+        <div class="lt" style="font-size:12px;color:#FAF7F0">Total transmis net</div>
+        <div class="lt" style="font-size:10px;color:rgba(255,255,255,.6);margin-top:2px">(succession + AV)</div>
+      </div>
+      <span class="ser" style="font-size:22px;font-weight:600;color:#E3C485;white-space:nowrap">600 000 €</span>
+    </div>
+  </div>
+<div class="pdf-queue" style="break-inside:avoid">
+    <div style="margin-top:20px;background:#FBF8F1;border:0.5px solid #ECE3CF;border-left:3px solid #C4973D;border-radius:8px;padding:15px 17px">
+      <div class="ser" style="font-size:14px;color:#0F172A;margin-bottom:6px">Notre lecture</div>
+      <div class="lt" style="font-size:12.5px;color:#3A352B;line-height:1.6">Lecture de test succession B.</div>
+    </div>
+  </div>
+</div>"
+`;
+
 exports[`GOLDEN — pageBilanEndettement centrage (cas court) > 11. cas court : base de regression + entretoises 1:2, header hors region 1`] = `
 "
     <div style="position:relative;width:210mm;height:297mm;overflow:hidden">
@@ -296,195 +421,6 @@ exports[`GOLDEN — pageFamille centrage (foyer court : corps centre, header en 
     <div style="position:absolute;left:38px;right:38px;bottom:16px;border-top:1px solid #E4DDCF;padding-top:8px;display:flex;justify-content:space-between">
       <span class="lt" style="font-size:10px;color:#A39A88">Cabinet Test</span>
       <span class="lt" style="font-size:10px;color:#A39A88">1 / 8</span>
-    </div>
-  
-    </div>
-  "
-`;
-
-exports[`GOLDEN — pageSuccessionA centrage (cas court) > 9. cas court : base de regression + entretoises 1:2, header hors region 1`] = `
-"
-    <div style="position:relative;width:210mm;height:297mm;overflow:hidden">
-      <div style="padding:32px 38px 0">
-        
-    
-    
-    <div style="display:flex;justify-content:space-between;align-items:flex-end">
-      <div>
-        <div class="eb">Transmission — volet 1 / 2</div>
-        <div class="ser" style="font-size:21px;font-weight:600;color:#0F172A;margin-top:5px">Dévolution & droits</div>
-        
-      </div>
-      <div class="lt" style="font-size:11px;color:#6B6353;text-align:right">CLIENT_TEST<br>01 janvier 2026</div>
-    </div>
-    <div style="height:2px;background:#C4973D;margin-top:12px;opacity:.9"></div>
-  
-
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px">
-    <div style="background:#0F172A;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
-        <div class="lt" style="font-size:9px;color:#E3C485cc;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Masse successorale nette</div>
-        <div class="lt" style="font-weight:700;font-size:15px;color:#E3C485;margin-top:5px;line-height:1">500 000 €</div>
-      </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
-      <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Droits de succession</div>
-      <div class="lt" style="font-weight:700;font-size:15px;color:#0F172A;margin-top:5px;line-height:1">20 000 €</div>
-    </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
-      <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Net transmis</div>
-      <div class="lt" style="font-weight:700;font-size:15px;color:#0F172A;margin-top:5px;line-height:1">480 000 €</div>
-    </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
-      <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Taux moyen</div>
-      <div class="lt" style="font-weight:700;font-size:15px;color:#0F172A;margin-top:5px;line-height:1">4 %</div>
-    </div>
-  </div>
-    <div class="foot">Masse civile de test.</div>
-  
-    <div style="height:870px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box"><div style="flex:1 1 0"></div><div>
-
-    <div style="margin-top:18px">
-      <div class="sct">Dévolution</div>
-      
-    <div style="border:0.5px solid #EEE7D8;border-radius:10px;padding:13px 16px;margin-top:10px">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span class="lt" style="font-size:10px;font-weight:700;letter-spacing:.04em;color:#0F172A;background:#FBF7EF;border:0.5px solid #E7D9BF;padding:3px 9px;border-radius:6px">Devolution legale</span>
-        <span class="lt" style="font-size:11.5px;color:#3A352B">1 enfant, conjoint</span>
-      </div>
-      <div style="display:flex;height:16px;border-radius:4px;overflow:hidden;margin-top:12px">
-        <div style="width:50%;background:#0F172A;display:flex;align-items:center;justify-content:center">
-          <span class="lt" style="font-size:10px;color:#E3C485;font-weight:700">Reserve</span>
-        </div>
-        <div style="width:50%;background:#C4973D;display:flex;align-items:center;justify-content:center">
-          <span class="lt" style="font-size:10px;color:#3A2A07;font-weight:700">Quotite dispo</span>
-        </div>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-top:6px">
-        <span class="lt" style="font-size:10.5px;color:#6B6353">Réserve : <strong style="color:#0F172A">250 000 €</strong></span>
-        <span class="lt" style="font-size:10.5px;color:#6B6353">Quotité disponible : <strong style="color:#8A6A1E">250 000 €</strong></span>
-      </div>
-    </div>
-  
-    </div>
-
-    <div style="margin-top:18px">
-      <div class="sct">Détail par héritier</div>
-      
-    <div style="border:0.5px solid #EEE7D8;border-radius:10px;margin-top:12px">
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-        <thead><tr style="background:#FBF7EF;border-bottom:1px solid #E7D9BF">
-          <th class="th" style="text-align:left;width:25%">Héritier</th><th class="th" style="text-align:left;width:18%">Lien</th><th class="th" style="text-align:right;width:16%">Part reçue</th><th class="th" style="text-align:right;width:13%">Abatt.</th><th class="th" style="text-align:right;width:13%">Droits</th><th class="th" style="text-align:right;width:15%">Net</th>
-        </tr></thead>
-        <tbody>
-          <tr><td class="td" style="text-align:left;">HERITIER_TEST</td><td class="td" style="text-align:left;color:#6B6353;">Conjoint</td><td class="td" style="text-align:right;">240 000 €</td><td class="td" style="text-align:right;color:#A39A88;">—</td><td class="td" style="text-align:right;color:#2F7D5B;font-weight:700;">exonéré</td><td class="td" style="text-align:right;font-weight:700;">240 000 €</td></tr>
-        </tbody>
-      </table>
-    </div>
-  
-      <div class="foot" style="margin-top:6px">
-        Part reçue = pleine propriété + nue-propriété fiscale + usufruit valorisé selon le coefficient Duvergier (CGI art. 669). Le conjoint marié ou partenaire de PACS est exonéré de droits (CGI art. 796-0 bis).
-      </div>
-    </div>
-
-    
-    <div style="margin-top:20px;background:#FBF8F1;border:0.5px solid #ECE3CF;border-left:3px solid #C4973D;border-radius:8px;padding:15px 17px">
-      <div class="ser" style="font-size:14px;color:#0F172A;margin-bottom:6px">Notre lecture</div>
-      <div class="lt" style="font-size:12.5px;color:#3A352B;line-height:1.6">Lecture de test succession A.</div>
-    </div>
-  
-  </div><div style="flex:2 1 0"></div></div>
-  
-      </div>
-      
-      
-    <div style="position:absolute;left:38px;right:38px;bottom:16px;border-top:1px solid #E4DDCF;padding-top:8px;display:flex;justify-content:space-between">
-      <span class="lt" style="font-size:10px;color:#A39A88">Cabinet Test - confidentiel</span>
-      <span class="lt" style="font-size:10px;color:#A39A88">1 / 8</span>
-    </div>
-  
-    </div>
-  "
-`;
-
-exports[`GOLDEN — pageSuccessionB centrage (cas court) > 10. cas court : base de regression + entretoises 1:2, header hors region 1`] = `
-"
-    <div style="position:relative;width:210mm;height:297mm;overflow:hidden">
-      <div style="padding:32px 38px 0">
-        
-    
-    
-    <div style="display:flex;justify-content:space-between;align-items:flex-end">
-      <div>
-        <div class="eb">Transmission — volet 2 / 2</div>
-        <div class="ser" style="font-size:21px;font-weight:600;color:#0F172A;margin-top:5px">Assurance-vie & PER</div>
-        
-      </div>
-      <div class="lt" style="font-size:11px;color:#6B6353;text-align:right">CLIENT_TEST<br>01 janvier 2026</div>
-    </div>
-    <div style="height:2px;background:#C4973D;margin-top:12px;opacity:.9"></div>
-  
-
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px">
-    <div style="background:#0F172A;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
-        <div class="lt" style="font-size:9px;color:#E3C485cc;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Capitaux transmis</div>
-        <div class="lt" style="font-weight:700;font-size:15px;color:#E3C485;margin-top:5px;line-height:1">100 000 €</div>
-      </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
-      <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Fiscalité totale</div>
-      <div class="lt" style="font-weight:700;font-size:15px;color:#2F7D5B;margin-top:5px;line-height:1">0 €</div>
-    </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
-      <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Net aux bénéficiaires</div>
-      <div class="lt" style="font-weight:700;font-size:15px;color:#0F172A;margin-top:5px;line-height:1">100 000 €</div>
-    </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
-      <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Abattement restant</div>
-      <div class="lt" style="font-weight:700;font-size:15px;color:#0F172A;margin-top:5px;line-height:1">52 500 €</div>
-    </div>
-  </div>
-    <div class="foot">Regime 990 I de test.</div>
-  
-    <div style="height:870px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box"><div style="flex:1 1 0"></div><div>
-
-    <div style="margin-top:24px">
-      <div class="sct">Détail par bénéficiaire</div>
-      
-    <div style="border:0.5px solid #EEE7D8;border-radius:10px;margin-top:12px">
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-        <thead><tr style="background:#FBF7EF;border-bottom:1px solid #E7D9BF">
-          <th class="th" style="text-align:left;width:24%">Bénéficiaire</th><th class="th" style="text-align:left;width:14%">Lien</th><th class="th" style="text-align:right;width:16%">Capital</th><th class="th" style="text-align:right;width:18%">Abatt. 990 I</th><th class="th" style="text-align:right;width:12%">Fiscalité</th><th class="th" style="text-align:right;width:16%">Net</th>
-        </tr></thead>
-        <tbody>
-          <tr><td class="td" style="text-align:left;">BENEF_TEST</td><td class="td" style="text-align:left;color:#6B6353;">Enfant</td><td class="td" style="text-align:right;">100 000 €</td><td class="td" style="text-align:right;">152 500 €</td><td class="td" style="text-align:right;color:#2F7D5B;font-weight:700;">0 €</td><td class="td" style="text-align:right;font-weight:700;">100 000 €</td></tr>
-        </tbody>
-      </table>
-    </div>
-  
-      
-    <div style="display:flex;align-items:center;gap:9px;margin-top:11px;border:0.5px solid #EEE7D8;border-radius:8px;padding:9px 12px;background:#FBF9F4">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A6A1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex:none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>
-      <span class="lt" style="font-size:11px;color:#3A352B;line-height:1.4">Clause de test.</span>
-    </div>
-  
-    </div>
-
-    
-    <div style="margin-top:22px;background:#0F172A;border-radius:9px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center">
-      <div style="line-height:1.3">
-        <div class="lt" style="font-size:12px;color:#FAF7F0">Total transmis net</div>
-        <div class="lt" style="font-size:10px;color:rgba(255,255,255,.6);margin-top:2px">(succession + AV)</div>
-      </div>
-      <span class="ser" style="font-size:22px;font-weight:600;color:#E3C485;white-space:nowrap">600 000 €</span>
-    </div>
-  
-
-    
-    <div style="margin-top:20px;background:#FBF8F1;border:0.5px solid #ECE3CF;border-left:3px solid #C4973D;border-radius:8px;padding:15px 17px">
-      <div class="ser" style="font-size:14px;color:#0F172A;margin-bottom:6px">Notre lecture</div>
-      <div class="lt" style="font-size:12.5px;color:#3A352B;line-height:1.6">Lecture de test succession B.</div>
-    </div>
-  
-  </div><div style="flex:2 1 0"></div></div>
-  
-      </div>
-      
-      
-    <div style="position:absolute;left:38px;right:38px;bottom:16px;border-top:1px solid #E4DDCF;padding-top:8px;display:flex;justify-content:space-between">
-      <span class="lt" style="font-size:10px;color:#A39A88">Cabinet Test - confidentiel</span>
-      <span class="lt" style="font-size:10px;color:#A39A88">2 / 8</span>
     </div>
   
     </div>
