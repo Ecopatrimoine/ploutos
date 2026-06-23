@@ -11,10 +11,9 @@ import {
   bandeKPI,
   sousTitreSection,
   encartNotreLecture,
-  piedPage,
-  coquillePage,
   euro,
 } from "../primitives";
+import { compilerPageContrat, type Bloc } from "../engine/contrat";
 import type { Tokens } from "../tokens";
 
 export type HypoScenarioKpi = {
@@ -76,42 +75,66 @@ export function pageHypos(t: Tokens, d: HyposPageData): string {
       </div>
     </div>`;
 
-  const corpsScenarios = d.scenarios.length > 0
-    ? d.scenarios.map(renderScenario).join("")
-    : `<div style="margin-top:14px;font-size:10.5px;color:${t.texteFaibleClair};font-style:italic;background:${t.fondTableauAlt};border:0.5px solid ${t.bordureClaire};border-radius:8px;padding:14px 16px">Aucune hypothèse complète saisie pour ce dossier. Les scénarios alternatifs sont à modéliser dans l'onglet « Hypothèses ».</div>`;
+  // ─── Déclaration des blocs (contrat de page, engine/contrat.ts) ──
+  const blocs: Bloc[] = [];
 
-  const contenu = `
-    ${header(t, {
+  // Header de page (insécable).
+  blocs.push({
+    kind: "insecable",
+    html: header(t, {
       eyebrow: "Optimisation",
       titre: "Scénarios d'optimisation",
       droiteHaut: d.clientName,
       droiteBas: d.dateStr,
-    })}
-
-    ${bandeKPI(t, kpiBase)}
-    <div class="foot">Référence de comparaison. Chaque scénario ci-dessous affiche le delta vs cette base — gain en vert, surcoût en rouge.</div>
-
-    ${d.scenarios.length > 0 ? `
-      <div style="margin-top:14px">
-        ${sousTitreSection(t, "Comparatif visuel — IR / IFI / Succession")}
-        ${renderHyposBarChart(t, d)}
-      </div>
-    ` : ""}
-
-    <div style="margin-top:14px">
-      ${sousTitreSection(t, `Scénarios étudiés — ${d.scenarios.length}`)}
-      ${corpsScenarios}
-    </div>
-
-    ${d.notreLecture ? encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) : ""}
-  `;
-
-  const pied = piedPage(t, {
-    gauche: d.cabinetLibellePied,
-    droite: d.pagePosition,
+    }),
   });
 
-  return coquillePage(t, { contenu, pied });
+  // Bande KPI de référence + note (insécables, gardées ensemble).
+  blocs.push({
+    kind: "insecable",
+    html: `${bandeKPI(t, kpiBase)}
+    <div class="foot">Référence de comparaison. Chaque scénario ci-dessous affiche le delta vs cette base — gain en vert, surcoût en rouge.</div>`,
+  });
+
+  // Comparatif visuel : sous-titre + chart SVG dans UN bloc insécable (le graphique
+  // n'est jamais coupé). Le chart garde son cap visuel à MAX_SCENARIOS_AFFICHES=3
+  // (renderHyposBarChart inchangé : 3 barres phares + note « + N non affichés »).
+  if (d.scenarios.length > 0) {
+    blocs.push({
+      kind: "insecable",
+      html: `<div style="margin-top:14px">
+        ${sousTitreSection(t, "Comparatif visuel — IR / IFI / Succession")}
+        ${renderHyposBarChart(t, d)}
+      </div>`,
+    });
+  }
+
+  // Sous-titre « Scénarios étudiés — N » : solidaire de sa 1ʳᵉ carte (titre non orphelin).
+  blocs.push({
+    kind: "insecable",
+    solidaireAvecSuivant: true,
+    html: `<div style="margin-top:14px">${sousTitreSection(t, `Scénarios étudiés — ${d.scenarios.length}`)}</div>`,
+  });
+
+  // CHAQUE carte de scénario = bloc insécable. Suite écoulée sur N feuilles, ZÉRO perte
+  // (contrairement au cap chart=3, les cartes ne sont PAS capées).
+  if (d.scenarios.length > 0) {
+    for (const s of d.scenarios) {
+      blocs.push({ kind: "insecable", html: renderScenario(s) });
+    }
+  } else {
+    blocs.push({
+      kind: "insecable",
+      html: `<div style="margin-top:14px;font-size:10.5px;color:${t.texteFaibleClair};font-style:italic;background:${t.fondTableauAlt};border:0.5px solid ${t.bordureClaire};border-radius:8px;padding:14px 16px">Aucune hypothèse complète saisie pour ce dossier. Les scénarios alternatifs sont à modéliser dans l'onglet « Hypothèses ».</div>`,
+    });
+  }
+
+  // Note de fin (queue épinglée en fin de flux).
+  if (d.notreLecture) {
+    blocs.push({ kind: "queue", html: encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) });
+  }
+
+  return compilerPageContrat(blocs);
 }
 
 // ─── Bar chart vertical groupé (IR / IFI / Succession) ──────────────
