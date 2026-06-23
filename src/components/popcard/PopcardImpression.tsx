@@ -15,7 +15,8 @@
 
 import React, { useState, useMemo } from "react";
 import { checkCompletude, sortPack, type PackItem, type CompletudeManque } from "../../lib/pdf/v2/popcard/checkCompletude";
-import { generatePack, type PackOverrides } from "../../lib/pdf/v2/popcard/concatPack";
+import { generatePack, type PackOverrides, type PackPayload } from "../../lib/pdf/v2/popcard/concatPack";
+import { ApercuPdf } from "./ApercuPdf";
 
 export type PopcardImpressionProps = {
   open: boolean;
@@ -85,6 +86,8 @@ export function PopcardImpression(p: PopcardImpressionProps) {
   const [lieuOverride, setLieuOverride] = useState("");
   const [checkOpen, setCheckOpen] = useState(false);
   const [missing, setMissing] = useState<CompletudeManque[]>([]);
+  // Phase 1 — aperçu nouveau moteur paged.js (args figés à l'ouverture pour éviter le re-render).
+  const [apercuArgs, setApercuArgs] = useState<{ packItems: PackItem[]; overrides: PackOverrides; payload: PackPayload } | null>(null);
   // Destinataire — pertinent uniquement en concubinage (foyers fiscaux séparés).
   const [recipientChoice, setRecipientChoice] = useState<"couple" | "person1" | "person2">(p.recipient || "couple");
 
@@ -96,6 +99,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
       setCheckOpen(false);
       setPaletteOverride((p.mission?.pdfPaletteOverride as any) || "");
       setRecipientChoice(p.recipient || "couple");
+      setApercuArgs(null);
     }
   }, [p.open, p.mission?.pdfPaletteOverride, p.recipient]);
 
@@ -156,16 +160,13 @@ export function PopcardImpression(p: PopcardImpressionProps) {
       setCheckOpen(true);
     }
   };
-  const doGenerate = () => {
+  // Construit overrides + payload (partagé : ancien chemin generatePack ET aperçu paged.js).
+  const buildOverridesPayload = (): { overrides: PackOverrides; payload: PackPayload } => {
     const overrides: PackOverrides = {
       pdfPaletteOverride: paletteOverride,
       lieuSignatureOverride: lieuOverride || undefined,
     };
-    // Persiste l'override palette dans mission (si updateMission fourni)
-    if (p.updateMission && paletteOverride !== (p.mission?.pdfPaletteOverride || "")) {
-      p.updateMission("pdfPaletteOverride", paletteOverride);
-    }
-    generatePack(packArr, overrides, {
+    const payload: PackPayload = {
       cabinet: p.cabinet,
       mission: { ...p.mission, lieuSignature: lieuOverride || p.mission.lieuSignature },
       data: p.data,
@@ -179,9 +180,31 @@ export function PopcardImpression(p: PopcardImpressionProps) {
       hypothesisResults: p.hypothesisResults,
       clientName: p.clientName,
       logoSrc: p.logoSrc,
-    });
+    };
+    return { overrides, payload };
+  };
+
+  // Persiste l'override palette dans mission (si updateMission fourni).
+  const persistPalette = () => {
+    if (p.updateMission && paletteOverride !== (p.mission?.pdfPaletteOverride || "")) {
+      p.updateMission("pdfPaletteOverride", paletteOverride);
+    }
+  };
+
+  const doGenerate = () => {
+    persistPalette();
+    const { overrides, payload } = buildOverridesPayload();
+    generatePack(packArr, overrides, payload);
     setCheckOpen(false);
     p.onClose();
+  };
+
+  // Phase 1 — aperçu nouveau moteur paged.js (prévisualisation : pas de gate complétude).
+  const handleApercu = () => {
+    if (packArr.length === 0) return;
+    persistPalette();
+    const { overrides, payload } = buildOverridesPayload();
+    setApercuArgs({ packItems: packArr, overrides, payload });
   };
 
   return (
@@ -372,6 +395,21 @@ export function PopcardImpression(p: PopcardImpressionProps) {
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={p.onClose} style={{ background: "transparent", color: "#637896", border: "1px solid #D8D2C6", padding: "9px 16px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Annuler</button>
               <button
+                onClick={handleApercu}
+                disabled={count === 0}
+                title="Aperçu paginé via le nouveau moteur paged.js (Phase 1)"
+                style={{
+                  background: count === 0 ? "#E2E8F0" : "transparent",
+                  color: count === 0 ? "#7E8F9F" : "#101B3B",
+                  border: count === 0 ? "1px solid #E2E8F0" : "1px solid #101B3B",
+                  padding: "9px 16px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
+                  cursor: count === 0 ? "not-allowed" : "pointer",
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                }}
+              >
+                <span>◷</span> Aperçu (nouveau moteur)
+              </button>
+              <button
                 onClick={handleGenerate}
                 disabled={count === 0}
                 style={{
@@ -425,6 +463,15 @@ export function PopcardImpression(p: PopcardImpressionProps) {
           </div>
         </div>
       )}
+
+      {/* ─── Phase 1 : aperçu nouveau moteur paged.js (coexiste avec l'ancien chemin) ─── */}
+      <ApercuPdf
+        open={!!apercuArgs}
+        onClose={() => setApercuArgs(null)}
+        packItems={apercuArgs?.packItems ?? []}
+        overrides={apercuArgs?.overrides ?? {}}
+        payload={apercuArgs?.payload ?? ({ cabinet: {}, mission: {}, data: {} } as PackPayload)}
+      />
     </>
   );
 }
