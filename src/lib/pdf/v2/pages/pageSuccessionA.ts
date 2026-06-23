@@ -3,42 +3,24 @@
 // Reproduit fidèlement la maquette
 //   revue-preview/pdf/refonte_pdf_succession_pageA_corrige_hauteur.html
 //
-// Réutilise au MAXIMUM les primitives v2 existantes : header, bandeKPI
-// (compact, 4 KPI), sousTitreSection, tableauTitresDores, encartNotreLecture,
-// piedPage, coquillePage. Nouvelles primitives consommées : badge,
-// barreDevolution.
-//
-// PAGINATION (Lot débordement) : la liste d'héritiers peut dépasser une feuille.
-// On garde EXACTEMENT le chemin v1.23.0 (corps centré via regionCorpsCentree) tant
-// que tout tient sur une feuille ; sinon on découpe la table PAR COMPTAGE sur
-// plusieurs feuilles (paginerLignesSurFeuilles), en-tête de colonnes répété, encart
-// « Notre lecture » + foot-note sur la dernière feuille seulement.
+// PHASE 3 (moteur paged.js) — page DÉCLARÉE via le contrat (engine/contrat.ts),
+// comme Recommandations/Hypos/IFI/PrevPerso. Sortie de coquillePage ET abandon du
+// chunking par comptage (paginerLignesSurFeuilles) : la table d'héritiers devient une
+// ListeEcoulable (mesurée par paged.js, thead répété + « (suite) »). foot-note CGI +
+// « Notre lecture » = queue épinglée en bas de la dernière feuille.
 
 import {
   header,
   bandeKPI,
   sousTitreSection,
   barreDevolution,
-  tableauTitresDores,
   encartNotreLecture,
-  piedPage,
-  coquillePage,
-  regionCorpsCentree,
-  paginerLignesSurFeuilles,
-  H_HEADER_PX,
-  H_BANDE_KPI_PX,
-  H_LIGNE_TEXTE_PX,
-  H_SOUSTITRE_PX,
-  H_BLOC_DEVOLUTION_PX,
-  H_FOOTNOTE_TABLE_PX,
-  H_ENCART_NOTRE_LECTURE_BASE_PX,
-  CHARS_PAR_LIGNE_CONVENTION,
-  CHARS_PAR_LIGNE_ENCART,
-  RESERVE_PIED_PX,
+  construireTableEcoulable,
   euro,
   type Col,
   type Cell,
 } from "../primitives";
+import { compilerPageContrat, type Bloc } from "../engine/contrat";
 import type { Tokens } from "../tokens";
 
 export type HeritierSuccession = {
@@ -99,7 +81,8 @@ export function pageSuccessionA(t: Tokens, d: SuccessionAPageData): string {
     { label: "Droits",     align: "right", width: "13%" },
     { label: "Net",        align: "right", width: "15%" },
   ];
-  // 1 row = 1 héritier (unité de découpage). poids = 2 si `composition` (2e sous-ligne US/NP).
+  // 1 row = 1 héritier. La `composition` (US/NP) ajoute une 2e sous-ligne DANS la cellule
+  // « Héritier » → la row reste un seul <tr> insécable, juste plus haute.
   const rendreLigne = (h: HeritierSuccession): Cell[] => ([
     {
       value: h.composition
@@ -118,134 +101,70 @@ export function pageSuccessionA(t: Tokens, d: SuccessionAPageData): string {
       : { value: euro(h.droits), align: "right", color: t.thOr },
     { value: euro(h.net), align: "right", bold: true },
   ]);
-  const poidsLigne = (h: HeritierSuccession): number => (h.composition ? 2 : 1);
   const rows: Cell[][] = d.heritiers.map(rendreLigne);
+  const { enteteHtml, lignesHtml } = construireTableEcoulable(t, { cols, rows });
 
-  // ─── Pièces partagées (extraites en consts : interpolation byte-identique au
-  //     chemin v1.23.0 ; réutilisées telles quelles dans le bloc de queue) ──
-  const enTete = header(t, {
-    eyebrow: "Transmission — volet 1 / 2",
-    titre: "Dévolution & droits",
-    droiteHaut: d.clientName,
-    droiteBas: d.dateStr,
-  });
-  const barreDevolutionHTML = barreDevolution(t, {
-    badge: d.devolutionBadge,
-    description: d.devolutionDescription,
-    segmentGauche: {
-      pct: d.reservePct,
-      couleur: t.navy,
-      texte: d.reserveLabel,
-      couleurTexte: t.kpiOrPale,
-    },
-    segmentDroite: {
-      pct: d.quotitePct,
-      couleur: t.or,
-      texte: d.quotiteLabel,
-      // Texte foncé sur or pour la lisibilité (contraste WCAG).
-      couleurTexte: "#3A2A07",
-    },
-    legendeGauche: {
-      label: "Réserve",
-      valeur: euro(d.reserveMontant),
-      couleurValeur: t.navy,
-    },
-    legendeDroite: {
-      label: "Quotité disponible",
-      valeur: euro(d.quotiteMontant),
-      couleurValeur: t.eyebrowOr,
-    },
-  });
+  // foot-note CGI (légende sous la table) — réutilisée dans la queue.
   const footNoteHTML = `<div class="foot" style="margin-top:6px">
         Part reçue = pleine propriété + nue-propriété fiscale + usufruit valorisé selon le coefficient Duvergier (CGI art. 669). Le conjoint marié ou partenaire de PACS est exonéré de droits (CGI art. 796-0 bis).
       </div>`;
-  const encartHTML = encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture });
 
-  // ─── Assemblage (chemin v1.23.0, conservé byte-identique en feuille unique) ──
-  const zoneHaute = `
-    ${enTete}
+  // ─── Déclaration des blocs (contrat de page) ──
+  const blocs: Bloc[] = [];
 
-    ${bandeKPI(t, kpis)}
-    <div class="foot">${d.noteKpi}</div>
-  `;
-
-  const corps = `
-
-    <div style="margin-top:18px">
-      ${sousTitreSection(t, "Dévolution")}
-      ${barreDevolutionHTML}
-    </div>
-
-    <div style="margin-top:18px">
-      ${sousTitreSection(t, "Détail par héritier")}
-      ${tableauTitresDores(t, { cols, rows })}
-      ${footNoteHTML}
-    </div>
-
-    ${encartHTML}
-  `;
-
-  const pied = piedPage(t, {
-    gauche: d.cabinetLibellePied,
-    droite: d.pagePosition,
+  // Header (insécable).
+  blocs.push({
+    kind: "insecable",
+    html: header(t, {
+      eyebrow: "Transmission — volet 1 / 2",
+      titre: "Dévolution & droits",
+      droiteHaut: d.clientName,
+      droiteBas: d.dateStr,
+    }),
   });
 
-  // ─── Décision de pagination par comptage (conservatrice, zéro DOM) ──
-  // Zone haute feuille 1 = header + KPI + note + Dévolution + sous-titre table.
-  // Zone haute continuation = header + sous-titre table (thead géré par le helper).
-  // Bloc de queue = foot-note + encart « Notre lecture » (épinglé dernière feuille).
-  const lignesNote = Math.max(1, Math.ceil(d.noteKpi.length / CHARS_PAR_LIGNE_CONVENTION));
-  const lignesNotreLecture = Math.max(1, Math.ceil(d.notreLecture.length / CHARS_PAR_LIGNE_ENCART));
-  const zoneHaute1Px =
-    H_HEADER_PX + H_BANDE_KPI_PX + lignesNote * H_LIGNE_TEXTE_PX + H_BLOC_DEVOLUTION_PX + H_SOUSTITRE_PX;
-  const zoneHauteContPx = H_HEADER_PX + H_SOUSTITRE_PX;
-  const hauteurBlocQueuePx =
-    H_FOOTNOTE_TABLE_PX + H_ENCART_NOTRE_LECTURE_BASE_PX + lignesNotreLecture * H_LIGNE_TEXTE_PX;
-  const blocQueueHTML = `${footNoteHTML}${encartHTML}`;
-
-  const fragments = paginerLignesSurFeuilles<HeritierSuccession>({
-    t,
-    lignes: d.heritiers,
-    cols,
-    rendreLigne,
-    poidsLigne,
-    blocQueueHTML,
-    zoneHaute1Px,
-    zoneHauteContPx,
-    hauteurBlocQueuePx,
+  // Bande KPI + note (insécables, gardées ensemble).
+  blocs.push({
+    kind: "insecable",
+    html: `${bandeKPI(t, kpis)}
+    <div class="foot">${d.noteKpi}</div>`,
   });
 
-  // ── Cas courant : tout tient sur UNE feuille → chemin v1.23.0 INCHANGÉ (corps centré) ──
-  if (fragments.length <= 1) {
-    const hauteurZoneHautPx = H_HEADER_PX + H_BANDE_KPI_PX + lignesNote * H_LIGNE_TEXTE_PX;
-    const contenu = `
-    ${zoneHaute}
-    ${regionCorpsCentree(corps, { hauteurZoneHautPx, reserveBasPx: RESERVE_PIED_PX })}
-  `;
-    return coquillePage(t, { contenu, pied });
-  }
-
-  // ── Multi-feuilles : Dévolution + table en flux depuis le haut, thead répété par
-  //    feuille, encart + foot-note sur la dernière. Pied/numérotation inchangés (même
-  //    pied sur toutes les feuilles ; l'écart X/N sections↔feuilles reste hors périmètre).
-  const devolutionBlock = `
-    <div style="margin-top:18px">
+  // Dévolution (badge + barre réserve/quotité) — insécable.
+  blocs.push({
+    kind: "insecable",
+    html: `<div style="margin-top:18px">
       ${sousTitreSection(t, "Dévolution")}
-      ${barreDevolutionHTML}
-    </div>`;
-  return fragments
-    .map((frag, i) => {
-      const estPremiere = i === 0;
-      const sousTitre = sousTitreSection(t, estPremiere ? "Détail par héritier" : "Détail par héritier (suite)");
-      const zone = estPremiere
-        ? `
-    ${zoneHaute}
-    ${devolutionBlock}
-    <div style="margin-top:18px">${sousTitre}</div>`
-        : `
-    ${enTete}
-    <div style="margin-top:18px">${sousTitre}</div>`;
-      return coquillePage(t, { contenu: `${zone}\n    ${frag}`, pied });
-    })
-    .join("");
+      ${barreDevolution(t, {
+        badge: d.devolutionBadge,
+        description: d.devolutionDescription,
+        segmentGauche: { pct: d.reservePct, couleur: t.navy, texte: d.reserveLabel, couleurTexte: t.kpiOrPale },
+        // Texte foncé sur or pour la lisibilité (contraste WCAG).
+        segmentDroite: { pct: d.quotitePct, couleur: t.or, texte: d.quotiteLabel, couleurTexte: "#3A2A07" },
+        legendeGauche: { label: "Réserve", valeur: euro(d.reserveMontant), couleurValeur: t.navy },
+        legendeDroite: { label: "Quotité disponible", valeur: euro(d.quotiteMontant), couleurValeur: t.eyebrowOr },
+      })}
+    </div>`,
+  });
+
+  // Sous-titre « Détail par héritier » : solidaire de son tableau (titre non orphelin).
+  blocs.push({
+    kind: "insecable",
+    solidaireAvecSuivant: true,
+    html: `<div style="margin-top:18px">${sousTitreSection(t, "Détail par héritier")}</div>`,
+  });
+
+  // Table héritiers = ListeEcoulable (coupable entre lignes ; thead répété + « (suite) »).
+  blocs.push({
+    kind: "liste",
+    enteteHtml,
+    lignesHtml,
+    styleTable: `width:100%;border-collapse:collapse;table-layout:fixed;border:0.5px solid ${t.bordureClaire};margin-top:12px`,
+  });
+
+  // Queue épinglée en bas de la dernière feuille : foot-note CGI + « Notre lecture ».
+  blocs.push({ kind: "queue", html: footNoteHTML });
+  blocs.push({ kind: "queue", html: encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) });
+
+  return compilerPageContrat(blocs);
 }
