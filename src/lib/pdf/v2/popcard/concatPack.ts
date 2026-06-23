@@ -231,7 +231,37 @@ function placeholderSection(t: any, item: PackItem, customMessage?: string): str
   </div>`;
 }
 
-/** Assemble le pack complet et ouvre la popup print. */
+/** Tokens v2 résolus pour ce pack (thème cabinet/encreOr + override per-dossier).
+ *  Exporté pour que le moteur paged.js (feeder) partage exactement la même palette. */
+export function resolvePackTokens(cabinet: Record<string, any>, overrides: PackOverrides) {
+  const themeV2 = resolveTheme(cabinet, overrides);
+  return buildTokens(themeV2.theme, themeV2.cabinetColors);
+}
+
+/** Rend les BODY HTML de CHAQUE section du pack (un par section, ordre canonique).
+ *  Réutilise renderItemBody — aucun contenu réécrit. Partagé par generatePack
+ *  (chemin window.print historique) ET le feeder paged.js (Phase 1). */
+export function renderPackItemBodies(
+  packItems: PackItem[],
+  overrides: PackOverrides,
+  payload: PackPayload,
+): string[] {
+  // Ordre canonique : bilan AVANT docs réglementaires
+  const ordered = sortPack(packItems);
+  const themeV2 = resolveTheme(payload.cabinet, overrides);
+  // Override lieu signature : injecté dans le payload mission temporairement
+  const missionWithOverride = overrides.lieuSignatureOverride
+    ? { ...payload.mission, lieuSignature: overrides.lieuSignatureOverride }
+    : payload.mission;
+  const payloadFinal = { ...payload, mission: missionWithOverride };
+  // Pagination "X / N" calculée ici (N = total sections du pack).
+  const total = ordered.length;
+  return ordered
+    .map((item, idx) => renderItemBody(item, payloadFinal, themeV2, { index: idx + 1, total }))
+    .filter(Boolean);
+}
+
+/** Assemble le pack complet et ouvre la popup print (chemin historique, INCHANGÉ). */
 export function generatePack(
   packItems: PackItem[],
   overrides: PackOverrides,
@@ -239,29 +269,13 @@ export function generatePack(
 ): void {
   if (packItems.length === 0) return;
 
-  // Ordre canonique : bilan AVANT docs réglementaires
-  const ordered = sortPack(packItems);
-
-  // Résolution du thème selon override
-  const themeV2 = resolveTheme(payload.cabinet, overrides);
-
-  // Override lieu signature : injecté dans le payload mission temporairement
-  const missionWithOverride = overrides.lieuSignatureOverride
-    ? { ...payload.mission, lieuSignature: overrides.lieuSignatureOverride }
-    : payload.mission;
-  const payloadFinal = { ...payload, mission: missionWithOverride };
-
-  // Rendu de chaque item — pagination "X / N" calculée ici (N = total sections du pack).
-  const total = ordered.length;
-  const bodies = ordered
-    .map((item, idx) => renderItemBody(item, payloadFinal, themeV2, { index: idx + 1, total }))
-    .filter(Boolean)
-    .join("");
+  // Bodies (mêmes que le moteur paged.js) concaténés en boîtes A4 fixes.
+  const bodies = renderPackItemBodies(packItems, overrides, payload).join("");
 
   // Assemblage final via coquilleDocument (header html + fonts + CSS + body)
-  const t = buildTokens(themeV2.theme, themeV2.cabinetColors);
+  const t = resolvePackTokens(payload.cabinet, overrides);
   const html = coquilleDocument(t, {
-    titre: `Pack PDF — ${payload.clientName || "Dossier client"} — ${ordered.length} document(s)`,
+    titre: `Pack PDF — ${payload.clientName || "Dossier client"} — ${sortPack(packItems).length} document(s)`,
     body: bodies,
   });
 
