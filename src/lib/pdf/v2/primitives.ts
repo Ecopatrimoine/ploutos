@@ -483,7 +483,7 @@ export function tableauTitresDores(t: Tokens, opts: {
   const renderRow = (row: Cell[], idx: number) =>
     `<tr${idx % 2 === 1 ? ` style="background:${t.fondTableauAlt}"` : ""}>${row.map((cell, i) => renderTd(cell, opts.cols[i])).join("")}</tr>`;
   return `
-    <div style="border:0.5px solid ${t.bordureClaire};border-radius:10px;overflow:hidden;margin-top:12px">
+    <div style="border:0.5px solid ${t.bordureClaire};border-radius:10px;margin-top:12px">
       <table style="width:100%;border-collapse:collapse;table-layout:fixed">
         <thead><tr style="background:${t.fondTableau};border-bottom:1px solid ${t.bordureSeuilRail}">
           ${opts.cols.map(renderTh).join("")}
