@@ -26,6 +26,7 @@ import {
   sousTitreSection,
   barreRailFill,
   encartNotreLecture,
+  construireTableEcoulable,
   euro,
   type Col,
   type Cell,
@@ -103,20 +104,9 @@ export function pageIFI(t: Tokens, d: IFIPageData): string {
     { value: euro(b.netTaxable), align: "right", bold: true },
   ]));
 
-  // ── Table de biens → ListeEcoulable : thead + <tr> séparés (même rendu .th/.td que
-  //    tableauTitresDores). Duplication ciblée à factoriser en Phase 3 (tables Succession).
-  const renderTh = (c: Col) =>
-    `<th class="th" style="text-align:${c.align || "left"};${c.width ? `width:${c.width}` : ""}">${c.label}</th>`;
-  const renderTd = (cell: Cell, col: Col) => {
-    const align = cell.align || col.align || "left";
-    const color = cell.color ? `color:${cell.color};` : "";
-    const weight = cell.bold ? "font-weight:700;" : "";
-    return `<td class="td" style="text-align:${align};${color}${weight}">${cell.value}</td>`;
-  };
-  const enteteHtml = `<thead><tr style="background:${t.fondTableau};border-bottom:1px solid ${t.bordureSeuilRail}">${cols.map(renderTh).join("")}</tr></thead>`;
-  const lignesHtml = rows.map((row, idx) =>
-    `<tr${idx % 2 === 1 ? ` style="background:${t.fondTableauAlt}"` : ""}>${row.map((cell, i) => renderTd(cell, cols[i])).join("")}</tr>`
-  );
+  // ── Table de biens → ListeEcoulable : thead + lignes <tr> via le helper partagé
+  //    construireTableEcoulable (même rendu .th/.td que tableauTitresDores).
+  const { enteteHtml, lignesHtml } = construireTableEcoulable(t, { cols, rows });
 
   // ── Déclaration des blocs (contrat de page) ──
   const blocs: Bloc[] = [];
