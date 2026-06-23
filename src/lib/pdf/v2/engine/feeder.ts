@@ -93,6 +93,17 @@ export function feederCss(t: Tokens, cabinetLibelle: string): string {
 /* ── Saut de feuille entre sections du pack (chaque section démarre une feuille) ── */
 #pack-flow > section { break-before: page; }
 #pack-flow > section:first-child { break-before: avoid; }
+
+/* ── Documents réglementaires : liseré navy 7px + or 2px réémis PAR FEUILLE ──
+   Le liseré était porté par la boîte A4 de coquillePageDocReg, neutralisée par le
+   pont Phase 1. On le repose ici via la classe named-page de paged.js, CONFINÉ aux
+   feuilles docReg (.pagedjs_docReg_page) → jamais sur les pages bilan. Déclencheur :
+   une section data-page="docReg" (cf. buildFeederDocument, hissé depuis data-pdf-page).
+   .pagedjs_pagebox est position:relative (base paged.js) → l'ancre couvre toute la feuille. */
+.pagedjs_docReg_page .pagedjs_pagebox::before {
+  content:""; position:absolute; left:0; top:0; bottom:0; width:9px; z-index:1; pointer-events:none;
+  background:linear-gradient(to right, ${t.navy} 0, ${t.navy} 7px, ${t.or} 7px, ${t.or} 9px);
+}
 `;
 }
 
@@ -111,7 +122,15 @@ export type FeederOptions = {
 /** Document HTML autonome EN FLUX, prêt à être paginé par paged.js (auto-run via PagedConfig).
  *  Expose, une fois paginé : window.__done / __pages / __ms et postMessage {pagedDone}. */
 export function buildFeederDocument(opts: FeederOptions): string {
-  const sections = opts.bodies.map((b) => `<section>${b}</section>`).join("\n");
+  // Named page paged.js : une page migrée peut demander une @page nommée en posant
+  // data-pdf-page="NOM" sur son wrapper. On HISSE ce marqueur en data-page sur la
+  // <section> -> paged.js tague alors CHAQUE feuille physique de la section
+  // (.pagedjs_NOM_page). Inerte si le marqueur est absent (sections inchangées).
+  const sections = opts.bodies.map((b) => {
+    const m = b.match(/data-pdf-page="([A-Za-z0-9_-]+)"/);
+    const pageAttr = m ? ` data-page="${m[1]}"` : "";
+    return `<section${pageAttr}>${b}</section>`;
+  }).join("\n");
   return `<!DOCTYPE html>
 <html lang="fr">
 <head>
