@@ -273,7 +273,7 @@ exports[`GOLDEN — pageFamille centrage (foyer court : corps centre, header en 
       <div style="margin-top:18px">
         <div class="sct">Enfants — 1 enregistré</div>
         
-    <div style="border:0.5px solid #EEE7D8;border-radius:10px;overflow:hidden;margin-top:12px">
+    <div style="border:0.5px solid #EEE7D8;border-radius:10px;margin-top:12px">
       <table style="width:100%;border-collapse:collapse;table-layout:fixed">
         <thead><tr style="background:#FBF7EF;border-bottom:1px solid #E7D9BF">
           <th class="th" style="text-align:left;width:22%">Prénom</th><th class="th" style="text-align:left;width:18%">Naissance</th><th class="th" style="text-align:left;width:22%">Lien</th><th class="th" style="text-align:left;width:14%">Garde</th><th class="th" style="text-align:center;width:12%">Rattaché</th><th class="th" style="text-align:center;width:12%">Handicap</th>
@@ -366,7 +366,7 @@ exports[`GOLDEN — pageSuccessionA centrage (cas court) > 9. cas court : base d
     <div style="margin-top:18px">
       <div class="sct">Détail par héritier</div>
       
-    <div style="border:0.5px solid #EEE7D8;border-radius:10px;overflow:hidden;margin-top:12px">
+    <div style="border:0.5px solid #EEE7D8;border-radius:10px;margin-top:12px">
       <table style="width:100%;border-collapse:collapse;table-layout:fixed">
         <thead><tr style="background:#FBF7EF;border-bottom:1px solid #E7D9BF">
           <th class="th" style="text-align:left;width:25%">Héritier</th><th class="th" style="text-align:left;width:18%">Lien</th><th class="th" style="text-align:right;width:16%">Part reçue</th><th class="th" style="text-align:right;width:13%">Abatt.</th><th class="th" style="text-align:right;width:13%">Droits</th><th class="th" style="text-align:right;width:15%">Net</th>
@@ -442,7 +442,7 @@ exports[`GOLDEN — pageSuccessionB centrage (cas court) > 10. cas court : base 
     <div style="margin-top:24px">
       <div class="sct">Détail par bénéficiaire</div>
       
-    <div style="border:0.5px solid #EEE7D8;border-radius:10px;overflow:hidden;margin-top:12px">
+    <div style="border:0.5px solid #EEE7D8;border-radius:10px;margin-top:12px">
       <table style="width:100%;border-collapse:collapse;table-layout:fixed">
         <thead><tr style="background:#FBF7EF;border-bottom:1px solid #E7D9BF">
           <th class="th" style="text-align:left;width:24%">Bénéficiaire</th><th class="th" style="text-align:left;width:14%">Lien</th><th class="th" style="text-align:right;width:16%">Capital</th><th class="th" style="text-align:right;width:18%">Abatt. 990 I</th><th class="th" style="text-align:right;width:12%">Fiscalité</th><th class="th" style="text-align:right;width:16%">Net</th>
