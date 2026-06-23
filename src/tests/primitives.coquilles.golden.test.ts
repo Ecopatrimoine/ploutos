@@ -220,25 +220,49 @@ const dBilan: BilanEndettementPageData = {
   pagePosition: "1 / 8", cabinetLibellePied: "Cabinet Test - confidentiel",
 };
 
-describe("GOLDEN — pageSuccessionA centrage (cas court)", () => {
-  it("9. cas court : base de regression + entretoises 1:2, header hors region", () => {
+describe("CONTRAT — pageSuccessionA (flux paged.js)", () => {
+  it("9. blocs declares : header, table heritiers ecoulable, queue (foot-note CGI + Notre lecture)", () => {
     const html = pageSuccessionA(t, dSuccA);
     expect(html).toMatchSnapshot();
-    expect(html).toContain(HAUTE);
-    expect(html).toContain(BASSE);
-    expect(html.indexOf("CLIENT_TEST")).toBeLessThan(html.indexOf(HAUTE));
-    expect(html.indexOf("HERITIER_TEST")).toBeGreaterThan(html.indexOf(HAUTE));
+    // Migration au contrat : plus de boite centree regionCorpsCentree (entretoises 1:2).
+    expect(html).not.toContain(HAUTE);
+    expect(html).not.toContain(BASSE);
+    expect(html).toContain('class="pdf-contrat"');
+    // Table heritiers = ListeEcoulable (table brute marquee pour le handler thead/(suite)).
+    expect(html).toContain("data-pdf-tbl");
+    expect(html).toContain("HERITIER_TEST");
+    // Titre "Detail par heritier" solidaire de son tableau (jamais orphelin).
+    expect(html).toContain("break-after:avoid");
+    // Queue epinglee en fin de flux : foot-note CGI + Notre lecture.
+    expect(html).toContain('class="pdf-queue"');
+    expect(html).toContain("CGI art. 669");
+    expect(html).toContain("Notre lecture");
+    // Ordre : header -> table -> queue.
+    expect(html.indexOf("CLIENT_TEST")).toBeLessThan(html.indexOf("data-pdf-tbl"));
+    expect(html.indexOf("data-pdf-tbl")).toBeLessThan(html.indexOf("Notre lecture"));
+    // La foot-note CGI est en queue, APRES la table (jamais avant/au milieu).
+    expect(html.indexOf("data-pdf-tbl")).toBeLessThan(html.indexOf("CGI art. 669"));
   });
 });
 
-describe("GOLDEN — pageSuccessionB centrage (cas court)", () => {
-  it("10. cas court : base de regression + entretoises 1:2, header hors region", () => {
+describe("CONTRAT — pageSuccessionB (flux paged.js)", () => {
+  it("10. blocs declares : header, table beneficiaires ecoulable, queue (clause + Total consolide + Notre lecture)", () => {
     const html = pageSuccessionB(t, dSuccB);
     expect(html).toMatchSnapshot();
-    expect(html).toContain(HAUTE);
-    expect(html).toContain(BASSE);
-    expect(html.indexOf("CLIENT_TEST")).toBeLessThan(html.indexOf(HAUTE));
-    expect(html.indexOf("BENEF_TEST")).toBeGreaterThan(html.indexOf(HAUTE));
+    expect(html).not.toContain(HAUTE);
+    expect(html).not.toContain(BASSE);
+    expect(html).toContain('class="pdf-contrat"');
+    expect(html).toContain("data-pdf-tbl");
+    expect(html).toContain("BENEF_TEST");
+    expect(html).toContain("break-after:avoid");
+    expect(html).toContain('class="pdf-queue"');
+    expect(html).toContain("Notre lecture");
+    // POINT DE VIGILANCE : le TOTAL consolide est EN QUEUE, APRES la table (jamais au milieu).
+    expect(html.indexOf("data-pdf-tbl")).toBeLessThan(html.indexOf("Total transmis net"));
+    expect(html.indexOf("BENEF_TEST")).toBeLessThan(html.indexOf("Total transmis net"));
+    expect(html.indexOf("CLIENT_TEST")).toBeLessThan(html.indexOf("data-pdf-tbl"));
+    // Ordre interne de la queue B : Total avant Notre lecture.
+    expect(html.indexOf("Total transmis net")).toBeLessThan(html.indexOf("Notre lecture"));
   });
 });
 
