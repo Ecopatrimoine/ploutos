@@ -5,7 +5,7 @@
 //
 // PHASE 3 (moteur paged.js) — page DÉCLARÉE via le contrat (engine/contrat.ts),
 // comme Recommandations/Hypos/IFI/PrevPerso. Sortie de coquillePage ET abandon du
-// chunking par comptage (paginerLignesSurFeuilles) : la table d'héritiers devient une
+// chunking par comptage : la table d'héritiers devient une
 // ListeEcoulable (mesurée par paged.js, thead répété + « (suite) »). foot-note CGI +
 // « Notre lecture » = queue épinglée en bas de la dernière feuille.
 
