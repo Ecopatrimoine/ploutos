@@ -107,8 +107,8 @@ describe("GOLDEN — pieds ancres", () => {
     expect(piedPage(t, { gauche, droite })).toMatchInlineSnapshot(`
       "
           <div style="position:absolute;left:38px;right:38px;bottom:16px;border-top:1px solid #E4DDCF;padding-top:8px;display:flex;justify-content:space-between">
-            <span class="lt" style="font-size:10px;color:#A39A88">GAUCHE</span>
-            <span class="lt" style="font-size:10px;color:#A39A88">DROITE</span>
+            <span class="lt" style="font-size:10px;color:#777060">GAUCHE</span>
+            <span class="lt" style="font-size:10px;color:#777060">DROITE</span>
           </div>
         "
     `);
@@ -118,8 +118,8 @@ describe("GOLDEN — pieds ancres", () => {
     expect(piedPageDocReg(t, { gauche, droite })).toMatchInlineSnapshot(`
       "
           <div style="position:absolute;left:44px;right:36px;bottom:15px;border-top:1px solid #E4DDCF;padding-top:7px;display:flex;justify-content:space-between">
-            <span class="lt" style="font-size:9.5px;color:#A39A88">GAUCHE</span>
-            <span class="lt" style="font-size:9.5px;color:#A39A88">DROITE</span>
+            <span class="lt" style="font-size:9.5px;color:#777060">GAUCHE</span>
+            <span class="lt" style="font-size:9.5px;color:#777060">DROITE</span>
           </div>
         "
     `);

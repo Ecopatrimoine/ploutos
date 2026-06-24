@@ -83,7 +83,7 @@ const ENCRE_OR: Tokens = {
   cream:             "#FAF7F0",
   texte:             "#3A352B",
   texteFaible:       "#6B6353",
-  texteFaibleClair:  "#A39A88",
+  texteFaibleClair:  "#777060",
   eyebrowOr:         "#8A6A1E",
   thOr:              "#9A7322",
   kpiOrPale:         "#E3C485",
@@ -123,8 +123,8 @@ export function buildTokens(theme: Theme, cabinet?: CouleursCabinet): Tokens {
     cream,
     // Texte : assombrissement progressif du navy pour la hiérarchie typo.
     texte:            mix(navy, "#FFFFFF", 0.18),    // navy → texte foncé lisible
-    texteFaible:      mix(navy, "#FFFFFF", 0.50),    // gris
-    texteFaibleClair: mix(navy, "#FFFFFF", 0.70),    // beige grisé
+    texteFaible:      mix(navy, "#FFFFFF", 0.28),    // gris
+    texteFaibleClair: mix(navy, "#FFFFFF", 0.375),   // beige grisé
     // Or assombri pour les libellés sur fond clair (eyebrow, th).
     eyebrowOr:        darken(or, 0.30),
     thOr:             darken(or, 0.20),

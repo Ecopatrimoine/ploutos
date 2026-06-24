@@ -55,7 +55,7 @@ exports[`CONTRAT — pageSuccessionA (flux paged.js) > 9. blocs declares : heade
 <div style="break-inside:avoid;break-after:avoid"><div style="margin-top:18px"><div class="sct">Détail par héritier</div></div></div>
 <table data-pdf-tbl style="width:100%;border-collapse:collapse;table-layout:fixed;border:0.5px solid #EEE7D8;margin-top:12px"><thead><tr style="background:#FBF7EF;border-bottom:1px solid #E7D9BF">
           <th class="th" style="text-align:left;width:25%">Héritier</th><th class="th" style="text-align:left;width:18%">Lien</th><th class="th" style="text-align:right;width:16%">Part reçue</th><th class="th" style="text-align:right;width:13%">Abatt.</th><th class="th" style="text-align:right;width:13%">Droits</th><th class="th" style="text-align:right;width:15%">Net</th>
-        </tr></thead><tbody><tr><td class="td" style="text-align:left;">HERITIER_TEST</td><td class="td" style="text-align:left;color:#6B6353;">Conjoint</td><td class="td" style="text-align:right;">240 000 €</td><td class="td" style="text-align:right;color:#A39A88;">—</td><td class="td" style="text-align:right;color:#2F7D5B;font-weight:700;">exonéré</td><td class="td" style="text-align:right;font-weight:700;">240 000 €</td></tr></tbody></table>
+        </tr></thead><tbody><tr><td class="td" style="text-align:left;">HERITIER_TEST</td><td class="td" style="text-align:left;color:#6B6353;">Conjoint</td><td class="td" style="text-align:right;">240 000 €</td><td class="td" style="text-align:right;color:#777060;">—</td><td class="td" style="text-align:right;color:#2F7D5B;font-weight:700;">exonéré</td><td class="td" style="text-align:right;font-weight:700;">240 000 €</td></tr></tbody></table>
 <div class="pdf-queue" style="break-inside:avoid"><div class="foot" style="margin-top:6px">
         Part reçue = pleine propriété + nue-propriété fiscale + usufruit valorisé selon le coefficient Duvergier (CGI art. 669). Le conjoint marié ou partenaire de PACS est exonéré de droits (CGI art. 796-0 bis).
       </div></div>
@@ -245,8 +245,8 @@ exports[`GOLDEN — pageBilanEndettement centrage (cas court) > 11. cas court : 
       
       
     <div style="position:absolute;left:38px;right:38px;bottom:16px;border-top:1px solid #E4DDCF;padding-top:8px;display:flex;justify-content:space-between">
-      <span class="lt" style="font-size:10px;color:#A39A88">Cabinet Test - confidentiel</span>
-      <span class="lt" style="font-size:10px;color:#A39A88">1 / 8</span>
+      <span class="lt" style="font-size:10px;color:#777060">Cabinet Test - confidentiel</span>
+      <span class="lt" style="font-size:10px;color:#777060">1 / 8</span>
     </div>
   
     </div>
@@ -404,7 +404,7 @@ exports[`GOLDEN — pageFamille centrage (foyer court : corps centre, header en 
           <th class="th" style="text-align:left;width:22%">Prénom</th><th class="th" style="text-align:left;width:18%">Naissance</th><th class="th" style="text-align:left;width:22%">Lien</th><th class="th" style="text-align:left;width:14%">Garde</th><th class="th" style="text-align:center;width:12%">Rattaché</th><th class="th" style="text-align:center;width:12%">Handicap</th>
         </tr></thead>
         <tbody>
-          <tr><td class="td" style="text-align:left;">Lou</td><td class="td" style="text-align:left;color:#6B6353;">01/01/2015</td><td class="td" style="text-align:left;">Commun</td><td class="td" style="text-align:left;">Pleine</td><td class="td" style="text-align:center;color:#2F7D5B;">✓</td><td class="td" style="text-align:center;color:#A39A88;">—</td></tr>
+          <tr><td class="td" style="text-align:left;">Lou</td><td class="td" style="text-align:left;color:#6B6353;">01/01/2015</td><td class="td" style="text-align:left;">Commun</td><td class="td" style="text-align:left;">Pleine</td><td class="td" style="text-align:center;color:#2F7D5B;">✓</td><td class="td" style="text-align:center;color:#777060;">—</td></tr>
         </tbody>
       </table>
     </div>
@@ -419,8 +419,8 @@ exports[`GOLDEN — pageFamille centrage (foyer court : corps centre, header en 
       
       
     <div style="position:absolute;left:38px;right:38px;bottom:16px;border-top:1px solid #E4DDCF;padding-top:8px;display:flex;justify-content:space-between">
-      <span class="lt" style="font-size:10px;color:#A39A88">Cabinet Test</span>
-      <span class="lt" style="font-size:10px;color:#A39A88">1 / 8</span>
+      <span class="lt" style="font-size:10px;color:#777060">Cabinet Test</span>
+      <span class="lt" style="font-size:10px;color:#777060">1 / 8</span>
     </div>
   
     </div>
