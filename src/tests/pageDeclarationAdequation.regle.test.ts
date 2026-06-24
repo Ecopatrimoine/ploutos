@@ -141,4 +141,10 @@ describe("Déclaration d'adéquation — non-perte réglementaire (Étage 1)", (
     const entreDeux = html.slice(iAtt, iSig);
     expect(entreDeux, "une frontière de bloc sépare l'attestation de la signature").not.toContain('style="break-inside:avoid');
   });
+
+  it("7. marqueur data-pdf-doc présent (numérotation X/N PAR DOCUMENT, libellé DA)", () => {
+    // Le feeder hisse ce marqueur en data-doc ; le DocNumHandler numérote
+    // « Déclaration d'adéquation · X / N » (compteur propre au document, pas le pack global).
+    expect(html).toContain(`data-pdf-doc="Déclaration d'adéquation"`);
+  });
 });
