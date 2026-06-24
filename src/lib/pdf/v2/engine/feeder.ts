@@ -19,7 +19,7 @@
 import type { Tokens } from "../tokens";
 import { FONTS_HTML_LINKS } from "../tokens";
 import { cssCommun } from "../primitives";
-import { HANDLER_SCRIPT } from "./pagedHandler";
+import { HANDLER_SCRIPT, DOCNUM_HANDLER_SCRIPT, COVER_HANDLER_SCRIPT } from "./pagedHandler";
 
 // Géométrie du moteur (mm).
 // MARGES LATÉRALES @page = 0 : la boîte module (width:210mm) occupe toute la largeur
@@ -104,6 +104,16 @@ export function feederCss(t: Tokens, cabinetLibelle: string): string {
   content:""; position:absolute; left:0; top:0; bottom:0; width:9px; z-index:1; pointer-events:none;
   background:linear-gradient(to right, ${t.navy} 0, ${t.navy} 7px, ${t.or} 7px, ${t.or} 9px);
 }
+
+/* ── Numerotation X/N PAR DOCUMENT (documents reglementaires) ──
+   Le DocNumHandler pose EN POST-LAYOUT la classe docnum-fixed + l'attribut
+   data-docnum="<libelle> · X / N" sur la margin-box bas-droite des SEULES feuilles
+   portant data-doc (reglementaires). On surcharge alors le compteur global ::after par
+   le numero PAR DOCUMENT. Les feuilles SANS data-doc (bilan, prevoyance...) ne sont pas
+   touchees et gardent le @bottom-right global counter(page)/counter(pages). */
+.pagedjs_margin-bottom-right .pagedjs_margin-content.docnum-fixed::after {
+  content: attr(data-docnum) !important;
+}
 `;
 }
 
@@ -129,7 +139,14 @@ export function buildFeederDocument(opts: FeederOptions): string {
   const sections = opts.bodies.map((b) => {
     const m = b.match(/data-pdf-page="([A-Za-z0-9_-]+)"/);
     const pageAttr = m ? ` data-page="${m[1]}"` : "";
-    return `<section${pageAttr}>${b}</section>`;
+    // Numerotation X/N PAR DOCUMENT : on hisse data-pdf-doc -> data-doc sur la <section>,
+    // MIROIR EXACT du hoist named-page ci-dessus. La valeur (libelle lisible du document)
+    // sert A LA FOIS de cle de regroupement et de prefixe affiche par le DocNumHandler.
+    // Charset elargi ([^"]) car le libelle porte espaces/accents/apostrophe. Inerte si
+    // absent (section non-docReg -> pas de data-doc -> compteur @page global conserve).
+    const md = b.match(/data-pdf-doc="([^"]+)"/);
+    const docAttr = md ? ` data-doc="${md[1]}"` : "";
+    return `<section${pageAttr}${docAttr}>${b}</section>`;
   }).join("\n");
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -158,6 +175,8 @@ ${sections}
 </div>
 <script>${opts.polyfillCode}</script>
 <script>${HANDLER_SCRIPT}</script>
+<script>${DOCNUM_HANDLER_SCRIPT}</script>
+<script>${COVER_HANDLER_SCRIPT}</script>
 </body>
 </html>`;
 }
