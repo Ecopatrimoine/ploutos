@@ -128,7 +128,8 @@ export const DOCNUM_HANDLER_SCRIPT = `
 // fantome en tete -> total +1, decalage du numero) : elle reste une <section> NUE.
 // A la place, elle porte un marqueur NON-page data-pdf-cover (inerte aux hoists
 // data-pdf-page / data-pdf-doc du feeder), et ce handler masque EN POST-LAYOUT ses 3
-// margin-boxes sur la SEULE feuille qui contient ce marqueur.
+// margin-boxes ET le titre courant .doctitle (redondant) sur la SEULE feuille qui
+// contient ce marqueur.
 //
 // Robuste : cible le CONTENU (le marqueur), pas la position (pas de .pagedjs_first_page
 // qui blanchirait a tort la 1re feuille d'un pack sans couverture). Masquer les boites
@@ -147,6 +148,12 @@ export const COVER_HANDLER_SCRIPT = `
         var box = pageEl.querySelector(".pagedjs_margin-" + sides[i]);
         if (box) box.style.display = "none";
       }
+      // Titre courant en flux (.doctitle) : redondant en haut de la couverture (qui a
+      // deja son grand titre). Il reste la SOURCE de string-set: doctitle, mais celui-ci
+      // est CAPTURE au LAYOUT -> ce masquage POST-layout ne touche PAS l'en-tete courant
+      // @top-left des autres feuilles (en-tete preserve sur bilan/docReg).
+      var dt = pageEl.querySelector(".doctitle");
+      if (dt) dt.style.display = "none";
     }
   }
   window.Paged.registerHandlers(CoverHandler);
