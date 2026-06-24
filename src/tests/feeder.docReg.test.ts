@@ -10,7 +10,7 @@
 import { describe, it, expect } from "vitest";
 import { buildTokens } from "../lib/pdf/v2/tokens";
 import { feederCss, buildFeederDocument } from "../lib/pdf/v2/engine/feeder";
-import { DOCNUM_HANDLER_SCRIPT } from "../lib/pdf/v2/engine/pagedHandler";
+import { DOCNUM_HANDLER_SCRIPT, COVER_HANDLER_SCRIPT } from "../lib/pdf/v2/engine/pagedHandler";
 
 const t = buildTokens("encreOr");
 
@@ -119,5 +119,35 @@ describe("Feeder — numérotation X/N PAR DOCUMENT (LOT docnum)", () => {
     // Le script (qui définit la classe docnum-fixed) est présent dans le document.
     expect(html).toContain("docnum-fixed");
     expect(html).toContain("window.Paged.registerHandlers(DocNumHandler)");
+  });
+});
+
+// ─── MINI-LOT couverture #2 — CoverHandler masque aussi le titre courant .doctitle ──
+//
+// La couverture est comptee mais NON numerotee (lot #1 : 3 margin-boxes masquees). Lot #2 :
+// le CoverHandler masque AUSSI le .doctitle (titre courant en flux, redondant en haut de la
+// couverture) sur la SEULE feuille data-pdf-cover, en POST-layout. Le .doctitle reste la
+// source de string-set: doctitle -> l'en-tete courant @top-left des AUTRES feuilles est
+// preserve (string-set capture au layout, masquage post-layout). On lock la forme du handler.
+describe("CoverHandler — masque aussi .doctitle sur la feuille cover (LOT couverture #2)", () => {
+  it("COVER_HANDLER_SCRIPT : masque .doctitle, confine a [data-pdf-cover], post-layout", () => {
+    // Confinement : agit uniquement sur la feuille portant le marqueur cover.
+    expect(COVER_HANDLER_SCRIPT).toContain("[data-pdf-cover]");
+    // Hook POST-layout (string-set deja capture -> en-tete des autres feuilles intact).
+    expect(COVER_HANDLER_SCRIPT).toContain("afterPageLayout");
+    // Masque le titre courant en flux.
+    expect(COVER_HANDLER_SCRIPT).toContain(`querySelector(".doctitle")`);
+    expect(COVER_HANDLER_SCRIPT).toContain(`dt.style.display = "none"`);
+    // Toujours les 3 margin-boxes du lot #1 (additif, non regressif).
+    expect(COVER_HANDLER_SCRIPT).toContain("pagedjs_margin-");
+  });
+
+  it("buildFeederDocument injecte le COVER_HANDLER_SCRIPT dans le document", () => {
+    const html = buildFeederDocument({
+      bodies: [`<div data-pdf-cover="1">couverture</div>`],
+      t, doctitle: "T", cabinetLibelle: "C", polyfillCode: "POLY",
+    });
+    expect(html).toContain("window.Paged.registerHandlers(CoverHandler)");
+    expect(html).toContain(`querySelector(".doctitle")`);
   });
 });
