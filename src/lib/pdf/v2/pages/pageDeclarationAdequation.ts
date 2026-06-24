@@ -1,24 +1,32 @@
-// ─── Lot 9 — Page Déclaration d'adéquation v2 (2 pages) ───────────────
+// ─── Lot 1b — Page Déclaration d'adéquation v2 (MIGRÉE au contrat moteur) ─────
 //
 // Reproduit fidèlement la maquette
 //   revue-preview/pdf/refonte_pdf_declaration_adequation_2pages.html
 //
-// Document MIF II / RG AMF — justifie en quoi la recommandation correspond
-// au profil du client (incluant la recommandation de ne pas agir). Remis
+// Document MIF II / RG AMF — justifie en quoi la recommandation correspond au
+// profil du client (incluant la recommandation de ne pas agir). Remis
 // préalablement à toute opération.
 //
-// Structure 2 pages :
-//   • Page 1 : Intro + Votre profil retenu (5 champs grille) + Notre
-//              recommandation (3 lignes › plan d'action)
-//   • Page 2 : Mise en regard besoin → réponse (5 lignes) + Coûts & frais
-//              + Suivi de l'adéquation + Signature (slot bas)
+// PHASE 3 (moteur paged.js) — PREMIER document réglementaire migré au contrat
+// (engine/contrat.ts). Le découpage manuel p1/p2 DISPARAÎT : la page DÉCLARE une
+// séquence de blocs ; paged.js pagine selon le contenu réel (N feuilles).
+//   • Sortie de coquillePageDocReg : plus de boîte A4, plus de pied codé en dur
+//     (« 1 / 2 ») — le feeder fournit en-tête / pied / X-N par counter(page).
+//   • Liseré navy+or : réémis PAR FEUILLE via le marqueur data-pdf-page="docReg"
+//     posé sur le wrapper (cf. LOT 1a, feeder + .pagedjs_docReg_page).
+//   • Marges docReg 44/36 PRÉSERVÉES (divergence intentionnelle) : on n'utilise PAS
+//     compilerPageContrat (32/38 figé) — on enveloppe nous-mêmes via compilerBloc.
+//   • recommandationsGroupees (NON BORNÉE, le cas qui clippait) → suite de cartes
+//     BlocInsecable écoulées sur N feuilles, zéro perte.
+//   • SLOT SIGNATURE (2 cadres + mention) → BlocInsecable solidaireAvecPrecedent
+//     (flag Lot 0, break-before:avoid = anti « signature veuve »). Remplace le slot
+//     absolu bottom:42 qui était SUPPRIMÉ (display:none) sur le chemin paged.js.
 
 import {
-  coquillePageDocReg,
-  piedPageDocReg,
   headerDocReg,
   legendeChampsDocReg,
   encadreDocReg,
+  sousTitreSection,
   champCabinet,
   champMission,
   cadresSignatureDocReg,
@@ -27,6 +35,7 @@ import {
   icones,
   type LigneBesoinReponse,
 } from "../primitives";
+import { compilerBloc, type Bloc } from "../engine/contrat";
 import type { Tokens } from "../tokens";
 
 export type ChampProfilAdequation = {
@@ -99,7 +108,6 @@ export type DeclarationAdequationPageData = {
 };
 
 export function pageDeclarationAdequation(t: Tokens, d: DeclarationAdequationPageData): string {
-  // ─── PAGE 1 — Intro + Profil retenu + Notre recommandation ──────────
   const introTexte = `Ce document justifie <strong>en quoi la recommandation correspond à votre profil</strong>, sur la base des informations recueillies. Il vous est remis préalablement à toute opération, <strong>y compris si la recommandation est de ne pas agir</strong>.`;
 
   // ── Encadré « Votre profil retenu » : grille 2 cols + champs pleine
@@ -141,38 +149,10 @@ export function pageDeclarationAdequation(t: Tokens, d: DeclarationAdequationPag
   // Date composite (date + heure) — slot dateValeurHtml du headerDocReg
   const dateValeurComposite = `${champMission(t, d.dateConseil)} à ${champMission(t, d.heureConseil)}`;
 
-  const page1Contenu = `
-    ${headerDocReg(t, {
-      eyebrow: "Document réglementaire",
-      titre: "Déclaration\nd'adéquation",
-      cabinetNom: d.cabinetNom,
-      dateLabel: "Conseil donné le",
-      dateValeurHtml: dateValeurComposite,
-    })}
-
-    <div class="lt" style="font-size:10px;color:${t.texteFaible};line-height:1.5;margin-top:11px">
-      ${introTexte}
-    </div>
-
-    ${legendeChampsDocReg(t)}
-
-    ${encadreDocReg(t, { titre: "Votre profil retenu",  marginTop: "14px", contenuHtml: profilContenu })}
-    ${encadreDocReg(t, { titre: "Notre recommandation", marginTop: "13px", contenuHtml: recoContenu })}
-  `;
-
-  const page1 = coquillePageDocReg(t, {
-    contenu: page1Contenu,
-    pied: piedPageDocReg(t, {
-      gauche: `${d.cabinetNom} · Déclaration d'adéquation`,
-      droite: "1 / 2",
-    }),
-  });
-
-  // ─── PAGE 2 — Mise en regard + Coûts & frais + Suivi + Signature ────
-  // Encadré « En quoi ce conseil vous correspond » via primitive partagée
+  // ── Encadré « En quoi ce conseil vous correspond » via primitive partagée
   const miseEnRegardContenu = tableauBesoinReponse(t, d.miseEnRegard);
 
-  // Encadré « Coûts & frais » : 2 champs varm + paragraphe avec varc nature conseil
+  // ── Encadré « Coûts & frais »
   const coutsContenu = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 18px">
       <div>
@@ -189,38 +169,22 @@ export function pageDeclarationAdequation(t: Tokens, d: DeclarationAdequationPag
     </div>
   `;
 
-  // Encadré « Suivi de l'adéquation » : phrase avec 2 champs varc
+  // ── Encadré « Suivi de l'adéquation »
   const suiviContenu = `
     <div class="lt" style="font-size:10.5px;color:${t.texte};line-height:1.55">
       Une évaluation périodique du caractère adéquat des recommandations ${champCabinet(t, d.suiviActiveHtml)} fournie. Le cas échéant, sa fréquence est de ${champCabinet(t, d.periodiciteSuiviHtml)}. Le profil doit être actualisé en cas d'évolution de votre situation.
     </div>
   `;
 
-  // ── Nouvel encadré « Recommandations issues du diagnostic » ──────────
-  // Recos Lot 7 groupées par dimension (besoin / risque / ESG / capacité
-  // de perte). Rendu seulement si l'adapter passe des recos enrichies.
-  const matriceRecosContenu = (d.recommandationsGroupees && d.recommandationsGroupees.length > 0)
-    ? d.recommandationsGroupees.map(g => `
-        <div style="margin-bottom:10px">
-          <div style="font-family:'Lato',sans-serif;font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;color:${t.texteFaibleClair};margin-bottom:5px">${g.dimensionLabel}</div>
-          ${g.recos.map(r => `
-            <div style="background:${t.fondTableauAlt};border:0.5px solid ${t.bordureClaire};border-left:3px solid ${t.or};border-radius:6px;padding:7px 11px;margin-bottom:5px;page-break-inside:avoid;break-inside:avoid">
-              <div class="lt" style="font-size:10.5px;color:${t.texte};font-weight:700;margin-bottom:2px">${r.libelle}</div>
-              <div class="lt" style="font-size:10px;color:${t.texteFaible};line-height:1.45">${r.justification}</div>
-              ${r.besoinLibelle ? `<div class="lt" style="font-size:8.5px;color:${t.texteFaibleClair};margin-top:3px;font-style:italic">Lié au besoin : ${r.besoinLibelle}</div>` : ""}
-            </div>
-          `).join("")}
-        </div>
-      `).join("")
-    : "";
-  const matriceRecos = matriceRecosContenu
-    ? encadreDocReg(t, { titre: "Recommandations issues du diagnostic", marginTop: "12px", contenuHtml: matriceRecosContenu })
-    : "";
+  // ── Carte de reco (matrice) : 1 carte = 1 BlocInsecable (suite écoulée,
+  // comme les cartes Hypos) → zéro perte même si la liste déborde sur N feuilles.
+  const renderRecoCard = (r: { libelle: string; justification: string; besoinLibelle?: string }) => `<div style="background:${t.fondTableauAlt};border:0.5px solid ${t.bordureClaire};border-left:3px solid ${t.or};border-radius:6px;padding:7px 11px;margin-bottom:5px;page-break-inside:avoid;break-inside:avoid">
+      <div class="lt" style="font-size:10.5px;color:${t.texte};font-weight:700;margin-bottom:2px">${r.libelle}</div>
+      <div class="lt" style="font-size:10px;color:${t.texteFaible};line-height:1.45">${r.justification}</div>
+      ${r.besoinLibelle ? `<div class="lt" style="font-size:8.5px;color:${t.texteFaibleClair};margin-top:3px;font-style:italic">Lié au besoin : ${r.besoinLibelle}</div>` : ""}
+    </div>`;
 
-  // ── Encart « Vos réponses au questionnaire MIF II » (page 2) ──────
-  // Affichage des 6 lignes Q&A pour que le client signe ses réponses,
-  // pas seulement le résultat de profil calculé. Rendu uniquement si
-  // l'adapter passe `questionnaireSigne` (sinon section omise).
+  // ── Encart « Vos réponses au questionnaire MIF II » (contenu)
   const questionnaireSigneContenu = (d.questionnaireSigne && d.questionnaireSigne.length > 0)
     ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px">
         ${d.questionnaireSigne.map(qr => `
@@ -234,23 +198,11 @@ export function pageDeclarationAdequation(t: Tokens, d: DeclarationAdequationPag
         En signant ce document, vous attestez de l'exactitude de ces réponses qui ont servi de base à la détermination de votre profil et au conseil donné.
       </div>`
     : "";
-  const questionnaireSigne = questionnaireSigneContenu
-    ? encadreDocReg(t, { titre: "Vos réponses au questionnaire MIF II", marginTop: "12px", contenuHtml: questionnaireSigneContenu })
-    : "";
 
-  const page2Contenu = `
-    ${encadreDocReg(t, { titre: "En quoi ce conseil vous correspond", marginTop: "0",    contenuHtml: miseEnRegardContenu })}
-    ${matriceRecos}
-    ${questionnaireSigne}
-    ${encadreDocReg(t, { titre: "Coûts & frais",                       marginTop: "12px", contenuHtml: coutsContenu })}
-    ${encadreDocReg(t, { titre: "Suivi de l'adéquation",               marginTop: "12px", contenuHtml: suiviContenu })}
-  `;
-
-  // Slot signature en bas absolu (convention DocReg) :
-  // cadres signature (mention "Conseil donné le date à heure — remis y
-  // compris en l'absence de transaction") → note discrète
+  // Slot signature : MÊME HTML qu'avant (2 cadres client/cabinet + mention non
+  // contractuelle) — seule l'ENVELOPPE change (slot absolu bottom:42 → bloc en flux).
   const mentionConseilHtml = `Conseil donné le ${champMission(t, d.dateConseil)} à ${champMission(t, d.heureConseil)} — remis y compris en l'absence de transaction.`;
-  const page2Signature = `
+  const signatureHtml = `
     ${cadresSignatureDocReg(t, {
       cabinetNomConseiller: d.cabinetConseiller,
       cabinetNom: d.cabinetNom,
@@ -267,14 +219,84 @@ export function pageDeclarationAdequation(t: Tokens, d: DeclarationAdequationPag
     })}
   `;
 
-  const page2 = coquillePageDocReg(t, {
-    contenu: page2Contenu,
-    signature: page2Signature,
-    pied: piedPageDocReg(t, {
-      gauche: `${d.cabinetNom} · Déclaration d'adéquation`,
-      droite: "2 / 2",
+  // ─── Déclaration des blocs (contrat de page) — ordre du flux ──────────
+  const blocs: Bloc[] = [];
+
+  // En-tête / intro / légende.
+  blocs.push({
+    kind: "insecable",
+    html: headerDocReg(t, {
+      eyebrow: "Document réglementaire",
+      titre: "Déclaration\nd'adéquation",
+      cabinetNom: d.cabinetNom,
+      dateLabel: "Conseil donné le",
+      dateValeurHtml: dateValeurComposite,
     }),
   });
+  blocs.push({
+    kind: "insecable",
+    html: `<div class="lt" style="font-size:10px;color:${t.texteFaible};line-height:1.5;margin-top:11px">${introTexte}</div>`,
+  });
+  blocs.push({ kind: "insecable", html: legendeChampsDocReg(t) });
 
-  return page1 + page2;
+  // Profil retenu + Notre recommandation (nominales).
+  blocs.push({ kind: "insecable", html: encadreDocReg(t, { titre: "Votre profil retenu",  marginTop: "14px", contenuHtml: profilContenu }) });
+  blocs.push({ kind: "insecable", html: encadreDocReg(t, { titre: "Notre recommandation", marginTop: "13px", contenuHtml: recoContenu }) });
+
+  // Mise en regard besoin → réponse (bornée).
+  blocs.push({ kind: "insecable", html: encadreDocReg(t, { titre: "En quoi ce conseil vous correspond", marginTop: "13px", contenuHtml: miseEnRegardContenu }) });
+
+  // Matrice recos par dimension : sous-titre solidaire de sa 1ʳᵉ carte, puis
+  // CHAQUE carte = un BlocInsecable (suite écoulée, NON BORNÉE, zéro perte).
+  if (d.recommandationsGroupees && d.recommandationsGroupees.length > 0) {
+    blocs.push({
+      kind: "insecable",
+      solidaireAvecSuivant: true,
+      html: `<div style="margin-top:13px">${sousTitreSection(t, "Recommandations issues du diagnostic", { style: "serif" })}</div>`,
+    });
+    for (const g of d.recommandationsGroupees) {
+      blocs.push({
+        kind: "insecable",
+        solidaireAvecSuivant: true,
+        html: `<div style="font-family:'Lato',sans-serif;font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;color:${t.texteFaibleClair};margin:8px 0 5px">${g.dimensionLabel}</div>`,
+      });
+      for (const r of g.recos) {
+        blocs.push({ kind: "insecable", html: renderRecoCard(r) });
+      }
+    }
+  }
+
+  // Coûts & frais / Suivi (disclosures) — REMONTÉS au-dessus de l'unité de signature :
+  // ce ne sont pas eux que la phrase d'attestation MIF II vise, ils n'ont pas à
+  // s'intercaler entre les réponses attestées et la signature.
+  blocs.push({ kind: "insecable", html: encadreDocReg(t, { titre: "Coûts & frais",         marginTop: "12px", contenuHtml: coutsContenu }) });
+  blocs.push({ kind: "insecable", html: encadreDocReg(t, { titre: "Suivi de l'adéquation", marginTop: "12px", contenuHtml: suiviContenu }) });
+
+  // ── UNITÉ TERMINALE RÉGLEMENTAIRE — cohérence attestation ↔ signature ──
+  // Le client doit voir CE QU'IL ATTESTE en signant : les réponses MIF II + la phrase
+  // « vous attestez de l'exactitude… » + les cadres de signature + la mention vivent
+  // dans UN SEUL BlocInsecable -> jamais séparés par une coupure de feuille.
+  // Unité BORNÉE (questionnaire ~6 Q/R fixe + signature fixe ≈ 330-400px << feuille) :
+  // on garde break-inside:avoid (garantie forte). PAS de secableEnDernierRecours, qui
+  // (break-inside:auto) réautoriserait un split à la jointure de feuille et
+  // réintroduirait l'incohérence. solidaireAvecPrecedent = anti-veuve (l'unité reste
+  // avec Suivi, jamais seule en haut d'une feuille de continuation).
+  const questionnaireEncadreHtml = questionnaireSigneContenu
+    ? encadreDocReg(t, { titre: "Vos réponses au questionnaire MIF II", marginTop: "12px", contenuHtml: questionnaireSigneContenu })
+    : "";
+  blocs.push({
+    kind: "insecable",
+    solidaireAvecPrecedent: true,
+    html: `${questionnaireEncadreHtml}<div style="margin-top:14px">${signatureHtml}</div>`,
+  });
+
+  // ─── Enveloppe docReg : marges 44/36 PRÉSERVÉES (divergence intentionnelle) +
+  // marqueur data-pdf-page="docReg" (liseré par feuille via le feeder, LOT 1a).
+  // On n'utilise PAS compilerPageContrat (32/38 figé dans contrat.ts).
+  const corps = blocs.map(compilerBloc).join("\n");
+  return (
+    `<div class="pdf-contrat" data-pdf-page="docReg" style="padding:30px 36px 0 44px;orphans:2;widows:2">\n` +
+    `${corps}\n` +
+    `</div>`
+  );
 }
