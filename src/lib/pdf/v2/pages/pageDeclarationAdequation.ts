@@ -291,11 +291,13 @@ export function pageDeclarationAdequation(t: Tokens, d: DeclarationAdequationPag
   });
 
   // ─── Enveloppe docReg : marges 44/36 PRÉSERVÉES (divergence intentionnelle) +
-  // marqueur data-pdf-page="docReg" (liseré par feuille via le feeder, LOT 1a).
+  // marqueur data-pdf-page="docReg" (liseré par feuille via le feeder, LOT 1a) +
+  // marqueur data-pdf-doc (numérotation X/N PAR DOCUMENT : le feeder le hisse en
+  // data-doc, le DocNumHandler numérote « Déclaration d'adéquation · X / N »).
   // On n'utilise PAS compilerPageContrat (32/38 figé dans contrat.ts).
   const corps = blocs.map(compilerBloc).join("\n");
   return (
-    `<div class="pdf-contrat" data-pdf-page="docReg" style="padding:30px 36px 0 44px;orphans:2;widows:2">\n` +
+    `<div class="pdf-contrat" data-pdf-page="docReg" data-pdf-doc="Déclaration d'adéquation" style="padding:30px 36px 0 44px;orphans:2;widows:2">\n` +
     `${corps}\n` +
     `</div>`
   );
