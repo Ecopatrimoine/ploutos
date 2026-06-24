@@ -126,4 +126,10 @@ describe("Fiche conseil DDA — non-perte réglementaire (Étage 1)", () => {
     expect(html).toContain("Volet assurance-vie (IBIP)");
     expect(html).toContain("adéquation renforcée");
   });
+
+  it("7. marqueur data-pdf-doc présent (numérotation X/N PAR DOCUMENT, libellé DDA)", () => {
+    // Le feeder hisse ce marqueur en data-doc ; le DocNumHandler numérote
+    // « Fiche conseil DDA · X / N » (compteur propre au document, pas le pack global).
+    expect(html).toContain(`data-pdf-doc="Fiche conseil DDA"`);
+  });
 });
