@@ -27,6 +27,10 @@ export type BlocInsecable = {
   /** Règle de cohésion « titre solidaire de son contenu » : break-after:avoid →
    *  le bloc reste sur la même feuille que le bloc SUIVANT (jamais d'orphelin de titre). */
   solidaireAvecSuivant?: boolean;
+  /** Miroir de `solidaireAvecSuivant` (côté opposé) : break-before:avoid → le bloc
+   *  reste sur la même feuille que le bloc PRÉCÉDENT (jamais de bloc « veuf » seul en
+   *  haut d'une feuille de continuation, ex. signature). */
+  solidaireAvecPrecedent?: boolean;
   /** GARDE-FOU : si ce bloc peut dépasser la hauteur d'une feuille, l'autoriser à
    *  couler (break-inside:auto) plutôt que de risquer une boucle / feuille blanche. */
   secableEnDernierRecours?: boolean;
@@ -62,13 +66,15 @@ export type PageContrat = Bloc[];
 
 const STYLE_TABLE_DEFAUT = "width:100%;border-collapse:collapse;table-layout:fixed";
 
-function reglesCoupe(b: { solidaireAvecSuivant?: boolean; secableEnDernierRecours?: boolean }): string {
+function reglesCoupe(b: { solidaireAvecSuivant?: boolean; solidaireAvecPrecedent?: boolean; secableEnDernierRecours?: boolean }): string {
   // GARDE-FOU : un insécable plus haut qu'une feuille bouclerait sous paged.js
   // (il le repousse de feuille en feuille). Repli explicite : on le laisse COULER.
   const inside = b.secableEnDernierRecours ? "break-inside:auto" : "break-inside:avoid";
+  // Cohésion (miroir) : ne pas casser AVANT ce bloc → il reste avec le bloc précédent.
+  const before = b.solidaireAvecPrecedent ? ";break-before:avoid" : "";
   // Cohésion titre : ne pas casser APRÈS ce bloc → il reste avec le bloc suivant.
   const after = b.solidaireAvecSuivant ? ";break-after:avoid" : "";
-  return `${inside}${after}`;
+  return `${inside}${before}${after}`;
 }
 
 /** Traduit UN bloc déclaré en markup paged.js. PUR. */
