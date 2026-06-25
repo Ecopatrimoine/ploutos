@@ -9,7 +9,7 @@ import type { PieceJointe } from "../../../conformite/piecesJointes";
 
 export type PackItem =
   // Documents réglementaires
-  | "lettre" | "der" | "dda" | "adequation"
+  | "lettre" | "der" | "derAnnexe" | "dda" | "adequation"
   // Bilan patrimonial — sections
   | "couverture" | "cabinet" | "famille" | "travail"
   | "bilanEndettement" | "ir" | "ifi"
@@ -37,6 +37,7 @@ export type CheckParams = {
 const PACK_LABELS: Record<PackItem, string> = {
   lettre:           "Lettre de mission",
   der:              "DER",
+  derAnnexe:        "DER - annexe",
   dda:              "Fiche conseil DDA",
   adequation:       "Déclaration d'adéquation",
   couverture:       "Page de couverture",
@@ -96,6 +97,12 @@ function collectMissing(pack: PackItem, p: CheckParams): string[] {
         out.push("Aucun statut ORIAS coché — la page 3 « Références légales » sera vide");
       }
       if (cabinet.statutCif && empty(cabinet.mediateurAmf)) out.push("cabinet.mediateurAmf (CIF actif sans médiateur AMF)");
+      break;
+    }
+    case "derAnnexe": {
+      // L'annexe Références partage exactement les prérequis de "der" (mêmes statuts
+      // ORIAS) : on NE double-compte PAS les manques ici (sinon ils apparaîtraient en
+      // double dans la pop-card de complétude). No-op → retourne [].
       break;
     }
     case "dda": {
@@ -199,7 +206,7 @@ export const PACK_ORDER: PackItem[] = [
   "profil", "prevoyancePersoP1", "prevoyancePersoP2", "prevoyanceColl",
   "hypos", "recommandations", "mentions",
   // Documents réglementaires (après le bilan)
-  "lettre", "der", "dda", "adequation",
+  "lettre", "der", "derAnnexe", "dda", "adequation",
 ];
 
 /** Trie un pack selon l'ordre canonique. */
