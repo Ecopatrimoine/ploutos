@@ -155,33 +155,31 @@ export const COVER_HANDLER_SCRIPT = `
       var dt = pageEl.querySelector(".doctitle");
       if (dt) dt.style.display = "none";
 
+      // ── GARDE anti-regression (full-bleed cover) — NE PAS RETIRER L'ABSOLU ──────
+      // Full-bleed cover : grid tracks header/footer mis a 0 (cellule [page] = plein
+      // pagebox) ET cover en absolu inset:0. L'absolu est REQUIS : le pont feeder
+      // #pack-flow div[style*="height:297mm"]{height:auto !important} effondre le creme en
+      // flux ; l'absolu (cale sur le pagebox) le neutralise sur la seule feuille cover.
+      // Retirer l'absolu en croyant la grille suffisante = ~462px de blanc en bas (prouve
+      // headless : COVER 0->661 sans absolu, 0->1123 avec).
+      //
       // ── Plein-cadre (full-bleed) sur la SEULE feuille couverture ────────────────
-      // Deux "cadres" verticaux a neutraliser EN POST-LAYOUT, sur ce pageEl UNIQUEMENT
-      // (jamais une regle globale) :
-      //   (a) margin @page haut/bas = 15mm -> 2 bandes blanches ;
-      //   (b) pont Phase 1 du feeder (#pack-flow div[style*="height:297mm"]{height:auto})
-      //       -> le conteneur cover s'effondre a la hauteur du contenu (grand vide en bas,
-      //          arcs qui flottent).
-      // On ne touche NI le @page NI le pont (globaux) : on etire ici l'aire de contenu puis
-      // le conteneur cover jusqu'aux 4 bords physiques de CETTE feuille.
-      // .pagedjs_pagebox = feuille physique (position:relative, base paged.js). On sort
-      // .pagedjs_area du gabarit de marges (absolute, inset 0) -> elle remplit le pagebox.
-      var area = pageEl.querySelector(".pagedjs_area");
-      if (area) {
-        area.style.position = "absolute";
-        area.style.top = "0";
-        area.style.left = "0";
-        area.style.right = "0";
-        area.style.bottom = "0";
-        area.style.width = "100%";
-        area.style.height = "100%";
-        area.style.margin = "0";
-        area.style.padding = "0";
+      // Le residuel 15mm haut/bas n'est ni padding ni marge : .pagedjs_pagebox est une
+      // GRILLE dont les pistes [header]/[footer] valent 15mm (56.69px), et l'aire est posee
+      // dans la cellule [page]. On zerote ici header/footer EN CONSERVANT les noms de lignes
+      // (lus par sonde headless : "[header] ... [page] ... [footer]") -> la cellule [page]
+      // = 1fr prend tout le pagebox, l'aire + le creme remplissent. Lateral deja a 0
+      // ([left]/[right]) -> on ne touche pas gridTemplateColumns. CETTE feuille uniquement
+      // (pageEl filtre par la garde) ; les autres feuilles intactes.
+      var pagebox = pageEl.querySelector(".pagedjs_pagebox");
+      if (pagebox) {
+        pagebox.style.gridTemplateRows = "[header] 0px [page] 1fr [footer] 0px";
       }
-      // Conteneur cover : son height:297mm a ete force a auto par le pont -> on le repose en
-      // absolu inset 0 (resout sur l'aire etiree = feuille physique). Le creme (background),
-      // la barre navy (top:0;bottom:0) et les arcs (right:0;bottom:0, ancres a CE conteneur)
-      // atteignent alors les 4 bords. overflow:hidden reclippe a la feuille.
+      // Le pont Phase 1 force height:auto !important sur la div cover -> en flux elle reste
+      // a la hauteur du contenu (~661px, ~462px de blanc en bas). On la repose en absolu
+      // inset:0 : top/bottom:0 etire la boite (ignore height:auto), son bloc conteneur =
+      // .pagedjs_pagebox (relative, l'aire etant redevenue statique) -> elle remplit la
+      // feuille entiere. Creme + barre navy + arcs atteignent alors les 4 bords.
       var cover = pageEl.querySelector("[data-pdf-cover]");
       if (cover) {
         cover.style.position = "absolute";
@@ -189,9 +187,6 @@ export const COVER_HANDLER_SCRIPT = `
         cover.style.left = "0";
         cover.style.right = "0";
         cover.style.bottom = "0";
-        cover.style.width = "100%";
-        cover.style.height = "100%";
-        cover.style.margin = "0";
         cover.style.overflow = "hidden";
       }
     }
