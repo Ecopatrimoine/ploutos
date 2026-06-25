@@ -29,6 +29,7 @@ import { openPrintPopup } from "../../pdfCore";
 // placeholder pour une 2ème passe.
 import { pageLettreMission } from "../pages/pageLettreMission";
 import { pageDer } from "../pages/pageDer";
+import { pageDerAnnexe } from "../pages/pageDerAnnexe";
 import { pageFicheDDA } from "../pages/pageFicheDDA";
 import { pageDeclarationAdequation } from "../pages/pageDeclarationAdequation";
 import { pageCouverture } from "../pages/pageCouverture";
@@ -130,10 +131,11 @@ function renderItemBody(
       return pageDer(t, d);
     }
     case "derAnnexe": {
-      // LOT 1 (plomberie scission) : STUB vide -> éliminé par .filter(Boolean) dans
-      // renderPackItemBodies -> aucune <section> émise (invisibilité garantie).
-      // LOT 2 remplacera ce stub par pageDerAnnexe(t, buildDerData({ cabinet, dateLettre })).
-      return "";
+      // Mirror exact du case "der" mais appelant pageDerAnnexe : même DerPageData
+      // (via buildDerData), section séparée portant data-pdf-doc=DOC_DER (compteur
+      // X/N commun). Auto-incluse après "der" par renderPackItemBodies (LOT 1).
+      const d = buildDerData({ cabinet, dateLettre });
+      return pageDerAnnexe(t, d);
     }
     case "dda": {
       const d = buildFicheDDAData({ cabinet, mission, data, recommandations, piecesJointes, dateLettre });
