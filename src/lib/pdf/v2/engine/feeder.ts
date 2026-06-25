@@ -136,7 +136,7 @@ export function buildFeederDocument(opts: FeederOptions): string {
   // data-pdf-page="NOM" sur son wrapper. On HISSE ce marqueur en data-page sur la
   // <section> -> paged.js tague alors CHAQUE feuille physique de la section
   // (.pagedjs_NOM_page). Inerte si le marqueur est absent (sections inchangées).
-  const sections = opts.bodies.map((b) => {
+  const sections = opts.bodies.map((b, idx) => {
     const m = b.match(/data-pdf-page="([A-Za-z0-9_-]+)"/);
     const pageAttr = m ? ` data-page="${m[1]}"` : "";
     // Numerotation X/N PAR DOCUMENT : on hisse data-pdf-doc -> data-doc sur la <section>,
@@ -146,7 +146,15 @@ export function buildFeederDocument(opts: FeederOptions): string {
     // absent (section non-docReg -> pas de data-doc -> compteur @page global conserve).
     const md = b.match(/data-pdf-doc="([^"]+)"/);
     const docAttr = md ? ` data-doc="${md[1]}"` : "";
-    return `<section${pageAttr}${docAttr}>${b}</section>`;
+    // .doctitle (porteur de string-set: doctitle pour l'en-tete courant) injecte DANS la
+    // 1re section UNIQUEMENT -> il herite de la page de cette section. Si la 1re section est
+    // une page nommee docReg, il n'y a plus de page-par-defaut separee en tete = plus de
+    // feuille FANTOME (cause prouvee : un .doctitle emis avant #pack-flow creait une page par
+    // defaut, puis le docReg demarrait sa page nommee en feuille suivante). En pack complet, la
+    // 1re section est la couverture -> le CoverHandler trouve toujours .doctitle (querySelector)
+    // et le masque ; string-set capte au layout AVANT le masquage -> en-tete courant preserve.
+    const doctitleDiv = idx === 0 ? `<div class="doctitle">${escapeHtml(opts.doctitle)}</div>` : "";
+    return `<section${pageAttr}${docAttr}>${doctitleDiv}${b}</section>`;
   }).join("\n");
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -169,7 +177,6 @@ ${FONTS_HTML_LINKS}
 </script>
 </head>
 <body>
-<div class="doctitle">${escapeHtml(opts.doctitle)}</div>
 <div id="pack-flow">
 ${sections}
 </div>
