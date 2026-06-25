@@ -261,7 +261,7 @@ exports[`GOLDEN — pageCouverture (page complete, pied bespoke 56/42) > 7. page
       <div style="position:absolute;left:10px;top:0;bottom:0;width:3px;background:#C4973D"></div>
 
       <!-- Motif décoratif d'arcs or en bas à droite -->
-      <svg width="300" height="300" viewBox="0 0 200 200" style="position:absolute;right:0;bottom:0" aria-hidden="true">
+      <svg width="460" height="460" viewBox="0 0 200 200" style="position:absolute;right:0;bottom:0" aria-hidden="true">
     <g fill="none" stroke="#C4973D" stroke-width="1.4">
       <path d="M200 56 A144 144 0 0 0 56 200" opacity=".2"/>
       <path d="M200 100 A100 100 0 0 0 100 200" opacity=".28"/>
