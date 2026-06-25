@@ -154,6 +154,46 @@ export const COVER_HANDLER_SCRIPT = `
       // @top-left des autres feuilles (en-tete preserve sur bilan/docReg).
       var dt = pageEl.querySelector(".doctitle");
       if (dt) dt.style.display = "none";
+
+      // ── Plein-cadre (full-bleed) sur la SEULE feuille couverture ────────────────
+      // Deux "cadres" verticaux a neutraliser EN POST-LAYOUT, sur ce pageEl UNIQUEMENT
+      // (jamais une regle globale) :
+      //   (a) margin @page haut/bas = 15mm -> 2 bandes blanches ;
+      //   (b) pont Phase 1 du feeder (#pack-flow div[style*="height:297mm"]{height:auto})
+      //       -> le conteneur cover s'effondre a la hauteur du contenu (grand vide en bas,
+      //          arcs qui flottent).
+      // On ne touche NI le @page NI le pont (globaux) : on etire ici l'aire de contenu puis
+      // le conteneur cover jusqu'aux 4 bords physiques de CETTE feuille.
+      // .pagedjs_pagebox = feuille physique (position:relative, base paged.js). On sort
+      // .pagedjs_area du gabarit de marges (absolute, inset 0) -> elle remplit le pagebox.
+      var area = pageEl.querySelector(".pagedjs_area");
+      if (area) {
+        area.style.position = "absolute";
+        area.style.top = "0";
+        area.style.left = "0";
+        area.style.right = "0";
+        area.style.bottom = "0";
+        area.style.width = "100%";
+        area.style.height = "100%";
+        area.style.margin = "0";
+        area.style.padding = "0";
+      }
+      // Conteneur cover : son height:297mm a ete force a auto par le pont -> on le repose en
+      // absolu inset 0 (resout sur l'aire etiree = feuille physique). Le creme (background),
+      // la barre navy (top:0;bottom:0) et les arcs (right:0;bottom:0, ancres a CE conteneur)
+      // atteignent alors les 4 bords. overflow:hidden reclippe a la feuille.
+      var cover = pageEl.querySelector("[data-pdf-cover]");
+      if (cover) {
+        cover.style.position = "absolute";
+        cover.style.top = "0";
+        cover.style.left = "0";
+        cover.style.right = "0";
+        cover.style.bottom = "0";
+        cover.style.width = "100%";
+        cover.style.height = "100%";
+        cover.style.margin = "0";
+        cover.style.overflow = "hidden";
+      }
     }
   }
   window.Paged.registerHandlers(CoverHandler);
