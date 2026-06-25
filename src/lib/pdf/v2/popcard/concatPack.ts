@@ -129,6 +129,12 @@ function renderItemBody(
       const d = buildDerData({ cabinet, dateLettre });
       return pageDer(t, d);
     }
+    case "derAnnexe": {
+      // LOT 1 (plomberie scission) : STUB vide -> éliminé par .filter(Boolean) dans
+      // renderPackItemBodies -> aucune <section> émise (invisibilité garantie).
+      // LOT 2 remplacera ce stub par pageDerAnnexe(t, buildDerData({ cabinet, dateLettre })).
+      return "";
+    }
     case "dda": {
       const d = buildFicheDDAData({ cabinet, mission, data, recommandations, piecesJointes, dateLettre });
       return pageFicheDDA(t, d);
@@ -256,9 +262,23 @@ export function renderPackItemBodies(
   const payloadFinal = { ...payload, mission: missionWithOverride };
   // Pagination "X / N" calculée ici (N = total sections du pack).
   const total = ordered.length;
-  return ordered
-    .map((item, idx) => renderItemBody(item, payloadFinal, themeV2, { index: idx + 1, total }))
-    .filter(Boolean);
+  // Auto-inclusion derAnnexe : l'annexe Références suit "der" SANS apparaître dans
+  // l'UI (PopcardImpression a une liste de cases explicite, derAnnexe n'y est pas).
+  // PACK_ORDER place derAnnexe juste après "der" ; on l'insère ici à cette même
+  // position. derAnnexe n'est PAS ajouté à `ordered` pour le calcul index/total →
+  // ZÉRO perturbation de la numérotation des autres sections (invisibilité LOT 1 :
+  // derAnnexe rend "" → non poussé).
+  const autoAnnexe = ordered.includes("der") && !ordered.includes("derAnnexe");
+  const out: string[] = [];
+  ordered.forEach((item, idx) => {
+    const body = renderItemBody(item, payloadFinal, themeV2, { index: idx + 1, total });
+    if (body) out.push(body);
+    if (autoAnnexe && item === "der") {
+      const annexe = renderItemBody("derAnnexe", payloadFinal, themeV2, { index: idx + 1, total });
+      if (annexe) out.push(annexe);
+    }
+  });
+  return out;
 }
 
 /** Assemble le pack complet et ouvre la popup print (chemin historique, INCHANGÉ). */
