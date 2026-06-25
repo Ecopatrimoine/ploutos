@@ -1,20 +1,24 @@
-// ─── Lot 9 — Page Lettre de mission v2 (document réglementaire 2 pages) ─
+// ─── Lot 9 → Migration moteur — Page Lettre de mission v2 (document réglementaire) ─
 //
 // Reproduit fidèlement la maquette
 //   revue-preview/pdf/refonte_pdf_lettre_de_mission_2pages.html
 //
-// Structure : 2 containers A4 séquentiels (pagination manuelle, cf. règles
-// dans primitives.coquillePage).
-//   • Page 1 : header + intro + légende + parties + objet/périmètre + diligences
-//   • Page 2 : rémunération + durée + obligations + statuts + cadres signature
-//              + mention non-contractuelle
-//
-// Réutilise massivement les primitives DocReg ajoutées au Lot 9 — toutes
-// factorisables pour les 3 autres documents v2 (DER, fiche DDA, déclaration).
+// MIGRÉ au contrat moteur paged.js (engine/contrat.ts), MÊME moule que le DER (#2)
+// et la Fiche conseil DDA (#3). Le découpage manuel p1/p2 (2× coquillePageDocReg)
+// DISPARAÎT : la page DÉCLARE une séquence de blocs ; paged.js pagine selon le
+// contenu réel (N feuilles).
+//   • Sortie de coquillePageDocReg : plus de boîte A4, plus de pied codé en dur
+//     (« 1 / 2 ») — le feeder fournit en-tête / pied via counter(page) et le
+//     DocNumHandler numérote PAR DOCUMENT (« Lettre de mission · X / N ») via
+//     data-pdf-doc, au lieu du compteur GLOBAL du pack.
+//   • SLOT SIGNATURE (variante PAR DÉFAUT : « Le client » / « lu et approuvé » /
+//     « Fait à … » affiché / hauteur défaut) → BlocInsecable TERMINAL
+//     solidaireAvecPrecedent (anti « signature veuve »). Remplace le slot absolu
+//     bottom:42 que paged.js mettait en display:none. On NE copie PAS les overrides
+//     DER (« un par partie » / 74px / masquerMentionFait).
+//   • Marges docReg 44/36 PRÉSERVÉES : on n'utilise PAS compilerPageContrat (32/38).
 
 import {
-  coquillePageDocReg,
-  piedPageDocReg,
   headerDocReg,
   legendeChampsDocReg,
   encadreDocReg,
@@ -26,6 +30,7 @@ import {
   icones,
   type CasePrestation,
 } from "../primitives";
+import { compilerBloc, type Bloc } from "../engine/contrat";
 import type { Tokens } from "../tokens";
 
 export type LettreMissionPageData = {
@@ -70,7 +75,7 @@ export type LettreMissionPageData = {
 };
 
 export function pageLettreMission(t: Tokens, d: LettreMissionPageData): string {
-  // ─── Page 1 — Cabinet, parties, mission, diligences, niveau de conseil ─
+  // ─── Intro (ex-page 1) ──────────────────────────────────────────────
   // B1 corrigé : DDA / Code des assurances (et non RG AMF — le cabinet n'est
   // pas CIF par défaut). Si statutCif, mention complémentaire RG AMF.
   const introTexte = d.statutCif
@@ -154,36 +159,16 @@ export function pageLettreMission(t: Tokens, d: LettreMissionPageData): string {
     </div>
   `;
 
-  const page1Contenu = `
-    ${headerDocReg(t, {
-      eyebrow: "Document réglementaire",
-      titre: "Lettre de mission",
-      cabinetNom: d.cabinetNom,
-      dateValeur: d.dateLettre,
-    })}
-
-    <div class="lt" style="font-size:10px;color:${t.texteFaible};line-height:1.5;margin-top:11px">
-      ${introTexte}
-    </div>
-
-    ${legendeChampsDocReg(t)}
-
-    ${encadreDocReg(t, { titre: "Les parties",                                              marginTop: "12px", contenuHtml: partiesContenu })}
-    ${encadreDocReg(t, { titre: "Comment exerçons-nous ? (art. L.521-2 II 1°b)",                                contenuHtml: exerciceContenu })}
-    ${encadreDocReg(t, { titre: "Objet, périmètre & diligences",                                                contenuHtml: objetEtDiligencesContenu })}
-    ${encadreDocReg(t, { titre: "Niveau de conseil délivré (art. L.521-4 DDA)",                                 contenuHtml: niveauConseilContenu })}
-  `;
-
-  const page1 = coquillePageDocReg(t, {
-    contenu: page1Contenu,
-    pied: piedPageDocReg(t, {
-      gauche: `${d.cabinetNom} · Lettre de mission`,
-      droite: "1 / 2",
-    }),
+  // En-tête (ex-page 1). dateAsChamp PAR DÉFAUT = true (date en champ mission varm)
+  // — divergence VOULUE vs DER (qui forçait false). NE PAS la modifier.
+  const headerHtml = headerDocReg(t, {
+    eyebrow: "Document réglementaire",
+    titre: "Lettre de mission",
+    cabinetNom: d.cabinetNom,
+    dateValeur: d.dateLettre,
   });
 
-  // ─── Page 2 — Conditions financières, RCP, durée, obligations, statuts,
-  //              médiation, signature ────────────────────────────────────
+  // ─── Rémunération + RCP + Durée + Obligations + Statuts/médiation (ex-page 2) ─
   // M4 ajouté : mention « ≥10% » (art. L.521-2 I). Nature du conseil dans
   // une ligne séparée pour lisibilité.
   const remunerationContenu = `
@@ -261,18 +246,11 @@ export function pageLettreMission(t: Tokens, d: LettreMissionPageData): string {
     </div>
   `;
 
-  const page2Contenu = `
-    ${encadreDocReg(t, { titre: "Rémunération",                                       marginTop: "0",    contenuHtml: remunerationContenu })}
-    ${encadreDocReg(t, { titre: "Responsabilité Civile Professionnelle",              marginTop: "11px", contenuHtml: rcpContenu })}
-    ${encadreDocReg(t, { titre: "Durée & résiliation",                                marginTop: "11px", contenuHtml: dureeContenu })}
-    ${encadreDocReg(t, { titre: "Obligations réciproques",                            marginTop: "11px", contenuHtml: obligationsContenu })}
-    ${encadreDocReg(t, { titre: "Statuts, autorités de contrôle & médiation",         marginTop: "11px", contenuHtml: statutsContenu })}
-  `;
-
-  // Lot 9 — convention « signature en bas absolu ». La signature + la
-  // mention non-contractuelle vivent dans le slot signature, juste au-dessus
-  // du pied. La mention reste collée à la signature pour rester APRÈS
-  // visuellement (sinon elle se retrouverait au-dessus du bloc signature).
+  // Slot signature TERMINAL — VARIANTE PAR DÉFAUT de cadresSignatureDocReg :
+  // « Le client » / « lu et approuvé », date & signature / ligne « Fait à {ville},
+  // le {date} » AFFICHÉE (pas de masquerMentionFait) / hauteur par défaut.
+  // CONSERVÉ À L'IDENTIQUE — on NE copie PAS les overrides DER (« un par partie »
+  // / 74px / labelClient enrichi / masquerMentionFait).
   const page2Signature = `
     ${cadresSignatureDocReg(t, {
       cabinetNomConseiller: d.cabinetConseiller,
@@ -287,14 +265,51 @@ export function pageLettreMission(t: Tokens, d: LettreMissionPageData): string {
     })}
   `;
 
-  const page2 = coquillePageDocReg(t, {
-    contenu: page2Contenu,
-    signature: page2Signature,
-    pied: piedPageDocReg(t, {
-      gauche: `${d.cabinetNom} · Lettre de mission`,
-      droite: "2 / 2",
-    }),
+  // ─── Déclaration des blocs (contrat de page) — ordre du flux ──────────
+  const blocs: Bloc[] = [];
+
+  // En-tête / intro / légende.
+  blocs.push({ kind: "insecable", html: headerHtml });
+  blocs.push({
+    kind: "insecable",
+    html: `<div class="lt" style="font-size:10px;color:${t.texteFaible};line-height:1.5;margin-top:11px">${introTexte}</div>`,
+  });
+  blocs.push({ kind: "insecable", html: legendeChampsDocReg(t) });
+
+  // Parties → Exercice → Objet/diligences → Niveau de conseil (ex-page 1).
+  blocs.push({ kind: "insecable", html: encadreDocReg(t, { titre: "Les parties",                                          marginTop: "12px", contenuHtml: partiesContenu }) });
+  blocs.push({ kind: "insecable", html: encadreDocReg(t, { titre: "Comment exerçons-nous ? (art. L.521-2 II 1°b)",        contenuHtml: exerciceContenu }) });
+  blocs.push({ kind: "insecable", html: encadreDocReg(t, { titre: "Objet, périmètre & diligences",                       contenuHtml: objetEtDiligencesContenu }) });
+  blocs.push({ kind: "insecable", html: encadreDocReg(t, { titre: "Niveau de conseil délivré (art. L.521-4 DDA)",         contenuHtml: niveauConseilContenu }) });
+
+  // Rémunération → RCP → Durée → Obligations → Statuts/médiation (ex-page 2).
+  // « Rémunération » avait marginTop:"0" (artefact de haut-de-page 2) ; en flux
+  // continu on laisse le défaut (13px) pour un rythme cohérent avec ci-dessus.
+  blocs.push({ kind: "insecable", html: encadreDocReg(t, { titre: "Rémunération",                                         contenuHtml: remunerationContenu }) });
+  // RCP : texte long -> filet secableEnDernierRecours (laisse couler si une feuille déborde).
+  blocs.push({ kind: "insecable", secableEnDernierRecours: true, html: encadreDocReg(t, { titre: "Responsabilité Civile Professionnelle", marginTop: "11px", contenuHtml: rcpContenu }) });
+  blocs.push({ kind: "insecable", html: encadreDocReg(t, { titre: "Durée & résiliation",                                  marginTop: "11px", contenuHtml: dureeContenu }) });
+  blocs.push({ kind: "insecable", html: encadreDocReg(t, { titre: "Obligations réciproques",                              marginTop: "11px", contenuHtml: obligationsContenu }) });
+  // Statuts/médiation : texte long (conditionnel CIF) -> filet secableEnDernierRecours.
+  blocs.push({ kind: "insecable", secableEnDernierRecours: true, html: encadreDocReg(t, { titre: "Statuts, autorités de contrôle & médiation", marginTop: "11px", contenuHtml: statutsContenu }) });
+
+  // Signature TERMINALE : bloc EN FLUX, jamais coupé (break-inside:avoid) et jamais
+  // veuf en haut d'une feuille de continuation (solidaireAvecPrecedent → break-before:avoid).
+  // C'est le DERNIER bloc.
+  blocs.push({
+    kind: "insecable",
+    solidaireAvecPrecedent: true,
+    html: `<div style="margin-top:14px">${page2Signature}</div>`,
   });
 
-  return page1 + page2;
+  // ─── Enveloppe docReg : marges 44/36 PRÉSERVÉES (divergence intentionnelle) +
+  // marqueur data-pdf-page="docReg" (liseré par feuille via le feeder, LOT 1a) +
+  // marqueur data-pdf-doc="Lettre de mission" (numérotation X/N PAR DOCUMENT, en dur
+  // comme DDA/DA — pas de constante). On n'utilise PAS compilerPageContrat (32/38 figé).
+  const corps = blocs.map(compilerBloc).join("\n");
+  return (
+    `<div class="pdf-contrat" data-pdf-page="docReg" data-pdf-doc="Lettre de mission" style="padding:30px 36px 0 44px;orphans:2;widows:2">\n` +
+    `${corps}\n` +
+    `</div>`
+  );
 }
