@@ -4,9 +4,10 @@
 //   revue-preview/pdf/refonte_pdf_page_fiscalite_A4_graphique_corrige.html
 //
 // Réutilise au MAXIMUM les primitives v2 existantes : header, bandeKPI
-// (variante "large"), sousTitreSection, encartNotreLecture, piedPage,
-// coquillePage. Nouvelles primitives consommées : barreRepartition,
-// cascadeRevenus (cf. primitives.ts, ajoutées au Lot 9 IR).
+// (variante "large"), sousTitreSection, barreRepartition, cascadeRevenus,
+// encartNotreLecture. Mise en page : compilerPageContrat (contrat déclaratif,
+// Phase 3) — plus de boîte coquillePage ni de pied codé en dur (le pied vit
+// désormais dans les margin-boxes @page du feeder).
 //
 // 🔴 Aucune logique fiscale : la page consomme des valeurs déjà calculées.
 
@@ -17,12 +18,11 @@ import {
   barreRepartition,
   cascadeRevenus,
   encartNotreLecture,
-  piedPage,
-  coquillePage,
   euro,
   type CascadeItem,
   type SegmentRepartition,
 } from "../primitives";
+import { compilerPageContrat, type Bloc } from "../engine/contrat";
 import type { Tokens } from "../tokens";
 
 export type IRPageData = {
@@ -81,34 +81,41 @@ export function pageIR(t: Tokens, d: IRPageData): string {
     { label: "Impôt sur le revenu",   pct: pctCascade(d.impotNetDu),             valeur: euro(d.impotNetDu),                  type: "impot" },
   ];
 
-  // ─── Assemblage ──────────────────────────────────────────────────────
-  const contenu = `
-    ${header(t, {
-      eyebrow: "Fiscalité",
-      titre: "Impôt sur le revenu",
-      droiteHaut: d.clientName,
-      droiteBas: d.dateStr,
-    })}
-
-    ${bandeKPI(t, kpis, { taille: "large" })}
-
-    <div style="margin-top:24px">
+  // ─── Déclaration des blocs (contrat de page, engine/contrat.ts) ───────
+  // Bascule de mécanisme (coquillePage → compilerPageContrat) : ordre visuel,
+  // libellés, styles et couleurs INCHANGÉS — seule la mise en page passe en flux.
+  const blocs: Bloc[] = [
+    // Header de page (insécable).
+    {
+      kind: "insecable",
+      html: header(t, {
+        eyebrow: "Fiscalité",
+        titre: "Impôt sur le revenu",
+        droiteHaut: d.clientName,
+        droiteBas: d.dateStr,
+      }),
+    },
+    // Bande KPI (variante "large") — insécable.
+    { kind: "insecable", html: bandeKPI(t, kpis, { taille: "large" }) },
+    // Section « Revenus par nature » (sous-titre + barre, gardés ensemble).
+    {
+      kind: "insecable",
+      html: `<div style="margin-top:24px">
       ${sousTitreSection(t, "Revenus par nature")}
       ${barreRepartition(t, segments)}
-    </div>
-
-    <div style="margin-top:24px">
+    </div>`,
+    },
+    // Section « De vos revenus à l'impôt » (sous-titre + cascade).
+    {
+      kind: "insecable",
+      html: `<div style="margin-top:24px">
       ${sousTitreSection(t, "De vos revenus à l'impôt")}
       ${cascadeRevenus(t, items)}
-    </div>
+    </div>`,
+    },
+    // Encart « Notre lecture » — queue épinglée en fin de flux.
+    { kind: "queue", html: encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) },
+  ];
 
-    ${encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture })}
-  `;
-
-  const pied = piedPage(t, {
-    gauche: d.cabinetLibellePied,
-    droite: d.pagePosition,
-  });
-
-  return coquillePage(t, { contenu, pied });
+  return compilerPageContrat(blocs);
 }
