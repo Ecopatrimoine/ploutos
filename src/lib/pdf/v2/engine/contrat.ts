@@ -57,6 +57,12 @@ export type QueueEpinglee = {
   kind: "queue";
   html: string;
   secableEnDernierRecours?: boolean;
+  /** Si true, AJOUTE break-before:avoid → la queue reste soudée au bloc PRÉCÉDENT
+   *  (anti-orphelin : évite que la queue parte seule en haut de la feuille suivante
+   *  sur un léger débordement). Opt-in : absent/false → comportement et HTML
+   *  STRICTEMENT INCHANGÉS (break-inside seul). À n'activer que si (dernier bloc +
+   *  queue) tient largement sur une feuille — sinon risque de boucle paged.js. */
+  solidaireAvecPrecedent?: boolean;
 };
 
 export type Bloc = BlocInsecable | ListeEcoulable | QueueEpinglee;
@@ -82,8 +88,14 @@ export function compilerBloc(b: Bloc): string {
   switch (b.kind) {
     case "insecable":
       return `<div style="${reglesCoupe(b)}">${b.html}</div>`;
-    case "queue":
-      return `<div class="pdf-queue" style="${b.secableEnDernierRecours ? "break-inside:auto" : "break-inside:avoid"}">${b.html}</div>`;
+    case "queue": {
+      // ADDITIF : break-inside comme aujourd'hui ; break-before:avoid SEULEMENT si
+      // solidaireAvecPrecedent. Drapeau absent/false → chaîne de style STRICTEMENT
+      // identique à l'historique (défaut inchangé, octet pour octet).
+      const inside = b.secableEnDernierRecours ? "break-inside:auto" : "break-inside:avoid";
+      const before = b.solidaireAvecPrecedent ? ";break-before:avoid" : "";
+      return `<div class="pdf-queue" style="${inside}${before}">${b.html}</div>`;
+    }
     case "liste": {
       // data-pdf-tbl : repère pour le handler Phase 1 (thead répété + « (suite) »).
       const style = b.styleTable || STYLE_TABLE_DEFAUT;
