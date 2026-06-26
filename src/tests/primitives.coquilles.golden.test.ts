@@ -28,6 +28,7 @@ import { pageFamille, type FamillePageData } from "../lib/pdf/v2/pages/pageFamil
 import { pageSuccessionA, type SuccessionAPageData } from "../lib/pdf/v2/pages/pageSuccessionA";
 import { pageSuccessionB, type SuccessionBPageData } from "../lib/pdf/v2/pages/pageSuccessionB";
 import { pageBilanEndettement, type BilanEndettementPageData } from "../lib/pdf/v2/pages/pageBilanEndettement";
+import { pageProfil, type ProfilPageData } from "../lib/pdf/v2/pages/pageProfil";
 
 const t = buildTokens("encreOr");
 
@@ -277,5 +278,41 @@ describe("CONTRAT — pageBilanEndettement (flux paged.js)", () => {
     // Notre lecture en queue, en fin de flux, APRES le header.
     expect(html).toContain('class="pdf-queue"');
     expect(html.indexOf("CLIENT_TEST")).toBeLessThan(html.indexOf("LECTURE_BILAN_TEST"));
+  });
+});
+
+// ─── CONTRAT — pageProfil : signature restauree en QueueEpinglee (CONFORMITE) ──
+// Lot 4 : la signature (preuve devoir de conseil MIF II) quittait l'ancien slot
+// absolu bottom:42px MASQUE par le pont feeder. Ce test verrouille qu'elle est
+// desormais DANS le flux (pdf-queue) et plus jamais en position:absolute bottom:42px.
+const dProfil: ProfilPageData = {
+  clientName: "CLIENT_TEST", dateStr: "01 janvier 2026",
+  profilRisque: "Equilibre", scoreMifII: "38 / 66", horizonPlacement: "8 ans", capacitePerte: "Moderee",
+  noteKpi: "Note KPI de test.",
+  niveauActif: "équilibré",
+  questionnaire: [
+    { question: "Q1 de test", reponse: "R1" },
+    { question: "Q2 de test", reponse: "R2" },
+  ],
+  adequationTitre: "Adequation MIF II", adequationTexte: "Texte adequation de test.",
+  nomClientSignature: "CLIENT_SIGNATURE_TEST", nomConseiller: "CONSEILLER_TEST",
+  pagePosition: "6 / 8", cabinetLibellePied: "Cabinet Test - confidentiel",
+};
+
+describe("CONTRAT — pageProfil (flux paged.js, signature en QueueEpinglee)", () => {
+  it("12. signature dans le flux (pdf-queue), jamais en slot absolu bottom:42px", () => {
+    const html = pageProfil(t, dProfil);
+    expect(html).toContain('class="pdf-contrat"');
+    // Signature PRESENTE et dans le flux (queue) — encartSignature (mention par defaut).
+    expect(html).toContain('class="pdf-queue"');
+    expect(html).toContain("Lu et approuvé");
+    expect(html).toContain("CLIENT_SIGNATURE_TEST");
+    expect(html).toContain("CONSEILLER_TEST");
+    // CRITERE CONFORMITE : plus de slot signature absolu bottom:42px (masque par le pont feeder),
+    // ni de boite A4 coquillePage.
+    expect(html).not.toContain("bottom:42px");
+    expect(html).not.toContain("width:210mm;height:297mm");
+    // La signature est le DERNIER bloc, APRES l'encart d'adequation.
+    expect(html.indexOf("Adequation MIF II")).toBeLessThan(html.indexOf("Lu et approuvé"));
   });
 });

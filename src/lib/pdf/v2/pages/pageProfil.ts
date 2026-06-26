@@ -16,10 +16,9 @@ import {
   encartAdequation,
   encartNotreLecture,
   encartSignature,
-  piedPage,
-  coquillePage,
   type QAItem,
 } from "../primitives";
+import { compilerPageContrat, type Bloc } from "../engine/contrat";
 import type { Tokens } from "../tokens";
 
 export type ProfilNiveau = "prudent" | "équilibré" | "dynamique" | "offensif";
@@ -92,54 +91,79 @@ export function pageProfil(t: Tokens, d: ProfilPageData): string {
     </div>
   `;
 
-  // ─── Assemblage ──
-  const contenu = `
-    ${header(t, {
+  // ─── Déclaration des blocs (contrat de page, engine/contrat.ts) ───────
+  // Bascule de mécanisme (coquillePage → compilerPageContrat). La SIGNATURE,
+  // jadis dans le slot absolu bottom:42px de coquillePage (masqué par le pont
+  // feeder → disparaissait du rendu paged.js), est restaurée en QueueEpinglee
+  // (bloc en flux, jamais en position:absolute) — même primitive encartSignature,
+  // opts INCHANGÉES. Le pied est géré par les margin-boxes @page du feeder.
+  const blocs: Bloc[] = [];
+
+  // Header de page (insécable).
+  blocs.push({
+    kind: "insecable",
+    html: header(t, {
       eyebrow: "Conformité",
       titre: "Profil investisseur",
       droiteHaut: d.clientName,
       droiteBas: d.dateStr,
-    })}
+    }),
+  });
 
-    ${bandeKPI(t, kpis)}
-    <div class="lt" style="font-size:9px;color:${t.texteFaibleClair};margin-top:6px;line-height:1.4">${d.noteKpi}</div>
+  // Bande KPI + note (gardées ensemble).
+  blocs.push({
+    kind: "insecable",
+    html: `${bandeKPI(t, kpis)}
+    <div class="lt" style="font-size:9px;color:${t.texteFaibleClair};margin-top:6px;line-height:1.4">${d.noteKpi}</div>`,
+  });
 
-    <div style="margin-top:18px">
+  // Échelle de risque (sous-titre + échelle 4 niveaux).
+  blocs.push({
+    kind: "insecable",
+    html: `<div style="margin-top:18px">
       ${sousTitreSection(t, "Profil sur l'échelle de risque")}
       ${echelleSegments(t, {
         segments: NIVEAUX_LABELS,
         activeIndex: activeIndex >= 0 ? activeIndex : 1,
         labelCurseur: "▲ votre profil",
       })}
-    </div>
+    </div>`,
+  });
 
-    <div style="margin-top:14px">
+  // Synthèse du questionnaire MIF II (6 lignes — bloc atomique).
+  blocs.push({
+    kind: "insecable",
+    html: `<div style="margin-top:14px">
       ${sousTitreSection(t, "Synthèse du questionnaire MIF II")}
       ${syntheseHtml}
-    </div>
-
-    ${d.notreLecture ? encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) : ""}
-
-    ${encartAdequation(t, {
-      titre: d.adequationTitre,
-      texte: d.adequationTexte,
-    })}
-  `;
-
-  // Lot 9 — la signature est calée en BAS DE PAGE (slot absolu de coquillePage),
-  // toujours au même endroit quel que soit le volume du contenu au-dessus.
-  const signature = encartSignature(t, {
-    nomClient: d.nomClientSignature,
-    nomConseiller: d.nomConseiller,
-    ville: d.villeSignature,
-    date: d.dateSignature,
-    signatureConseillerSrc: d.signatureConseillerSrc,
+    </div>`,
   });
 
-  const pied = piedPage(t, {
-    gauche: d.cabinetLibellePied,
-    droite: d.pagePosition,
+  // « Notre lecture » (interprétation) — insécable si présent.
+  if (d.notreLecture) {
+    blocs.push({ kind: "insecable", html: encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) });
+  }
+
+  // Encart d'adéquation MIF II (conclusion conformité) — insécable.
+  blocs.push({
+    kind: "insecable",
+    html: encartAdequation(t, { titre: d.adequationTitre, texte: d.adequationTexte }),
   });
 
-  return coquillePage(t, { contenu, pied, signature });
+  // ── Signature = QueueEpinglee (CONFORMITÉ — preuve devoir de conseil MIF II) ──
+  // Restaurée dans le FLUX, épinglée en bas de la dernière feuille via kind:"queue"
+  // (jamais en position:absolute bottom:42px, que le pont feeder masque). Mêmes opts
+  // qu'avant — contenu signature (mentions, noms, image conseiller) INCHANGÉ.
+  blocs.push({
+    kind: "queue",
+    html: encartSignature(t, {
+      nomClient: d.nomClientSignature,
+      nomConseiller: d.nomConseiller,
+      ville: d.villeSignature,
+      date: d.dateSignature,
+      signatureConseillerSrc: d.signatureConseillerSrc,
+    }),
+  });
+
+  return compilerPageContrat(blocs);
 }
