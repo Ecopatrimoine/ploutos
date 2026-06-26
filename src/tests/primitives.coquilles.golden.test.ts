@@ -159,23 +159,23 @@ const dFamilleCourt: FamillePageData = {
   cabinetLibellePied: "Cabinet Test",
 };
 
-describe("GOLDEN — pageFamille centrage (foyer court : corps centre, header en haut)", () => {
+describe("CONTRAT — pageFamille (flux paged.js)", () => {
   it("8. foyer court (2 adultes + 1 enfant) : base de regression (snapshot externe)", () => {
     expect(pageFamille(t, dFamilleCourt)).toMatchSnapshot();
   });
 
-  it("8b. structure : 2 entretoises ratio 1:2 autour du corps, header hors region", () => {
+  it("8b. structure contrat : flux pdf-contrat, table enfants ecoulable, header avant corps, plus de centrage", () => {
     const html = pageFamille(t, dFamilleCourt);
-    // Region centree = colonne flex a hauteur bornee.
-    expect(html).toMatch(/height:\d+px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box/);
-    // Les 2 entretoises ratio (haute 2 parts, basse 3 parts) ; le cap pixel disparu
-    // est verrouille par le snapshot de regression cas 8.
-    expect(html).toContain('<div style="flex:1 1 0"></div>');   // entretoise HAUTE (1 part)
-    expect(html).toContain('<div style="flex:2 1 0"></div>');   // entretoise BASSE (2 parts)
-    // Header HORS region : l'eyebrow (unique au header) precede la 1re entretoise.
-    expect(html.indexOf("Composition du foyer")).toBeLessThan(html.indexOf("flex:1 1 0"));
-    // Corps DANS la region : "Personne 1" suit la 1re entretoise.
-    expect(html.indexOf("Personne 1")).toBeGreaterThan(html.indexOf("flex:1 1 0"));
+    // Migration au contrat : plus de boite centree regionCorpsCentree (entretoises 1:2).
+    expect(html).not.toContain('<div style="flex:1 1 0"></div>');
+    expect(html).not.toContain('<div style="flex:2 1 0"></div>');
+    expect(html).toContain('class="pdf-contrat"');
+    // Table enfants = ListeEcoulable (table brute marquee pour le handler thead/(suite)).
+    expect(html).toContain("data-pdf-tbl");
+    // Header AVANT le corps : l'eyebrow (unique au header) precede la 1re carte personne.
+    expect(html.indexOf("Composition du foyer")).toBeLessThan(html.indexOf("Personne 1"));
+    // La table enfants suit les cartes personnes.
+    expect(html.indexOf("Personne 1")).toBeLessThan(html.indexOf("data-pdf-tbl"));
   });
 });
 

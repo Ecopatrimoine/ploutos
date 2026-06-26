@@ -1,5 +1,92 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`CONTRAT — pageFamille (flux paged.js) > 8. foyer court (2 adultes + 1 enfant) : base de regression (snapshot externe) 1`] = `
+"<div class="pdf-contrat" style="padding:32px 38px 0;orphans:2;widows:2">
+<div style="break-inside:avoid">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end">
+      <div>
+        <div class="eb">Composition du foyer</div>
+        <div class="ser" style="font-size:21px;font-weight:600;color:#0F172A;margin-top:5px">Situation familiale</div>
+        
+      </div>
+      <div class="lt" style="font-size:11px;color:#6B6353;text-align:right">CLIENT_TEST<br>01 janvier 2026</div>
+    </div>
+    <div style="height:2px;background:#C4973D;margin-top:12px;opacity:.9"></div>
+  </div>
+<div style="break-inside:avoid"><div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      
+    <div style="background:#FBF8F1;border:0.5px solid #EEE7D8;border-radius:10px;padding:14px 16px">
+      <div class="sct">Personne 1</div>
+      <div style="margin-top:6px">
+        
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
+      <span style="font-size:10.5px;color:#6B6353">Identité</span>
+      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">Alex Martin</span>
+    </div>
+        
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
+      <span style="font-size:10.5px;color:#6B6353">Naissance</span>
+      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">01/01/1980 (46 ans)</span>
+    </div>
+        
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
+      <span style="font-size:10.5px;color:#6B6353">Profession</span>
+      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">Cadre</span>
+    </div>
+        
+      </div>
+    </div>
+      
+    <div style="background:#FBF8F1;border:0.5px solid #EEE7D8;border-radius:10px;padding:14px 16px">
+      <div class="sct">Personne 2</div>
+      <div style="margin-top:6px">
+        
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
+      <span style="font-size:10.5px;color:#6B6353">Identité</span>
+      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">Sam Martin</span>
+    </div>
+        
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
+      <span style="font-size:10.5px;color:#6B6353">Naissance</span>
+      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">01/01/1982 (44 ans)</span>
+    </div>
+        
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
+      <span style="font-size:10.5px;color:#6B6353">Profession</span>
+      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">Profession liberale</span>
+    </div>
+        
+      </div>
+    </div>
+    </div></div>
+<div style="break-inside:avoid"><div style="margin-top:16px">
+    <div style="background:#FBF8F1;border:0.5px solid #EEE7D8;border-radius:10px;padding:14px 16px">
+      <div class="sct">Situation familiale</div>
+      <div style="margin-top:6px">
+        
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
+      <span style="font-size:10.5px;color:#6B6353">Statut du couple</span>
+      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">Marie - communaute legale</span>
+    </div>
+        
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
+      <span style="font-size:10.5px;color:#6B6353">Parts fiscales</span>
+      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">3</span>
+    </div>
+        
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
+      <span style="font-size:10.5px;color:#6B6353">Enfants déclarés</span>
+      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">1</span>
+    </div>
+      </div>
+    </div></div></div>
+<div style="break-inside:avoid;break-after:avoid"><div style="margin-top:18px"><div class="sct">Enfants — 1 enregistré</div></div></div>
+<table data-pdf-tbl style="width:100%;border-collapse:collapse;table-layout:fixed;border:0.5px solid #EEE7D8;margin-top:12px"><thead><tr style="background:#FBF7EF;border-bottom:1px solid #E7D9BF">
+          <th class="th" style="text-align:left;width:22%">Prénom</th><th class="th" style="text-align:left;width:18%">Naissance</th><th class="th" style="text-align:left;width:22%">Lien</th><th class="th" style="text-align:left;width:14%">Garde</th><th class="th" style="text-align:center;width:12%">Rattaché</th><th class="th" style="text-align:center;width:12%">Handicap</th>
+        </tr></thead><tbody><tr><td class="td" style="text-align:left;">Lou</td><td class="td" style="text-align:left;color:#6B6353;">01/01/2015</td><td class="td" style="text-align:left;">Commun</td><td class="td" style="text-align:left;">Pleine</td><td class="td" style="text-align:center;color:#2F7D5B;">✓</td><td class="td" style="text-align:center;color:#777060;">—</td></tr></tbody></table>
+</div>"
+`;
+
 exports[`CONTRAT — pageSuccessionA (flux paged.js) > 9. blocs declares : header, table heritiers ecoulable, queue (foot-note CGI + Notre lecture) 1`] = `
 "<div class="pdf-contrat" style="padding:32px 38px 0;orphans:2;widows:2">
 <div style="break-inside:avoid">
@@ -304,125 +391,6 @@ exports[`GOLDEN — pageCouverture (page complete, pied bespoke 56/42) > 7. page
         </div>
         <span class="lt" style="font-size:10px;color:#6B6353;text-align:right">Document strictement confidentiel — Cabinet Test</span>
       </div>
-    </div>
-  "
-`;
-
-exports[`GOLDEN — pageFamille centrage (foyer court : corps centre, header en haut) > 8. foyer court (2 adultes + 1 enfant) : base de regression (snapshot externe) 1`] = `
-"
-    <div style="position:relative;width:210mm;height:297mm;overflow:hidden">
-      <div style="padding:32px 38px 0">
-        
-    
-    <div style="display:flex;justify-content:space-between;align-items:flex-end">
-      <div>
-        <div class="eb">Composition du foyer</div>
-        <div class="ser" style="font-size:21px;font-weight:600;color:#0F172A;margin-top:5px">Situation familiale</div>
-        
-      </div>
-      <div class="lt" style="font-size:11px;color:#6B6353;text-align:right">CLIENT_TEST<br>01 janvier 2026</div>
-    </div>
-    <div style="height:2px;background:#C4973D;margin-top:12px;opacity:.9"></div>
-  
-    <div style="height:980px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box"><div style="flex:1 1 0"></div><div>
-    <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      
-    <div style="background:#FBF8F1;border:0.5px solid #EEE7D8;border-radius:10px;padding:14px 16px">
-      <div class="sct">Personne 1</div>
-      <div style="margin-top:6px">
-        
-    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
-      <span style="font-size:10.5px;color:#6B6353">Identité</span>
-      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">Alex Martin</span>
-    </div>
-        
-    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
-      <span style="font-size:10.5px;color:#6B6353">Naissance</span>
-      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">01/01/1980 (46 ans)</span>
-    </div>
-        
-    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
-      <span style="font-size:10.5px;color:#6B6353">Profession</span>
-      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">Cadre</span>
-    </div>
-        
-      </div>
-    </div>
-      
-    <div style="background:#FBF8F1;border:0.5px solid #EEE7D8;border-radius:10px;padding:14px 16px">
-      <div class="sct">Personne 2</div>
-      <div style="margin-top:6px">
-        
-    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
-      <span style="font-size:10.5px;color:#6B6353">Identité</span>
-      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">Sam Martin</span>
-    </div>
-        
-    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
-      <span style="font-size:10.5px;color:#6B6353">Naissance</span>
-      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">01/01/1982 (44 ans)</span>
-    </div>
-        
-    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
-      <span style="font-size:10.5px;color:#6B6353">Profession</span>
-      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">Profession liberale</span>
-    </div>
-        
-      </div>
-    </div>
-    </div>
-
-    <div style="margin-top:16px">
-    <div style="background:#FBF8F1;border:0.5px solid #EEE7D8;border-radius:10px;padding:14px 16px">
-      <div class="sct">Situation familiale</div>
-      <div style="margin-top:6px">
-        
-    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
-      <span style="font-size:10.5px;color:#6B6353">Statut du couple</span>
-      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">Marie - communaute legale</span>
-    </div>
-        
-    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
-      <span style="font-size:10.5px;color:#6B6353">Parts fiscales</span>
-      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">3</span>
-    </div>
-        
-    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEE7D8">
-      <span style="font-size:10.5px;color:#6B6353">Enfants déclarés</span>
-      <span style="font-size:10.5px;color:#3A352B;font-weight:500;text-align:right">1</span>
-    </div>
-      </div>
-    </div></div>
-
-    
-      <div style="margin-top:18px">
-        <div class="sct">Enfants — 1 enregistré</div>
-        
-    <div style="border:0.5px solid #EEE7D8;border-radius:10px;margin-top:12px">
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-        <thead><tr style="background:#FBF7EF;border-bottom:1px solid #E7D9BF">
-          <th class="th" style="text-align:left;width:22%">Prénom</th><th class="th" style="text-align:left;width:18%">Naissance</th><th class="th" style="text-align:left;width:22%">Lien</th><th class="th" style="text-align:left;width:14%">Garde</th><th class="th" style="text-align:center;width:12%">Rattaché</th><th class="th" style="text-align:center;width:12%">Handicap</th>
-        </tr></thead>
-        <tbody>
-          <tr><td class="td" style="text-align:left;">Lou</td><td class="td" style="text-align:left;color:#6B6353;">01/01/2015</td><td class="td" style="text-align:left;">Commun</td><td class="td" style="text-align:left;">Pleine</td><td class="td" style="text-align:center;color:#2F7D5B;">✓</td><td class="td" style="text-align:center;color:#777060;">—</td></tr>
-        </tbody>
-      </table>
-    </div>
-  
-      </div>
-    
-
-    
-  </div><div style="flex:2 1 0"></div></div>
-  
-      </div>
-      
-      
-    <div style="position:absolute;left:38px;right:38px;bottom:16px;border-top:1px solid #E4DDCF;padding-top:8px;display:flex;justify-content:space-between">
-      <span class="lt" style="font-size:10px;color:#777060">Cabinet Test</span>
-      <span class="lt" style="font-size:10px;color:#777060">1 / 8</span>
-    </div>
-  
     </div>
   "
 `;
