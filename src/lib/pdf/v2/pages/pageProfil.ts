@@ -156,6 +156,10 @@ export function pageProfil(t: Tokens, d: ProfilPageData): string {
   // qu'avant — contenu signature (mentions, noms, image conseiller) INCHANGÉ.
   blocs.push({
     kind: "queue",
+    // Solidaire du bloc précédent (encart adéquation) : sur un léger débordement, la
+    // signature ne part plus SEULE en haut de la feuille 2 (break-before:avoid). Sûr
+    // ici : adéquation + signature tiennent largement sur une feuille (pas de boucle).
+    solidaireAvecPrecedent: true,
     html: encartSignature(t, {
       nomClient: d.nomClientSignature,
       nomConseiller: d.nomConseiller,

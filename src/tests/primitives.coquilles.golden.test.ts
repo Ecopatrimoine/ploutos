@@ -305,6 +305,9 @@ describe("CONTRAT — pageProfil (flux paged.js, signature en QueueEpinglee)", (
     expect(html).toContain('class="pdf-contrat"');
     // Signature PRESENTE et dans le flux (queue) — encartSignature (mention par defaut).
     expect(html).toContain('class="pdf-queue"');
+    // Lot 4-bis : la queue signature est solidaire du bloc precedent (break-before:avoid)
+    // -> ne part plus seule en haut de la feuille 2 sur un leger debordement.
+    expect(html).toContain('class="pdf-queue" style="break-inside:avoid;break-before:avoid"');
     expect(html).toContain("Lu et approuvé");
     expect(html).toContain("CLIENT_SIGNATURE_TEST");
     expect(html).toContain("CONSEILLER_TEST");
