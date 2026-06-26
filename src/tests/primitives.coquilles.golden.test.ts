@@ -266,13 +266,16 @@ describe("CONTRAT — pageSuccessionB (flux paged.js)", () => {
   });
 });
 
-describe("GOLDEN — pageBilanEndettement centrage (cas court)", () => {
-  it("11. cas court : base de regression + entretoises 1:2, header hors region", () => {
+describe("CONTRAT — pageBilanEndettement (flux paged.js)", () => {
+  it("11. cas court : base de regression (snapshot externe), flux contrat sans centrage", () => {
     const html = pageBilanEndettement(t, dBilan);
     expect(html).toMatchSnapshot();
-    expect(html).toContain(HAUTE);
-    expect(html).toContain(BASSE);
-    expect(html.indexOf("CLIENT_TEST")).toBeLessThan(html.indexOf(HAUTE));
-    expect(html.indexOf("LECTURE_BILAN_TEST")).toBeGreaterThan(html.indexOf(HAUTE));
+    // Migration au contrat : plus de boite centree regionCorpsCentree (entretoises 1:2).
+    expect(html).not.toContain(HAUTE);
+    expect(html).not.toContain(BASSE);
+    expect(html).toContain('class="pdf-contrat"');
+    // Notre lecture en queue, en fin de flux, APRES le header.
+    expect(html).toContain('class="pdf-queue"');
+    expect(html.indexOf("CLIENT_TEST")).toBeLessThan(html.indexOf("LECTURE_BILAN_TEST"));
   });
 });
