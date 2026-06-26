@@ -37,7 +37,6 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
   const abattement10pct = num(ir.abattement10 ?? Math.round(salaires * 0.10));
   const revenuNetImposable = num(ir.revenuNetGlobal ?? (revenusBruts - abattement10pct));
   const impotNetDu = num(ir.finalIR ?? 0);
-  const tauxMoyenPct = revenusBruts > 0 ? (impotNetDu / revenusBruts) * 100 : 0;
   const tmiPct = num((ir.marginalRate ?? 0) * (Number(ir.marginalRate) <= 1 ? 100 : 1));
 
   // ─── Analyse "masque" structurée — cadrage métier + chiffres + leviers ──
@@ -69,7 +68,7 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
       <li><strong>Composition</strong> — Revenus bruts annuels : ${formatEuro(revenusBruts)} (${composition.join(", ") || "à compléter dans la collecte"}).</li>
       <li><strong>Assiette</strong> — Revenu net imposable : ${formatEuro(revenuNetImposable)} pour ${ir.parts || "—"} part${(ir.parts || 0) > 1 ? "s" : ""} fiscale${(ir.parts || 0) > 1 ? "s" : ""}.</li>
       <li><strong>Pression fiscale</strong> — ${impotNetDu > 0
-        ? `Impôt dû : ${formatEuro(impotNetDu)}, soit ${tauxMoyenPct.toFixed(1).replace(".", ",")} % en taux moyen. Tranche marginale ${tmiPct.toFixed(0)} % — chaque euro supplémentaire est taxé à ce taux.`
+        ? `Impôt dû : ${formatEuro(impotNetDu)}, soit ${formatPct(ir.averageRate)} en taux moyen. Tranche marginale ${tmiPct.toFixed(0)} % — chaque euro supplémentaire est taxé à ce taux.`
         : `Aucun impôt dû à ce stade (revenus sous le seuil ou compensés par les déductions).`}</li>
     </ul>
     <p style="margin:0;font-style:italic;color:#6B6353"><strong>Leviers à étudier :</strong> ${leviers.join(" ; ")}.</p>
