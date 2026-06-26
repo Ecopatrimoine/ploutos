@@ -192,22 +192,21 @@ describe("Famille E — Conformité DDA", () => {
     expect(html).toContain("25006907");
   });
 
-  it("DDA collective epinglee en bas via le slot signature", () => {
+  it("DDA collective en bas via QueueEpinglee (flux, pas en slot absolu)", () => {
     const t = buildTokens("encreOr");
     const cabinet = { cabinetName: "EcoPatrimoine Conseil", orias: "25006907" };
     const data = makeDataDirigeant();
     const d = buildPrevoyanceCollData({ data, cabinet, dateLettre: "28 mai 2026" });
     const html = pagePrevoyanceColl(t, d);
-    // Feuille Obligations = derniere feuille A4 du module.
-    const feuilles = html.split("width:210mm;height:297mm").slice(1);
-    const fObl = feuilles[feuilles.length - 1];
-    // Le slot signature de coquillePage est un wrapper absolu ancre a bottom:42px.
-    const idxSlot = fObl.indexOf("bottom:42px");
-    const idxDDA = fObl.indexOf("L.521-4");
-    expect(idxSlot).toBeGreaterThan(-1);   // slot signature present sur la feuille
-    expect(idxDDA).toBeGreaterThan(-1);    // mention DDA presente
-    // DDA situee APRES l'ouverture du slot -> epinglee en bas (pas dans le flux).
-    expect(idxDDA).toBeGreaterThan(idxSlot);
+    // Flux unique : AUCUNE boite A4, AUCUN slot signature absolu (bottom:42px).
+    expect(html).not.toContain("width:210mm;height:297mm");
+    expect(html).not.toContain("bottom:42px");
+    // DDA dans une QueueEpinglee soudee au bloc precedent (break-before:avoid).
+    expect(html).toContain('class="pdf-queue" style="break-inside:avoid;break-before:avoid"');
+    // Mention DDA presente, APRES le corps (epinglee en fin de flux, pas en absolu).
+    const idxDDA = html.indexOf("L.521-4");
+    expect(idxDDA).toBeGreaterThan(-1);
+    expect(idxDDA).toBeGreaterThan(html.indexOf("Audit de conformit"));
   });
 });
 

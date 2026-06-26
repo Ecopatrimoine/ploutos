@@ -1,37 +1,29 @@
-// ─── Page Prévoyance collective v2 — pagination adaptative (1 ou 2 feuilles) ────
+// ─── Page Prévoyance collective v2 — flux unique (contrat de page paged.js) ────
 //
-// Trois chemins (Lot pagination) :
-//   a) inactif        -> 1 feuille : message centré (regionCorpsCentree) + DDA en slot.
-//   b) actif & fusion -> 1 feuille PLEINE : header + KPI + convention + audit +
-//                        obligations + DDA en slot (decide par tientSurUneFeuille,
-//                        conservateur : jamais de clip).
-//   c) actif & 2-feuilles -> feuille 1 « Conformité » (header + KPI + convention en
-//                        zone haute, PUIS corps audit CENTRÉ via regionCorpsCentree)
-//                        + feuille 2 « Obligations » (inchangée, DDA en slot, v1.20.0).
-// La DDA est TOUJOURS sur le slot signature NATIF de coquillePage (epinglee bottom:42px),
-// presente exactement une fois, sur la derniere/unique feuille. Le bloc "Constats"
-// (doublon de l'audit) reste retire du PDF.
+// Bascule de MÉCANISME (Phase 3) : les 3 chemins manuels de coquillePage
+// (décision de fusion `tientSurUneFeuille`, scission 2-feuilles, centrage
+// `regionCorpsCentree`) sont SUPPRIMÉS au profit d'un flux déclaratif unique
+// (compilerPageContrat) — paged.js gère seul la pagination (1, 2, … feuilles).
+//
+// Structure du flux (actif) : header · bande KPI · convention(opt) · AUDIT
+// (sous-titre + matrice → ListeEcoulable) · OBLIGATIONS (head + tableau →
+// ListeEcoulable + notes) · DDA en QueueEpinglee.
+//
+// CONFORMITÉ : la mention DDA (devoir de conseil / L.521-4 C. ass.), jadis dans
+// le slot absolu bottom:42px de coquillePage — MASQUÉ par le pont feeder, donc
+// absent du rendu paged.js — est restaurée dans le FLUX en QueueEpinglee
+// (kind:"queue", jamais position:absolute). Même primitive noteIconee, texte
+// mentionDDAPrevoyance INCHANGÉ. Le pied est géré par les margin-boxes @page.
 
 import {
   header,
   bandeKPI,
   sousTitreSection,
-  tableauTitresDores,
+  construireTableEcoulable,
   noteIconee,
-  piedPage,
-  coquillePage,
   icones,
-  tientSurUneFeuille,
-  regionCorpsCentree,
-  H_HEADER_PX,
-  H_BANDE_KPI_PX,
-  H_SOUSTITRE_SERIF_PX,
-  H_LIGNE_TEXTE_PX,
-  CHARS_PAR_LIGNE_CONVENTION,
-  RESERVE_BAS_PX,
-  RESERVE_PIED_PX,
-  type CountsFeuilleCollective,
 } from "../primitives";
+import { compilerPageContrat, type Bloc } from "../engine/contrat";
 import type { Tokens } from "../tokens";
 import type { ControleConformite, ControleStatut } from "../../../prevoyance/types";
 import type {
@@ -52,7 +44,7 @@ export type PrevoyanceCollPageData = {
   controles: ControleConformite[];
   champApplicationCCN: string | null;
   // Vue FUSIONNEE obligations de branche + gap (meme source que l'ecran Lot 5).
-  // null en etat inactif. Rendue sur la feuille 2.
+  // null en etat inactif / indisponible.
   vueObligations: VueObligationsFusionnee | null;
   mentionDDA: string;
   pagePosition: string;
@@ -82,7 +74,7 @@ const VERDICT_COULEUR: Record<string, string> = {
   non_applicable: "#6B7280",
 };
 
-// ─── Helpers section obligations fusionnees (feuille 2) ───────────────────────
+// ─── Helpers section obligations fusionnees ───────────────────────────────────
 
 // ValeurFusionnee -> HTML cellule. null -> "—" ; commun -> texte ; split -> 2 lignes.
 function valeurHTML(t: Tokens, v: ValeurFusionnee | null): string {
@@ -119,18 +111,33 @@ function compteurHTML(n: number, label: string, color: string, bg: string): stri
   return `<span style="display:inline-block;border:1px solid ${color};border-radius:8px;padding:3px 10px;font-size:10px;font-weight:700;color:${color};background:${bg}">${n} ${label}</span>`;
 }
 
-// Section obligations fusionnees — miroir de l'ecran (Lot 5). Ne rend QUE des
-// chaines de la vue (source unique) -> rien a verifier cote DDA.
-function sectionObligationsFusionnee(t: Tokens, vue: VueObligationsFusionnee): string {
-  const titre = sousTitreSection(t, "Obligations de prevoyance de branche");
+// Section obligations fusionnees -> Bloc[] (head insécable + tableau ListeEcoulable
+// + notes). Miroir de l'ecran (Lot 5). Ne rend QUE des chaines de la vue (source
+// unique) -> rien a verifier cote DDA. Le tableau jadis monolithique (tableauTitresDores)
+// devient une ListeEcoulable (coupable entre lignes, thead repete + « (suite) »).
+function blocsObligations(t: Tokens, d: PrevoyanceCollPageData): Bloc[] {
+  const titreHtml = sousTitreSection(t, "Obligations de prevoyance de branche");
+
+  // Vue indisponible : sous-titre + message (1 bloc insécable).
+  if (!d.vueObligations) {
+    return [{
+      kind: "insecable",
+      html: `<div style="margin-top:16px">${titreHtml}<div style="font-size:10.5px;color:${t.texteFaible};margin-top:2px">Donnees de branche indisponibles.</div></div>`,
+    }];
+  }
+
+  const vue = d.vueObligations;
   const statut = `<div style="font-size:10.5px;color:${t.texteFaible};margin-top:2px;margin-bottom:4px">${vue.statutLabel}</div>`;
   const avertissement = vue.afficherAvertissementIncomplet
     ? `<div style="break-inside:avoid;border:1px solid ${COULEUR_SEVERITE.attention.border};border-radius:8px;background:${COULEUR_SEVERITE.attention.bg};padding:8px 12px;margin-top:6px;font-size:10px;color:${COULEUR_SEVERITE.attention.texte}">Donnees de branche partiellement documentees : verification manuelle conseillee.</div>`
     : "";
 
-  // Etat vide propre : aucune ligne -> statutLabel seul, pas de tableau.
+  // Etat vide propre : aucune ligne -> statutLabel seul, pas de tableau (1 bloc).
   if (vue.lignes.length === 0) {
-    return `${titre}${statut}${avertissement}`;
+    return [{
+      kind: "insecable",
+      html: `<div style="margin-top:16px">${titreHtml}${statut}${avertissement}</div>`,
+    }];
   }
 
   // Synthese chiffree (uniquement si comparaison realisee).
@@ -148,9 +155,9 @@ function sectionObligationsFusionnee(t: Tokens, vue: VueObligationsFusionnee): s
     ? `<div style="break-inside:avoid;border:1px solid ${t.bordureClaire};border-radius:8px;background:${t.fondTableauAlt};padding:8px 12px;margin-top:6px;font-size:10px;color:${t.texteFaible}">Aucune garantie souscrite renseignee — comparaison non realisee.</div>`
     : "";
 
-  // Tableau unique : colonnes selon afficherComparaison.
-  const tableau = vue.afficherComparaison
-    ? tableauTitresDores(t, {
+  // Tableau unique -> ListeEcoulable. Colonnes selon afficherComparaison.
+  const { enteteHtml, lignesHtml } = vue.afficherComparaison
+    ? construireTableEcoulable(t, {
         cols: [
           { label: "Garantie", align: "left", width: "20%" },
           { label: "Obligation de branche", align: "left", width: "34%" },
@@ -173,7 +180,7 @@ function sectionObligationsFusionnee(t: Tokens, vue: VueObligationsFusionnee): s
               ]
         ),
       })
-    : tableauTitresDores(t, {
+    : construireTableEcoulable(t, {
         cols: [
           { label: "Garantie", align: "left", width: "30%" },
           { label: "Obligation de branche", align: "left", width: "70%" },
@@ -184,7 +191,7 @@ function sectionObligationsFusionnee(t: Tokens, vue: VueObligationsFusionnee): s
         ]),
       });
 
-  // Notes de bas de feuille.
+  // Notes de bas de section.
   const notes: string[] = [];
   if (vue.nonPrevues.length > 0) {
     notes.push(`Non prevue par la branche : ${vue.nonPrevues.map((n) => n.garantieLabel).join(", ")}.`);
@@ -198,48 +205,80 @@ function sectionObligationsFusionnee(t: Tokens, vue: VueObligationsFusionnee): s
       ? `<div style="margin-top:8px;font-size:9.5px;color:${t.texteFaible};line-height:1.5">${notes.map((n) => `<div>${n}</div>`).join("")}</div>`
       : "";
 
-  return `${titre}${statut}${avertissement}${synthese}${bandeau}${tableau}${notesHTML}`;
+  const blocs: Bloc[] = [];
+  // Head (titre + statut + avertissement + synthese + bandeau) : solidaire de sa table
+  // (le titre ne part jamais orphelin en bas de feuille).
+  blocs.push({
+    kind: "insecable",
+    solidaireAvecSuivant: true,
+    html: `<div style="margin-top:16px">${titreHtml}${statut}${avertissement}${synthese}${bandeau}</div>`,
+  });
+  // Tableau ecoulable (coupable entre lignes ; thead repete + « (suite) »).
+  blocs.push({
+    kind: "liste",
+    enteteHtml,
+    lignesHtml,
+    styleTable: `width:100%;border-collapse:collapse;table-layout:fixed;border:0.5px solid ${t.bordureClaire};margin-top:12px`,
+  });
+  // Notes (apres la table), si presentes.
+  if (notesHTML) {
+    blocs.push({ kind: "insecable", html: notesHTML });
+  }
+  return blocs;
 }
 
-// ─── Page (pagination adaptative : 1 ou 2 feuilles) ───────────────────────────
+// ─── Page (flux unique : compilerPageContrat) ─────────────────────────────────
 
 export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string {
-  const pied = piedPage(t, { gauche: d.cabinetLibellePied, droite: d.pagePosition });
-  // Mention DDA : rendue UNE seule fois, en bas de la DERNIERE (ou unique) feuille,
-  // via le slot signature NATIF de coquillePage (epinglee bottom:42px, v1.20.0).
-  const ddaNote = noteIconee(t, {
-    iconeSvg: icones.infoCircle(t.eyebrowOr, 14),
-    texteHtml: d.mentionDDA,
-    style: "discrete",
-  });
+  // Mention DDA (conformite — devoir de conseil DDA / L.521-4 C. ass.) : restauree
+  // dans le FLUX en QueueEpinglee (jamais en position:absolute bottom:42px, que le pont
+  // feeder masque -> la DDA disparaissait au rendu paged.js). Texte mentionDDAPrevoyance
+  // INCHANGE. solidaireAvecPrecedent : soudee au bloc precedent (anti-orphelin), la DDA
+  // ne part plus SEULE en haut de la feuille suivante sur un leger debordement.
+  const ddaBloc: Bloc = {
+    kind: "queue",
+    solidaireAvecPrecedent: true,
+    html: noteIconee(t, {
+      iconeSvg: icones.infoCircle(t.eyebrowOr, 14),
+      texteHtml: d.mentionDDA,
+      style: "discrete",
+    }),
+  };
 
-  // ── Chemin a) Module inactif : 1 feuille, message centre, DDA en slot ──
-  // reserveBas = RESERVE_BAS_PX (120) : la DDA est sur CETTE feuille -> on reserve
-  // sa place pour eviter tout chevauchement avec le corps centre.
+  const blocs: Bloc[] = [];
+
+  // ── Chemin a) Module inactif : header + message + DDA (flux unique) ──
   if (!d.active) {
-    const message = `<div style="text-align:center;font-size:12px;color:${t.texteFaible};line-height:1.6">
-        Aucun dirigeant détecté dans le foyer et analyse externe non activée.<br/>
-        Activer le module Prévoyance collective pour produire l'audit conformité.
-      </div>`;
-    const contenu = `
-      ${header(t, {
+    blocs.push({
+      kind: "insecable",
+      html: header(t, {
         eyebrow: "Prévoyance",
         titre: "Prévoyance collective",
         droiteHaut: d.clientName,
         droiteBas: d.dateStr,
-      })}
-      ${regionCorpsCentree(message, { hauteurZoneHautPx: H_HEADER_PX, reserveBasPx: RESERVE_BAS_PX })}
-    `;
-    return coquillePage(t, { contenu, signature: ddaNote, pied });
+      }),
+    });
+    blocs.push({
+      kind: "insecable",
+      html: `<div style="margin-top:40px;text-align:center;font-size:12px;color:${t.texteFaible};line-height:1.6">
+        Aucun dirigeant détecté dans le foyer et analyse externe non activée.<br/>
+        Activer le module Prévoyance collective pour produire l'audit conformité.
+      </div>`,
+    });
+    blocs.push(ddaBloc);
+    return compilerPageContrat(blocs);
   }
 
-  // ── Pieces partagees (chemins fusion + 2-feuilles) ──
-  const enTeteConformite = header(t, {
-    eyebrow: "Prévoyance",
-    titre: "Prévoyance collective",
-    sousTitre: d.sousTitre,
-    droiteHaut: d.clientName,
-    droiteBas: d.dateStr,
+  // ── Chemin actif : header + KPI + convention(opt) + audit + obligations + DDA ──
+  blocs.push({
+    kind: "insecable",
+    html: header(t, {
+      eyebrow: "Prévoyance",
+      titre: "Prévoyance collective",
+      sousTitre: d.sousTitre,
+      droiteHaut: d.clientName,
+      droiteBas: d.dateStr,
+    }),
   });
 
   const kpis = [
@@ -248,15 +287,26 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
     { label: "Effectif", value: d.effectifLibelle, type: "normal" as const },
     { label: "Convention collective", value: d.ccnLibelle, type: "normal" as const, valueFontSize: "11px" },
   ];
+  blocs.push({ kind: "insecable", html: bandeKPI(t, kpis) });
 
-  const conventionBloc = d.champApplicationCCN
-    ? `<div style="margin-top:16px">
+  // Convention applicable (optionnelle).
+  if (d.champApplicationCCN) {
+    blocs.push({
+      kind: "insecable",
+      html: `<div style="margin-top:16px">
         ${sousTitreSection(t, "Convention applicable", { style: "serif" })}
         <div class="lt" style="font-size:11px;line-height:1.6;color:${t.texte}">${d.champApplicationCCN}</div>
-      </div>`
-    : "";
+      </div>`,
+    });
+  }
 
-  const matrice = tableauTitresDores(t, {
+  // ── Audit de conformite : sous-titre (solidaire de sa table) + matrice ecoulable ──
+  blocs.push({
+    kind: "insecable",
+    solidaireAvecSuivant: true,
+    html: `<div style="margin-top:16px">${sousTitreSection(t, "Audit de conformité")}</div>`,
+  });
+  const auditTable = construireTableEcoulable(t, {
     cols: [
       { label: "Contrôle", align: "left", width: "40%" },
       { label: "Statut", align: "left", width: "18%" },
@@ -271,84 +321,18 @@ export function pagePrevoyanceColl(t: Tokens, d: PrevoyanceCollPageData): string
       ];
     }),
   });
-
-  // Corps audit (sans marge externe : la position verticale est gérée par le
-  // conteneur — flux en fusion, region centree en 2-feuilles).
-  const corpsAudit = `${sousTitreSection(t, "Audit de conformité")}${matrice}`;
-
-  const sectionObl = d.vueObligations
-    ? sectionObligationsFusionnee(t, d.vueObligations)
-    : `${sousTitreSection(t, "Obligations de prevoyance de branche")}<div style="font-size:10.5px;color:${t.texteFaible};margin-top:2px">Donnees de branche indisponibles.</div>`;
-
-  // ── Decision de fusion CONSERVATRICE (Lot 1) ──
-  const vue = d.vueObligations;
-  const nbNotes = vue
-    ? (vue.nonPrevues.length > 0 ? 1 : 0) + (vue.lignes.some((l) => l.estReference) ? 1 : 0)
-    : 0;
-  const counts: CountsFeuilleCollective = {
-    modeActif: true,
-    nbControles: d.controles.length,
-    conventionLongueur: d.champApplicationCCN ? d.champApplicationCCN.length : 0,
-    nbLignesObligations: vue ? vue.lignes.length : 0,
-    nbNotesObligations: nbNotes,
-    syntheseObligations: !!(vue && vue.afficherComparaison && vue.synthese),
-  };
-
-  // ── Chemin b) Fusion : 1 feuille PLEINE (pas de centrage), DDA en slot ──
-  if (tientSurUneFeuille(counts)) {
-    const contenu = `
-      ${enTeteConformite}
-      ${bandeKPI(t, kpis)}
-      ${conventionBloc}
-      <div style="margin-top:16px">
-        ${corpsAudit}
-      </div>
-      <div style="margin-top:16px">
-        ${sectionObl}
-      </div>
-    `;
-    return coquillePage(t, { contenu, signature: ddaNote, pied });
-  }
-
-  // ── Chemin c) 2 feuilles : Conformite (corps audit centre) + Obligations ──
-  // Zone haute fixe de la feuille 1 = header + KPI + convention(opt) ; le centrage
-  // n'enveloppe QUE le corps audit (jamais le KPI). reserveBas = RESERVE_PIED_PX
-  // (30 : la DDA est sur la feuille 2, pas ici). hauteurZoneHautPx calculee depuis
-  // les constantes figees (Lot 1), pas de nombre magique.
-  const lignesConvention =
-    counts.conventionLongueur > 0 ? Math.ceil(counts.conventionLongueur / CHARS_PAR_LIGNE_CONVENTION) : 0;
-  const hauteurZoneHautConformite =
-    H_HEADER_PX +
-    H_BANDE_KPI_PX +
-    (counts.conventionLongueur > 0 ? H_SOUSTITRE_SERIF_PX + lignesConvention * H_LIGNE_TEXTE_PX : 0);
-
-  const feuilleConformite = coquillePage(t, {
-    contenu: `
-      ${enTeteConformite}
-      ${bandeKPI(t, kpis)}
-      ${conventionBloc}
-      ${regionCorpsCentree(corpsAudit, { hauteurZoneHautPx: hauteurZoneHautConformite, reserveBasPx: RESERVE_PIED_PX })}
-    `,
-    pied,
+  blocs.push({
+    kind: "liste",
+    enteteHtml: auditTable.enteteHtml,
+    lignesHtml: auditTable.lignesHtml,
+    styleTable: `width:100%;border-collapse:collapse;table-layout:fixed;border:0.5px solid ${t.bordureClaire};margin-top:12px`,
   });
 
-  const feuilleObligations = coquillePage(t, {
-    contenu: `
-      ${header(t, {
-        eyebrow: "Prévoyance collective",
-        titre: "Obligations de branche",
-        sousTitre: d.sousTitre,
-        droiteHaut: d.clientName,
-        droiteBas: d.dateStr,
-      })}
-      <div style="margin-top:16px">
-        ${sectionObl}
-      </div>
-    `,
-    signature: ddaNote,
-    pied,
-  });
+  // ── Obligations de prevoyance de branche (head + table ecoulable + notes) ──
+  blocs.push(...blocsObligations(t, d));
 
-  // Ordre : Conformite -> Obligations (DDA epinglee en bas de cette derniere).
-  return feuilleConformite + feuilleObligations;
+  // ── DDA en QueueEpinglee (flux, jamais en slot absolu) ──
+  blocs.push(ddaBloc);
+
+  return compilerPageContrat(blocs);
 }
