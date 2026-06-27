@@ -35,6 +35,11 @@ export type BlocInsecable = {
   /** GARDE-FOU : si ce bloc peut dépasser la hauteur d'une feuille, l'autoriser à
    *  couler (break-inside:auto) plutôt que de risquer une boucle / feuille blanche. */
   secableEnDernierRecours?: boolean;
+  /** Attributs HTML bruts optionnels posés sur l'élément de plus haut niveau du bloc
+   *  rendu (le `<div>` wrapper). Sert à poser un marqueur retrouvable dans le DOM rendu,
+   *  ex. `data-pdf-distribute-anchor` (frontière en-tête fixe / corps pour la distribution
+   *  du blanc). Absent → élément STRICTEMENT inchangé (octet pour octet). */
+  attributs?: string;
 };
 
 /** Liste HOMOGÈNE coupable ENTRE éléments seulement, rendue table brute
@@ -50,6 +55,8 @@ export type ListeEcoulable = {
   lignesHtml: string[];
   /** Surcharge éventuelle du style de la `<table>`. */
   styleTable?: string;
+  /** Attributs HTML bruts optionnels posés sur la `<table>` (cf. BlocInsecable.attributs). */
+  attributs?: string;
 };
 
 /** Blocs de fin (encart « Notre lecture », bandeau consolidé) qui restent avec /
@@ -64,6 +71,8 @@ export type QueueEpinglee = {
    *  STRICTEMENT INCHANGÉS (break-inside seul). À n'activer que si (dernier bloc +
    *  queue) tient largement sur une feuille — sinon risque de boucle paged.js. */
   solidaireAvecPrecedent?: boolean;
+  /** Attributs HTML bruts optionnels posés sur le `<div class="pdf-queue">` (cf. BlocInsecable.attributs). */
+  attributs?: string;
 };
 
 export type Bloc = BlocInsecable | ListeEcoulable | QueueEpinglee;
@@ -84,23 +93,29 @@ function reglesCoupe(b: { solidaireAvecSuivant?: boolean; solidaireAvecPrecedent
   return `${inside}${before}${after}`;
 }
 
+/** Attributs HTML bruts optionnels d'un bloc, préfixés d'un espace (ou chaîne vide).
+ *  ADDITIF : absent → chaîne vide → markup STRICTEMENT inchangé (octet pour octet). */
+function attrsDe(b: { attributs?: string }): string {
+  return b.attributs ? ` ${b.attributs}` : "";
+}
+
 /** Traduit UN bloc déclaré en markup paged.js. PUR. */
 export function compilerBloc(b: Bloc): string {
   switch (b.kind) {
     case "insecable":
-      return `<div style="${reglesCoupe(b)}">${b.html}</div>`;
+      return `<div${attrsDe(b)} style="${reglesCoupe(b)}">${b.html}</div>`;
     case "queue": {
       // ADDITIF : break-inside comme aujourd'hui ; break-before:avoid SEULEMENT si
       // solidaireAvecPrecedent. Drapeau absent/false → chaîne de style STRICTEMENT
       // identique à l'historique (défaut inchangé, octet pour octet).
       const inside = b.secableEnDernierRecours ? "break-inside:auto" : "break-inside:avoid";
       const before = b.solidaireAvecPrecedent ? ";break-before:avoid" : "";
-      return `<div class="pdf-queue" style="${inside}${before}">${b.html}</div>`;
+      return `<div class="pdf-queue"${attrsDe(b)} style="${inside}${before}">${b.html}</div>`;
     }
     case "liste": {
       // data-pdf-tbl : repère pour le handler Phase 1 (thead répété + « (suite) »).
       const style = b.styleTable || STYLE_TABLE_DEFAUT;
-      return `<table data-pdf-tbl style="${style}">${b.enteteHtml}<tbody>${b.lignesHtml.join("")}</tbody></table>`;
+      return `<table data-pdf-tbl${attrsDe(b)} style="${style}">${b.enteteHtml}<tbody>${b.lignesHtml.join("")}</tbody></table>`;
     }
   }
 }
