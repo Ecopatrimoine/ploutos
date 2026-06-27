@@ -194,3 +194,89 @@ export const COVER_HANDLER_SCRIPT = `
   window.Paged.registerHandlers(CoverHandler);
 })();
 `;
+
+// ─── LOT distribution du blanc — DistributeHandler (regle 1/3 haut - 2/3 bas) ───
+//
+// Les pages COURTES laissent un gros blanc EN BAS (flux haut simple). Regle validee
+// (22/06) : ancrer le contenu HAUT en repartissant le blanc residuel 1/3 haut - 2/3 bas
+// (PAS de centrage). En flux contrat la voie CSS est bloquee (.pdf-contrat pas pleine
+// hauteur ; le feeder neutralise flex:1/flex:2). On le fait donc en POST-LAYOUT, comme
+// DocNumHandler : la pagination est FIGEE en afterRendered -> injecter un spacer NE PEUT
+// PAS creer de feuille fantome (anti-boucle structurel).
+//
+// OPT-IN STRICT : ne traite QUE les feuilles dont la <section> porte data-distribute
+// (hisse par le feeder depuis data-pdf-distribute ; cf. feeder.ts). Une feuille sans ce
+// marqueur n'est JAMAIS touchee (couverture, docReg, pages non marquees).
+//
+// DERNIERE FEUILLE UNIQUEMENT : on groupe les feuilles physiques par data-distribute
+// (meme mecanique que DocNum byDoc) et on ne distribue que sur la DERNIERE du groupe ;
+// les feuilles pleines precedentes ne bougent pas.
+//
+// MESURE : hauteur de la zone de contenu paged.js REELLE (.pagedjs_page_content), PAS
+// les constantes coquillePage obsoletes (1122/32/30). residuel = zone - utilise.
+//
+// SPACER : si residuel > SEUIL_MIN, injecter en tete du contenu un spacer de hauteur
+// round(residuel/3) (le 2/3 restant tombe naturellement en bas). CLAMP STRICT (jamais
+// > residuel) + re-mesure post-injection : si ca deborderait, on annule (anti-boucle).
+export const DISTRIBUTE_HANDLER_SCRIPT = `
+(function () {
+  if (!window.Paged || !window.Paged.registerHandlers || !window.Paged.Handler) return;
+  var SEUIL_MIN = 48; // px : en dessous on s'abstient (pas de micro-decalage)
+  class DistributeHandler extends window.Paged.Handler {
+    constructor(chunker, polisher, caller) {
+      super(chunker, polisher, caller);
+      this.byKey = {};   // data-distribute -> [feuilles physiques, dans l'ordre]
+      this.order = [];
+    }
+    // Rattache chaque feuille MARQUEE a sa page (ignore les non opt-in).
+    afterPageLayout(pageEl) {
+      var holder = pageEl.querySelector("[data-distribute]");
+      if (!holder) return;                       // feuille non marquee -> jamais touchee
+      var key = holder.getAttribute("data-distribute");
+      if (!this.byKey[key]) { this.byKey[key] = []; this.order.push(key); }
+      this.byKey[key].push(pageEl);
+    }
+    // Pagination FIGEE -> aucune nouvelle feuille possible. Sur la SEULE derniere feuille
+    // de chaque page marquee : repartir le blanc 1/3 haut - 2/3 bas.
+    afterRendered() {
+      var self = this;
+      this.order.forEach(function (key) {
+        var sheets = self.byKey[key];
+        var last = sheets[sheets.length - 1];    // DERNIERE feuille uniquement
+        var content = last.querySelector(".pagedjs_page_content");
+        if (!content) return;
+        var box = content.getBoundingClientRect();
+        var avail = content.clientHeight;
+        var parent = content.parentElement;
+        if (parent && parent.clientHeight > avail) avail = parent.clientHeight;
+        if (!avail) return;
+        // hauteur UTILISEE = bas du dernier enfant reel (hors spacer) / haut de la zone.
+        var kids = content.children, used = 0, i;
+        for (i = 0; i < kids.length; i++) {
+          if (kids[i].getAttribute && kids[i].getAttribute("data-pdf-distribute-spacer")) continue;
+          var bottom = kids[i].getBoundingClientRect().bottom - box.top;
+          if (bottom > used) used = bottom;
+        }
+        if (used <= 0) return;
+        var residuel = avail - used;
+        if (residuel <= SEUIL_MIN) return;        // feuille pleine ou quasi -> on ne touche pas
+        var spacer = Math.round(residuel / 3);    // 1/3 en haut ; 2/3 tombe en bas
+        if (spacer > residuel) spacer = residuel; // CLAMP STRICT (jamais > residuel)
+        if (spacer <= 0) return;
+        var sp = content.ownerDocument.createElement("div");
+        sp.setAttribute("data-pdf-distribute-spacer", "1");
+        sp.setAttribute("style", "height:" + spacer + "px;flex:none");
+        content.insertBefore(sp, content.firstChild);
+        // ANTI-BOUCLE : re-mesure ; si l'ajout ferait deborder la zone, on annule.
+        var check = 0;
+        for (i = 0; i < content.children.length; i++) {
+          var b2 = content.children[i].getBoundingClientRect().bottom - box.top;
+          if (b2 > check) check = b2;
+        }
+        if (check > avail) content.removeChild(sp);
+      });
+    }
+  }
+  window.Paged.registerHandlers(DistributeHandler);
+})();
+`;
