@@ -12,6 +12,16 @@
 // 588 400 €, seuil 1 300 000 €, marge 711 600 €, IFI dû 0 €). Plus tard,
 // quand la page IFI v2 sera branchée dans l'app, ces données viendront du
 // dossier client courant via computeIFI().
+//
+// ─── FIDÉLITÉ DES MARGES DE PAGE (cf. genererPdf + constantes plus bas) ──────
+// En PROD, la marge haut/bas du PDF vient du feeder (@page margin 15mm 0 15mm 0 ;
+// cf. src/lib/pdf/v2/engine/feeder.ts → MARGE_HAUT_MM / MARGE_BAS_MM). Ce harnais
+// imprimait avec margin:0 → contenu collé au bord = faux négatif visuel. Il applique
+// désormais les MÊMES marges de page (15mm haut/bas, 0 latéral ; la couverture reste
+// full-bleed comme en prod).
+// LIMITE RESTANTE : seules les MARGES (haut/bas/latéral) sont fidèles ici. L'en-tête
+// courant, le pied cabinet, le liseré docReg et la numérotation X/N sont injectés par le
+// feeder (margin-boxes paged.js) et NE sont PAS reproduits → à valider dans le vrai pack.
 
 import { chromium } from "playwright";
 import { writeFileSync, mkdirSync } from "fs";
@@ -56,6 +66,15 @@ import type { TaxBracket } from "../src/types/patrimoine";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outDir = join(__dirname, "..", "out");
 mkdirSync(outDir, { recursive: true });
+
+// ─── Marges de page du harnais = marges @page de PROD (feeder) ──────────────
+// Source de vérité : src/lib/pdf/v2/engine/feeder.ts (MARGE_HAUT_MM / MARGE_BAS_MM).
+// Ces constantes y sont module-privées (non exportées) → on les DUPLIQUE à l'identique
+// ici (impossible d'importer sans toucher au code app/prod) ; ce pointeur évite la
+// divergence. Latéral = 0 : l'inset latéral vient du padding 38px du corps (.pdf-contrat,
+// cf. compilerPageContrat), déjà présent dans le HTML rendu.
+const MARGE_HAUT_MM = 15; // == feeder.ts MARGE_HAUT_MM (bande haute @page)
+const MARGE_BAS_MM = 15;  // == feeder.ts MARGE_BAS_MM  (bande basse @page)
 
 // Barème IFI 2026 (identique à computeIFI) — uniquement pour fabriquer les fixtures
 // de preview : bracketFill/grossIfi/décote/IFI net dérivés, jamais saisis en dur.
@@ -191,12 +210,27 @@ async function genererPdf(htmlContent: string, outPath: string): Promise<void> {
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: "networkidle" });
+    // Neutralise le "@page { size:A4; margin:0 }" porté par cssCommun (primitives) — MÊME
+    // technique que le feeder (feeder.ts : .replace(/@page\s*\{[^}]*\}/, "")) — afin qu'il
+    // n'entre pas en conflit avec les marges de page Playwright ci-dessous. Sans ça, le @page
+    // margin:0 du CSS l'emporte et le contenu reste collé au bord. La taille A4 est rétablie
+    // par format:"A4". (Une seule règle @page dans le HTML du harnais → un seul remplacement.)
+    const htmlMargesPage = htmlContent.replace(/@page\s*\{[^}]*\}/, "");
+    await page.setContent(htmlMargesPage, { waitUntil: "networkidle" });
+    // La couverture est full-bleed en prod : le CoverHandler du feeder met ses bandes @page à
+    // 0 et cale le crème en absolu inset:0 (cf. pagedHandler COVER_HANDLER_SCRIPT). On reproduit
+    // CETTE décision via le même marqueur data-pdf-cover → pas de marge de page sur la couverture,
+    // 15mm haut/bas sur les pages de contenu (corps en flux compilerPageContrat). Latéral = 0
+    // partout (l'inset latéral vient du padding 38px du corps).
+    const estCouverture = htmlContent.includes("data-pdf-cover");
+    const margin = estCouverture
+      ? { top: "0", right: "0", bottom: "0", left: "0" }
+      : { top: `${MARGE_HAUT_MM}mm`, right: "0", bottom: `${MARGE_BAS_MM}mm`, left: "0" };
     await page.pdf({
       path: outPath,
       format: "A4",
       printBackground: true,
-      margin: { top: "0", right: "0", bottom: "0", left: "0" },
+      margin,
     });
     console.log(`✓ Généré : ${outPath}`);
   } finally {
