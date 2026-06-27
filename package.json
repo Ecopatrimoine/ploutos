@@ -21,7 +21,6 @@
     "pdf:successionA": "tsx scripts/generatePdfLocal.ts successionA",
     "pdf:successionB": "tsx scripts/generatePdfLocal.ts successionB",
     "pdf:profil": "tsx scripts/generatePdfLocal.ts profil",
-    "pdf:prevoyanceInd": "tsx scripts/generatePdfLocal.ts prevoyanceInd",
     "pdf:prevoyanceColl": "tsx scripts/generatePdfLocal.ts prevoyanceColl",
     "pdf:bilanEndettement": "tsx scripts/generatePdfLocal.ts bilanEndettement",
     "pdf:lettreMission": "tsx scripts/generatePdfLocal.ts lettreMission",

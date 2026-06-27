@@ -29,8 +29,6 @@ import { renderSuccessionB } from "../src/lib/pdf/v2/renderSuccessionB";
 import type { SuccessionBPageData } from "../src/lib/pdf/v2/pages/pageSuccessionB";
 import { renderProfil } from "../src/lib/pdf/v2/renderProfil";
 import type { ProfilPageData } from "../src/lib/pdf/v2/pages/pageProfil";
-import { renderPrevoyanceInd } from "../src/lib/pdf/v2/renderPrevoyanceInd";
-import type { PrevoyanceIndPageData } from "../src/lib/pdf/v2/pages/pagePrevoyanceInd";
 import { renderPrevoyanceColl } from "../src/lib/pdf/v2/renderPrevoyanceColl";
 import type { PrevoyanceCollPageData } from "../src/lib/pdf/v2/pages/pagePrevoyanceColl";
 import { renderBilanEndettement } from "../src/lib/pdf/v2/renderBilanEndettement";
@@ -214,28 +212,6 @@ const dataMaquetteProfil: ProfilPageData = {
   dateSignature: "25 mai 2026",
   pagePosition: "6 / 8",
   cabinetLibellePied: "EcoPatrimoine Conseil · Profil & conformité — confidentiel",
-};
-
-// ─── Données figées pour la page Prévoyance individuelle (maquette) ────
-const dataMaquettePrevoyanceInd: PrevoyanceIndPageData = {
-  clientName: "Dubreuil",
-  dateStr: "25 mai 2026",
-  sousTitre: "Profession libérale · affiliation CIPAV",
-  deficitCapitalDeces: "185 000 €",
-  revenuAProteger: "80 000 €/an",
-  foyerAProteger: "Conjoint + 2 enfants",
-  capitalDecesCouvert: "115 000 €",
-  lignes: [
-    { label: "Décès",          besoinTexte: "besoin · 300 000 €",     pctCouverture: 38, deficit: "− 185 000 €" },
-    { label: "Invalidité (IPT)", besoinTexte: "besoin · 48 000 €/an", pctCouverture: 38, deficit: "− 30 000 €", deficitSuffixe: "/an" },
-    { label: "Arrêt de travail", besoinTexte: "besoin · 48 000 €/an", pctCouverture: 42, deficit: "− 28 000 €", deficitSuffixe: "/an" },
-  ],
-  notreLecture:
-    "En l'état, un décès laisserait un déficit de 185 000 € — proche du capital restant dû sur votre crédit — et une invalidité ou un arrêt prolongé amputerait votre revenu d'environ 30 000 €/an non couverts. Renforcer le capital décès et prévoir une rente de maintien de revenu sont les deux priorités pour mettre votre foyer à l'abri.",
-  mentionNonContractuelle:
-    "Montants illustratifs, à valider auprès de votre caisse (CIPAV) et selon les garanties de votre contrat de prévoyance. Simulation non contractuelle ; toute recommandation s'inscrit dans le cadre du devoir de conseil (DDA).",
-  pagePosition: "7 / 8",
-  cabinetLibellePied: "EcoPatrimoine Conseil · Prévoyance — confidentiel",
 };
 
 // ─── Données figées pour la page Prévoyance collective (maquette) ──────
@@ -535,7 +511,7 @@ const dataMaquetteDeclarationAdequation: DeclarationAdequationPageData = {
 
 async function main(): Promise<void> {
   const cible = process.argv[2] || "ifi";
-  const ciblesValides = ["ifi", "ir", "couverture", "successionA", "successionB", "profil", "prevoyanceInd", "prevoyanceColl", "bilanEndettement", "lettreMission", "der", "ficheDDA", "declarationAdequation"];
+  const ciblesValides = ["ifi", "ir", "couverture", "successionA", "successionB", "profil", "prevoyanceColl", "bilanEndettement", "lettreMission", "der", "ficheDDA", "declarationAdequation"];
   if (!ciblesValides.includes(cible)) {
     console.error(`Cible inconnue : "${cible}". Cibles disponibles : ${ciblesValides.join(", ")}`);
     process.exit(1);
@@ -595,15 +571,6 @@ async function main(): Promise<void> {
     await genererPdf(htmlCabinet, join(outDir, "profil-cabinet.pdf"));
     console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
     console.log("  revue-preview/pdf/refonte_pdf_profil_conformite_4niveaux_esg.html");
-  }
-
-  if (cible === "prevoyanceInd") {
-    const htmlEncreOr = renderPrevoyanceInd({ theme: "encreOr", data: dataMaquettePrevoyanceInd });
-    await genererPdf(htmlEncreOr, join(outDir, "prevoyanceInd-encreOr.pdf"));
-    const htmlCabinet = renderPrevoyanceInd({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquettePrevoyanceInd });
-    await genererPdf(htmlCabinet, join(outDir, "prevoyanceInd-cabinet.pdf"));
-    console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
-    console.log("  revue-preview/pdf/refonte_pdf_page_theme_prevoyance_individuelle_A4.html");
   }
 
   if (cible === "prevoyanceColl") {
