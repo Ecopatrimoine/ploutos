@@ -59,6 +59,7 @@ const PACK_ITEMS: PackItemDef[] = [
   { key: "ifi", label: "IFI", desc: "v2", group: "bilan", subgroup: "Synthèse fiscale", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   { key: "successionA", label: "Succession civile", desc: "v2 — dévolution + héritiers", group: "bilan", subgroup: "Transmission", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   { key: "successionB", label: "Assurance-vie & transmission", desc: "v2 — clause bénéficiaire", group: "bilan", subgroup: "Transmission", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
+  { key: "capitauxDeces", label: "Capitaux décès", desc: "v2 — capitaux exonérés + rentes de survie (n.d. si indisponible)", group: "bilan", subgroup: "Transmission", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   { key: "profil", label: "Profil & adéquation MIF II", desc: "v2", group: "bilan", subgroup: "Profil & protection", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   { key: "prevoyancePersoP1", label: "Prévoyance personnelle (P1)", desc: "Projection arrêt maladie + invalidité — Personne 1", group: "bilan", subgroup: "Profil & protection", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   { key: "prevoyancePersoP2", label: "Prévoyance personnelle (P2)", desc: "Projection arrêt maladie + invalidité — Personne 2", group: "bilan", subgroup: "Profil & protection", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
