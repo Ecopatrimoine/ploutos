@@ -5,6 +5,7 @@
 // scénario actuel) et expose les deltas signés par scénario.
 
 import type { HyposPageData, HypoScenario, HypoScenarioKpi } from "../pages/pageHypos";
+import { SEMANTIC_SUCCES, SEMANTIC_DANGER } from "../tokens";
 
 export type BuildHyposDataParams = {
   data: Record<string, any>;
@@ -46,16 +47,19 @@ export function buildHyposData(p: BuildHyposDataParams): HyposPageData {
     const dIR = hIR - baseIR;
     const dIFI = hIFI - baseIFI;
     const dSucc = hSucc - baseSuccession;
+    // Source UNIQUE de la synthèse signée (= ancien kpis[3].delta, valeur inchangée).
+    const deltaTotal = dIR + dIFI + dSucc;
     const kpis: HypoScenarioKpi[] = [
       { label: "IR",            valeur: hIR,            delta: dIR },
       { label: "IFI",           valeur: hIFI,           delta: dIFI },
       { label: "Succession",    valeur: hSucc,          delta: dSucc },
-      { label: "Total fiscal",  valeur: hIR + hIFI + hSucc, delta: dIR + dIFI + dSucc },
+      { label: "Total fiscal",  valeur: hIR + hIFI + hSucc, delta: deltaTotal },
     ];
     return {
       titre: h.hypothesis?.name || "Scénario",
       objectif: h.hypothesis?.objective || undefined,
       notes: h.hypothesis?.notes || undefined,
+      deltaTotal,
       kpis,
     };
   });
@@ -64,10 +68,10 @@ export function buildHyposData(p: BuildHyposDataParams): HyposPageData {
   const baseTotal = baseIR + baseIFI + baseSuccession;
   let notreLecture: string | undefined;
   if (scenarios.length > 0) {
-    // Scénario avec le delta TOTAL le plus négatif = meilleur gain
-    const sorted = [...scenarios].sort((a, b) => (a.kpis[3]?.delta || 0) - (b.kpis[3]?.delta || 0));
+    // Scénario avec le delta TOTAL le plus négatif = meilleur gain (champ nommé deltaTotal).
+    const sorted = [...scenarios].sort((a, b) => a.deltaTotal - b.deltaTotal);
     const gagnant = sorted[0];
-    const deltaGagnant = gagnant.kpis[3]?.delta || 0;
+    const deltaGagnant = gagnant.deltaTotal;
     const totalGagnant = gagnant.kpis[3]?.valeur || 0;
     const gainPct = baseTotal > 0 ? Math.abs(deltaGagnant) / baseTotal * 100 : 0;
 
@@ -88,7 +92,7 @@ export function buildHyposData(p: BuildHyposDataParams): HyposPageData {
       <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
         <li><strong>Base actuelle</strong> — Total fiscal annuel + transmission : ${formatEuroH(baseTotal)}.</li>
         <li><strong>Scénarios étudiés</strong> — ${scenarios.length} scénario${scenarios.length > 1 ? "s" : ""} complet${scenarios.length > 1 ? "s" : ""}.</li>
-        <li><strong>Scénario gagnant</strong> — ${gagnant.titre} : ${formatEuroH(totalGagnant)} (${deltaGagnant < 0 ? `<span style="color:#2F7D5B">− ${formatEuroH(Math.abs(deltaGagnant))}</span>` : `<span style="color:#B0413E">+ ${formatEuroH(deltaGagnant)}</span>`} vs base).</li>
+        <li><strong>Scénario gagnant</strong> — ${gagnant.titre} : ${formatEuroH(totalGagnant)} (${deltaGagnant < 0 ? `<span style="color:${SEMANTIC_SUCCES}">− ${formatEuroH(Math.abs(deltaGagnant))}</span>` : `<span style="color:${SEMANTIC_DANGER}">+ ${formatEuroH(deltaGagnant)}</span>`} vs base).</li>
       </ul>
       <p style="margin:0;font-style:italic;color:#6B6353"><strong>Points d'attention :</strong> ${points.join(" ; ")}.</p>
     `.trim();

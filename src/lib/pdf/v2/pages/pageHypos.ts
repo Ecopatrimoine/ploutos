@@ -26,6 +26,10 @@ export type HypoScenario = {
   titre: string;
   objectif?: string;
   notes?: string;
+  /** Synthèse signée = somme des 3 deltas (IR + IFI + Succession), = kpis[3].delta.
+   *  Convention : < 0 gain, > 0 surcoût, === 0 neutre. Pilote le filet de sévérité.
+   *  Aucune logique fiscale : simple nommage d'une valeur déjà calculée par l'adapter. */
+  deltaTotal: number;
   kpis: HypoScenarioKpi[];   // 4 KPI : IR, IFI, Succession, Total
 };
 
