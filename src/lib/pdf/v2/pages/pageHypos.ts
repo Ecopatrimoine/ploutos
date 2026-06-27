@@ -55,9 +55,14 @@ export function pageHypos(t: Tokens, d: HyposPageData): string {
   const formatDelta = (delta: number): { texte: string; couleur: string } => {
     if (delta === 0)  return { texte: `±0 €`, couleur: t.texteFaible };
     if (delta < 0)    return { texte: `− ${euro(Math.abs(delta))}`, couleur: t.succes };
-    // Pas de token danger défini ; rouge bordeaux sobre, cohérent navy/or.
-    return { texte: `+ ${euro(delta)}`, couleur: "#B0413E" };
+    return { texte: `+ ${euro(delta)}`, couleur: t.danger };
   };
+
+  // Filet de sévérité : MÊME classification de signe que formatDelta (aucun nouveau seuil).
+  // < 0 gain → vert ; > 0 surcoût → rouge ; === 0 neutre → or sobre (filet toujours visible,
+  // la position du filet fait partie de la redondance non-couleur avec le signe +/-).
+  const filetSeverite = (deltaTotal: number): string =>
+    deltaTotal < 0 ? t.succes : deltaTotal > 0 ? t.danger : t.or;
 
   const renderKpi = (k: HypoScenarioKpi) => {
     const { texte, couleur } = formatDelta(k.delta);
@@ -69,8 +74,11 @@ export function pageHypos(t: Tokens, d: HyposPageData): string {
       </div>`;
   };
 
+  // Carte scénario : bordure t.bordureMoyenne (mieux délimitée que bordureClaire) + filet
+  // vertical gauche 3px piloté par le SIGNE de deltaTotal. Coin gauche carré (le filet = bord
+  // plein), coins droits arrondis. Les tuiles KPI gardent leur aplat doux existant t.fondTableauAlt.
   const renderScenario = (s: HypoScenario) => `
-    <div style="background:${t.fondEncart};border:0.5px solid ${t.bordureClaire};border-radius:10px;padding:14px 16px;margin-top:12px">
+    <div style="background:${t.fondEncart};border:0.5px solid ${t.bordureMoyenne};border-left:3px solid ${filetSeverite(s.deltaTotal)};border-radius:0 10px 10px 0;padding:14px 16px;margin-top:12px">
       <div style="font-size:12.5px;font-weight:700;color:${t.navy};margin-bottom:4px">${s.titre}</div>
       ${s.objectif ? `<div style="font-size:10.5px;color:${t.eyebrowOr};font-weight:600;margin-bottom:4px">Objectif : ${s.objectif}</div>` : ""}
       ${s.notes ? `<div style="font-size:10.5px;color:${t.texteFaible};line-height:1.5;margin-bottom:8px;font-style:italic">${s.notes}</div>` : ""}
