@@ -244,19 +244,32 @@ export const DISTRIBUTE_HANDLER_SCRIPT = `
         var sheets = self.byKey[key];
         var last = sheets[sheets.length - 1];    // DERNIERE feuille uniquement
         var content = last.querySelector(".pagedjs_page_content");
-        if (!content) return;
-        var box = content.getBoundingClientRect();
-        var avail = content.clientHeight;
-        var parent = content.parentElement;
+        // --- LOG DIAGNOSTIC TEMPORAIRE (Temps 1 - retire au Temps 2) ---
+        // Mesure hissee au-dessus des gardes pour capturer les vraies valeurs meme
+        // sur les sorties anticipees (content null / residuel<=seuil).
+        var box = content ? content.getBoundingClientRect() : null;
+        var avail = content ? content.clientHeight : 0;
+        var parent = content ? content.parentElement : null;
         if (parent && parent.clientHeight > avail) avail = parent.clientHeight;
-        if (!avail) return;
         // hauteur UTILISEE = bas du dernier enfant reel (hors spacer) / haut de la zone.
-        var kids = content.children, used = 0, i;
+        var kids = content ? content.children : [], used = 0, i;
         for (i = 0; i < kids.length; i++) {
           if (kids[i].getAttribute && kids[i].getAttribute("data-pdf-distribute-spacer")) continue;
           var bottom = kids[i].getBoundingClientRect().bottom - box.top;
           if (bottom > used) used = bottom;
         }
+        console.log("[distribute]", key, {
+          sheets: sheets.length,
+          hasContent: !!content,
+          avail: avail,
+          used: used,
+          residuel: content ? (avail - used) : null,
+          kids: content ? content.children.length : null,
+          firstKidTag: content && content.firstElementChild ? content.firstElementChild.tagName : null
+        });
+        // --- FIN LOG DIAGNOSTIC TEMPORAIRE ---
+        if (!content) return;
+        if (!avail) return;
         if (used <= 0) return;
         var residuel = avail - used;
         if (residuel <= SEUIL_MIN) return;        // feuille pleine ou quasi -> on ne touche pas
