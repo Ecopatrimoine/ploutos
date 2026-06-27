@@ -109,8 +109,8 @@ export function pageHypos(t: Tokens, d: HyposPageData): string {
   });
 
   // Comparatif visuel : sous-titre + chart SVG dans UN bloc insécable (le graphique
-  // n'est jamais coupé). Le chart garde son cap visuel à MAX_SCENARIOS_AFFICHES=3
-  // (renderHyposBarChart inchangé : 3 barres phares + note « + N non affichés »).
+  // n'est jamais coupé). Cap retiré (Lot 5.2) : le chart trace TOUS les scénarios,
+  // largeur de barre auto-adaptée, palette qualitative t.paletteScenarios.
   if (d.scenarios.length > 0) {
     blocs.push({
       kind: "insecable",
@@ -129,7 +129,7 @@ export function pageHypos(t: Tokens, d: HyposPageData): string {
   });
 
   // CHAQUE carte de scénario = bloc insécable. Suite écoulée sur N feuilles, ZÉRO perte
-  // (contrairement au cap chart=3, les cartes ne sont PAS capées).
+  // (cartes et chart désormais tous deux sans cap).
   if (d.scenarios.length > 0) {
     for (const s of d.scenarios) {
       blocs.push({ kind: "insecable", html: renderScenario(s) });
@@ -150,12 +150,16 @@ export function pageHypos(t: Tokens, d: HyposPageData): string {
 }
 
 // ─── Bar chart vertical groupé (IR / IFI / Succession) ──────────────
-// Compare la Base + chaque scénario (max 3 affichés pour rester lisible).
-// SVG inline, palette v2 (navy pour Base, gold/sky/eyebrowOr pour scénarios).
+// Compare la Base + TOUS les scénarios (cap retiré, Lot 5.2). SVG inline ;
+// navy pour la Base, palette qualitative t.paletteScenarios pour les scénarios.
+// Lisibilité : les étiquettes de valeur au-dessus des barres commencent à se
+// chevaucher vers ~5 scénarios/groupe (barre < ~22u) ; repli (rotation/abréviation)
+// volontairement NON implémenté (cf. recap) tant que les packs réels restent en deçà.
 function renderHyposBarChart(t: Tokens, d: HyposPageData): string {
-  const MAX_SCENARIOS_AFFICHES = 3;
-  const visibles = d.scenarios.slice(0, MAX_SCENARIOS_AFFICHES);
-  const surplus = d.scenarios.length - visibles.length;
+  // Cap retiré (Lot 5.2) : TOUS les scénarios sont tracés (avant : 3 max + note de surplus).
+  // barWidth s'auto-adapte au nombre de barres (cf. plus bas) ; la palette qualitative
+  // t.paletteScenarios évite la répétition de teinte jusqu'à 6 scénarios.
+  const visibles = d.scenarios;
 
   const groupes = [
     { label: "IR",         base: d.baseIR,         values: visibles.map(s => s.kpis[0]?.valeur || 0) },
@@ -166,7 +170,10 @@ function renderHyposBarChart(t: Tokens, d: HyposPageData): string {
   const allValues = groupes.flatMap(g => [g.base, ...g.values]);
   const maxValue = Math.max(...allValues, 1);
 
-  const couleursScenarios = [t.or, t.sectionGrisBleu, t.eyebrowOr];
+  // Palette qualitative tokenisée (6 teintes distinctes, a11y-réglée). Le modulo reste
+  // un garde-fou au-delà de 6 scénarios (rare) ; la légende + la position de barre lèvent
+  // alors l'ambiguïté de teinte répétée.
+  const couleursScenarios = t.paletteScenarios;
 
   // Dimensions (en unités SVG, viewBox responsive)
   const width = 600;
@@ -214,10 +221,6 @@ function renderHyposBarChart(t: Tokens, d: HyposPageData): string {
     </div>
   `).join("");
 
-  const noteSurplus = surplus > 0
-    ? `<div style="margin-top:6px;font-size:9.5px;color:${t.texteFaibleClair};font-style:italic">+ ${surplus} scénario${surplus > 1 ? "s" : ""} non affiché${surplus > 1 ? "s" : ""} dans le graphique (voir détail ci-dessous).</div>`
-    : "";
-
   return `
     <div style="background:${t.fondTableauAlt};border:0.5px solid ${t.bordureClaire};border-radius:10px;padding:12px 14px;margin-top:6px">
       <div style="margin-bottom:8px;line-height:1.6">${legende}</div>
@@ -226,7 +229,6 @@ function renderHyposBarChart(t: Tokens, d: HyposPageData): string {
         ${bars}
         ${labels}
       </svg>
-      ${noteSurplus}
     </div>
   `;
 }
