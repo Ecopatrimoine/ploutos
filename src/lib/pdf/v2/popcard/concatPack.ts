@@ -37,6 +37,7 @@ import { pageIR } from "../pages/pageIR";
 import { pageIFI } from "../pages/pageIFI";
 import { pageSuccessionA } from "../pages/pageSuccessionA";
 import { pageSuccessionB } from "../pages/pageSuccessionB";
+import { pageCapitauxDeces } from "../pages/pageCapitauxDeces";
 import { pageProfil } from "../pages/pageProfil";
 import { pageBilanEndettement } from "../pages/pageBilanEndettement";
 import { pagePrevoyancePerso } from "../pages/pagePrevoyancePerso";
@@ -58,6 +59,7 @@ import { buildIRData } from "../adapters/buildIRData";
 import { buildIFIData } from "../adapters/buildIFIData";
 import { buildSuccessionAData } from "../adapters/buildSuccessionAData";
 import { buildSuccessionBData } from "../adapters/buildSuccessionBData";
+import { buildCapitauxDecesData } from "../adapters/buildCapitauxDecesData";
 import { buildProfilData } from "../adapters/buildProfilData";
 import { buildBilanEndettementData } from "../adapters/buildBilanEndettementData";
 import { buildPrevoyancePersoData } from "../adapters/buildPrevoyancePersoData";
@@ -178,6 +180,17 @@ function renderItemBody(
       if (!payload.succession) return placeholderSection(t, item, "Section Succession B requiert le résultat de computeSuccession (non fourni)");
       const d = buildSuccessionBData({ succession: payload.succession, data, cabinet, clientName: payload.clientName, dateLettre, pagePosition });
       return pageSuccessionB(t, d);
+    }
+    case "capitauxDeces": {
+      // Section informative (capitaux décès exonérés + rentes de survie). Garde
+      // succession : sans computeSuccession → exclu du pack (corps vide, PAS un
+      // placeholder bavard). Idem si aucun capital/rente n'existe → corps vide → exclu.
+      if (!payload.succession) return "";
+      const d = buildCapitauxDecesData({ succession: payload.succession, data, cabinet, clientName: payload.clientName, dateLettre, pagePosition });
+      const vide = d.caisses.length === 0 && d.prives.length === 0 && d.branche.length === 0
+        && d.renteEducationBranche.length === 0 && d.renteConjointBranche.length === 0 && d.rentes.length === 0;
+      if (vide) return "";
+      return pageCapitauxDeces(t, d);
     }
     case "prevoyancePersoP1": {
       const d = buildPrevoyancePersoData({ data, cabinet, which: "p1", clientName: payload.clientName, dateLettre, pagePosition });
