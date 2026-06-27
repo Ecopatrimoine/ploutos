@@ -14,7 +14,8 @@
 //   - tranche active (la DERNIÈRE à filled>0) marquée par un CONTOUR or + un badge
 //     chevron sous la colonne — JAMAIS par une couleur de fill différente : l'info
 //     "active" reste non chromatique (daltonien-safe) ;
-//   - sous chaque barre : le taux (`label`) + la borne (from–to en M€).
+//   - sous chaque barre : le taux (`label`) + la borne (from–to) au format `formatBorne`
+//     ("M" millions par défaut → IFI ; "euro" euros entiers → IR, bornes par part).
 //
 // Recharts ne tourne pas dans le pipeline string → SVG fait main (même patron
 // que prevoyanceChart.ts / le bar chart de pageHypos). Couleurs via Tokens
@@ -37,13 +38,25 @@ function borneM(from: number, to: number): string {
   return `${m(from)}–${m(to)} M`;
 }
 
+// Borne en euros entiers (séparateur de milliers via euro()) : « ≤ 28 797 € »,
+// « 11 600 € – 29 579 € », « ≥ 181 917 € ». Pour l'IR, dont les bornes PAR PART sont en
+// dizaines de milliers d'euros (et non en millions). Même garde-fou to ≤ from (tranche
+// supérieure du moteur, `to` ramené à la base) → « ≥ from ».
+function borneEuro(from: number, to: number): string {
+  if (!Number.isFinite(to) || to <= from) return `≥ ${euro(from)}`;
+  if (from === 0) return `≤ ${euro(to)}`;
+  return `${euro(from)} – ${euro(to)}`;
+}
+
 export function renderBracketChartSVG(
   brackets: FilledBracket[],
   t: Tokens,
   // referenceValue : si fourni, la tranche active = celle qui CONTIENT cette valeur
   //   (ex. quotient IR → tranche marginale TMI) ; sinon = dernière tranche remplie (IFI).
   // badgeActif : texte du badge sur la tranche active (ex. "TMI") ; si absent → chevron (IFI).
-  opts: { hauteur?: number; referenceValue?: number; badgeActif?: string } = {},
+  // formatBorne : format de la ligne de bornes sous chaque barre — "M" (millions, défaut, IFI)
+  //   ou "euro" (euros entiers, IR : bornes par part en dizaines de k€).
+  opts: { hauteur?: number; referenceValue?: number; badgeActif?: string; formatBorne?: "M" | "euro" } = {},
 ): string {
   const n = brackets.length;
   if (n === 0) return "";
@@ -120,9 +133,10 @@ export function renderBracketChartSVG(
       ? `<text data-bar-amount x="${cx.toFixed(1)}" y="${(yOf(b.filled) - 5).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="${t.navy}" font-family="Lato,sans-serif">${euro(b.tax)}</text>`
       : "";
 
-    // Sous l'axe : taux (label moteur) + borne en M€.
+    // Sous l'axe : taux (label moteur) + borne (en M€ par défaut, ou en euros si formatBorne="euro").
+    const borneTxt = opts.formatBorne === "euro" ? borneEuro(b.from, b.to) : borneM(b.from, b.to);
     const labelTaux = `<text x="${cx.toFixed(1)}" y="${(yBase + 14).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${isActive ? t.navy : t.texteFaible}" font-family="Lato,sans-serif">${b.label}</text>`;
-    const labelBorne = `<text x="${cx.toFixed(1)}" y="${(yBase + 26).toFixed(1)}" text-anchor="middle" font-size="8" fill="${t.texteFaibleClair}" font-family="Lato,sans-serif">${borneM(b.from, b.to)}</text>`;
+    const labelBorne = `<text x="${cx.toFixed(1)}" y="${(yBase + 26).toFixed(1)}" text-anchor="middle" font-size="8" fill="${t.texteFaibleClair}" font-family="Lato,sans-serif">${borneTxt}</text>`;
 
     return barre + badge + labelMontant + labelTaux + labelBorne;
   }).join("");
