@@ -75,6 +75,50 @@ function makeIfiCalc(netTaxable: number): { grossIfi: number; decote: number; if
 }
 const ifiCalcMaquette = makeIfiCalc(588_400);
 
+// Barème IR (identique à computeIR) — fixtures preview uniquement : bracketFill (sur le
+// quotient) dérivé du helper moteur, jamais saisi à la main. En PROD : computeIR(data).
+const IR_BRACKETS: TaxBracket[] = [
+  { from: 0, to: 11_600, rate: 0 },
+  { from: 11_600, to: 29_579, rate: 0.11 },
+  { from: 29_579, to: 84_577, rate: 0.30 },
+  { from: 84_577, to: 181_917, rate: 0.41 },
+  { from: 181_917, to: Number.POSITIVE_INFINITY, rate: 0.45 },
+];
+function makeIrCalc(quotient: number): { bracketFill: ReturnType<typeof computeTaxFromBrackets>["fill"]; taxParPart: number; marginalRate: number } {
+  const { tax: taxParPart, fill: bracketFill } = computeTaxFromBrackets(quotient, IR_BRACKETS);
+  const marginalRate = quotient <= 11_600 ? 0 : quotient <= 29_579 ? 0.11 : quotient <= 84_577 ? 0.30 : quotient <= 181_917 ? 0.41 : 0.45;
+  return { bracketFill, taxParPart, marginalRate };
+}
+const irCalcMaquette = makeIrCalc(30_000); // quotient ~30 k -> TMI 30 % (cohérent avec le KPI maquette)
+
+// Fabrique une fixture IR cohérente à partir d'un quotient par part (tout dérivé du helper).
+function makeIRFixture(o: { clientName: string; parts: number; quotientParPart: number; pagePosition: string }): IRPageData {
+  const calc = makeIrCalc(o.quotientParPart);
+  const revenuNetImposable = o.quotientParPart * o.parts;
+  const impotNetDu = Math.round(calc.taxParPart * o.parts);
+  const salaires = revenuNetImposable;
+  const revenusBruts = Math.round(salaires / 0.9);
+  const tmiPct = Math.round(calc.marginalRate * 100);
+  const fr = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
+  return {
+    clientName: o.clientName,
+    dateStr: "25 mai 2026",
+    impotNetDu,
+    trancheMarginale: `${tmiPct} %`,
+    tauxMoyen: `${((impotNetDu / revenuNetImposable) * 100).toFixed(1).replace(".", ",")} %`,
+    quotient: `${o.parts} part${o.parts > 1 ? "s" : ""}`,
+    salaires, fonciers: 0, mobiliers: 0, pensionsAutres: 0,
+    revenusBruts, abattement10pct: revenusBruts - salaires, revenuNetImposable,
+    bracketFill: calc.bracketFill,
+    quotientParPart: o.quotientParPart,
+    parts: o.parts,
+    marginalRate: calc.marginalRate,
+    notreLecture: `Revenu net imposable ${fr(revenuNetImposable)} € pour ${o.parts} part${o.parts > 1 ? "s" : ""} (quotient ${fr(o.quotientParPart)} € par part) : tranche marginale ${tmiPct} %. La somme des barres par part n'est pas l'impot net (decote et plafonnement du quotient familial ensuite).`,
+    pagePosition: o.pagePosition,
+    cabinetLibellePied: "EcoPatrimoine Conseil · Fiscalité — confidentiel",
+  };
+}
+
 // ─── Données figées correspondant à la maquette ────────────────────────
 const dataMaquette: IFIPageData = {
   clientName: "Dubreuil",
@@ -175,11 +219,19 @@ const dataMaquetteIR: IRPageData = {
   revenusBruts:    92_000,
   abattement10pct:  9_200,
   revenuNetImposable: 82_800,
+  bracketFill: irCalcMaquette.bracketFill,
+  quotientParPart: 30_000,
+  parts: 3,
+  marginalRate: irCalcMaquette.marginalRate,
   notreLecture:
     "Avec 3 parts de quotient familial, l'impôt du foyer atteint 14 320 €, soit un taux moyen de 7,8 % — bien en deçà de votre tranche marginale à 30 %. Vos revenus d'activité en concentrent 80 % ; à ce niveau de tranche, chaque euro versé en épargne retraite déductible allégerait l'impôt de 30 centimes (piste chiffrée au chapitre Recommandations).",
   pagePosition: "2 / 8",
   cabinetLibellePied: "EcoPatrimoine Conseil · Fiscalité — confidentiel",
 };
+
+// Cas dédiés au graphe « barème par tranche » (cohérents, dérivés du helper moteur) :
+const dataMaquetteIRtmi30 = makeIRFixture({ clientName: "Lefebvre", parts: 2, quotientParPart: 45_000, pagePosition: "2 / 8" }); // TMI 30 %
+const dataMaquetteIRtmi41 = makeIRFixture({ clientName: "Aubert",   parts: 2, quotientParPart: 100_000, pagePosition: "2 / 8" }); // TMI 41 %
 
 // Couleurs cabinet de test — identiques à l'IFI pour la cohérence d'évaluation.
 const cabinetColorsTest = {
@@ -668,8 +720,12 @@ async function main(): Promise<void> {
     await genererPdf(htmlEncreOr, join(outDir, "ir-encreOr.pdf"));
     const htmlCabinet = renderIR({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquetteIR });
     await genererPdf(htmlCabinet, join(outDir, "ir-cabinet.pdf"));
+    // Cas dédiés au graphe barème par tranche (par part), badge TMI sur la tranche du quotient.
+    await genererPdf(renderIR({ theme: "encreOr", data: dataMaquetteIRtmi30 }), join(outDir, "ir-tmi30-encreOr.pdf"));
+    await genererPdf(renderIR({ theme: "encreOr", data: dataMaquetteIRtmi41 }), join(outDir, "ir-tmi41-encreOr.pdf"));
     console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
     console.log("  revue-preview/pdf/refonte_pdf_page_fiscalite_A4_graphique_corrige.html");
+    console.log("  + ir-tmi30-encreOr.pdf / ir-tmi41-encreOr.pdf : graphe barème par tranche (badge TMI)");
   }
 
   if (cible === "couverture") {

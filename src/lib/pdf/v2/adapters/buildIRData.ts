@@ -88,6 +88,12 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
     revenusBruts,
     abattement10pct,
     revenuNetImposable,
+    // SOURCE UNIQUE : décomposition par tranche (sur le quotient) DÉJÀ produite par computeIR.
+    // Aucun recalcul, aucun barème en dur. marginalRate reste en décimal (pas d'arrondi num()).
+    bracketFill: Array.isArray(ir.bracketFill) ? ir.bracketFill : [],
+    quotientParPart: num(ir.quotient),
+    parts: num(ir.parts),
+    marginalRate: Number(ir.marginalRate) || 0,
     notreLecture: p.notreLecture || notreLectureCalculee,
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Fiscalité — confidentiel`,
