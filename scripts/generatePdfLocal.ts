@@ -47,10 +47,33 @@ import { buildTokens } from "../src/lib/pdf/v2/tokens";
 import { coquilleDocument } from "../src/lib/pdf/v2/primitives";
 import { pageCapitauxDeces } from "../src/lib/pdf/v2/pages/pageCapitauxDeces";
 import { buildCapitauxDecesData } from "../src/lib/pdf/v2/adapters/buildCapitauxDecesData";
+// Barème IFI : fixture dev uniquement → on reproduit le bracketFill RÉEL via le
+// helper moteur computeTaxFromBrackets (jamais de nombres écrits à la main). En
+// PROD, ces champs viennent de computeIFI(data).
+import { computeTaxFromBrackets } from "../src/lib/calculs/utils";
+import type { TaxBracket } from "../src/types/patrimoine";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outDir = join(__dirname, "..", "out");
 mkdirSync(outDir, { recursive: true });
+
+// Barème IFI 2026 (identique à computeIFI) — uniquement pour fabriquer les fixtures
+// de preview : bracketFill/grossIfi/décote/IFI net dérivés, jamais saisis en dur.
+const IFI_BRACKETS: TaxBracket[] = [
+  { from: 0, to: 800_000, rate: 0 },
+  { from: 800_000, to: 1_300_000, rate: 0.005 },
+  { from: 1_300_000, to: 2_570_000, rate: 0.007 },
+  { from: 2_570_000, to: 5_000_000, rate: 0.01 },
+  { from: 5_000_000, to: 10_000_000, rate: 0.0125 },
+  { from: 10_000_000, to: Number.POSITIVE_INFINITY, rate: 0.015 },
+];
+function makeIfiCalc(netTaxable: number): { grossIfi: number; decote: number; ifiDu: number; bracketFill: ReturnType<typeof computeTaxFromBrackets>["fill"] } {
+  const { tax: grossIfi, fill: bracketFill } = computeTaxFromBrackets(netTaxable, IFI_BRACKETS);
+  const decote = netTaxable >= 1_300_000 && netTaxable < 1_400_000 ? Math.max(0, 17_500 - 0.0125 * netTaxable) : 0;
+  const ifiDu = netTaxable > 1_300_000 ? Math.max(0, grossIfi - decote) : 0;
+  return { grossIfi, decote, ifiDu, bracketFill };
+}
+const ifiCalcMaquette = makeIfiCalc(588_400);
 
 // ─── Données figées correspondant à la maquette ────────────────────────
 const dataMaquette: IFIPageData = {
@@ -59,7 +82,10 @@ const dataMaquette: IFIPageData = {
   assietteNette: 588_400,
   seuilIFI: 1_300_000,
   margeSousSeuil: 711_600,
-  ifiDu: 0,
+  ifiDu: ifiCalcMaquette.ifiDu,
+  bracketFill: ifiCalcMaquette.bracketFill,
+  grossIfi: ifiCalcMaquette.grossIfi,
+  decote: ifiCalcMaquette.decote,
   biens: [
     {
       nom: "Maison · résidence principale",
@@ -78,6 +104,41 @@ const dataMaquette: IFIPageData = {
   ],
   notreLecture:
     "Votre patrimoine immobilier net taxable s'établit à 588 400 €, après l'abattement de 30 % sur la résidence principale et la déduction du crédit en cours. Il reste très en deçà du seuil de 1 300 000 € : vous n'êtes pas redevable de l'IFI cette année, avec une marge de 711 600 €.",
+  pagePosition: "3 / 8",
+  cabinetLibellePied: "EcoPatrimoine Conseil · Fiscalité — confidentiel",
+};
+
+// ─── Cas « chargé » : assiette 3 M€ → au-dessus du seuil, remplit les tranches
+//     1 à 4 (graphe barème pleinement visible, IFI dû non nul, décote=0). ────
+const ifiCalcCharge = makeIfiCalc(3_000_000);
+const dataMaquetteIFICharge: IFIPageData = {
+  clientName: "Berthier",
+  dateStr: "25 mai 2026",
+  assietteNette: 3_000_000,
+  seuilIFI: 1_300_000,
+  margeSousSeuil: 1_300_000 - 3_000_000,
+  ifiDu: ifiCalcCharge.ifiDu,
+  bracketFill: ifiCalcCharge.bracketFill,
+  grossIfi: ifiCalcCharge.grossIfi,
+  decote: ifiCalcCharge.decote,
+  biens: [
+    {
+      nom: "Hôtel particulier · résidence principale",
+      valeurBrute: 2_200_000,
+      abattementRP: 660_000,
+      dette: 0,
+      netTaxable: 1_540_000,
+    },
+    {
+      nom: "Immeuble de rapport",
+      valeurBrute: 1_460_000,
+      abattementRP: 0,
+      dette: 0,
+      netTaxable: 1_460_000,
+    },
+  ],
+  notreLecture:
+    "Patrimoine immobilier net taxable de 3 000 000 €, au-dessus du seuil de 1 300 000 € : l'IFI est dû et se décompose par tranche du barème (tranches 1 à 4 ici).",
   pagePosition: "3 / 8",
   cabinetLibellePied: "EcoPatrimoine Conseil · Fiscalité — confidentiel",
 };
@@ -594,8 +655,12 @@ async function main(): Promise<void> {
     // Thème 2 : Cabinet (couleurs de test)
     const htmlCabinet = renderIFI({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquette });
     await genererPdf(htmlCabinet, join(outDir, "ifi-cabinet.pdf"));
+    // Cas chargé : assiette 3 M€ au-dessus du seuil → graphe barème par tranche visible.
+    const htmlCharge = renderIFI({ theme: "encreOr", data: dataMaquetteIFICharge });
+    await genererPdf(htmlCharge, join(outDir, "ifi-charge-encreOr.pdf"));
     console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
     console.log("  revue-preview/pdf/refonte_pdf_page_theme_ifi_A4.html");
+    console.log("  + ifi-charge-encreOr.pdf : cas au-dessus du seuil (graphe barème par tranche)");
   }
 
   if (cible === "ir") {

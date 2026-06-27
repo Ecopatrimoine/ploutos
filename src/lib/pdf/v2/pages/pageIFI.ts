@@ -32,7 +32,9 @@ import {
   type Cell,
 } from "../primitives";
 import { compilerPageContrat, type Bloc } from "../engine/contrat";
+import { renderBracketChartSVG } from "../bracketChart";
 import type { Tokens } from "../tokens";
+import type { FilledBracket } from "../../../../types/patrimoine";
 
 export type BienIFI = {
   nom: string;              // "Maison · résidence principale"
@@ -50,7 +52,11 @@ export type IFIPageData = {
   assietteNette: number;    // 588 400
   seuilIFI: number;         // 1 300 000
   margeSousSeuil: number;   // 711 600 (ou négatif si dépassement)
-  ifiDu: number;            // 0 si en-dessous du seuil
+  ifiDu: number;            // 0 si en-dessous du seuil (= IFI net, après décote)
+  // Barème par tranche (décomposition DÉJÀ calculée par computeIFI — pur affichage)
+  bracketFill: FilledBracket[]; // assiette logée + impôt par tranche
+  grossIfi: number;         // IFI brut = somme des tranches (avant décote)
+  decote: number;           // décote 1,3–1,4 M€ (0 sinon) — pour la note de réconciliation
   // Détail
   biens: BienIFI[];
   // Texte « Notre lecture » (compose en amont, ex. par le composant React)
@@ -143,6 +149,24 @@ export function pageIFI(t: Tokens, d: IFIPageData): string {
       })}
     </div>`,
   });
+
+  // Barème par tranche (PUR AFFICHAGE de d.bracketFill ; aucun calcul ici).
+  // Histogramme : hauteur = assiette logée par tranche, montant = IFI de la tranche.
+  // Note de réconciliation assiette → IFI brut → décote → IFI net. AUCUN plafonnement
+  // (absent du moteur — on n'invente rien).
+  if (d.bracketFill.length > 0) {
+    const noteBareme = d.decote > 0
+      ? `Hauteur = assiette logée par tranche ; le montant au-dessus = IFI de la tranche. Somme des tranches = IFI brut ${euro(d.grossIfi)} ; après décote ${euro(d.decote)} (assiette entre 1,3 et 1,4 M€) = IFI net ${euro(d.ifiDu)}.`
+      : `Hauteur = assiette logée par tranche ; le montant au-dessus = IFI de la tranche. Somme des tranches = IFI brut ${euro(d.grossIfi)} = IFI net ${euro(d.ifiDu)} (aucune décote applicable).`;
+    blocs.push({
+      kind: "insecable",
+      html: `<div style="margin-top:22px">
+        ${sousTitreSection(t, "Barème IFI — assiette par tranche")}
+        ${renderBracketChartSVG(d.bracketFill, t)}
+        <div class="foot">${noteBareme}</div>
+      </div>`,
+    });
+  }
 
   // Sous-titre « Détail de l'assiette taxable » : solidaire de son tableau (titre non orphelin).
   blocs.push({
