@@ -141,6 +141,11 @@ export function pageCapitauxDeces(t: Tokens, d: CapitauxDecesPageData): string {
     <div class="foot">Capitaux et rentes <strong>hors actif successoral</strong> : ils n'entrent dans aucune masse ni aucun droit. Les rentes (€/an) ne sont <strong>jamais additionnées</strong> aux capitaux.</div>`,
   });
 
+  // FRONTIERE en-tete fixe / corps : tout ce qui suit (masthead bloc[0] + bande KPI
+  // bloc[1] restent fixes). Le 1er bloc pousse a partir d'ici est le 1er bloc de CORPS ;
+  // il portera l'ancre de distribution du blanc (cf. marquage en fin de fonction).
+  const firstCorpsIdx = blocs.length;
+
   // ─── Section 1 — Régimes obligatoires (caisses) ──
   if (d.caisses.length > 0) {
     blocs.push({
@@ -187,6 +192,13 @@ export function pageCapitauxDeces(t: Tokens, d: CapitauxDecesPageData): string {
 
   // ─── Queue épinglée : « Notre lecture » (dernier bloc) ──
   blocs.push({ kind: "queue", html: encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) });
+
+  // ANCRE de distribution du blanc sur le 1er bloc de CORPS (1er bloc apres masthead+KPI) :
+  // le spacer s'insere JUSTE AVANT lui -> seul le corps descend, masthead+KPI restent fixes.
+  // Robuste a la branche prise (caisses / rentes / prives / branche / queue) : on marque le
+  // bloc effectivement present a cet index. Si aucun corps (cas degenere), pas d'ancre -> no-op.
+  const ancre = blocs[firstCorpsIdx];
+  if (ancre) ancre.attributs = "data-pdf-distribute-anchor";
 
   // Opt-in distribution du blanc (regle 1/3 haut - 2/3 bas) : page souvent courte
   // (mode simple). Marqueur hisse par le feeder -> DistributeHandler agit sur la derniere

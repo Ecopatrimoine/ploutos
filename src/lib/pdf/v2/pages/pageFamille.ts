@@ -114,8 +114,12 @@ export function pageFamille(t: Tokens, d: FamillePageData): string {
 
   // Cartes personnes (grille 2 colonnes) — un seul bloc. En foyer solo, la 2e
   // cellule porte la carte « Situation familiale ».
+  // 1er bloc de CORPS (pas de bande KPI sur cette page → masthead seul fixe, décision
+  // validée) → ancre de distribution du blanc : le spacer s'insère JUSTE AVANT ces cartes ;
+  // le masthead au-dessus reste fixe (cf. DISTRIBUTE_HANDLER_SCRIPT).
   blocs.push({
     kind: "insecable",
+    attributs: "data-pdf-distribute-anchor",
     html: `<div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
       ${renderPersonne(d.personne1, "Personne 1")}
       ${d.personne2 ? renderPersonne(d.personne2, "Personne 2") : cardSituation}
