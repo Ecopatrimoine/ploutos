@@ -57,6 +57,10 @@ import { buildTokens } from "../src/lib/pdf/v2/tokens";
 import { coquilleDocument } from "../src/lib/pdf/v2/primitives";
 import { pageCapitauxDeces } from "../src/lib/pdf/v2/pages/pageCapitauxDeces";
 import { buildCapitauxDecesData } from "../src/lib/pdf/v2/adapters/buildCapitauxDecesData";
+// Hypothèses (Lot 5.2) : page + adapter en isolé. La cible exerce le filet de sévérité
+// (vert/rouge/neutre piloté par deltaTotal) et la palette de scénarios sur plusieurs cas.
+import { pageHypos } from "../src/lib/pdf/v2/pages/pageHypos";
+import { buildHyposData } from "../src/lib/pdf/v2/adapters/buildHyposData";
 // Barème IFI : fixture dev uniquement → on reproduit le bracketFill RÉEL via le
 // helper moteur computeTaxFromBrackets (jamais de nombres écrits à la main). En
 // PROD, ces champs viennent de computeIFI(data).
@@ -726,9 +730,30 @@ const successionCapitauxRachetable = {
   ],
 };
 
+// ─── Fixtures pageHypos (Lot 5.2) — base + scénarios (filet vert/rouge/neutre + palette) ──
+// Forme BRUTE attendue par buildHyposData : hypothesisResults[] (déjà calculés côté App via
+// computeIR/IFI/Succession). L'adapter dérive deltaTotal (somme signée) → pilote le filet.
+const hyposBase = { ir: { finalIR: 14_320 }, ifi: { ifi: 8_000 }, succession: { totalRights: 90_200 } };
+const hyposClient = { person1FirstName: "Hélène", person1LastName: "Dubreuil", person2FirstName: "Marc", person2LastName: "Dubreuil", coupleStatus: "married" };
+const hyposCabinet = { cabinetName: "EcoPatrimoine Conseil" };
+const hyposResultats = {
+  perPER:       { hypothesis: { name: "PER 10 k€/an",        objective: "Réduire l'IR",                notes: "Versement déductible, plafond épargne retraite." }, ir: { finalIR: 11_000 }, ifi: { ifi: 8_000 },  succession: { totalRights: 90_200 } }, // gain (vert)
+  donation:     { hypothesis: { name: "Donation 100 k€",     objective: "Anticiper la transmission" },                                                                ir: { finalIR: 14_320 }, ifi: { ifi: 6_500 },  succession: { totalRights: 78_000 } }, // gain (vert)
+  demembrement: { hypothesis: { name: "Démembrement RP",     objective: "Réorganiser l'actif immobilier" },                                                          ir: { finalIR: 15_000 }, ifi: { ifi: 9_000 },  succession: { totalRights: 95_000 } }, // surcoût (rouge)
+  assuranceVie: { hypothesis: { name: "Assurance-vie 152 k€", objective: "Transmettre hors succession" },                                                             ir: { finalIR: 14_320 }, ifi: { ifi: 8_000 },  succession: { totalRights: 70_000 } }, // gain net (vert)
+  arbitrage:    { hypothesis: { name: "Arbitrage locatif",   objective: "Recomposer le patrimoine" },                                                                 ir: { finalIR: 18_000 }, ifi: { ifi: 12_000 }, succession: { totalRights: 92_000 } }, // surcoût net (rouge)
+};
+function hyposData(results: any[]) {
+  return buildHyposData({
+    data: hyposClient, cabinet: hyposCabinet,
+    ir: hyposBase.ir, ifi: hyposBase.ifi, succession: hyposBase.succession,
+    hypothesisResults: results, clientName: "Hélène & Marc Dubreuil", dateLettre: "25 mai 2026", pagePosition: "8 / 8",
+  });
+}
+
 async function main(): Promise<void> {
   const cible = process.argv[2] || "ifi";
-  const ciblesValides = ["ifi", "ir", "couverture", "successionA", "successionB", "profil", "prevoyanceColl", "bilanEndettement", "lettreMission", "der", "ficheDDA", "declarationAdequation", "capitauxDeces"];
+  const ciblesValides = ["ifi", "ir", "couverture", "successionA", "successionB", "profil", "prevoyanceColl", "bilanEndettement", "lettreMission", "der", "ficheDDA", "declarationAdequation", "capitauxDeces", "hypos"];
   if (!ciblesValides.includes(cible)) {
     console.error(`Cible inconnue : "${cible}". Cibles disponibles : ${ciblesValides.join(", ")}`);
     process.exit(1);
@@ -865,6 +890,25 @@ async function main(): Promise<void> {
     console.log("\n→ 2 PDF générés (dossier out/) couvrant les 2 modes :");
     console.log("  out/capitauxDeces-simple.pdf      (toutes lignes primes_avant70)");
     console.log("  out/capitauxDeces-rachetable.pdf  (contrat rachetable + bénéficiaire double)");
+  }
+
+  if (cible === "hypos") {
+    // 4 cas pour valider visuellement Lot 5.2 : filet de sévérité (vert/rouge/neutre piloté
+    // par deltaTotal), bordure renforcée, palette de scénarios (sans cap, sans répétition).
+    const tH = buildTokens("encreOr");
+    const R = hyposResultats;
+    const cas: { nom: string; libelle: string; results: any[] }[] = [
+      { nom: "2scenarios", libelle: "2 scénarios (1 gain + 1 surcoût)",          results: [R.perPER, R.demembrement] },
+      { nom: "5scenarios", libelle: "5 scénarios (palette + filets mélangés)",   results: [R.perPER, R.donation, R.demembrement, R.assuranceVie, R.arbitrage] },
+      { nom: "surcout",    libelle: "1 surcoût net (filet rouge)",               results: [R.arbitrage] },
+      { nom: "gagnant",    libelle: "1 gagnant (filet vert)",                    results: [R.assuranceVie] },
+    ];
+    for (const c of cas) {
+      const html = coquilleDocument(tH, { titre: `Scénarios d'optimisation — ${c.libelle}`, body: pageHypos(tH, hyposData(c.results)) });
+      await genererPdf(html, join(outDir, `hypos-${c.nom}.pdf`));
+    }
+    console.log("\n→ 4 PDF générés (dossier out/) couvrant filet (vert/rouge/neutre) + palette :");
+    console.log("  out/hypos-2scenarios.pdf  out/hypos-5scenarios.pdf  out/hypos-surcout.pdf  out/hypos-gagnant.pdf");
   }
 }
 
