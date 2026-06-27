@@ -212,12 +212,15 @@ export const COVER_HANDLER_SCRIPT = `
 // (meme mecanique que DocNum byDoc) et on ne distribue que sur la DERNIERE du groupe ;
 // les feuilles pleines precedentes ne bougent pas.
 //
-// MESURE : hauteur de la zone de contenu paged.js REELLE (.pagedjs_page_content), PAS
-// les constantes coquillePage obsoletes (1122/32/30). residuel = zone - utilise.
+// MESURE : avail = hauteur de la zone paged.js REELLE (.pagedjs_page_content), PAS les
+// constantes coquillePage obsoletes (1122/32/30). ATTENTION : paged.js insere un <div>
+// wrapper (createWrapper) plein-hauteur DANS cette zone (CSS '> div { height: inherit }') ;
+// on TRAVERSE donc le wrapper (content.firstElementChild) et on mesure le bas reel de SON
+// contenu. residuel = avail - bas_reel_du_contenu.
 //
-// SPACER : si residuel > SEUIL_MIN, injecter en tete du contenu un spacer de hauteur
-// round(residuel/3) (le 2/3 restant tombe naturellement en bas). CLAMP STRICT (jamais
-// > residuel) + re-mesure post-injection : si ca deborderait, on annule (anti-boucle).
+// SPACER : si residuel > SEUIL_MIN, injecter EN TETE DU WRAPPER (pas a la racine de la zone)
+// un spacer de hauteur round(residuel/3) (le 2/3 restant tombe naturellement en bas). CLAMP
+// STRICT (jamais > residuel) + re-mesure post-injection : si ca deborderait, on annule.
 export const DISTRIBUTE_HANDLER_SCRIPT = `
 (function () {
   if (!window.Paged || !window.Paged.registerHandlers || !window.Paged.Handler) return;
@@ -243,33 +246,26 @@ export const DISTRIBUTE_HANDLER_SCRIPT = `
       this.order.forEach(function (key) {
         var sheets = self.byKey[key];
         var last = sheets[sheets.length - 1];    // DERNIERE feuille uniquement
-        var content = last.querySelector(".pagedjs_page_content");
-        // --- LOG DIAGNOSTIC TEMPORAIRE (Temps 1 - retire au Temps 2) ---
-        // Mesure hissee au-dessus des gardes pour capturer les vraies valeurs meme
-        // sur les sorties anticipees (content null / residuel<=seuil).
-        var box = content ? content.getBoundingClientRect() : null;
-        var avail = content ? content.clientHeight : 0;
-        var parent = content ? content.parentElement : null;
-        if (parent && parent.clientHeight > avail) avail = parent.clientHeight;
-        // hauteur UTILISEE = bas du dernier enfant reel (hors spacer) / haut de la zone.
-        var kids = content ? content.children : [], used = 0, i;
-        for (i = 0; i < kids.length; i++) {
-          if (kids[i].getAttribute && kids[i].getAttribute("data-pdf-distribute-spacer")) continue;
-          var bottom = kids[i].getBoundingClientRect().bottom - box.top;
+        var content = last.querySelector(".pagedjs_page_content");  // = la zone (avail)
+        if (!content) return;
+        // paged.js (createWrapper) insere un <div> wrapper DANS .pagedjs_page_content, et
+        // son CSS '.pagedjs_page_content > div { height: inherit }' l'etire a la PLEINE
+        // hauteur de la zone. Mesurer ce wrapper donne donc toujours used ~= avail, voire
+        // un residuel legerement NEGATIF par arrondi sous-pixel (observe en pack : avail=1009,
+        // used=1009.13, residuel=-0.13). Il faut TRAVERSER le wrapper et mesurer le BAS REEL
+        // de SON contenu (notre .pdf-contrat & co).
+        var wrapper = content.firstElementChild;
+        if (!wrapper || wrapper.children.length === 0) return;  // structure inattendue -> no-op propre
+        var box = content.getBoundingClientRect();
+        var avail = content.clientHeight;
+        if (!avail) return;
+        // hauteur UTILISEE = bas du dernier enfant reel du wrapper (hors spacer), relatif au haut de la zone.
+        var used = 0, i;
+        for (i = 0; i < wrapper.children.length; i++) {
+          if (wrapper.children[i].getAttribute && wrapper.children[i].getAttribute("data-pdf-distribute-spacer")) continue;
+          var bottom = wrapper.children[i].getBoundingClientRect().bottom - box.top;
           if (bottom > used) used = bottom;
         }
-        console.log("[distribute]", key, {
-          sheets: sheets.length,
-          hasContent: !!content,
-          avail: avail,
-          used: used,
-          residuel: content ? (avail - used) : null,
-          kids: content ? content.children.length : null,
-          firstKidTag: content && content.firstElementChild ? content.firstElementChild.tagName : null
-        });
-        // --- FIN LOG DIAGNOSTIC TEMPORAIRE ---
-        if (!content) return;
-        if (!avail) return;
         if (used <= 0) return;
         var residuel = avail - used;
         if (residuel <= SEUIL_MIN) return;        // feuille pleine ou quasi -> on ne touche pas
@@ -279,14 +275,16 @@ export const DISTRIBUTE_HANDLER_SCRIPT = `
         var sp = content.ownerDocument.createElement("div");
         sp.setAttribute("data-pdf-distribute-spacer", "1");
         sp.setAttribute("style", "height:" + spacer + "px;flex:none");
-        content.insertBefore(sp, content.firstChild);
+        // INJECTION EN TETE DU WRAPPER (pas a la racine de content) : c'est ce qui pousse
+        // reellement .pdf-contrat vers le bas.
+        wrapper.insertBefore(sp, wrapper.firstChild);
         // ANTI-BOUCLE : re-mesure ; si l'ajout ferait deborder la zone, on annule.
         var check = 0;
-        for (i = 0; i < content.children.length; i++) {
-          var b2 = content.children[i].getBoundingClientRect().bottom - box.top;
+        for (i = 0; i < wrapper.children.length; i++) {
+          var b2 = wrapper.children[i].getBoundingClientRect().bottom - box.top;
           if (b2 > check) check = b2;
         }
-        if (check > avail) content.removeChild(sp);
+        if (check > avail) wrapper.removeChild(sp);
       });
     }
   }
