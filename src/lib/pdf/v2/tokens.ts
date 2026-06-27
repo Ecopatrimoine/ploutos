@@ -40,6 +40,15 @@ export type Tokens = {
   bordureSeuilRail: string;
   // ── Statut ──
   succes: string;
+  // ── Rampe de sévérité « barème par tranche » (crème → rouge) ──
+  // Arrêts a11y-réglés : luminance STRICTEMENT monotone décroissante (l'ordre se lit
+  // même en niveaux de gris / achromatopsie) et paliers distinguables en protanopie /
+  // deutéranopie / tritanopie (ΔE2000 ≥ 7 ; voir scratchpad a11y-rampe). Échantillonnés
+  // par RANG ABSOLU de tranche via echantillonnerRampe() — indépendant du remplissage.
+  // Limité aux GRAPHES DE BARÈME (IFI + IR) ; le reste du rapport garde la palette globale.
+  // Identique aux 2 thèmes : la sévérité fiscale est indépendante de la charte cabinet.
+  rampeBareme: string[];        // fill par palier (creme -> rouge profond)
+  rampeBaremeBordure: string[]; // bordure : un cran plus foncé que le fill
 };
 
 // ─── Helpers de mix / dérivation de couleurs ─────────────────────────────
@@ -76,6 +85,27 @@ function darken(c: string, ratio: number): string {
   return mix(c, "#000000", ratio);
 }
 
+// ─── Rampe de sévérité « barème par tranche » (crème → rouge) ─────────────
+// Arrêts validés au contrôle accessibilité (cf. en-tête du type Tokens). Bordures
+// dérivées un cran plus foncé. AUCUN hex baladeur dans le helper bracketChart :
+// la rampe vit ICI, dans les tokens.
+const RAMPE_BAREME = ["#F6EEDD", "#FBD96E", "#F7AE42", "#EF7E37", "#E14B2E", "#C32525"];
+const RAMPE_BAREME_BORDURE = RAMPE_BAREME.map(c => darken(c, 0.16));
+
+/** Échantillonne une rampe hex à la position de la tranche i parmi n : couleur = rampe(i/(n-1)),
+ *  interpolation linéaire entre arrêts. n = stops.length → arrêts exacts ; n différent → interpolé.
+ *  Garantit que la DERNIÈRE tranche (i=n-1) tombe toujours sur le dernier arrêt (rouge profond),
+ *  que n vaille 5 (IR) ou 6 (IFI). Mappe sur le RANG ABSOLU, jamais sur le remplissage. */
+export function echantillonnerRampe(stops: string[], i: number, n: number): string {
+  if (stops.length === 0) return "#000000";
+  if (stops.length === 1 || n <= 1) return stops[Math.min(Math.max(0, i), stops.length - 1)];
+  const t = Math.max(0, Math.min(1, i / (n - 1)));
+  const pos = t * (stops.length - 1);
+  const lo = Math.floor(pos);
+  const hi = Math.min(stops.length - 1, lo + 1);
+  return mix(stops[lo], stops[hi], pos - lo);
+}
+
 // ─── Preset Encre & Or (valeurs EXACTES de la maquette) ─────────────────
 const ENCRE_OR: Tokens = {
   navy:              "#0F172A",
@@ -97,6 +127,8 @@ const ENCRE_OR: Tokens = {
   fondSeuilRail:     "#F2EEE5",
   bordureSeuilRail:  "#E7D9BF",
   succes:            "#2F7D5B",
+  rampeBareme:        RAMPE_BAREME,
+  rampeBaremeBordure: RAMPE_BAREME_BORDURE,
 };
 
 // ─── Couleurs cabinet attendues depuis le modèle Lot 5 ───────────────────
@@ -144,6 +176,9 @@ export function buildTokens(theme: Theme, cabinet?: CouleursCabinet): Tokens {
     bordureSeuilRail: mix(or,    "#FFFFFF", 0.60),
     // Sémantique : vert succès reste fixe (lisibilité réglementaire).
     succes:           "#2F7D5B",
+    // Rampe de sévérité barème : identique aux 2 thèmes (a11y-réglée, indépendante de la charte).
+    rampeBareme:        RAMPE_BAREME,
+    rampeBaremeBordure: RAMPE_BAREME_BORDURE,
   };
 }
 
