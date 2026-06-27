@@ -27,6 +27,7 @@
     "pdf:der": "tsx scripts/generatePdfLocal.ts der",
     "pdf:ficheDDA": "tsx scripts/generatePdfLocal.ts ficheDDA",
     "pdf:declarationAdequation": "tsx scripts/generatePdfLocal.ts declarationAdequation",
+    "pdf:capitauxDeces": "tsx scripts/generatePdfLocal.ts capitauxDeces",
     "electron:build:mac": "npm run build && electron-builder --mac",
     "release:mac": "npm run build && electron-builder --mac --publish always"
   },
