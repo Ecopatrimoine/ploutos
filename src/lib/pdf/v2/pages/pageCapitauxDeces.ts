@@ -188,7 +188,10 @@ export function pageCapitauxDeces(t: Tokens, d: CapitauxDecesPageData): string {
   // ─── Queue épinglée : « Notre lecture » (dernier bloc) ──
   blocs.push({ kind: "queue", html: encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) });
 
-  return compilerPageContrat(blocs);
+  // Opt-in distribution du blanc (regle 1/3 haut - 2/3 bas) : page souvent courte
+  // (mode simple). Marqueur hisse par le feeder -> DistributeHandler agit sur la derniere
+  // feuille. Inerte hors feeder (harnais) et si la feuille est pleine.
+  return compilerPageContrat(blocs, { attributs: 'data-pdf-distribute="1"' });
 }
 
 // ─── Helpers de présentation (pure mise en forme, aucun calcul fiscal) ──────

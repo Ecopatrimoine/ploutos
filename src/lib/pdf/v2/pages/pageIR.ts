@@ -143,5 +143,8 @@ export function pageIR(t: Tokens, d: IRPageData): string {
     { kind: "queue", html: encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) },
   ];
 
-  return compilerPageContrat(blocs);
+  // Opt-in distribution du blanc (regle 1/3 haut - 2/3 bas) : page courte typique.
+  // Le marqueur est hisse par le feeder -> DistributeHandler agit sur la derniere feuille.
+  // Inerte hors feeder (harnais) et si la feuille est pleine.
+  return compilerPageContrat(blocs, { attributs: 'data-pdf-distribute="1"' });
 }

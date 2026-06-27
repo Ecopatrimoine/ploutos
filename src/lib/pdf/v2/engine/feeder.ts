@@ -19,7 +19,7 @@
 import type { Tokens } from "../tokens";
 import { FONTS_HTML_LINKS } from "../tokens";
 import { cssCommun } from "../primitives";
-import { HANDLER_SCRIPT, DOCNUM_HANDLER_SCRIPT, COVER_HANDLER_SCRIPT } from "./pagedHandler";
+import { HANDLER_SCRIPT, DOCNUM_HANDLER_SCRIPT, COVER_HANDLER_SCRIPT, DISTRIBUTE_HANDLER_SCRIPT } from "./pagedHandler";
 
 // Géométrie du moteur (mm).
 // MARGES LATÉRALES @page = 0 : la boîte module (width:210mm) occupe toute la largeur
@@ -157,6 +157,12 @@ export function buildFeederDocument(opts: FeederOptions): string {
     // absent (section non-docReg -> pas de data-doc -> compteur @page global conserve).
     const md = b.match(/data-pdf-doc="([^"]+)"/);
     const docAttr = md ? ` data-doc="${md[1]}"` : "";
+    // Distribution du blanc (regle 1/3-2/3) : opt-in STRICT. Si le corps porte
+    // data-pdf-distribute="..." on hisse data-distribute=<idx> sur la <section> (idx
+    // UNIQUE par section -> cle de regroupement des feuilles physiques pour le
+    // DistributeHandler, qui ne distribue que sur la DERNIERE feuille du groupe).
+    // MIROIR des hoists ci-dessus. Inerte si absent (aucune page non marquee touchee).
+    const distAttr = /data-pdf-distribute="/.test(b) ? ` data-distribute="${idx}"` : "";
     // .doctitle (porteur de string-set: doctitle pour l'en-tete courant) injecte DANS la
     // 1re section UNIQUEMENT -> il herite de la page de cette section. Si la 1re section est
     // une page nommee docReg, il n'y a plus de page-par-defaut separee en tete = plus de
@@ -165,7 +171,7 @@ export function buildFeederDocument(opts: FeederOptions): string {
     // 1re section est la couverture -> le CoverHandler trouve toujours .doctitle (querySelector)
     // et le masque ; string-set capte au layout AVANT le masquage -> en-tete courant preserve.
     const doctitleDiv = idx === 0 ? `<div class="doctitle">${escapeHtml(opts.doctitle)}</div>` : "";
-    return `<section${pageAttr}${docAttr}>${doctitleDiv}${b}</section>`;
+    return `<section${pageAttr}${docAttr}${distAttr}>${doctitleDiv}${b}</section>`;
   }).join("\n");
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -195,6 +201,7 @@ ${sections}
 <script>${HANDLER_SCRIPT}</script>
 <script>${DOCNUM_HANDLER_SCRIPT}</script>
 <script>${COVER_HANDLER_SCRIPT}</script>
+<script>${DISTRIBUTE_HANDLER_SCRIPT}</script>
 </body>
 </html>`;
 }

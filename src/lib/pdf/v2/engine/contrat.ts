@@ -107,11 +107,15 @@ export function compilerBloc(b: Bloc): string {
 
 /** Traduit une page déclarée en HTML en flux, prêt pour le feeder paged.js.
  *  Pose le canvas (inset latéral 38, top 0 → corps aligné sur la marge @page 15mm,
- *  identique page 1 et continuations) + orphans/widows (pas de ligne isolée). PUR. */
-export function compilerPageContrat(blocs: PageContrat): string {
+ *  identique page 1 et continuations) + orphans/widows (pas de ligne isolée). PUR.
+ *  `attributs` : attributs HTML bruts optionnels posés sur le wrapper .pdf-contrat
+ *  (ex. data-pdf-distribute="1" pour l'opt-in distribution du blanc, hissé par le
+ *  feeder comme data-pdf-page/data-pdf-doc). Absent → wrapper STRICTEMENT inchangé. */
+export function compilerPageContrat(blocs: PageContrat, opts: { attributs?: string } = {}): string {
   const corps = blocs.map(compilerBloc).join("\n");
+  const attrs = opts.attributs ? ` ${opts.attributs}` : "";
   return (
-    `<div class="pdf-contrat" style="padding:0 ${PAGE_PAD_LAT_PX}px 0;orphans:2;widows:2">\n` +
+    `<div class="pdf-contrat"${attrs} style="padding:0 ${PAGE_PAD_LAT_PX}px 0;orphans:2;widows:2">\n` +
     `${corps}\n` +
     `</div>`
   );

@@ -150,5 +150,8 @@ export function pageFamille(t: Tokens, d: FamillePageData): string {
     blocs.push({ kind: "queue", html: encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) });
   }
 
-  return compilerPageContrat(blocs);
+  // Opt-in distribution du blanc (regle 1/3 haut - 2/3 bas) : page courte typique
+  // (header seul si celibataire sans enfant). Marqueur hisse par le feeder ->
+  // DistributeHandler agit sur la derniere feuille. Inerte hors feeder et si feuille pleine.
+  return compilerPageContrat(blocs, { attributs: 'data-pdf-distribute="1"' });
 }
