@@ -13,7 +13,7 @@ export type PackItem =
   // Bilan patrimonial — sections
   | "couverture" | "cabinet" | "famille" | "travail"
   | "bilanEndettement" | "ir" | "ifi"
-  | "successionA" | "successionB"
+  | "successionA" | "successionB" | "capitauxDeces"
   | "profil" | "prevoyancePersoP1" | "prevoyancePersoP2" | "prevoyanceColl"
   | "hypos" | "recommandations" | "mentions";
 
@@ -49,6 +49,7 @@ const PACK_LABELS: Record<PackItem, string> = {
   ifi:              "IFI",
   successionA:      "Succession civile",
   successionB:     "Assurance-vie & transmission",
+  capitauxDeces:    "Capitaux décès",
   profil:           "Profil & adéquation MIF II",
   prevoyancePersoP1: "Prévoyance personnelle (P1)",
   prevoyancePersoP2: "Prévoyance personnelle (P2)",
@@ -160,6 +161,11 @@ function collectMissing(pack: PackItem, p: CheckParams): string[] {
       if (noChildren && noProps) out.push("Aucun enfant ni bien à transmettre saisi");
       break;
     }
+    case "capitauxDeces": {
+      // Section informative tolérante : données « non disponibles » rendues « n.d. »,
+      // corps vide exclu du pack (cf. concatPack). Aucun manque bloquant à signaler.
+      break;
+    }
     case "profil": {
       if (empty(mission.attitude)) out.push("mission.attitude (Q1 profil non répondu)");
       if (empty(mission.horizon)) out.push("mission.horizon (horizon non sélectionné)");
@@ -202,7 +208,7 @@ export const PACK_ORDER: PackItem[] = [
   // Bilan patrimonial
   "couverture", "cabinet", "famille", "travail",
   "bilanEndettement", "ir", "ifi",
-  "successionA", "successionB",
+  "successionA", "successionB", "capitauxDeces",
   "profil", "prevoyancePersoP1", "prevoyancePersoP2", "prevoyanceColl",
   "hypos", "recommandations", "mentions",
   // Documents réglementaires (après le bilan)
