@@ -41,6 +41,12 @@ import { renderFicheDDA } from "../src/lib/pdf/v2/renderFicheDDA";
 import type { FicheDDAPageData } from "../src/lib/pdf/v2/pages/pageFicheDDA";
 import { renderDeclarationAdequation } from "../src/lib/pdf/v2/renderDeclarationAdequation";
 import type { DeclarationAdequationPageData } from "../src/lib/pdf/v2/pages/pageDeclarationAdequation";
+// Capitaux décès : page + adapter rendus en isolé (hors pack). La cible exerce
+// l'adapter sur des fixtures BRUTES (forme computeSuccession) pour couvrir les 2 modes.
+import { buildTokens } from "../src/lib/pdf/v2/tokens";
+import { coquilleDocument } from "../src/lib/pdf/v2/primitives";
+import { pageCapitauxDeces } from "../src/lib/pdf/v2/pages/pageCapitauxDeces";
+import { buildCapitauxDecesData } from "../src/lib/pdf/v2/adapters/buildCapitauxDecesData";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outDir = join(__dirname, "..", "out");
@@ -509,9 +515,73 @@ const dataMaquetteDeclarationAdequation: DeclarationAdequationPageData = {
   mentionNonContractuelle: "Document d'aide à la conformité remis à titre indicatif. Ne constitue ni une attestation de conformité, ni un conseil juridique. À valider au regard des textes en vigueur, du contrôle de l'association agréée et, le cas échéant, d'un avocat. EcoPatrimoine Conseil — ORIAS n° 25006907 (statuts à confirmer sur www.orias.fr).",
 };
 
+// ─── Fixtures Capitaux décès (forme BRUTE computeSuccession) — 2 modes ──────
+// Client/cabinet communs (le clientName est passé explicitement à l'adapter).
+const dataClientCapitaux = { person1FirstName: "Hélène", person1LastName: "Dubreuil", person2FirstName: "Marc", person2LastName: "Dubreuil", coupleStatus: "married" };
+const cabinetCapitaux = { cabinetName: "EcoPatrimoine Conseil" };
+
+// MODE SIMPLE — toutes les lignes privées en natureAssiette=primes_avant70.
+const successionCapitauxSimple = {
+  capitalDecesLines: {
+    caisses: [
+      { source: "CARMF", capital: 79152, nbEnfants: 2, donneeIndisponible: false, exonere: true,
+        repartition: [{ beneficiaire: "Hélène Dubreuil", relation: "conjoint", montant: 79152, origine: "capital_principal", source: "auto" }] },
+      { source: "CIPAV", capital: null, nbEnfants: 2, donneeIndisponible: true, exonere: true, repartition: [] },
+    ],
+    prives: [
+      { contrat: "Prévoyance Madelin", beneficiary: "Hélène Dubreuil", relation: "conjoint", sharePct: 100, montant: 200000, natureAssiette: "primes_avant70", assiette990I: 8000, before70Taxable: 0, duties: 0 },
+      { contrat: "Temporaire décès groupe", beneficiary: "Lucas Dubreuil", relation: "enfant", sharePct: 50, montant: 50000, natureAssiette: "primes_avant70", assiette990I: 2000, before70Taxable: 0, duties: 0 },
+    ],
+    branche: [
+      { source: "Syntec — IDCC 1486", capital: 120000, categorie: "cadres", exonere: true, donneeIndisponible: false, beneficiairesAuContrat: true, repartition: [] },
+    ],
+    renteEducationBranche: [
+      { enfantPrenom: "Lucas", ageActuel: 12, montantAnnuelCourant: 4800, phases: [], donneeIndisponible: false, exonere: true, source: "Syntec" },
+    ],
+    renteConjointBranche: [],
+  },
+  capitalDecesCaisseExonere: 79152,
+  capitalDecesBrancheExonere: 120000,
+  capitalDecesPriveCapital: 250000,
+  capitalDecesPriveDuties: 0,
+  rentesSurvieAnnuelles: [
+    { source: "CARMF", type: "conjoint", montantAnnuel: 12000 },
+    { source: "Contrat individuel", type: "education", montantAnnuel: 6000 },
+  ],
+};
+
+// MODE RACHETABLE — >=1 ligne natureAssiette=capital + bénéficiaire sur 2 natures.
+const successionCapitauxRachetable = {
+  capitalDecesLines: {
+    caisses: [
+      { source: "CARMF", capital: 79152, nbEnfants: 2, donneeIndisponible: false, exonere: true,
+        repartition: [{ beneficiaire: "Hélène Dubreuil", relation: "conjoint", montant: 79152, origine: "capital_principal", source: "auto" }] },
+    ],
+    prives: [
+      { contrat: "Vie entière patrimoniale", beneficiary: "Marie Martin", relation: "enfant", sharePct: 50, montant: 180000, natureAssiette: "capital", assiette990I: 180000, before70Taxable: 27500, duties: 5500 },
+      { contrat: "Vie entière patrimoniale", beneficiary: "Paul Martin", relation: "enfant", sharePct: 50, montant: 180000, natureAssiette: "capital", assiette990I: 180000, before70Taxable: 27500, duties: 5500 },
+      { contrat: "Vie entière patrimoniale", beneficiary: "Marie Martin", relation: "enfant", sharePct: 100, montant: 20000, natureAssiette: "primes_avant70", assiette990I: 3000, before70Taxable: 0, duties: 0 },
+    ],
+    branche: [
+      { source: "Syntec — IDCC 1486", capital: null, categorie: "nonCadres", exonere: true, donneeIndisponible: true, beneficiairesAuContrat: true, repartition: [] },
+    ],
+    renteEducationBranche: [],
+    renteConjointBranche: [
+      { montantAnnuel: 9000, dureeMaxAnnees: 10, beneficiaireNom: "Hélène Dubreuil", source: "Syntec", exonere: true, donneeIndisponible: false, mode: "substitutive", finAgeDefunt: 67 },
+    ],
+  },
+  capitalDecesCaisseExonere: 79152,
+  capitalDecesBrancheExonere: 0,
+  capitalDecesPriveCapital: 380000,
+  capitalDecesPriveDuties: 11000,
+  rentesSurvieAnnuelles: [
+    { source: "CARMF", type: "conjoint", montantAnnuel: 12000 },
+  ],
+};
+
 async function main(): Promise<void> {
   const cible = process.argv[2] || "ifi";
-  const ciblesValides = ["ifi", "ir", "couverture", "successionA", "successionB", "profil", "prevoyanceColl", "bilanEndettement", "lettreMission", "der", "ficheDDA", "declarationAdequation"];
+  const ciblesValides = ["ifi", "ir", "couverture", "successionA", "successionB", "profil", "prevoyanceColl", "bilanEndettement", "lettreMission", "der", "ficheDDA", "declarationAdequation", "capitauxDeces"];
   if (!ciblesValides.includes(cible)) {
     console.error(`Cible inconnue : "${cible}". Cibles disponibles : ${ciblesValides.join(", ")}`);
     process.exit(1);
@@ -625,6 +695,21 @@ async function main(): Promise<void> {
     await genererPdf(htmlCabinet, join(outDir, "declarationAdequation-cabinet.pdf"));
     console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
     console.log("  revue-preview/pdf/refonte_pdf_declaration_adequation_2pages.html");
+  }
+
+  if (cible === "capitauxDeces") {
+    // Les 2 PDF couvrent les 2 MODES (et non 2 thèmes) : la bascule detailMode
+    // est calculée par l'adapter à partir des natures de contrat de la fixture.
+    const tCap = buildTokens("encreOr");
+    const dataSimple = buildCapitauxDecesData({ succession: successionCapitauxSimple, data: dataClientCapitaux, cabinet: cabinetCapitaux, clientName: "Hélène & Marc Dubreuil", dateLettre: "25 mai 2026", pagePosition: "7 / 8" });
+    const htmlSimple = coquilleDocument(tCap, { titre: "Capitaux décès — mode simple", body: pageCapitauxDeces(tCap, dataSimple) });
+    await genererPdf(htmlSimple, join(outDir, "capitauxDeces-simple.pdf"));
+    const dataRachetable = buildCapitauxDecesData({ succession: successionCapitauxRachetable, data: dataClientCapitaux, cabinet: cabinetCapitaux, clientName: "Hélène & Marc Dubreuil", dateLettre: "25 mai 2026", pagePosition: "7 / 8" });
+    const htmlRachetable = coquilleDocument(tCap, { titre: "Capitaux décès — mode rachetable", body: pageCapitauxDeces(tCap, dataRachetable) });
+    await genererPdf(htmlRachetable, join(outDir, "capitauxDeces-rachetable.pdf"));
+    console.log("\n→ 2 PDF générés (dossier out/) couvrant les 2 modes :");
+    console.log("  out/capitauxDeces-simple.pdf      (toutes lignes primes_avant70)");
+    console.log("  out/capitauxDeces-rachetable.pdf  (contrat rachetable + bénéficiaire double)");
   }
 }
 
