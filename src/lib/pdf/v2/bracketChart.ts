@@ -37,7 +37,14 @@ function borneM(from: number, to: number): string {
   return `${m(from)}–${m(to)} M`;
 }
 
-export function renderBracketChartSVG(brackets: FilledBracket[], t: Tokens, opts: { hauteur?: number } = {}): string {
+export function renderBracketChartSVG(
+  brackets: FilledBracket[],
+  t: Tokens,
+  // referenceValue : si fourni, la tranche active = celle qui CONTIENT cette valeur
+  //   (ex. quotient IR → tranche marginale TMI) ; sinon = dernière tranche remplie (IFI).
+  // badgeActif : texte du badge sur la tranche active (ex. "TMI") ; si absent → chevron (IFI).
+  opts: { hauteur?: number; referenceValue?: number; badgeActif?: string } = {},
+): string {
   const n = brackets.length;
   if (n === 0) return "";
 
@@ -53,9 +60,16 @@ export function renderBracketChartSVG(brackets: FilledBracket[], t: Tokens, opts
   const barW = Math.min(70, slot * 0.56);
 
   const maxFilled = Math.max(...brackets.map(b => b.filled), 1);
-  // Tranche active = dernière tranche portant une assiette logée.
+  // Tranche active : par référence (tranche contenant referenceValue, ex. quotient IR/TMI)
+  // ou, à défaut, dernière tranche portant une assiette logée (IFI).
   let activeIdx = -1;
-  brackets.forEach((b, i) => { if (b.filled > 0) activeIdx = i; });
+  if (opts.referenceValue !== undefined) {
+    const rv = opts.referenceValue;
+    const idx = brackets.findIndex(b => rv <= b.to);
+    activeIdx = idx >= 0 ? idx : brackets.length - 1;
+  } else {
+    brackets.forEach((b, i) => { if (b.filled > 0) activeIdx = i; });
+  }
 
   const yBase = padT + innerH;
   const yOf = (val: number) => yBase - (val / maxFilled) * innerH;
@@ -83,11 +97,21 @@ export function renderBracketChartSVG(brackets: FilledBracket[], t: Tokens, opts
       const stroke = isActive ? t.or : bordure;
       const strokeW = isActive ? 1.6 : 0.75;
       barre = `<rect data-bar="filled" data-bar-index="${i}" data-bar-color="${fill}"${activeAttr} x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" />`;
-      // Badge chevron or sous la colonne active : cue de forme + position, redondant
-      // avec le contour, indépendant de toute couleur de fill (daltonien-safe).
+      // Badge tranche active sous la colonne : cue de forme + position, redondant avec le
+      // contour, indépendant de toute couleur de fill (daltonien-safe). Texte si badgeActif
+      // fourni (ex. "TMI" pour l'IR), sinon chevron (IFI). data-active-badge dans les 2 cas.
       if (isActive) {
         const by = yBase + 31;
-        badge = `<path data-active-badge d="M ${(cx - 4).toFixed(1)} ${(by + 4).toFixed(1)} L ${cx.toFixed(1)} ${by.toFixed(1)} L ${(cx + 4).toFixed(1)} ${(by + 4).toFixed(1)} Z" fill="${t.or}" />`;
+        if (opts.badgeActif) {
+          const txt = opts.badgeActif;
+          const w = txt.length * 5.4 + 12;
+          badge = `<g data-active-badge>`
+            + `<rect x="${(cx - w / 2).toFixed(1)}" y="${by.toFixed(1)}" width="${w.toFixed(1)}" height="12" rx="6" fill="${t.or}" />`
+            + `<text x="${cx.toFixed(1)}" y="${(by + 8.8).toFixed(1)}" text-anchor="middle" font-size="7.5" font-weight="700" fill="${t.navy}" font-family="Lato,sans-serif">${txt}</text>`
+            + `</g>`;
+        } else {
+          badge = `<path data-active-badge d="M ${(cx - 4).toFixed(1)} ${(by + 4).toFixed(1)} L ${cx.toFixed(1)} ${by.toFixed(1)} L ${(cx + 4).toFixed(1)} ${(by + 4).toFixed(1)} Z" fill="${t.or}" />`;
+        }
       }
     }
 
