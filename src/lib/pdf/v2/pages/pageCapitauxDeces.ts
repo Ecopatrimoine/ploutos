@@ -87,6 +87,11 @@ export type CapitauxDecesPageData = {
   exonereCaisses: number;
   exonereBranche: number;
   capitalAssurance: number;          // total transmis (PAS le « 990 I net »)
+  // Règle « absence != zéro » : total exonéré RÉELLEMENT indisponible → « n.d. »
+  // (toutes les lignes de la source portent donneeIndisponible / capital:null).
+  // Un vrai 0 (source présente mais sans capital) reste un 0, pas un « n.d. ».
+  exonereCaissesIndisponible: boolean;
+  exonereBrancheIndisponible: boolean;
   // Section 1 — régimes obligatoires
   caisses: CapitauxDecesCaisse[];
   // Box rentes (rentesSurvieAnnuelles UNIQUEMENT : caisses + contrats individuels)
@@ -126,8 +131,8 @@ export function pageCapitauxDeces(t: Tokens, d: CapitauxDecesPageData): string {
 
   // Bande KPI (3 indicateurs) + note.
   const kpis: KpiItem[] = [
-    { label: "Exonéré · caisses", value: euro(d.exonereCaisses), type: "main" },
-    { label: "Exonéré · branche (CCN)", value: euro(d.exonereBranche), type: "normal" },
+    { label: "Exonéré · caisses", value: d.exonereCaissesIndisponible ? "n.d." : euro(d.exonereCaisses), type: "main" },
+    { label: "Exonéré · branche (CCN)", value: d.exonereBrancheIndisponible ? "n.d." : euro(d.exonereBranche), type: "normal" },
     { label: "Capital décès assurance", value: euro(d.capitalAssurance), type: "normal" },
   ];
   blocs.push({

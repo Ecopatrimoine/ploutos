@@ -111,6 +111,13 @@ export function buildCapitauxDecesData(p: BuildCapitauxDecesDataParams): Capitau
   const capitalAssurance = num(s.capitalDecesPriveCapital);
   const priveDuties = num(s.capitalDecesPriveDuties);
 
+  // Règle « absence != zéro » : un total exonéré est INDISPONIBLE (→ « n.d. ») quand
+  // la source a des lignes mais AUCUNE ne porte un capital connu (toutes
+  // donneeIndisponible / capital:null). Source vide = 0 réel ; au moins une ligne
+  // connue = total (partiel) réel — JAMAIS « n.d. ».
+  const exonereCaissesIndisponible = totalIndisponible(caisses);
+  const exonereBrancheIndisponible = totalIndisponible(branche);
+
   // Total annuel des rentes (agrégation de flux DÉJÀ dérivés : box + branche).
   const totalRentesAnnuelles =
     rentes.reduce((a, r) => a + r.montantAnnuel, 0) +
@@ -123,6 +130,8 @@ export function buildCapitauxDecesData(p: BuildCapitauxDecesDataParams): Capitau
     exonereCaisses,
     exonereBranche,
     capitalAssurance,
+    exonereCaissesIndisponible,
+    exonereBrancheIndisponible,
     caisses,
     rentes,
     detailMode,
@@ -131,7 +140,8 @@ export function buildCapitauxDecesData(p: BuildCapitauxDecesDataParams): Capitau
     renteEducationBranche,
     renteConjointBranche,
     notreLecture: p.notreLecture || construireNotreLecture({
-      exonereCaisses, exonereBranche, capitalAssurance, priveDuties, totalRentesAnnuelles,
+      exonereCaisses, exonereBranche, caissesIndisponible: exonereCaissesIndisponible,
+      brancheIndisponible: exonereBrancheIndisponible, capitalAssurance, priveDuties, totalRentesAnnuelles,
     }),
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Transmission — confidentiel`,
@@ -139,18 +149,37 @@ export function buildCapitauxDecesData(p: BuildCapitauxDecesDataParams): Capitau
 }
 
 // ─── Notre lecture par défaut (composée des valeurs dérivées, aucun recalcul) ─
+// Règle « absence != zéro » : l'exonéré affiché ne somme QUE les sources connues ;
+// une source indisponible n'est PAS comptée comme un 0 connu, mais signalée « à compléter ».
 function construireNotreLecture(v: {
   exonereCaisses: number;
   exonereBranche: number;
+  caissesIndisponible: boolean;
+  brancheIndisponible: boolean;
   capitalAssurance: number;
   priveDuties: number;
   totalRentesAnnuelles: number;
 }): string {
-  const exonereTotal = v.exonereCaisses + v.exonereBranche;
+  const sourcesConnues: string[] = [];
+  let exonereConnu = 0;
+  if (!v.caissesIndisponible) { exonereConnu += v.exonereCaisses; sourcesConnues.push("les régimes obligatoires"); }
+  if (!v.brancheIndisponible) { exonereConnu += v.exonereBranche; sourcesConnues.push("la prévoyance de branche"); }
+
+  const indispo: string[] = [];
+  if (v.caissesIndisponible) indispo.push("des régimes obligatoires");
+  if (v.brancheIndisponible) indispo.push("de branche (CCN)");
+  const indispoPhrase = indispo.length
+    ? ` Le capital décès ${joinFr(indispo)} n'est pas disponible et reste à compléter.`
+    : "";
+
+  const capitauxBullet = sourcesConnues.length
+    ? `<li><strong>Capitaux exonérés</strong> — ${formatEuro(exonereConnu)} via ${joinFr(sourcesConnues)}, transmis aux bénéficiaires désignés hors fiscalité.${indispoPhrase}</li>`
+    : `<li><strong>Capitaux exonérés</strong> — montants à compléter : le capital décès ${joinFr(indispo)} n'est pas disponible.</li>`;
+
   return `
     <p style="margin:0 0 10px 0">Ces capitaux et rentes sont versés <strong>hors actif successoral</strong> : ils n'entrent dans aucune masse civile ni dans aucun droit de succession. Les rentes sont des flux <strong>annuels</strong> (€/an), <strong>jamais additionnés</strong> aux capitaux.</p>
     <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
-      <li><strong>Capitaux exonérés</strong> — ${formatEuro(exonereTotal)} via les régimes obligatoires et la prévoyance de branche, transmis aux bénéficiaires désignés hors fiscalité.</li>
+      ${capitauxBullet}
       <li><strong>Prévoyance décès assurance</strong> — ${formatEuro(v.capitalAssurance)} transmis. ${v.priveDuties > 0
         ? `Fiscalité 990 I estimée : ${formatEuro(v.priveDuties)} (après abattement de 152 500 € par bénéficiaire).`
         : `Aucune fiscalité 990 I (les abattements de 152 500 € par bénéficiaire absorbent les capitaux).`}</li>
@@ -160,6 +189,19 @@ function construireNotreLecture(v: {
     </ul>
     <p style="margin:0;font-style:italic;color:#6B6353">Vérifiez les montants « Donnée non disponible » auprès des caisses et de la convention collective : ils complètent le besoin de prévoyance sans modifier la succession.</p>
   `.trim();
+}
+
+// Total exonéré « indisponible » : la source a des lignes mais AUCUNE ne porte un
+// capital connu (toutes donneeIndisponible / capital:null). Source vide → false
+// (0 réel) ; au moins une ligne connue → false (total réel, même partiel).
+function totalIndisponible(lignes: { capital: number | null; donneeIndisponible: boolean }[]): boolean {
+  return lignes.length > 0 && lignes.every(l => l.donneeIndisponible || l.capital == null);
+}
+
+// Jointure FR : « a », « a et b », « a, b et c ».
+function joinFr(arr: string[]): string {
+  if (arr.length <= 1) return arr[0] || "";
+  return arr.slice(0, -1).join(", ") + " et " + arr[arr.length - 1];
 }
 
 function num(v: any): number {
