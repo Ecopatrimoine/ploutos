@@ -116,4 +116,12 @@ describe("pageIFI — graphe barème par tranche", () => {
     expect(compte(html, /data-bar="/g)).toBe(6);
     expect(compte(html, /data-bar-amount/g)).toBe(0);
   });
+
+  it("(6) bornes en MILLIONS (non-regression : l'IFI garde le format M)", () => {
+    const html = rendre({ netTaxable: 3_000_000, grossIfi: 15_690, decote: 0, ifi: 15_690, bracketFill: fillCharge });
+    // bornes IFI au format millions, ex "0,8 M" / "1,3 M" (le bug IR n'affecte pas l'IFI)
+    expect(html).toMatch(/\d,\d+\s*M/);
+    expect(html).toContain("0,8 M");
+    expect(html).toContain("1,3 M");
+  });
 });

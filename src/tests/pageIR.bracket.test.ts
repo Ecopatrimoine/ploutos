@@ -15,6 +15,7 @@ import { describe, it, expect } from "vitest";
 import { buildTokens, echantillonnerRampe } from "../lib/pdf/v2/tokens";
 import { pageIR } from "../lib/pdf/v2/pages/pageIR";
 import { buildIRData } from "../lib/pdf/v2/adapters/buildIRData";
+import { euro } from "../lib/pdf/v2/primitives";
 import type { FilledBracket } from "../types/patrimoine";
 
 const t = buildTokens("encreOr");
@@ -112,5 +113,17 @@ describe("pageIR — graphe barème par tranche (par part)", () => {
     const html = rendre({ quotient: 45_000, parts: 2, marginalRate: 0.30 });
     expect(html).not.toMatch(/75\s*%/);
     expect(html).not.toMatch(/plafonnement IFI/i);
+  });
+
+  it("(6) bornes en EUROS par part, jamais en millions ; tranche haute = >= en euros", () => {
+    const html = rendre({ quotient: 45_000, parts: 2, marginalRate: 0.30 });
+    // AUCUNE borne au format millions (le bug : la tranche 30 % ne doit pas afficher "0,0x M")
+    expect(html).not.toMatch(/\d,\d+\s*M/);
+    // bornes en euros entiers (séparateur fr-FR) : les bornes du barème par part apparaissent
+    expect(html).toContain(euro(11_600));
+    expect(html).toContain(euro(29_579));
+    expect(html).toContain(euro(84_577));
+    // tranche supérieure (45 %) : borne haute « ≥ … € », pas de borne haute absurde
+    expect(html).toContain(`≥ ${euro(181_917)}`);
   });
 });
