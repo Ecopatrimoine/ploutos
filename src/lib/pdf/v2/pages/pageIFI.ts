@@ -162,7 +162,7 @@ export function pageIFI(t: Tokens, d: IFIPageData): string {
       kind: "insecable",
       html: `<div style="margin-top:22px">
         ${sousTitreSection(t, "Barème IFI — assiette par tranche")}
-        ${renderBracketChartSVG(d.bracketFill, t)}
+        ${renderBracketChartSVG(d.bracketFill, t, { formatBorne: "M" })}
         <div class="foot">${noteBareme}</div>
       </div>`,
     });
