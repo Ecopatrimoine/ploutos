@@ -218,9 +218,15 @@ export const COVER_HANDLER_SCRIPT = `
 // on TRAVERSE donc le wrapper (content.firstElementChild) et on mesure le bas reel de SON
 // contenu. residuel = avail - bas_reel_du_contenu.
 //
-// SPACER : si residuel > SEUIL_MIN, injecter EN TETE DU WRAPPER (pas a la racine de la zone)
-// un spacer de hauteur round(residuel/3) (le 2/3 restant tombe naturellement en bas). CLAMP
-// STRICT (jamais > residuel) + re-mesure post-injection : si ca deborderait, on annule.
+// SPACER : si residuel > SEUIL_MIN, injecter un spacer de hauteur round(residuel/3) (le 2/3
+// restant tombe naturellement en bas). CLAMP STRICT (jamais > residuel) + re-mesure
+// post-injection : si ca deborderait, on annule.
+//
+// POINT D'INJECTION : l'EN-TETE FIXE (masthead + bande KPI) ne doit PAS descendre. La page
+// pose une ancre data-pdf-distribute-anchor sur le 1er bloc de CORPS ; le spacer s'insere
+// JUSTE AVANT l'ancre (dans son parent) -> seul le corps descend. Sur une feuille de
+// CONTINUATION (multi-feuille : pas de masthead/ancre, ils ne vivent que sur la 1re feuille)
+// -> injection en tete legitime. Feuille UNIQUE sans ancre -> NO-OP (jamais pousser le titre).
 export const DISTRIBUTE_HANDLER_SCRIPT = `
 (function () {
   if (!window.Paged || !window.Paged.registerHandlers || !window.Paged.Handler) return;
@@ -272,19 +278,36 @@ export const DISTRIBUTE_HANDLER_SCRIPT = `
         var spacer = Math.round(residuel / 3);    // 1/3 en haut ; 2/3 tombe en bas
         if (spacer > residuel) spacer = residuel; // CLAMP STRICT (jamais > residuel)
         if (spacer <= 0) return;
+        // POINT D'INJECTION : on protege l'EN-TETE FIXE (masthead + bande KPI). La page pose
+        // une ancre data-pdf-distribute-anchor sur le 1er bloc de CORPS ; le spacer s'insere
+        // JUSTE AVANT elle -> seul le corps descend, le masthead ne bouge pas.
+        //   - ancre presente -> insertion dans son parent, avant l'ancre (cas feuille unique
+        //     avec masthead) ;
+        //   - PAS d'ancre mais feuille de CONTINUATION (page multi-feuille : le masthead et
+        //     l'ancre ne vivent que sur la 1re feuille) -> injection en tete legitime, rien a
+        //     proteger sur une continuation pure ;
+        //   - PAS d'ancre sur une feuille UNIQUE -> NO-OP : plus sur que de risquer de pousser
+        //     le titre (on n'injecte JAMAIS en tete quand un masthead pourrait etre la).
+        var anchor = content.querySelector("[data-pdf-distribute-anchor]");
+        var parent, ref;
+        if (anchor && anchor.parentNode) {
+          parent = anchor.parentNode; ref = anchor;
+        } else if (sheets.length > 1) {
+          parent = wrapper; ref = wrapper.firstChild;
+        } else {
+          return;                                 // garde-fou : ne jamais pousser le masthead
+        }
         var sp = content.ownerDocument.createElement("div");
         sp.setAttribute("data-pdf-distribute-spacer", "1");
         sp.setAttribute("style", "height:" + spacer + "px;flex:none");
-        // INJECTION EN TETE DU WRAPPER (pas a la racine de content) : c'est ce qui pousse
-        // reellement .pdf-contrat vers le bas.
-        wrapper.insertBefore(sp, wrapper.firstChild);
+        parent.insertBefore(sp, ref);
         // ANTI-BOUCLE : re-mesure ; si l'ajout ferait deborder la zone, on annule.
         var check = 0;
         for (i = 0; i < wrapper.children.length; i++) {
           var b2 = wrapper.children[i].getBoundingClientRect().bottom - box.top;
           if (b2 > check) check = b2;
         }
-        if (check > avail) wrapper.removeChild(sp);
+        if (check > avail) parent.removeChild(sp);
       });
     }
   }
