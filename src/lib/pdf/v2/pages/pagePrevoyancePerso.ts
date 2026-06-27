@@ -1,8 +1,7 @@
 // ─── Lot 9 — Page Prévoyance personnelle v2 (module Prévoyance) ─────────
 //
-// Remplace l'ancienne pagePrevoyanceInd (générique). Consomme désormais
-// le VRAI moteur de projection : graphique d'aires empilées en SVG
-// inline + tableau des jalons + constats triés + mention DDA.
+// Consomme le VRAI moteur de projection : graphique d'aires empilées en
+// SVG inline + tableau des jalons + constats triés + mention DDA.
 //
 // Une page par personne (P1 / P2). Mentions DDA non négociables en bas
 // (spec §13.3).

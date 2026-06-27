@@ -25,7 +25,7 @@ import { openPrintPopup } from "../../pdfCore";
 // ─── Renderers v2 ─────────────────────────────────────────────────────
 // Docs réglementaires (4) + 5 sections bilan câblées en 1ère passe.
 // Les 6 autres sections (cabinet/famille/travail/hypos/recos/mentions +
-// bilanEndettement/successionB/prevoyanceInd/prevoyanceColl) restent en
+// bilanEndettement/successionB/prevoyanceColl) restent en
 // placeholder pour une 2ème passe.
 import { pageLettreMission } from "../pages/pageLettreMission";
 import { pageDer } from "../pages/pageDer";
