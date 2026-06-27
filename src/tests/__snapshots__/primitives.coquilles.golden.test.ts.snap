@@ -108,7 +108,7 @@ exports[`CONTRAT — pageBilanEndettement (flux paged.js) > 11. cas court : base
 `;
 
 exports[`CONTRAT — pageFamille (flux paged.js) > 8. foyer court (2 adultes + 1 enfant) : base de regression (snapshot externe) 1`] = `
-"<div class="pdf-contrat" data-pdf-distribute="1" style="padding:0 38px 0;orphans:2;widows:2">
+"<div class="pdf-contrat" style="padding:0 38px 0;orphans:2;widows:2">
 <div style="break-inside:avoid">
     <div style="display:flex;justify-content:space-between;align-items:flex-end">
       <div>
@@ -120,7 +120,7 @@ exports[`CONTRAT — pageFamille (flux paged.js) > 8. foyer court (2 adultes + 1
     </div>
     <div style="height:2px;background:#C4973D;margin-top:12px;opacity:.9"></div>
   </div>
-<div data-pdf-distribute-anchor style="break-inside:avoid"><div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<div style="break-inside:avoid"><div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
       
     <div style="background:#FBF8F1;border:0.5px solid #EEE7D8;border-radius:10px;padding:14px 16px">
       <div class="sct">Personne 1</div>

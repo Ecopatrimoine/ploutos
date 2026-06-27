@@ -122,11 +122,8 @@ export function pageIR(t: Tokens, d: IRPageData): string {
     // Bande KPI (variante "large") — insécable.
     { kind: "insecable", html: bandeKPI(t, kpis, { taille: "large" }) },
     // Section « Revenus par nature » (sous-titre + barre, gardés ensemble).
-    // 1er bloc de CORPS → ancre de distribution du blanc : le spacer s'insère JUSTE
-    // AVANT lui ; masthead + bande KPI au-dessus restent fixes (cf. DISTRIBUTE_HANDLER_SCRIPT).
     {
       kind: "insecable",
-      attributs: "data-pdf-distribute-anchor",
       html: `<div style="margin-top:24px">
       ${sousTitreSection(t, "Revenus par nature")}
       ${barreRepartition(t, segments)}
@@ -146,8 +143,5 @@ export function pageIR(t: Tokens, d: IRPageData): string {
     { kind: "queue", html: encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) },
   ];
 
-  // Opt-in distribution du blanc (regle 1/3 haut - 2/3 bas) : page courte typique.
-  // Le marqueur est hisse par le feeder -> DistributeHandler agit sur la derniere feuille.
-  // Inerte hors feeder (harnais) et si la feuille est pleine.
-  return compilerPageContrat(blocs, { attributs: 'data-pdf-distribute="1"' });
+  return compilerPageContrat(blocs);
 }
