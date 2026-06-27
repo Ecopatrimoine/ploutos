@@ -100,7 +100,6 @@ export type CapitauxDecesPageData = {
   renteConjointBranche: CapitauxDecesRenteConjointBranche[];
   // Queue
   notreLecture: string;
-  totalRentesAnnuelles: number;      // agrégat annuel (box + branche) pour la synthèse
   // Pied (parité API ; rendu par le feeder/coquille)
   pagePosition: string;
   cabinetLibellePied: string;
@@ -181,9 +180,8 @@ export function pageCapitauxDeces(t: Tokens, d: CapitauxDecesPageData): string {
     blocs.push({ kind: "insecable", secableEnDernierRecours: true, html: blocBranche(t, d) });
   }
 
-  // ─── Queue épinglée : « Notre lecture » + bandeau de synthèse consolidé ──
+  // ─── Queue épinglée : « Notre lecture » (dernier bloc) ──
   blocs.push({ kind: "queue", html: encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) });
-  blocs.push({ kind: "queue", html: bandeauSynthese(t, d) });
 
   return compilerPageContrat(blocs);
 }
@@ -365,21 +363,5 @@ function blocBranche(t: Tokens, d: CapitauxDecesPageData): string {
 
   return `<div style="border:0.5px solid ${t.bordureClaire};border-radius:10px;padding:8px 15px;margin-top:10px">
     ${capitaux}${educ}${conj}
-  </div>`;
-}
-
-function bandeauSynthese(t: Tokens, d: CapitauxDecesPageData): string {
-  const stat = (label: string, valeur: string, sub?: string) => `<div style="text-align:center;flex:1">
-    <div class="lt" style="font-size:9px;letter-spacing:.04em;text-transform:uppercase;color:${t.cream}cc">${label}</div>
-    <div class="ser" style="font-size:17px;font-weight:600;color:${t.kpiOrPale};margin-top:3px;white-space:nowrap">${valeur}</div>
-    ${sub ? `<div class="lt" style="font-size:8px;color:rgba(255,255,255,.55);margin-top:1px">${sub}</div>` : ""}
-  </div>`;
-  return `<div style="margin-top:20px;background:${t.navy};border-radius:9px;padding:14px 18px">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px">
-      ${stat("Exonéré (caisses + branche)", euro(d.exonereCaisses + d.exonereBranche))}
-      ${stat("Capital décès assurance", euro(d.capitalAssurance))}
-      ${stat("Rentes de survie / an", euro(d.totalRentesAnnuelles), "toutes sources")}
-    </div>
-    <div class="lt" style="font-size:8.5px;color:rgba(255,255,255,.6);text-align:center;margin-top:10px;line-height:1.4">Hors actif successoral · les rentes (€/an) ne sont jamais additionnées aux capitaux ni aux droits.</div>
   </div>`;
 }

@@ -133,7 +133,6 @@ export function buildCapitauxDecesData(p: BuildCapitauxDecesDataParams): Capitau
     notreLecture: p.notreLecture || construireNotreLecture({
       exonereCaisses, exonereBranche, capitalAssurance, priveDuties, totalRentesAnnuelles,
     }),
-    totalRentesAnnuelles,
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Transmission — confidentiel`,
   };
