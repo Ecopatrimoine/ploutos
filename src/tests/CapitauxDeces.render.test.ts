@@ -191,3 +191,60 @@ describe("Capitaux décès — DONNÉE INDISPONIBLE (capital:null)", () => {
     expect(compte(html, /· exonéré/g)).toBe(1);
   });
 });
+
+// ─── Fixture BRANCHE INDISPONIBLE — caisse connue + branche capital:null ──
+const successionBrancheIndispo = {
+  capitalDecesLines: {
+    caisses: [
+      {
+        source: "CARMF", capital: 79152, nbEnfants: 2, donneeIndisponible: false, exonere: true,
+        repartition: [
+          { beneficiaire: "Hélène Dubreuil", relation: "conjoint", montant: 79152, origine: "capital_principal", source: "auto" },
+        ],
+      },
+    ],
+    prives: [],
+    branche: [
+      { source: "Syntec — IDCC 1486", capital: null, categorie: "nonCadres", exonere: true, donneeIndisponible: true, beneficiairesAuContrat: true, repartition: [] },
+    ],
+    renteEducationBranche: [],
+    renteConjointBranche: [],
+  },
+  capitalDecesCaisseExonere: 79152,
+  capitalDecesBrancheExonere: 0,   // 0 = artefact de l'absence (branche null), PAS un 0 connu
+  capitalDecesPriveCapital: 0,
+  capitalDecesPriveDuties: 0,
+  rentesSurvieAnnuelles: [],
+};
+
+describe("Capitaux décès — BRANCHE INDISPONIBLE (absence != zéro)", () => {
+  const d = buildCapitauxDecesData({ succession: successionBrancheIndispo, ...baseParams });
+  const html = pageCapitauxDeces(t, d);
+
+  it("4a. l'adapter marque la branche indisponible (caisses connues → non indisponible)", () => {
+    expect(d.exonereBrancheIndisponible).toBe(true);
+    expect(d.exonereCaissesIndisponible).toBe(false);
+  });
+
+  it("4b. KPI « Exonéré · branche » rendu « n.d. » (jamais « 0 € »)", () => {
+    const idxBranche = html.indexOf("Exonéré · branche (CCN)");
+    const idxCapital = html.indexOf("Capital décès assurance");
+    const kpiBranche = html.slice(idxBranche, idxCapital);
+    expect(kpiBranche).toContain("n.d.");
+    expect(kpiBranche).not.toContain("€");   // aucune valeur euro (donc pas de « 0 € » inventé)
+  });
+
+  it("4c. KPI « Exonéré · caisses » reste une vraie valeur (pas n.d. — partiel connu non sur-interprété)", () => {
+    const idxCaisses = html.indexOf("Exonéré · caisses");
+    const idxBranche = html.indexOf("Exonéré · branche (CCN)");
+    const kpiCaisses = html.slice(idxCaisses, idxBranche);
+    expect(kpiCaisses).toContain("€");
+    expect(kpiCaisses).not.toContain("n.d.");
+  });
+
+  it("4d. « Notre lecture » signale la branche non disponible et NE la présente PAS comme source connue", () => {
+    expect(html).toContain("n'est pas disponible et reste à compléter");
+    // La branche n'est pas listée parmi les sources CONNUES de l'exonéré.
+    expect(html).not.toContain("la prévoyance de branche");
+  });
+});
