@@ -27,6 +27,17 @@ describe("Feeder — fondation named-page docReg (LOT 1a)", () => {
     expect(css).not.toContain(".pagedjs_page .pagedjs_pagebox::before");
   });
 
+  it("feederCss aligne les margin-boxes docReg sur le corps 44/36 (CONFINÉ .pagedjs_docReg_page)", () => {
+    const css = feederCss(t, "Cabinet Test");
+    // En-tête + pied gauche alignés sur le bord gauche du corps docReg (44).
+    expect(css).toContain(".pagedjs_docReg_page .pagedjs_margin-top-left .pagedjs_margin-content");
+    expect(css).toContain(".pagedjs_docReg_page .pagedjs_margin-bottom-left .pagedjs_margin-content { padding-left:44px !important; }");
+    // Numéro de page (bas-droite) aligné sur le bord droit du corps docReg (36).
+    expect(css).toContain(".pagedjs_docReg_page .pagedjs_margin-bottom-right .pagedjs_margin-content { padding-right:36px !important; }");
+    // Défaut (feuilles bilan) inchangé : margin-boxes à 38.
+    expect(css).toContain(".pagedjs_margin-bottom-right .pagedjs_margin-content { padding-right:38px !important; box-sizing:border-box; }");
+  });
+
   it("buildFeederDocument hisse data-pdf-page=\"docReg\" vers data-page sur la <section>", () => {
     const html = buildFeederDocument({
       bodies: [`<div class="pdf-contrat" data-pdf-page="docReg">DA</div>`],

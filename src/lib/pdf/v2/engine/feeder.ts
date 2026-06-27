@@ -32,6 +32,11 @@ const MARGE_BAS_MM = 15;        // bande basse (pied + X/Y)
 // Inset latéral de l'en-tête courant / pied / X-Y = EXACTEMENT le padding latéral des
 // modules (coquillePage paddingLeft/Right = 38px) -> aligné au pixel sur le corps.
 const INSET_LATERAL_PX = 38;
+// docReg : le corps a un inset latéral asymétrique (gauche 44 > droite 36) pour la
+// respiration du liseré gauche 9px. Les margin-boxes en-tête/pied/numéro de CES feuilles
+// s'alignent sur ce bord (et non sur 38) → chrome et corps partagent le même bord latéral.
+const DOCREG_INSET_GAUCHE_PX = 44; // = padding-left du corps docReg
+const DOCREG_INSET_DROITE_PX = 36; // = padding-right du corps docReg
 
 function escapeHtml(s: string): string {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -66,6 +71,12 @@ export function feederCss(t: Tokens, cabinetLibelle: string): string {
 .pagedjs_margin-top-left .pagedjs_margin-content,
 .pagedjs_margin-bottom-left .pagedjs_margin-content { padding-left:${INSET_LATERAL_PX}px !important; box-sizing:border-box; }
 .pagedjs_margin-bottom-right .pagedjs_margin-content { padding-right:${INSET_LATERAL_PX}px !important; box-sizing:border-box; }
+/* docReg : override CONFINÉ (.pagedjs_docReg_page) -> en-tête/pied/numéro alignés sur le bord
+   du corps docReg (44 gauche / 36 droite, respiration du liseré 9px). Les feuilles bilan
+   gardent 38 (règle par défaut ci-dessus). */
+.pagedjs_docReg_page .pagedjs_margin-top-left .pagedjs_margin-content,
+.pagedjs_docReg_page .pagedjs_margin-bottom-left .pagedjs_margin-content { padding-left:${DOCREG_INSET_GAUCHE_PX}px !important; }
+.pagedjs_docReg_page .pagedjs_margin-bottom-right .pagedjs_margin-content { padding-right:${DOCREG_INSET_DROITE_PX}px !important; }
 /* Source string-set du titre courant : insérée en flux -> on l'aligne aussi sur le corps. */
 .doctitle { string-set: doctitle content(text); font-family:'Fraunces',Georgia,serif; font-size:15px; color:${t.navy}; margin:0 0 10px; padding-left:${INSET_LATERAL_PX}px; }
 
