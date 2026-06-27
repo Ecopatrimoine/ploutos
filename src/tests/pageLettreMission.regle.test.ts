@@ -89,7 +89,7 @@ describe("Lettre de mission — migration contrat (section unique)", () => {
 
   it("5. enveloppe docReg (data-pdf-page + marges 44/36) ; aucun display:none", () => {
     expect(html).toContain(`data-pdf-page="docReg"`);
-    expect(html).toContain("padding:30px 36px 0 44px");
+    expect(html).toContain("padding:0 36px 0 44px");
     expect(html).not.toContain("display:none");
   });
 });

@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`CONTRAT — pageBilanEndettement (flux paged.js) > 11. cas court : base de regression (snapshot externe), flux contrat sans centrage 1`] = `
-"<div class="pdf-contrat" style="padding:32px 38px 0;orphans:2;widows:2">
+"<div class="pdf-contrat" style="padding:0 38px 0;orphans:2;widows:2">
 <div style="break-inside:avoid">
     <div style="display:flex;justify-content:space-between;align-items:flex-end">
       <div>
@@ -108,7 +108,7 @@ exports[`CONTRAT — pageBilanEndettement (flux paged.js) > 11. cas court : base
 `;
 
 exports[`CONTRAT — pageFamille (flux paged.js) > 8. foyer court (2 adultes + 1 enfant) : base de regression (snapshot externe) 1`] = `
-"<div class="pdf-contrat" style="padding:32px 38px 0;orphans:2;widows:2">
+"<div class="pdf-contrat" style="padding:0 38px 0;orphans:2;widows:2">
 <div style="break-inside:avoid">
     <div style="display:flex;justify-content:space-between;align-items:flex-end">
       <div>
@@ -195,7 +195,7 @@ exports[`CONTRAT — pageFamille (flux paged.js) > 8. foyer court (2 adultes + 1
 `;
 
 exports[`CONTRAT — pageSuccessionA (flux paged.js) > 9. blocs declares : header, table heritiers ecoulable, queue (foot-note CGI + Notre lecture) 1`] = `
-"<div class="pdf-contrat" style="padding:32px 38px 0;orphans:2;widows:2">
+"<div class="pdf-contrat" style="padding:0 38px 0;orphans:2;widows:2">
 <div style="break-inside:avoid">
     <div style="display:flex;justify-content:space-between;align-items:flex-end">
       <div>
@@ -263,7 +263,7 @@ exports[`CONTRAT — pageSuccessionA (flux paged.js) > 9. blocs declares : heade
 `;
 
 exports[`CONTRAT — pageSuccessionB (flux paged.js) > 10. blocs declares : header, table beneficiaires ecoulable, queue (clause + Total consolide + Notre lecture) 1`] = `
-"<div class="pdf-contrat" style="padding:32px 38px 0;orphans:2;widows:2">
+"<div class="pdf-contrat" style="padding:0 38px 0;orphans:2;widows:2">
 <div style="break-inside:avoid">
     <div style="display:flex;justify-content:space-between;align-items:flex-end">
       <div>

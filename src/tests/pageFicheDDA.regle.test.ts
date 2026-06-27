@@ -119,7 +119,7 @@ describe("Fiche conseil DDA — non-perte réglementaire (Étage 1)", () => {
 
   it("5. marqueur data-pdf-page=\"docReg\" présent (liseré par feuille, LOT 1a) + marges 44/36", () => {
     expect(html).toContain(`data-pdf-page="docReg"`);
-    expect(html).toContain("padding:30px 36px 0 44px");
+    expect(html).toContain("padding:0 36px 0 44px");
   });
 
   it("6. Volet IBIP (contenu réglementaire) toujours rendu (pas de perte à la migration)", () => {

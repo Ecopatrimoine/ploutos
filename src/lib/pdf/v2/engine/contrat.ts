@@ -10,10 +10,11 @@
 // rendus par la page (avec ses tokens) ; le contrat ne fait qu'ASSEMBLER + poser
 // les règles de coupe.
 
-// Canvas de page : inset latéral/haut identique à coquillePage (padding:32px 38px 0)
-// pour que les pages "fluides" (migrées au contrat) s'alignent au pixel sur les
-// modules encore en boîte A4 + sur l'en-tête/pied @page du feeder (inset 38px).
-const PAGE_PAD_TOP_PX = 32;
+// Canvas de page : inset latéral 38px, aligné sur l'en-tête/pied @page du feeder
+// (inset 38px). PAS d'inset HAUT : le corps s'appuie sur la marge @page (15mm) du
+// feeder, IDENTIQUE en page 1 et sur les feuilles de continuation. (Un padding-top
+// de wrapper ne s'applique qu'au 1er fragment → il décalait la SEULE page 1, ~32px
+// plus bas que les continuations ; retiré pour un démarrage de corps homogène.)
 const PAGE_PAD_LAT_PX = 38;
 
 // ─── Les 3 types de blocs ──────────────────────────────────────────────────────
@@ -105,12 +106,12 @@ export function compilerBloc(b: Bloc): string {
 }
 
 /** Traduit une page déclarée en HTML en flux, prêt pour le feeder paged.js.
- *  Pose le canvas (inset 32/38 aligné sur les modules en boîte) + orphans/widows
- *  (pas de ligne isolée en haut/bas de feuille). PUR. */
+ *  Pose le canvas (inset latéral 38, top 0 → corps aligné sur la marge @page 15mm,
+ *  identique page 1 et continuations) + orphans/widows (pas de ligne isolée). PUR. */
 export function compilerPageContrat(blocs: PageContrat): string {
   const corps = blocs.map(compilerBloc).join("\n");
   return (
-    `<div class="pdf-contrat" style="padding:${PAGE_PAD_TOP_PX}px ${PAGE_PAD_LAT_PX}px 0;orphans:2;widows:2">\n` +
+    `<div class="pdf-contrat" style="padding:0 ${PAGE_PAD_LAT_PX}px 0;orphans:2;widows:2">\n` +
     `${corps}\n` +
     `</div>`
   );

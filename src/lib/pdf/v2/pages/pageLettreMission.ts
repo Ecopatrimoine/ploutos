@@ -308,7 +308,7 @@ export function pageLettreMission(t: Tokens, d: LettreMissionPageData): string {
   // comme DDA/DA — pas de constante). On n'utilise PAS compilerPageContrat (32/38 figé).
   const corps = blocs.map(compilerBloc).join("\n");
   return (
-    `<div class="pdf-contrat" data-pdf-page="docReg" data-pdf-doc="Lettre de mission" style="padding:30px 36px 0 44px;orphans:2;widows:2">\n` +
+    `<div class="pdf-contrat" data-pdf-page="docReg" data-pdf-doc="Lettre de mission" style="padding:0 36px 0 44px;orphans:2;widows:2">\n` +
     `${corps}\n` +
     `</div>`
   );
