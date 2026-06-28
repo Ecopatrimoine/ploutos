@@ -58,4 +58,28 @@ describe("Polices PDF — auto-suffisance des chemins LIVRÉS (offline-safe)", (
     expect(FONT_FACES_STYLE).not.toContain("jsdelivr");
     expect(FONT_FACES_STYLE).not.toContain("cdn.");
   });
+
+  // ─── Inertie du défaut fontsHtml du feeder (B2b) ──────────────────────────────
+  // Le param fontsHtml ajouté au feeder NE DOIT RIEN changer pour les chemins
+  // existants (aperçu / popup / harnais) qui ne le passent pas : sans fontsHtml, le
+  // feeder émet EXACTEMENT la variante URL (FONT_FACES_STYLE), à l'octet près.
+  it("buildFeederDocument : défaut INERTE — sans fontsHtml == undefined == FONT_FACES_STYLE explicite", () => {
+    const opts = {
+      bodies: [`<div class="pdf-contrat">Bilan</div>`],
+      t,
+      doctitle: "Dossier",
+      cabinetLibelle: "Cabinet Test — confidentiel",
+      polyfillCode: "",
+    };
+    const sansParam = buildFeederDocument(opts);
+    const avecUndefined = buildFeederDocument({ ...opts, fontsHtml: undefined });
+    const avecDefautExplicite = buildFeederDocument({ ...opts, fontsHtml: FONT_FACES_STYLE });
+    // Omettre fontsHtml == le passer undefined == passer explicitement la variante URL.
+    expect(sansParam).toBe(avecUndefined);
+    expect(sansParam).toBe(avecDefautExplicite);
+    // Le défaut embarque bien la variante URL, sans base64 ni CDN (aucun nouveau chemin).
+    expect(sansParam).toContain(FONT_FACES_STYLE);
+    expect(sansParam).not.toContain("data:font/woff2;base64,");
+    expect(sansParam).not.toContain("jsdelivr");
+  });
 });
