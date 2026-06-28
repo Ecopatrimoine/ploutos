@@ -127,10 +127,17 @@ ipcMain.handle("write-cabinet", (_event, data) => {
 // Attente de pagination : le feeder pose DÉJÀ window.__done=true dans PagedConfig.after
 // (cf. feeder.ts) → on POLL ce flag du main world via executeJavaScript. Voie robuste :
 // le flag persiste (aucune course à l'installation d'un listener postMessage), et
-// AUCUNE modification du feeder n'est requise. Garde par TIMEOUT : sans pagination
-// terminée sous le délai, on REJETTE — jamais de PDF mi-paginé en silence.
-const EXPORT_PAGINATION_TIMEOUT_MS = 15000;
-const EXPORT_POLL_INTERVAL_MS = 150;
+// AUCUNE modification du feeder n'est requise.
+//
+// Garde par INACTIVITÉ (et non par durée fixe) : un gros pack pagine en plusieurs
+// dizaines de secondes (mesuré : ~31 s pour 30 pages) — un délai fixe court le coupait
+// à tort. On surveille la PROGRESSION réelle (nb de .pagedjs_page) : tant que ça avance,
+// on laisse finir ; on n'abandonne que si AUCUNE page nouvelle pendant EXPORT_STALL_TIMEOUT_MS
+// (blocage réel), avec un plafond absolu EXPORT_HARD_CAP_MS (cas pathologique). Jamais de
+// PDF mi-paginé en silence : on n'imprime que si window.__done est passé à true.
+const EXPORT_POLL_INTERVAL_MS = 250;
+const EXPORT_STALL_TIMEOUT_MS = 20000; // abandon si AUCUNE progression pendant 20 s
+const EXPORT_HARD_CAP_MS = 180000;     // plafond absolu de garde (3 min)
 
 ipcMain.handle("export-pdf", async (_event, html, suggestedName) => {
   let win = null;
@@ -156,21 +163,36 @@ ipcMain.handle("export-pdf", async (_event, html, suggestedName) => {
     await fs.promises.writeFile(tmpHtml, html, "utf8"); // fichier COMPLET avant chargement
     await win.loadFile(tmpHtml); // vraie origine file://, aucune limite de taille
 
-    // Poll du flag de fin de pagination posé par le feeder (window.__done, main world).
-    const deadline = Date.now() + EXPORT_PAGINATION_TIMEOUT_MS;
-    let paginated = false;
-    while (Date.now() < deadline) {
+    // Poll : on lit EN UN SEUL aller-retour le flag de fin (window.__done) ET la
+    // progression réelle (nb de .pagedjs_page). On abandonne sur INACTIVITÉ (aucune
+    // page nouvelle pendant EXPORT_STALL_TIMEOUT_MS) plutôt que sur un délai fixe, et
+    // un plafond absolu EXPORT_HARD_CAP_MS borne les cas pathologiques. On ne sort de
+    // la boucle (vers printToPDF) que lorsque window.__done est passé à true.
+    const startedAt = Date.now();
+    let lastProgressAt = startedAt;
+    let lastPages = -1;
+    while (true) {
       if (!win || win.isDestroyed()) throw new Error("export window destroyed before pagination");
-      const done = await win.webContents
-        .executeJavaScript("window.__done === true")
-        .catch(() => false);
-      if (done === true) {
-        paginated = true;
-        break;
+      const state = await win.webContents
+        .executeJavaScript(
+          "({ done: window.__done === true, pages: document.querySelectorAll('.pagedjs_page').length })"
+        )
+        .catch(() => ({ done: false, pages: lastPages }));
+      if (state.done === true) break; // pagination terminée → on imprime
+      if (state.pages > lastPages) {
+        // Progression réelle : on réarme la fenêtre d'inactivité.
+        lastPages = state.pages;
+        lastProgressAt = Date.now();
+      }
+      const now = Date.now();
+      if (now - lastProgressAt > EXPORT_STALL_TIMEOUT_MS) {
+        throw new Error("export failed: pagination stalled (no progress for 20s)");
+      }
+      if (now - startedAt > EXPORT_HARD_CAP_MS) {
+        throw new Error("export failed: pagination exceeded hard cap (180s)");
       }
       await new Promise((resolve) => setTimeout(resolve, EXPORT_POLL_INTERVAL_MS));
     }
-    if (!paginated) throw new Error("export timeout: pagination not finished");
 
     // PDF fidèle : preferCSSPageSize respecte le @page A4 du feeder ; printBackground
     // pour les aplats navy/or. On ne force NI pageSize NI margins (clé de fidélité).
