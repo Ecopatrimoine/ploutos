@@ -138,6 +138,11 @@ export type FeederOptions = {
   cabinetLibelle: string;
   /** Code source du polyfill paged.js (inliné -> document autonome, pas de dépendance réseau). */
   polyfillCode: string;
+  /** Bloc polices à injecter. Défaut = FONT_FACES_STYLE (variante URL, légère, same-origin :
+   *  aperçu + offscreen file://). L'export Electron passe la variante base64 inline
+   *  (FONT_FACES_STYLE_INLINE) → document AUTOPORTANT pour printToPDF. Miroir exact
+   *  d'opts.fontsHtml de coquilleDocument (primitives.ts). */
+  fontsHtml?: string;
 };
 
 /** Document HTML autonome EN FLUX, prêt à être paginé par paged.js (auto-run via PagedConfig).
@@ -172,7 +177,7 @@ export function buildFeederDocument(opts: FeederOptions): string {
 <head>
 <meta charset="UTF-8" />
 <title>${escapeHtml(opts.doctitle)}</title>
-${FONT_FACES_STYLE}
+${opts.fontsHtml ?? FONT_FACES_STYLE}
 <style>${feederCss(opts.t, opts.cabinetLibelle)}</style>
 <script>
   window.PagedConfig = {
