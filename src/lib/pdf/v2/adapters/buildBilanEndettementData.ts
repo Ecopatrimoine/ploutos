@@ -7,6 +7,7 @@
 import type { BilanEndettementPageData } from "../pages/pageBilanEndettement";
 import { isAV, isPERType } from "../../../calculs/utils";
 import { resolveLoanValuesMulti } from "../../../calculs/credit";
+import { SEMANTIC_DANGER } from "../tokens";
 
 const isAvOrPer = (type: any): boolean => isAV(type) || isPERType(type);
 
@@ -121,7 +122,7 @@ export function buildBilanEndettementData(p: BuildBilanEndettementDataParams): B
         <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
           <li><strong>Patrimoine net</strong> — ${formatEuro(patrimoineNet)} (actif ${formatEuro(actifBrut)} − dettes ${formatEuro(passifTotal)}). Répartition : immobilier ${formatEuro(immobilier)}, AV/PER ${formatEuro(avEtPER)}, autres placements ${formatEuro(placementsFinanciers)}.</li>
           <li><strong>Charges crédit annuelles</strong> — ${formatEuro(chargesCreditAnnuelles)} de mensualités + ${formatEuro(assuranceCreditAnnuelle)} d'assurance, sur ${formatEuro(totalRevenus)}/an de revenus retenus.</li>
-          <li><strong>Position vs plafond HCSF (${seuilHCSF} %)</strong> — Taux d'endettement <strong>${tauxEndettement}</strong>, ${sousSeuil ? `sous le seuil avec une marge de ${margePoints.toFixed(1).replace(".", ",")} points` : `<span style="color:#B0413E">au-dessus du seuil de ${margePoints.toFixed(1).replace(".", ",")} points — refinancement contraint</span>`}.</li>
+          <li><strong>Position vs plafond HCSF (${seuilHCSF} %)</strong> — Taux d'endettement <strong>${tauxEndettement}</strong>, ${sousSeuil ? `sous le seuil avec une marge de ${margePoints.toFixed(1).replace(".", ",")} points` : `<span style="color:${SEMANTIC_DANGER}">au-dessus du seuil de ${margePoints.toFixed(1).replace(".", ",")} points — refinancement contraint</span>`}.</li>
         </ul>
         <p style="margin:0;font-style:italic;color:#6B6353"><strong>Leviers à étudier :</strong> ${leviers.join(" ; ")}.</p>
       `.trim();
