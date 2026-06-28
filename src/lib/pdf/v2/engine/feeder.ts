@@ -17,7 +17,7 @@
 //  - document.fonts.ready avant pagination ← côté appelant (ApercuPdf / harness), via PagedConfig.before.
 
 import type { Tokens } from "../tokens";
-import { FONTS_HTML_LINKS } from "../tokens";
+import { FONT_FACES_STYLE } from "../fontsLocal";
 import { cssCommun } from "../primitives";
 import { HANDLER_SCRIPT, DOCNUM_HANDLER_SCRIPT, COVER_HANDLER_SCRIPT } from "./pagedHandler";
 
@@ -172,7 +172,7 @@ export function buildFeederDocument(opts: FeederOptions): string {
 <head>
 <meta charset="UTF-8" />
 <title>${escapeHtml(opts.doctitle)}</title>
-${FONTS_HTML_LINKS}
+${FONT_FACES_STYLE}
 <style>${feederCss(opts.t, opts.cabinetLibelle)}</style>
 <script>
   window.PagedConfig = {

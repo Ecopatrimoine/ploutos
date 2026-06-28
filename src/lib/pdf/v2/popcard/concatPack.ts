@@ -20,6 +20,7 @@ import { sortPack } from "./checkCompletude";
 import { mapCabinetToThemeV2, type ThemeV2 } from "../adapters/mapTheme";
 import { buildTokens } from "../tokens";
 import { coquilleDocument } from "../primitives";
+import { FONT_FACES_STYLE } from "../fontsLocal";
 import { openPrintPopup } from "../../pdfCore";
 
 // ─── Renderers v2 ─────────────────────────────────────────────────────
@@ -312,6 +313,7 @@ export function generatePack(
   const html = coquilleDocument(t, {
     titre: `Pack PDF — ${payload.clientName || "Dossier client"} — ${sortPack(packItems).length} document(s)`,
     body: bodies,
+    fontsHtml: FONT_FACES_STYLE,
   });
 
   openPrintPopup(html);

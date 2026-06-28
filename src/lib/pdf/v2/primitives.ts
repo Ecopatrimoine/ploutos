@@ -1283,13 +1283,17 @@ export function cadresSignatureDocReg(t: Tokens, opts: {
 export function coquilleDocument(t: Tokens, opts: {
   titre: string;
   body: string;
+  /** Bloc polices a injecter. Defaut = <link> jsdelivr reseau (FONTS_HTML_LINKS),
+   *  conserve pour le harnais DEV `tsx`. Le runtime (generatePack) passe les
+   *  @font-face locaux bundles (FONT_FACES_STYLE) -> rendu offline. */
+  fontsHtml?: string;
 }): string {
   return `<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
 <title>${opts.titre}</title>
-${FONTS_HTML_LINKS}
+${opts.fontsHtml ?? FONTS_HTML_LINKS}
 <style>${cssCommun(t)}</style>
 </head>
 <body>
