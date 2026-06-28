@@ -16,6 +16,7 @@ export function cssCommun(t: Tokens): string {
   return `
   @page { size: A4; margin: 0; }
   *{box-sizing:border-box;}
+  * { font-variant-ligatures: none; }
   html,body{margin:0;padding:0;background:#fff;}
   body{font-family:'Lato',system-ui,sans-serif;color:${t.texte};}
   .ser{font-family:'Fraunces',Georgia,serif;}
