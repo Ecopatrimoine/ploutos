@@ -40,6 +40,18 @@ export type Tokens = {
   bordureSeuilRail: string;
   // ── Statut ──
   succes: string;
+  danger: string;
+  // ── Rampe de sévérité « barème par tranche » (crème → rouge) ──
+  // Arrêts a11y-réglés : luminance STRICTEMENT monotone décroissante (l'ordre se lit
+  // même en niveaux de gris / achromatopsie) et paliers distinguables en protanopie /
+  // deutéranopie / tritanopie (ΔE2000 ≥ 7 ; voir scratchpad a11y-rampe). Échantillonnés
+  // par RANG ABSOLU de tranche via echantillonnerRampe() — indépendant du remplissage.
+  // Limité aux GRAPHES DE BARÈME (IFI + IR) ; le reste du rapport garde la palette globale.
+  // Identique aux 2 thèmes : la sévérité fiscale est indépendante de la charte cabinet.
+  rampeBareme: string[];        // fill par palier (creme -> rouge profond)
+  rampeBaremeBordure: string[]; // bordure : un cran plus foncé que le fill
+  // ── Palette qualitative des scénarios (bar chart Hypothèses) ──
+  paletteScenarios: string[];
 };
 
 // ─── Helpers de mix / dérivation de couleurs ─────────────────────────────
@@ -76,6 +88,51 @@ function darken(c: string, ratio: number): string {
   return mix(c, "#000000", ratio);
 }
 
+// ─── Rampe de sévérité « barème par tranche » (crème → rouge) ─────────────
+// Arrêts validés au contrôle accessibilité (cf. en-tête du type Tokens). Bordures
+// dérivées un cran plus foncé. AUCUN hex baladeur dans le helper bracketChart :
+// la rampe vit ICI, dans les tokens.
+const RAMPE_BAREME = ["#F6EEDD", "#FBD96E", "#F7AE42", "#EF7E37", "#E14B2E", "#C32525"];
+const RAMPE_BAREME_BORDURE = RAMPE_BAREME.map(c => darken(c, 0.16));
+
+// ─── Couleurs sémantiques de statut (FIXES dans les 2 thèmes) ─────────────
+// Vert succès / rouge danger : indépendants de la charte cabinet (lisibilité
+// réglementaire, comme la rampe ci-dessus). Accessibilité vérifiée (skill
+// contraste-wcag) :
+//   • danger #992F2D sur blanc = 7,5:1 (AAA) ; succès #2F7D5B sur blanc = 4,99:1 (AA).
+//   • couple succès/danger distinguable en protanopie / deutéranopie / tritanopie
+//     (aucune confusion, ΔE ≥ 20) — l'ancien rouge #B0413E confondait en protanopie
+//     (ΔE 13,1). L'info ne repose jamais sur la couleur seule : signe +/- + filet de
+//     sévérité (position) en redondance.
+// Exportées : réutilisées par les adapters (HTML « notre lecture ») sans dépendre du thème.
+export const SEMANTIC_SUCCES = "#2F7D5B";
+export const SEMANTIC_DANGER = "#992F2D";
+
+// ─── Palette qualitative des scénarios (bar chart pageHypos) ──────────────
+// 6 teintes distinctes (la Base reste navy, hors palette) : plus aucune répétition
+// jusqu'à 6 scénarios (avant : 3 teintes cyclées modulo 3). Ordre choisi pour que les
+// paires ADJACENTES restent distinctes en deutéranopie / protanopie (skill contraste-wcag),
+// chaque teinte ≥ 3:1 sur fond clair (lisibilité d'impression). Identique aux 2 thèmes
+// (la distinction qualitative est indépendante de la charte, comme la rampe de sévérité).
+// Source : teintes qualitatives éprouvées (ColorBrewer Dark2 / Paul Tol), queue assombrie +
+// gris neutre pour la lisibilité sur fond blanc. Confusions résiduelles (ΔE<20) uniquement
+// entre teintes NON adjacentes, à ≥ 5 scénarios → légende + position de barre lèvent l'ambiguïté.
+const PALETTE_SCENARIOS = ["#D95F02", "#1B9E77", "#7570B3", "#595959", "#E7298A", "#117733"];
+
+/** Échantillonne une rampe hex à la position de la tranche i parmi n : couleur = rampe(i/(n-1)),
+ *  interpolation linéaire entre arrêts. n = stops.length → arrêts exacts ; n différent → interpolé.
+ *  Garantit que la DERNIÈRE tranche (i=n-1) tombe toujours sur le dernier arrêt (rouge profond),
+ *  que n vaille 5 (IR) ou 6 (IFI). Mappe sur le RANG ABSOLU, jamais sur le remplissage. */
+export function echantillonnerRampe(stops: string[], i: number, n: number): string {
+  if (stops.length === 0) return "#000000";
+  if (stops.length === 1 || n <= 1) return stops[Math.min(Math.max(0, i), stops.length - 1)];
+  const t = Math.max(0, Math.min(1, i / (n - 1)));
+  const pos = t * (stops.length - 1);
+  const lo = Math.floor(pos);
+  const hi = Math.min(stops.length - 1, lo + 1);
+  return mix(stops[lo], stops[hi], pos - lo);
+}
+
 // ─── Preset Encre & Or (valeurs EXACTES de la maquette) ─────────────────
 const ENCRE_OR: Tokens = {
   navy:              "#0F172A",
@@ -83,7 +140,7 @@ const ENCRE_OR: Tokens = {
   cream:             "#FAF7F0",
   texte:             "#3A352B",
   texteFaible:       "#6B6353",
-  texteFaibleClair:  "#A39A88",
+  texteFaibleClair:  "#777060",
   eyebrowOr:         "#8A6A1E",
   thOr:              "#9A7322",
   kpiOrPale:         "#E3C485",
@@ -96,7 +153,11 @@ const ENCRE_OR: Tokens = {
   bordureEncart:     "#ECE3CF",
   fondSeuilRail:     "#F2EEE5",
   bordureSeuilRail:  "#E7D9BF",
-  succes:            "#2F7D5B",
+  succes:            SEMANTIC_SUCCES,
+  danger:            SEMANTIC_DANGER,
+  rampeBareme:        RAMPE_BAREME,
+  rampeBaremeBordure: RAMPE_BAREME_BORDURE,
+  paletteScenarios:   PALETTE_SCENARIOS,
 };
 
 // ─── Couleurs cabinet attendues depuis le modèle Lot 5 ───────────────────
@@ -123,8 +184,8 @@ export function buildTokens(theme: Theme, cabinet?: CouleursCabinet): Tokens {
     cream,
     // Texte : assombrissement progressif du navy pour la hiérarchie typo.
     texte:            mix(navy, "#FFFFFF", 0.18),    // navy → texte foncé lisible
-    texteFaible:      mix(navy, "#FFFFFF", 0.50),    // gris
-    texteFaibleClair: mix(navy, "#FFFFFF", 0.70),    // beige grisé
+    texteFaible:      mix(navy, "#FFFFFF", 0.28),    // gris
+    texteFaibleClair: mix(navy, "#FFFFFF", 0.375),   // beige grisé
     // Or assombri pour les libellés sur fond clair (eyebrow, th).
     eyebrowOr:        darken(or, 0.30),
     thOr:             darken(or, 0.20),
@@ -142,8 +203,13 @@ export function buildTokens(theme: Theme, cabinet?: CouleursCabinet): Tokens {
     bordureEncart:    mix(or,    "#FFFFFF", 0.78),
     fondSeuilRail:    mix(cream, "#FFFFFF", 0.20),
     bordureSeuilRail: mix(or,    "#FFFFFF", 0.60),
-    // Sémantique : vert succès reste fixe (lisibilité réglementaire).
-    succes:           "#2F7D5B",
+    // Sémantique : vert succès / rouge danger restent fixes (lisibilité réglementaire).
+    succes:           SEMANTIC_SUCCES,
+    danger:           SEMANTIC_DANGER,
+    // Rampe de sévérité barème + palette scénarios : identiques aux 2 thèmes (a11y-réglées, indépendantes de la charte).
+    rampeBareme:        RAMPE_BAREME,
+    rampeBaremeBordure: RAMPE_BAREME_BORDURE,
+    paletteScenarios:   PALETTE_SCENARIOS,
   };
 }
 

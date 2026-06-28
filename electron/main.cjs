@@ -116,6 +116,111 @@ ipcMain.handle("write-cabinet", (_event, data) => {
   }
 });
 
+// ─── Export PDF (B2a) — rendu dans une fenêtre cachée + printToPDF ─────────────
+// Reçoit un document HTML AUTOPORTANT (polices base64 inline — garanti par B2b ; on
+// n'injecte AUCUNE police ici), le rend dans une fenêtre CACHÉE, attend la fin de
+// pagination paged.js, imprime un PDF fidèle (le @page A4 du feeder est honoré via
+// preferCSSPageSize), puis propose l'enregistrement. La fenêtre est TOUJOURS détruite
+// (finally) — jamais de fuite de fenêtre cachée. try/catch global → renvoie {error}
+// plutôt que de crasher.
+//
+// Attente de pagination : le feeder pose DÉJÀ window.__done=true dans PagedConfig.after
+// (cf. feeder.ts) → on POLL ce flag du main world via executeJavaScript. Voie robuste :
+// le flag persiste (aucune course à l'installation d'un listener postMessage), et
+// AUCUNE modification du feeder n'est requise.
+//
+// Garde par INACTIVITÉ (et non par durée fixe) : un gros pack pagine en plusieurs
+// dizaines de secondes (mesuré : ~31 s pour 30 pages) — un délai fixe court le coupait
+// à tort. On surveille la PROGRESSION réelle (nb de .pagedjs_page) : tant que ça avance,
+// on laisse finir ; on n'abandonne que si AUCUNE page nouvelle pendant EXPORT_STALL_TIMEOUT_MS
+// (blocage réel), avec un plafond absolu EXPORT_HARD_CAP_MS (cas pathologique). Jamais de
+// PDF mi-paginé en silence : on n'imprime que si window.__done est passé à true.
+const EXPORT_POLL_INTERVAL_MS = 250;
+const EXPORT_STALL_TIMEOUT_MS = 20000; // abandon si AUCUNE progression pendant 20 s
+const EXPORT_HARD_CAP_MS = 180000;     // plafond absolu de garde (3 min)
+
+ipcMain.handle("export-pdf", async (_event, html, suggestedName) => {
+  let win = null;
+  let tmpHtml = null; // portée fonction → accessible au finally pour le nettoyage
+  try {
+    win = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        offscreen: false,
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+        javascript: true,
+      },
+    });
+
+    // Document autoportant (polices base64 inline). Chargé via un FICHIER TEMPORAIRE
+    // file:// (et non une data: URL, plafonnée ~2 Mo sous Chromium → échec sur gros
+    // packs : polyfill paged.js ~921 Ko + polices). On écrit dans le dossier temp
+    // SYSTÈME (jamais dans l'asar, en lecture seule) → file:// sans limite de taille.
+    const tmpDir = app.getPath("temp");
+    tmpHtml = path.join(tmpDir, `ploutos-export-${Date.now()}-${Math.random().toString(36).slice(2)}.html`);
+    await fs.promises.writeFile(tmpHtml, html, "utf8"); // fichier COMPLET avant chargement
+    await win.loadFile(tmpHtml); // vraie origine file://, aucune limite de taille
+
+    // Poll : on lit EN UN SEUL aller-retour le flag de fin (window.__done) ET la
+    // progression réelle (nb de .pagedjs_page). On abandonne sur INACTIVITÉ (aucune
+    // page nouvelle pendant EXPORT_STALL_TIMEOUT_MS) plutôt que sur un délai fixe, et
+    // un plafond absolu EXPORT_HARD_CAP_MS borne les cas pathologiques. On ne sort de
+    // la boucle (vers printToPDF) que lorsque window.__done est passé à true.
+    const startedAt = Date.now();
+    let lastProgressAt = startedAt;
+    let lastPages = -1;
+    while (true) {
+      if (!win || win.isDestroyed()) throw new Error("export window destroyed before pagination");
+      const state = await win.webContents
+        .executeJavaScript(
+          "({ done: window.__done === true, pages: document.querySelectorAll('.pagedjs_page').length })"
+        )
+        .catch(() => ({ done: false, pages: lastPages }));
+      if (state.done === true) break; // pagination terminée → on imprime
+      if (state.pages > lastPages) {
+        // Progression réelle : on réarme la fenêtre d'inactivité.
+        lastPages = state.pages;
+        lastProgressAt = Date.now();
+      }
+      const now = Date.now();
+      if (now - lastProgressAt > EXPORT_STALL_TIMEOUT_MS) {
+        throw new Error("export failed: pagination stalled (no progress for 20s)");
+      }
+      if (now - startedAt > EXPORT_HARD_CAP_MS) {
+        throw new Error("export failed: pagination exceeded hard cap (180s)");
+      }
+      await new Promise((resolve) => setTimeout(resolve, EXPORT_POLL_INTERVAL_MS));
+    }
+
+    // PDF fidèle : preferCSSPageSize respecte le @page A4 du feeder ; printBackground
+    // pour les aplats navy/or. On ne force NI pageSize NI margins (clé de fidélité).
+    const pdf = await win.webContents.printToPDF({ printBackground: true, preferCSSPageSize: true });
+
+    // Choix de l'emplacement (dialogue parenté à la fenêtre principale si disponible).
+    const saveOpts = {
+      defaultPath: suggestedName || "rapport.pdf",
+      filters: [{ name: "PDF", extensions: ["pdf"] }],
+    };
+    const saveRes = mainWindow
+      ? await dialog.showSaveDialog(mainWindow, saveOpts)
+      : await dialog.showSaveDialog(saveOpts);
+    if (saveRes.canceled || !saveRes.filePath) return { canceled: true };
+
+    await fs.promises.writeFile(saveRes.filePath, pdf);
+    return { canceled: false, path: saveRes.filePath };
+  } catch (err) {
+    return { error: err && err.message ? err.message : String(err) };
+  } finally {
+    if (win && !win.isDestroyed()) win.destroy();
+    // Nettoyage best-effort du fichier temporaire (jamais bloquant).
+    if (tmpHtml) {
+      try { await fs.promises.unlink(tmpHtml); } catch {}
+    }
+  }
+});
+
 // ─── Fenêtre principale ───────────────────────────────────────────────────────
 
 function createWindow() {

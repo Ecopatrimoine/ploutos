@@ -12,6 +12,16 @@
 // 588 400 €, seuil 1 300 000 €, marge 711 600 €, IFI dû 0 €). Plus tard,
 // quand la page IFI v2 sera branchée dans l'app, ces données viendront du
 // dossier client courant via computeIFI().
+//
+// ─── FIDÉLITÉ DES MARGES DE PAGE (cf. genererPdf + constantes plus bas) ──────
+// En PROD, la marge haut/bas du PDF vient du feeder (@page margin 15mm 0 15mm 0 ;
+// cf. src/lib/pdf/v2/engine/feeder.ts → MARGE_HAUT_MM / MARGE_BAS_MM). Ce harnais
+// imprimait avec margin:0 → contenu collé au bord = faux négatif visuel. Il applique
+// désormais les MÊMES marges de page (15mm haut/bas, 0 latéral ; la couverture reste
+// full-bleed comme en prod).
+// LIMITE RESTANTE : seules les MARGES (haut/bas/latéral) sont fidèles ici. L'en-tête
+// courant, le pied cabinet, le liseré docReg et la numérotation X/N sont injectés par le
+// feeder (margin-boxes paged.js) et NE sont PAS reproduits → à valider dans le vrai pack.
 
 import { chromium } from "playwright";
 import { writeFileSync, mkdirSync } from "fs";
@@ -29,8 +39,6 @@ import { renderSuccessionB } from "../src/lib/pdf/v2/renderSuccessionB";
 import type { SuccessionBPageData } from "../src/lib/pdf/v2/pages/pageSuccessionB";
 import { renderProfil } from "../src/lib/pdf/v2/renderProfil";
 import type { ProfilPageData } from "../src/lib/pdf/v2/pages/pageProfil";
-import { renderPrevoyanceInd } from "../src/lib/pdf/v2/renderPrevoyanceInd";
-import type { PrevoyanceIndPageData } from "../src/lib/pdf/v2/pages/pagePrevoyanceInd";
 import { renderPrevoyanceColl } from "../src/lib/pdf/v2/renderPrevoyanceColl";
 import type { PrevoyanceCollPageData } from "../src/lib/pdf/v2/pages/pagePrevoyanceColl";
 import { renderBilanEndettement } from "../src/lib/pdf/v2/renderBilanEndettement";
@@ -43,10 +51,96 @@ import { renderFicheDDA } from "../src/lib/pdf/v2/renderFicheDDA";
 import type { FicheDDAPageData } from "../src/lib/pdf/v2/pages/pageFicheDDA";
 import { renderDeclarationAdequation } from "../src/lib/pdf/v2/renderDeclarationAdequation";
 import type { DeclarationAdequationPageData } from "../src/lib/pdf/v2/pages/pageDeclarationAdequation";
+// Capitaux décès : page + adapter rendus en isolé (hors pack). La cible exerce
+// l'adapter sur des fixtures BRUTES (forme computeSuccession) pour couvrir les 2 modes.
+import { buildTokens } from "../src/lib/pdf/v2/tokens";
+import { coquilleDocument } from "../src/lib/pdf/v2/primitives";
+import { pageCapitauxDeces } from "../src/lib/pdf/v2/pages/pageCapitauxDeces";
+import { buildCapitauxDecesData } from "../src/lib/pdf/v2/adapters/buildCapitauxDecesData";
+// Hypothèses (Lot 5.2) : page + adapter en isolé. La cible exerce le filet de sévérité
+// (vert/rouge/neutre piloté par deltaTotal) et la palette de scénarios sur plusieurs cas.
+import { pageHypos } from "../src/lib/pdf/v2/pages/pageHypos";
+import { buildHyposData } from "../src/lib/pdf/v2/adapters/buildHyposData";
+// Barème IFI : fixture dev uniquement → on reproduit le bracketFill RÉEL via le
+// helper moteur computeTaxFromBrackets (jamais de nombres écrits à la main). En
+// PROD, ces champs viennent de computeIFI(data).
+import { computeTaxFromBrackets } from "../src/lib/calculs/utils";
+import type { TaxBracket } from "../src/types/patrimoine";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outDir = join(__dirname, "..", "out");
 mkdirSync(outDir, { recursive: true });
+
+// ─── Marges de page du harnais = marges @page de PROD (feeder) ──────────────
+// Source de vérité : src/lib/pdf/v2/engine/feeder.ts (MARGE_HAUT_MM / MARGE_BAS_MM).
+// Ces constantes y sont module-privées (non exportées) → on les DUPLIQUE à l'identique
+// ici (impossible d'importer sans toucher au code app/prod) ; ce pointeur évite la
+// divergence. Latéral = 0 : l'inset latéral vient du padding 38px du corps (.pdf-contrat,
+// cf. compilerPageContrat), déjà présent dans le HTML rendu.
+const MARGE_HAUT_MM = 15; // == feeder.ts MARGE_HAUT_MM (bande haute @page)
+const MARGE_BAS_MM = 15;  // == feeder.ts MARGE_BAS_MM  (bande basse @page)
+
+// Barème IFI 2026 (identique à computeIFI) — uniquement pour fabriquer les fixtures
+// de preview : bracketFill/grossIfi/décote/IFI net dérivés, jamais saisis en dur.
+const IFI_BRACKETS: TaxBracket[] = [
+  { from: 0, to: 800_000, rate: 0 },
+  { from: 800_000, to: 1_300_000, rate: 0.005 },
+  { from: 1_300_000, to: 2_570_000, rate: 0.007 },
+  { from: 2_570_000, to: 5_000_000, rate: 0.01 },
+  { from: 5_000_000, to: 10_000_000, rate: 0.0125 },
+  { from: 10_000_000, to: Number.POSITIVE_INFINITY, rate: 0.015 },
+];
+function makeIfiCalc(netTaxable: number): { grossIfi: number; decote: number; ifiDu: number; bracketFill: ReturnType<typeof computeTaxFromBrackets>["fill"] } {
+  const { tax: grossIfi, fill: bracketFill } = computeTaxFromBrackets(netTaxable, IFI_BRACKETS);
+  const decote = netTaxable >= 1_300_000 && netTaxable < 1_400_000 ? Math.max(0, 17_500 - 0.0125 * netTaxable) : 0;
+  const ifiDu = netTaxable > 1_300_000 ? Math.max(0, grossIfi - decote) : 0;
+  return { grossIfi, decote, ifiDu, bracketFill };
+}
+const ifiCalcMaquette = makeIfiCalc(588_400);
+
+// Barème IR (identique à computeIR) — fixtures preview uniquement : bracketFill (sur le
+// quotient) dérivé du helper moteur, jamais saisi à la main. En PROD : computeIR(data).
+const IR_BRACKETS: TaxBracket[] = [
+  { from: 0, to: 11_600, rate: 0 },
+  { from: 11_600, to: 29_579, rate: 0.11 },
+  { from: 29_579, to: 84_577, rate: 0.30 },
+  { from: 84_577, to: 181_917, rate: 0.41 },
+  { from: 181_917, to: Number.POSITIVE_INFINITY, rate: 0.45 },
+];
+function makeIrCalc(quotient: number): { bracketFill: ReturnType<typeof computeTaxFromBrackets>["fill"]; taxParPart: number; marginalRate: number } {
+  const { tax: taxParPart, fill: bracketFill } = computeTaxFromBrackets(quotient, IR_BRACKETS);
+  const marginalRate = quotient <= 11_600 ? 0 : quotient <= 29_579 ? 0.11 : quotient <= 84_577 ? 0.30 : quotient <= 181_917 ? 0.41 : 0.45;
+  return { bracketFill, taxParPart, marginalRate };
+}
+const irCalcMaquette = makeIrCalc(30_000); // quotient ~30 k -> TMI 30 % (cohérent avec le KPI maquette)
+
+// Fabrique une fixture IR cohérente à partir d'un quotient par part (tout dérivé du helper).
+function makeIRFixture(o: { clientName: string; parts: number; quotientParPart: number; pagePosition: string }): IRPageData {
+  const calc = makeIrCalc(o.quotientParPart);
+  const revenuNetImposable = o.quotientParPart * o.parts;
+  const impotNetDu = Math.round(calc.taxParPart * o.parts);
+  const salaires = revenuNetImposable;
+  const revenusBruts = Math.round(salaires / 0.9);
+  const tmiPct = Math.round(calc.marginalRate * 100);
+  const fr = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
+  return {
+    clientName: o.clientName,
+    dateStr: "25 mai 2026",
+    impotNetDu,
+    trancheMarginale: `${tmiPct} %`,
+    tauxMoyen: `${((impotNetDu / revenuNetImposable) * 100).toFixed(1).replace(".", ",")} %`,
+    quotient: `${o.parts} part${o.parts > 1 ? "s" : ""}`,
+    salaires, fonciers: 0, mobiliers: 0, pensionsAutres: 0,
+    revenusBruts, abattement10pct: revenusBruts - salaires, revenuNetImposable,
+    bracketFill: calc.bracketFill,
+    quotientParPart: o.quotientParPart,
+    parts: o.parts,
+    marginalRate: calc.marginalRate,
+    notreLecture: `Revenu net imposable ${fr(revenuNetImposable)} € pour ${o.parts} part${o.parts > 1 ? "s" : ""} (quotient ${fr(o.quotientParPart)} € par part) : tranche marginale ${tmiPct} %. La somme des barres par part n'est pas l'impot net (decote et plafonnement du quotient familial ensuite).`,
+    pagePosition: o.pagePosition,
+    cabinetLibellePied: "EcoPatrimoine Conseil · Fiscalité — confidentiel",
+  };
+}
 
 // ─── Données figées correspondant à la maquette ────────────────────────
 const dataMaquette: IFIPageData = {
@@ -55,7 +149,10 @@ const dataMaquette: IFIPageData = {
   assietteNette: 588_400,
   seuilIFI: 1_300_000,
   margeSousSeuil: 711_600,
-  ifiDu: 0,
+  ifiDu: ifiCalcMaquette.ifiDu,
+  bracketFill: ifiCalcMaquette.bracketFill,
+  grossIfi: ifiCalcMaquette.grossIfi,
+  decote: ifiCalcMaquette.decote,
   biens: [
     {
       nom: "Maison · résidence principale",
@@ -78,16 +175,66 @@ const dataMaquette: IFIPageData = {
   cabinetLibellePied: "EcoPatrimoine Conseil · Fiscalité — confidentiel",
 };
 
+// ─── Cas « chargé » : assiette 3 M€ → au-dessus du seuil, remplit les tranches
+//     1 à 4 (graphe barème pleinement visible, IFI dû non nul, décote=0). ────
+const ifiCalcCharge = makeIfiCalc(3_000_000);
+const dataMaquetteIFICharge: IFIPageData = {
+  clientName: "Berthier",
+  dateStr: "25 mai 2026",
+  assietteNette: 3_000_000,
+  seuilIFI: 1_300_000,
+  margeSousSeuil: 1_300_000 - 3_000_000,
+  ifiDu: ifiCalcCharge.ifiDu,
+  bracketFill: ifiCalcCharge.bracketFill,
+  grossIfi: ifiCalcCharge.grossIfi,
+  decote: ifiCalcCharge.decote,
+  biens: [
+    {
+      nom: "Hôtel particulier · résidence principale",
+      valeurBrute: 2_200_000,
+      abattementRP: 660_000,
+      dette: 0,
+      netTaxable: 1_540_000,
+    },
+    {
+      nom: "Immeuble de rapport",
+      valeurBrute: 1_460_000,
+      abattementRP: 0,
+      dette: 0,
+      netTaxable: 1_460_000,
+    },
+  ],
+  notreLecture:
+    "Patrimoine immobilier net taxable de 3 000 000 €, au-dessus du seuil de 1 300 000 € : l'IFI est dû et se décompose par tranche du barème (tranches 1 à 4 ici).",
+  pagePosition: "3 / 8",
+  cabinetLibellePied: "EcoPatrimoine Conseil · Fiscalité — confidentiel",
+};
+
 async function genererPdf(htmlContent: string, outPath: string): Promise<void> {
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: "networkidle" });
+    // Neutralise le "@page { size:A4; margin:0 }" porté par cssCommun (primitives) — MÊME
+    // technique que le feeder (feeder.ts : .replace(/@page\s*\{[^}]*\}/, "")) — afin qu'il
+    // n'entre pas en conflit avec les marges de page Playwright ci-dessous. Sans ça, le @page
+    // margin:0 du CSS l'emporte et le contenu reste collé au bord. La taille A4 est rétablie
+    // par format:"A4". (Une seule règle @page dans le HTML du harnais → un seul remplacement.)
+    const htmlMargesPage = htmlContent.replace(/@page\s*\{[^}]*\}/, "");
+    await page.setContent(htmlMargesPage, { waitUntil: "networkidle" });
+    // La couverture est full-bleed en prod : le CoverHandler du feeder met ses bandes @page à
+    // 0 et cale le crème en absolu inset:0 (cf. pagedHandler COVER_HANDLER_SCRIPT). On reproduit
+    // CETTE décision via le même marqueur data-pdf-cover → pas de marge de page sur la couverture,
+    // 15mm haut/bas sur les pages de contenu (corps en flux compilerPageContrat). Latéral = 0
+    // partout (l'inset latéral vient du padding 38px du corps).
+    const estCouverture = htmlContent.includes("data-pdf-cover");
+    const margin = estCouverture
+      ? { top: "0", right: "0", bottom: "0", left: "0" }
+      : { top: `${MARGE_HAUT_MM}mm`, right: "0", bottom: `${MARGE_BAS_MM}mm`, left: "0" };
     await page.pdf({
       path: outPath,
       format: "A4",
       printBackground: true,
-      margin: { top: "0", right: "0", bottom: "0", left: "0" },
+      margin,
     });
     console.log(`✓ Généré : ${outPath}`);
   } finally {
@@ -110,11 +257,19 @@ const dataMaquetteIR: IRPageData = {
   revenusBruts:    92_000,
   abattement10pct:  9_200,
   revenuNetImposable: 82_800,
+  bracketFill: irCalcMaquette.bracketFill,
+  quotientParPart: 30_000,
+  parts: 3,
+  marginalRate: irCalcMaquette.marginalRate,
   notreLecture:
     "Avec 3 parts de quotient familial, l'impôt du foyer atteint 14 320 €, soit un taux moyen de 7,8 % — bien en deçà de votre tranche marginale à 30 %. Vos revenus d'activité en concentrent 80 % ; à ce niveau de tranche, chaque euro versé en épargne retraite déductible allégerait l'impôt de 30 centimes (piste chiffrée au chapitre Recommandations).",
   pagePosition: "2 / 8",
   cabinetLibellePied: "EcoPatrimoine Conseil · Fiscalité — confidentiel",
 };
+
+// Cas dédiés au graphe « barème par tranche » (cohérents, dérivés du helper moteur) :
+const dataMaquetteIRtmi30 = makeIRFixture({ clientName: "Lefebvre", parts: 2, quotientParPart: 45_000, pagePosition: "2 / 8" }); // TMI 30 %
+const dataMaquetteIRtmi41 = makeIRFixture({ clientName: "Aubert",   parts: 2, quotientParPart: 100_000, pagePosition: "2 / 8" }); // TMI 41 %
 
 // Couleurs cabinet de test — identiques à l'IFI pour la cohérence d'évaluation.
 const cabinetColorsTest = {
@@ -214,28 +369,6 @@ const dataMaquetteProfil: ProfilPageData = {
   dateSignature: "25 mai 2026",
   pagePosition: "6 / 8",
   cabinetLibellePied: "EcoPatrimoine Conseil · Profil & conformité — confidentiel",
-};
-
-// ─── Données figées pour la page Prévoyance individuelle (maquette) ────
-const dataMaquettePrevoyanceInd: PrevoyanceIndPageData = {
-  clientName: "Dubreuil",
-  dateStr: "25 mai 2026",
-  sousTitre: "Profession libérale · affiliation CIPAV",
-  deficitCapitalDeces: "185 000 €",
-  revenuAProteger: "80 000 €/an",
-  foyerAProteger: "Conjoint + 2 enfants",
-  capitalDecesCouvert: "115 000 €",
-  lignes: [
-    { label: "Décès",          besoinTexte: "besoin · 300 000 €",     pctCouverture: 38, deficit: "− 185 000 €" },
-    { label: "Invalidité (IPT)", besoinTexte: "besoin · 48 000 €/an", pctCouverture: 38, deficit: "− 30 000 €", deficitSuffixe: "/an" },
-    { label: "Arrêt de travail", besoinTexte: "besoin · 48 000 €/an", pctCouverture: 42, deficit: "− 28 000 €", deficitSuffixe: "/an" },
-  ],
-  notreLecture:
-    "En l'état, un décès laisserait un déficit de 185 000 € — proche du capital restant dû sur votre crédit — et une invalidité ou un arrêt prolongé amputerait votre revenu d'environ 30 000 €/an non couverts. Renforcer le capital décès et prévoir une rente de maintien de revenu sont les deux priorités pour mettre votre foyer à l'abri.",
-  mentionNonContractuelle:
-    "Montants illustratifs, à valider auprès de votre caisse (CIPAV) et selon les garanties de votre contrat de prévoyance. Simulation non contractuelle ; toute recommandation s'inscrit dans le cadre du devoir de conseil (DDA).",
-  pagePosition: "7 / 8",
-  cabinetLibellePied: "EcoPatrimoine Conseil · Prévoyance — confidentiel",
 };
 
 // ─── Données figées pour la page Prévoyance collective (maquette) ──────
@@ -533,9 +666,94 @@ const dataMaquetteDeclarationAdequation: DeclarationAdequationPageData = {
   mentionNonContractuelle: "Document d'aide à la conformité remis à titre indicatif. Ne constitue ni une attestation de conformité, ni un conseil juridique. À valider au regard des textes en vigueur, du contrôle de l'association agréée et, le cas échéant, d'un avocat. EcoPatrimoine Conseil — ORIAS n° 25006907 (statuts à confirmer sur www.orias.fr).",
 };
 
+// ─── Fixtures Capitaux décès (forme BRUTE computeSuccession) — 2 modes ──────
+// Client/cabinet communs (le clientName est passé explicitement à l'adapter).
+const dataClientCapitaux = { person1FirstName: "Hélène", person1LastName: "Dubreuil", person2FirstName: "Marc", person2LastName: "Dubreuil", coupleStatus: "married" };
+const cabinetCapitaux = { cabinetName: "EcoPatrimoine Conseil" };
+
+// MODE SIMPLE — toutes les lignes privées en natureAssiette=primes_avant70.
+const successionCapitauxSimple = {
+  capitalDecesLines: {
+    caisses: [
+      { source: "CARMF", capital: 79152, nbEnfants: 2, donneeIndisponible: false, exonere: true,
+        repartition: [{ beneficiaire: "Hélène Dubreuil", relation: "conjoint", montant: 79152, origine: "capital_principal", source: "auto" }] },
+      { source: "CIPAV", capital: null, nbEnfants: 2, donneeIndisponible: true, exonere: true, repartition: [] },
+    ],
+    prives: [
+      { contrat: "Prévoyance Madelin", beneficiary: "Hélène Dubreuil", relation: "conjoint", sharePct: 100, montant: 200000, natureAssiette: "primes_avant70", assiette990I: 8000, before70Taxable: 0, duties: 0 },
+      { contrat: "Temporaire décès groupe", beneficiary: "Lucas Dubreuil", relation: "enfant", sharePct: 50, montant: 50000, natureAssiette: "primes_avant70", assiette990I: 2000, before70Taxable: 0, duties: 0 },
+    ],
+    branche: [
+      { source: "Syntec — IDCC 1486", capital: 120000, categorie: "cadres", exonere: true, donneeIndisponible: false, beneficiairesAuContrat: true, repartition: [] },
+    ],
+    renteEducationBranche: [
+      { enfantPrenom: "Lucas", ageActuel: 12, montantAnnuelCourant: 4800, phases: [], donneeIndisponible: false, exonere: true, source: "Syntec" },
+    ],
+    renteConjointBranche: [],
+  },
+  capitalDecesCaisseExonere: 79152,
+  capitalDecesBrancheExonere: 120000,
+  capitalDecesPriveCapital: 250000,
+  capitalDecesPriveDuties: 0,
+  rentesSurvieAnnuelles: [
+    { source: "CARMF", type: "conjoint", montantAnnuel: 12000 },
+    { source: "Contrat individuel", type: "education", montantAnnuel: 6000 },
+  ],
+};
+
+// MODE RACHETABLE — >=1 ligne natureAssiette=capital + bénéficiaire sur 2 natures.
+const successionCapitauxRachetable = {
+  capitalDecesLines: {
+    caisses: [
+      { source: "CARMF", capital: 79152, nbEnfants: 2, donneeIndisponible: false, exonere: true,
+        repartition: [{ beneficiaire: "Hélène Dubreuil", relation: "conjoint", montant: 79152, origine: "capital_principal", source: "auto" }] },
+    ],
+    prives: [
+      { contrat: "Vie entière patrimoniale", beneficiary: "Marie Martin", relation: "enfant", sharePct: 50, montant: 180000, natureAssiette: "capital", assiette990I: 180000, before70Taxable: 27500, duties: 5500 },
+      { contrat: "Vie entière patrimoniale", beneficiary: "Paul Martin", relation: "enfant", sharePct: 50, montant: 180000, natureAssiette: "capital", assiette990I: 180000, before70Taxable: 27500, duties: 5500 },
+      { contrat: "Vie entière patrimoniale", beneficiary: "Marie Martin", relation: "enfant", sharePct: 100, montant: 20000, natureAssiette: "primes_avant70", assiette990I: 3000, before70Taxable: 0, duties: 0 },
+    ],
+    branche: [
+      { source: "Syntec — IDCC 1486", capital: null, categorie: "nonCadres", exonere: true, donneeIndisponible: true, beneficiairesAuContrat: true, repartition: [] },
+    ],
+    renteEducationBranche: [],
+    renteConjointBranche: [
+      { montantAnnuel: 9000, dureeMaxAnnees: 10, beneficiaireNom: "Hélène Dubreuil", source: "Syntec", exonere: true, donneeIndisponible: false, mode: "substitutive", finAgeDefunt: 67 },
+    ],
+  },
+  capitalDecesCaisseExonere: 79152,
+  capitalDecesBrancheExonere: 0,
+  capitalDecesPriveCapital: 380000,
+  capitalDecesPriveDuties: 11000,
+  rentesSurvieAnnuelles: [
+    { source: "CARMF", type: "conjoint", montantAnnuel: 12000 },
+  ],
+};
+
+// ─── Fixtures pageHypos (Lot 5.2) — base + scénarios (filet vert/rouge/neutre + palette) ──
+// Forme BRUTE attendue par buildHyposData : hypothesisResults[] (déjà calculés côté App via
+// computeIR/IFI/Succession). L'adapter dérive deltaTotal (somme signée) → pilote le filet.
+const hyposBase = { ir: { finalIR: 14_320 }, ifi: { ifi: 8_000 }, succession: { totalRights: 90_200 } };
+const hyposClient = { person1FirstName: "Hélène", person1LastName: "Dubreuil", person2FirstName: "Marc", person2LastName: "Dubreuil", coupleStatus: "married" };
+const hyposCabinet = { cabinetName: "EcoPatrimoine Conseil" };
+const hyposResultats = {
+  perPER:       { hypothesis: { name: "PER 10 k€/an",        objective: "Réduire l'IR",                notes: "Versement déductible, plafond épargne retraite." }, ir: { finalIR: 11_000 }, ifi: { ifi: 8_000 },  succession: { totalRights: 90_200 } }, // gain (vert)
+  donation:     { hypothesis: { name: "Donation 100 k€",     objective: "Anticiper la transmission" },                                                                ir: { finalIR: 14_320 }, ifi: { ifi: 6_500 },  succession: { totalRights: 78_000 } }, // gain (vert)
+  demembrement: { hypothesis: { name: "Démembrement RP",     objective: "Réorganiser l'actif immobilier" },                                                          ir: { finalIR: 15_000 }, ifi: { ifi: 9_000 },  succession: { totalRights: 95_000 } }, // surcoût (rouge)
+  assuranceVie: { hypothesis: { name: "Assurance-vie 152 k€", objective: "Transmettre hors succession" },                                                             ir: { finalIR: 14_320 }, ifi: { ifi: 8_000 },  succession: { totalRights: 70_000 } }, // gain net (vert)
+  arbitrage:    { hypothesis: { name: "Arbitrage locatif",   objective: "Recomposer le patrimoine" },                                                                 ir: { finalIR: 18_000 }, ifi: { ifi: 12_000 }, succession: { totalRights: 92_000 } }, // surcoût net (rouge)
+};
+function hyposData(results: any[]) {
+  return buildHyposData({
+    data: hyposClient, cabinet: hyposCabinet,
+    ir: hyposBase.ir, ifi: hyposBase.ifi, succession: hyposBase.succession,
+    hypothesisResults: results, clientName: "Hélène & Marc Dubreuil", dateLettre: "25 mai 2026", pagePosition: "8 / 8",
+  });
+}
+
 async function main(): Promise<void> {
   const cible = process.argv[2] || "ifi";
-  const ciblesValides = ["ifi", "ir", "couverture", "successionA", "successionB", "profil", "prevoyanceInd", "prevoyanceColl", "bilanEndettement", "lettreMission", "der", "ficheDDA", "declarationAdequation"];
+  const ciblesValides = ["ifi", "ir", "couverture", "successionA", "successionB", "profil", "prevoyanceColl", "bilanEndettement", "lettreMission", "der", "ficheDDA", "declarationAdequation", "capitauxDeces", "hypos"];
   if (!ciblesValides.includes(cible)) {
     console.error(`Cible inconnue : "${cible}". Cibles disponibles : ${ciblesValides.join(", ")}`);
     process.exit(1);
@@ -548,8 +766,12 @@ async function main(): Promise<void> {
     // Thème 2 : Cabinet (couleurs de test)
     const htmlCabinet = renderIFI({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquette });
     await genererPdf(htmlCabinet, join(outDir, "ifi-cabinet.pdf"));
+    // Cas chargé : assiette 3 M€ au-dessus du seuil → graphe barème par tranche visible.
+    const htmlCharge = renderIFI({ theme: "encreOr", data: dataMaquetteIFICharge });
+    await genererPdf(htmlCharge, join(outDir, "ifi-charge-encreOr.pdf"));
     console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
     console.log("  revue-preview/pdf/refonte_pdf_page_theme_ifi_A4.html");
+    console.log("  + ifi-charge-encreOr.pdf : cas au-dessus du seuil (graphe barème par tranche)");
   }
 
   if (cible === "ir") {
@@ -557,8 +779,12 @@ async function main(): Promise<void> {
     await genererPdf(htmlEncreOr, join(outDir, "ir-encreOr.pdf"));
     const htmlCabinet = renderIR({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquetteIR });
     await genererPdf(htmlCabinet, join(outDir, "ir-cabinet.pdf"));
+    // Cas dédiés au graphe barème par tranche (par part), badge TMI sur la tranche du quotient.
+    await genererPdf(renderIR({ theme: "encreOr", data: dataMaquetteIRtmi30 }), join(outDir, "ir-tmi30-encreOr.pdf"));
+    await genererPdf(renderIR({ theme: "encreOr", data: dataMaquetteIRtmi41 }), join(outDir, "ir-tmi41-encreOr.pdf"));
     console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
     console.log("  revue-preview/pdf/refonte_pdf_page_fiscalite_A4_graphique_corrige.html");
+    console.log("  + ir-tmi30-encreOr.pdf / ir-tmi41-encreOr.pdf : graphe barème par tranche (badge TMI)");
   }
 
   if (cible === "couverture") {
@@ -595,15 +821,6 @@ async function main(): Promise<void> {
     await genererPdf(htmlCabinet, join(outDir, "profil-cabinet.pdf"));
     console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
     console.log("  revue-preview/pdf/refonte_pdf_profil_conformite_4niveaux_esg.html");
-  }
-
-  if (cible === "prevoyanceInd") {
-    const htmlEncreOr = renderPrevoyanceInd({ theme: "encreOr", data: dataMaquettePrevoyanceInd });
-    await genererPdf(htmlEncreOr, join(outDir, "prevoyanceInd-encreOr.pdf"));
-    const htmlCabinet = renderPrevoyanceInd({ theme: "cabinet", cabinetColors: cabinetColorsTest, data: dataMaquettePrevoyanceInd });
-    await genererPdf(htmlCabinet, join(outDir, "prevoyanceInd-cabinet.pdf"));
-    console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
-    console.log("  revue-preview/pdf/refonte_pdf_page_theme_prevoyance_individuelle_A4.html");
   }
 
   if (cible === "prevoyanceColl") {
@@ -658,6 +875,40 @@ async function main(): Promise<void> {
     await genererPdf(htmlCabinet, join(outDir, "declarationAdequation-cabinet.pdf"));
     console.log("\n→ Compare les PDFs générés (dossier out/) à la maquette :");
     console.log("  revue-preview/pdf/refonte_pdf_declaration_adequation_2pages.html");
+  }
+
+  if (cible === "capitauxDeces") {
+    // Les 2 PDF couvrent les 2 MODES (et non 2 thèmes) : la bascule detailMode
+    // est calculée par l'adapter à partir des natures de contrat de la fixture.
+    const tCap = buildTokens("encreOr");
+    const dataSimple = buildCapitauxDecesData({ succession: successionCapitauxSimple, data: dataClientCapitaux, cabinet: cabinetCapitaux, clientName: "Hélène & Marc Dubreuil", dateLettre: "25 mai 2026", pagePosition: "7 / 8" });
+    const htmlSimple = coquilleDocument(tCap, { titre: "Capitaux décès — mode simple", body: pageCapitauxDeces(tCap, dataSimple) });
+    await genererPdf(htmlSimple, join(outDir, "capitauxDeces-simple.pdf"));
+    const dataRachetable = buildCapitauxDecesData({ succession: successionCapitauxRachetable, data: dataClientCapitaux, cabinet: cabinetCapitaux, clientName: "Hélène & Marc Dubreuil", dateLettre: "25 mai 2026", pagePosition: "7 / 8" });
+    const htmlRachetable = coquilleDocument(tCap, { titre: "Capitaux décès — mode rachetable", body: pageCapitauxDeces(tCap, dataRachetable) });
+    await genererPdf(htmlRachetable, join(outDir, "capitauxDeces-rachetable.pdf"));
+    console.log("\n→ 2 PDF générés (dossier out/) couvrant les 2 modes :");
+    console.log("  out/capitauxDeces-simple.pdf      (toutes lignes primes_avant70)");
+    console.log("  out/capitauxDeces-rachetable.pdf  (contrat rachetable + bénéficiaire double)");
+  }
+
+  if (cible === "hypos") {
+    // 4 cas pour valider visuellement Lot 5.2 : filet de sévérité (vert/rouge/neutre piloté
+    // par deltaTotal), bordure renforcée, palette de scénarios (sans cap, sans répétition).
+    const tH = buildTokens("encreOr");
+    const R = hyposResultats;
+    const cas: { nom: string; libelle: string; results: any[] }[] = [
+      { nom: "2scenarios", libelle: "2 scénarios (1 gain + 1 surcoût)",          results: [R.perPER, R.demembrement] },
+      { nom: "5scenarios", libelle: "5 scénarios (palette + filets mélangés)",   results: [R.perPER, R.donation, R.demembrement, R.assuranceVie, R.arbitrage] },
+      { nom: "surcout",    libelle: "1 surcoût net (filet rouge)",               results: [R.arbitrage] },
+      { nom: "gagnant",    libelle: "1 gagnant (filet vert)",                    results: [R.assuranceVie] },
+    ];
+    for (const c of cas) {
+      const html = coquilleDocument(tH, { titre: `Scénarios d'optimisation — ${c.libelle}`, body: pageHypos(tH, hyposData(c.results)) });
+      await genererPdf(html, join(outDir, `hypos-${c.nom}.pdf`));
+    }
+    console.log("\n→ 4 PDF générés (dossier out/) couvrant filet (vert/rouge/neutre) + palette :");
+    console.log("  out/hypos-2scenarios.pdf  out/hypos-5scenarios.pdf  out/hypos-surcout.pdf  out/hypos-gagnant.pdf");
   }
 }
 

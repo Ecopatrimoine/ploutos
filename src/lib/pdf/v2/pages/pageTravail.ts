@@ -9,10 +9,9 @@ import {
   bandeKPI,
   sousTitreSection,
   encartNotreLecture,
-  piedPage,
-  coquillePage,
   euro,
 } from "../primitives";
+import { compilerPageContrat, type Bloc } from "../engine/contrat";
 import type { Tokens } from "../tokens";
 
 export type LigneRevenu = {
@@ -101,32 +100,50 @@ export function pageTravail(t: Tokens, d: TravailPageData): string {
       </div>
     </div>` : "";
 
-  const contenu = `
-    ${header(t, {
+  // ─── Déclaration des blocs (contrat de page, engine/contrat.ts) ───────
+  // Bascule de mécanisme (coquillePage → compilerPageContrat) : ordre visuel,
+  // libellés, styles et couleurs INCHANGÉS — seul le pied disparaît (géré par
+  // les margin-boxes @page du feeder). Cartes empilées à contenu variable
+  // (foyer, déductions) = 1 bloc insécable chacune → la séquence coupe ENTRE
+  // cartes, jamais au milieu d'une carte.
+  const blocs: Bloc[] = [];
+
+  // Header de page (insécable).
+  blocs.push({
+    kind: "insecable",
+    html: header(t, {
       eyebrow: "Vie professionnelle",
       titre: "Revenus & fiscalité du foyer",
       droiteHaut: d.clientName,
       droiteBas: d.dateStr,
-    })}
-
-    ${bandeKPI(t, kpis)}
-    <div class="foot">${d.noteKpi}</div>
-
-    <div style="margin-top:18px;display:grid;grid-template-columns:${d.personne2 ? "1fr 1fr" : "1fr"};gap:16px">
-      ${renderPersonne(d.personne1, "Personne 1")}
-      ${d.personne2 ? renderPersonne(d.personne2, "Personne 2") : ""}
-    </div>
-
-    ${cardFoyer}
-    ${cardDeductions}
-
-    ${d.notreLecture ? encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) : ""}
-  `;
-
-  const pied = piedPage(t, {
-    gauche: d.cabinetLibellePied,
-    droite: d.pagePosition,
+    }),
   });
 
-  return coquillePage(t, { contenu, pied });
+  // Bande KPI + note méthode (gardées ensemble).
+  blocs.push({
+    kind: "insecable",
+    html: `${bandeKPI(t, kpis)}
+    <div class="foot">${d.noteKpi}</div>`,
+  });
+
+  // Deux cartes personnes côte à côte (grille horizontale) — un seul bloc.
+  blocs.push({
+    kind: "insecable",
+    html: `<div style="margin-top:18px;display:grid;grid-template-columns:${d.personne2 ? "1fr 1fr" : "1fr"};gap:16px">
+      ${renderPersonne(d.personne1, "Personne 1")}
+      ${d.personne2 ? renderPersonne(d.personne2, "Personne 2") : ""}
+    </div>`,
+  });
+
+  // Carte « Revenus du foyer » (bloc séparé si présente).
+  if (cardFoyer) blocs.push({ kind: "insecable", html: cardFoyer });
+  // Carte « Déductions appliquées » (bloc séparé si présente).
+  if (cardDeductions) blocs.push({ kind: "insecable", html: cardDeductions });
+
+  // Encart « Notre lecture » — queue épinglée en fin de flux (si présent).
+  if (d.notreLecture) {
+    blocs.push({ kind: "queue", html: encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) });
+  }
+
+  return compilerPageContrat(blocs);
 }

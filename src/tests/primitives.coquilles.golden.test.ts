@@ -28,6 +28,7 @@ import { pageFamille, type FamillePageData } from "../lib/pdf/v2/pages/pageFamil
 import { pageSuccessionA, type SuccessionAPageData } from "../lib/pdf/v2/pages/pageSuccessionA";
 import { pageSuccessionB, type SuccessionBPageData } from "../lib/pdf/v2/pages/pageSuccessionB";
 import { pageBilanEndettement, type BilanEndettementPageData } from "../lib/pdf/v2/pages/pageBilanEndettement";
+import { pageProfil, type ProfilPageData } from "../lib/pdf/v2/pages/pageProfil";
 
 const t = buildTokens("encreOr");
 
@@ -107,8 +108,8 @@ describe("GOLDEN — pieds ancres", () => {
     expect(piedPage(t, { gauche, droite })).toMatchInlineSnapshot(`
       "
           <div style="position:absolute;left:38px;right:38px;bottom:16px;border-top:1px solid #E4DDCF;padding-top:8px;display:flex;justify-content:space-between">
-            <span class="lt" style="font-size:10px;color:#A39A88">GAUCHE</span>
-            <span class="lt" style="font-size:10px;color:#A39A88">DROITE</span>
+            <span class="lt" style="font-size:10px;color:#777060">GAUCHE</span>
+            <span class="lt" style="font-size:10px;color:#777060">DROITE</span>
           </div>
         "
     `);
@@ -118,8 +119,8 @@ describe("GOLDEN — pieds ancres", () => {
     expect(piedPageDocReg(t, { gauche, droite })).toMatchInlineSnapshot(`
       "
           <div style="position:absolute;left:44px;right:36px;bottom:15px;border-top:1px solid #E4DDCF;padding-top:7px;display:flex;justify-content:space-between">
-            <span class="lt" style="font-size:9.5px;color:#A39A88">GAUCHE</span>
-            <span class="lt" style="font-size:9.5px;color:#A39A88">DROITE</span>
+            <span class="lt" style="font-size:9.5px;color:#777060">GAUCHE</span>
+            <span class="lt" style="font-size:9.5px;color:#777060">DROITE</span>
           </div>
         "
     `);
@@ -159,23 +160,23 @@ const dFamilleCourt: FamillePageData = {
   cabinetLibellePied: "Cabinet Test",
 };
 
-describe("GOLDEN — pageFamille centrage (foyer court : corps centre, header en haut)", () => {
+describe("CONTRAT — pageFamille (flux paged.js)", () => {
   it("8. foyer court (2 adultes + 1 enfant) : base de regression (snapshot externe)", () => {
     expect(pageFamille(t, dFamilleCourt)).toMatchSnapshot();
   });
 
-  it("8b. structure : 2 entretoises ratio 1:2 autour du corps, header hors region", () => {
+  it("8b. structure contrat : flux pdf-contrat, table enfants ecoulable, header avant corps, plus de centrage", () => {
     const html = pageFamille(t, dFamilleCourt);
-    // Region centree = colonne flex a hauteur bornee.
-    expect(html).toMatch(/height:\d+px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box/);
-    // Les 2 entretoises ratio (haute 2 parts, basse 3 parts) ; le cap pixel disparu
-    // est verrouille par le snapshot de regression cas 8.
-    expect(html).toContain('<div style="flex:1 1 0"></div>');   // entretoise HAUTE (1 part)
-    expect(html).toContain('<div style="flex:2 1 0"></div>');   // entretoise BASSE (2 parts)
-    // Header HORS region : l'eyebrow (unique au header) precede la 1re entretoise.
-    expect(html.indexOf("Composition du foyer")).toBeLessThan(html.indexOf("flex:1 1 0"));
-    // Corps DANS la region : "Personne 1" suit la 1re entretoise.
-    expect(html.indexOf("Personne 1")).toBeGreaterThan(html.indexOf("flex:1 1 0"));
+    // Migration au contrat : plus de boite centree regionCorpsCentree (entretoises 1:2).
+    expect(html).not.toContain('<div style="flex:1 1 0"></div>');
+    expect(html).not.toContain('<div style="flex:2 1 0"></div>');
+    expect(html).toContain('class="pdf-contrat"');
+    // Table enfants = ListeEcoulable (table brute marquee pour le handler thead/(suite)).
+    expect(html).toContain("data-pdf-tbl");
+    // Header AVANT le corps : l'eyebrow (unique au header) precede la 1re carte personne.
+    expect(html.indexOf("Composition du foyer")).toBeLessThan(html.indexOf("Personne 1"));
+    // La table enfants suit les cartes personnes.
+    expect(html.indexOf("Personne 1")).toBeLessThan(html.indexOf("data-pdf-tbl"));
   });
 });
 
@@ -220,35 +221,101 @@ const dBilan: BilanEndettementPageData = {
   pagePosition: "1 / 8", cabinetLibellePied: "Cabinet Test - confidentiel",
 };
 
-describe("GOLDEN — pageSuccessionA centrage (cas court)", () => {
-  it("9. cas court : base de regression + entretoises 1:2, header hors region", () => {
+describe("CONTRAT — pageSuccessionA (flux paged.js)", () => {
+  it("9. blocs declares : header, table heritiers ecoulable, queue (foot-note CGI + Notre lecture)", () => {
     const html = pageSuccessionA(t, dSuccA);
     expect(html).toMatchSnapshot();
-    expect(html).toContain(HAUTE);
-    expect(html).toContain(BASSE);
-    expect(html.indexOf("CLIENT_TEST")).toBeLessThan(html.indexOf(HAUTE));
-    expect(html.indexOf("HERITIER_TEST")).toBeGreaterThan(html.indexOf(HAUTE));
+    // Migration au contrat : plus de boite centree regionCorpsCentree (entretoises 1:2).
+    expect(html).not.toContain(HAUTE);
+    expect(html).not.toContain(BASSE);
+    expect(html).toContain('class="pdf-contrat"');
+    // Table heritiers = ListeEcoulable (table brute marquee pour le handler thead/(suite)).
+    expect(html).toContain("data-pdf-tbl");
+    expect(html).toContain("HERITIER_TEST");
+    // Titre "Detail par heritier" solidaire de son tableau (jamais orphelin).
+    expect(html).toContain("break-after:avoid");
+    // Queue epinglee en fin de flux : foot-note CGI + Notre lecture.
+    expect(html).toContain('class="pdf-queue"');
+    expect(html).toContain("CGI art. 669");
+    expect(html).toContain("Notre lecture");
+    // Ordre : header -> table -> queue.
+    expect(html.indexOf("CLIENT_TEST")).toBeLessThan(html.indexOf("data-pdf-tbl"));
+    expect(html.indexOf("data-pdf-tbl")).toBeLessThan(html.indexOf("Notre lecture"));
+    // La foot-note CGI est en queue, APRES la table (jamais avant/au milieu).
+    expect(html.indexOf("data-pdf-tbl")).toBeLessThan(html.indexOf("CGI art. 669"));
   });
 });
 
-describe("GOLDEN — pageSuccessionB centrage (cas court)", () => {
-  it("10. cas court : base de regression + entretoises 1:2, header hors region", () => {
+describe("CONTRAT — pageSuccessionB (flux paged.js)", () => {
+  it("10. blocs declares : header, table beneficiaires ecoulable, queue (clause + Total consolide + Notre lecture)", () => {
     const html = pageSuccessionB(t, dSuccB);
     expect(html).toMatchSnapshot();
-    expect(html).toContain(HAUTE);
-    expect(html).toContain(BASSE);
-    expect(html.indexOf("CLIENT_TEST")).toBeLessThan(html.indexOf(HAUTE));
-    expect(html.indexOf("BENEF_TEST")).toBeGreaterThan(html.indexOf(HAUTE));
+    expect(html).not.toContain(HAUTE);
+    expect(html).not.toContain(BASSE);
+    expect(html).toContain('class="pdf-contrat"');
+    expect(html).toContain("data-pdf-tbl");
+    expect(html).toContain("BENEF_TEST");
+    expect(html).toContain("break-after:avoid");
+    expect(html).toContain('class="pdf-queue"');
+    expect(html).toContain("Notre lecture");
+    // POINT DE VIGILANCE : le TOTAL consolide est EN QUEUE, APRES la table (jamais au milieu).
+    expect(html.indexOf("data-pdf-tbl")).toBeLessThan(html.indexOf("Total transmis net"));
+    expect(html.indexOf("BENEF_TEST")).toBeLessThan(html.indexOf("Total transmis net"));
+    expect(html.indexOf("CLIENT_TEST")).toBeLessThan(html.indexOf("data-pdf-tbl"));
+    // Ordre interne de la queue B : Total avant Notre lecture.
+    expect(html.indexOf("Total transmis net")).toBeLessThan(html.indexOf("Notre lecture"));
   });
 });
 
-describe("GOLDEN — pageBilanEndettement centrage (cas court)", () => {
-  it("11. cas court : base de regression + entretoises 1:2, header hors region", () => {
+describe("CONTRAT — pageBilanEndettement (flux paged.js)", () => {
+  it("11. cas court : base de regression (snapshot externe), flux contrat sans centrage", () => {
     const html = pageBilanEndettement(t, dBilan);
     expect(html).toMatchSnapshot();
-    expect(html).toContain(HAUTE);
-    expect(html).toContain(BASSE);
-    expect(html.indexOf("CLIENT_TEST")).toBeLessThan(html.indexOf(HAUTE));
-    expect(html.indexOf("LECTURE_BILAN_TEST")).toBeGreaterThan(html.indexOf(HAUTE));
+    // Migration au contrat : plus de boite centree regionCorpsCentree (entretoises 1:2).
+    expect(html).not.toContain(HAUTE);
+    expect(html).not.toContain(BASSE);
+    expect(html).toContain('class="pdf-contrat"');
+    // Notre lecture en queue, en fin de flux, APRES le header.
+    expect(html).toContain('class="pdf-queue"');
+    expect(html.indexOf("CLIENT_TEST")).toBeLessThan(html.indexOf("LECTURE_BILAN_TEST"));
+  });
+});
+
+// ─── CONTRAT — pageProfil : signature restauree en QueueEpinglee (CONFORMITE) ──
+// Lot 4 : la signature (preuve devoir de conseil MIF II) quittait l'ancien slot
+// absolu bottom:42px MASQUE par le pont feeder. Ce test verrouille qu'elle est
+// desormais DANS le flux (pdf-queue) et plus jamais en position:absolute bottom:42px.
+const dProfil: ProfilPageData = {
+  clientName: "CLIENT_TEST", dateStr: "01 janvier 2026",
+  profilRisque: "Equilibre", scoreMifII: "38 / 66", horizonPlacement: "8 ans", capacitePerte: "Moderee",
+  noteKpi: "Note KPI de test.",
+  niveauActif: "équilibré",
+  questionnaire: [
+    { question: "Q1 de test", reponse: "R1" },
+    { question: "Q2 de test", reponse: "R2" },
+  ],
+  adequationTitre: "Adequation MIF II", adequationTexte: "Texte adequation de test.",
+  nomClientSignature: "CLIENT_SIGNATURE_TEST", nomConseiller: "CONSEILLER_TEST",
+  pagePosition: "6 / 8", cabinetLibellePied: "Cabinet Test - confidentiel",
+};
+
+describe("CONTRAT — pageProfil (flux paged.js, signature en QueueEpinglee)", () => {
+  it("12. signature dans le flux (pdf-queue), jamais en slot absolu bottom:42px", () => {
+    const html = pageProfil(t, dProfil);
+    expect(html).toContain('class="pdf-contrat"');
+    // Signature PRESENTE et dans le flux (queue) — encartSignature (mention par defaut).
+    expect(html).toContain('class="pdf-queue"');
+    // Lot 4-bis : la queue signature est solidaire du bloc precedent (break-before:avoid)
+    // -> ne part plus seule en haut de la feuille 2 sur un leger debordement.
+    expect(html).toContain('class="pdf-queue" style="break-inside:avoid;break-before:avoid"');
+    expect(html).toContain("Lu et approuvé");
+    expect(html).toContain("CLIENT_SIGNATURE_TEST");
+    expect(html).toContain("CONSEILLER_TEST");
+    // CRITERE CONFORMITE : plus de slot signature absolu bottom:42px (masque par le pont feeder),
+    // ni de boite A4 coquillePage.
+    expect(html).not.toContain("bottom:42px");
+    expect(html).not.toContain("width:210mm;height:297mm");
+    // La signature est le DERNIER bloc, APRES l'encart d'adequation.
+    expect(html.indexOf("Adequation MIF II")).toBeLessThan(html.indexOf("Lu et approuvé"));
   });
 });

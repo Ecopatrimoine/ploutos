@@ -4,9 +4,10 @@
 //   revue-preview/pdf/refonte_pdf_page_fiscalite_A4_graphique_corrige.html
 //
 // Réutilise au MAXIMUM les primitives v2 existantes : header, bandeKPI
-// (variante "large"), sousTitreSection, encartNotreLecture, piedPage,
-// coquillePage. Nouvelles primitives consommées : barreRepartition,
-// cascadeRevenus (cf. primitives.ts, ajoutées au Lot 9 IR).
+// (variante "large"), sousTitreSection, barreRepartition, cascadeRevenus,
+// encartNotreLecture. Mise en page : compilerPageContrat (contrat déclaratif,
+// Phase 3) — plus de boîte coquillePage ni de pied codé en dur (le pied vit
+// désormais dans les margin-boxes @page du feeder).
 //
 // 🔴 Aucune logique fiscale : la page consomme des valeurs déjà calculées.
 
@@ -17,13 +18,14 @@ import {
   barreRepartition,
   cascadeRevenus,
   encartNotreLecture,
-  piedPage,
-  coquillePage,
   euro,
   type CascadeItem,
   type SegmentRepartition,
 } from "../primitives";
+import { compilerPageContrat, type Bloc } from "../engine/contrat";
+import { renderBracketChartSVG } from "../bracketChart";
 import type { Tokens } from "../tokens";
+import type { FilledBracket } from "../../../../types/patrimoine";
 
 export type IRPageData = {
   // En-tête
@@ -33,7 +35,12 @@ export type IRPageData = {
   impotNetDu: number;       // 14 320
   trancheMarginale: string; // "30 %"
   tauxMoyen: string;        // "7,8 %"
-  quotient: string;         // "3 parts"
+  quotient: string;         // "3 parts" (libellé KPI — nombre de parts, NE PAS confondre)
+  // Barème par tranche (décomposition DÉJÀ calculée par computeIR sur le QUOTIENT — pur affichage)
+  bracketFill: FilledBracket[]; // revenu logé + impôt par tranche, PAR PART
+  quotientParPart: number;  // revenu net imposable par part (= revenuNetGlobal / parts)
+  parts: number;            // nombre de parts fiscales (numérique)
+  marginalRate: number;     // TMI en décimal (0,30) — sert au libellé du badge
   // Répartition revenus par nature (l'ordre = ordre de la barre + légende)
   salaires: number;         // 74 000
   fonciers: number;         // 11 000
@@ -81,34 +88,60 @@ export function pageIR(t: Tokens, d: IRPageData): string {
     { label: "Impôt sur le revenu",   pct: pctCascade(d.impotNetDu),             valeur: euro(d.impotNetDu),                  type: "impot" },
   ];
 
-  // ─── Assemblage ──────────────────────────────────────────────────────
-  const contenu = `
-    ${header(t, {
-      eyebrow: "Fiscalité",
-      titre: "Impôt sur le revenu",
-      droiteHaut: d.clientName,
-      droiteBas: d.dateStr,
-    })}
+  // ─── Barème IR par tranche (PUR AFFICHAGE de d.bracketFill, calculé sur le QUOTIENT) ──
+  // Option A « par part » : hauteur = revenu logé par tranche pour une part ; montant = impôt
+  // de la tranche par part ; tranche active = celle du quotient (TMI), marquée contour + badge
+  // « TMI ». Note de réconciliation QUALITATIVE (la décote et le plafonnement QF ne sont pas
+  // exposés par le moteur) : la somme des barres N'EST PAS l'impôt net. Aucun plafonnement 75 %.
+  const aBareme = Array.isArray(d.bracketFill) && d.bracketFill.length > 0;
+  const tmiPct = Math.round((d.marginalRate <= 1 ? d.marginalRate * 100 : d.marginalRate));
+  const baremeBloc: Bloc = {
+    kind: "insecable",
+    html: `<div style="margin-top:24px">
+      ${sousTitreSection(t, "Barème IR — remplissage des tranches (par part)")}
+      <div class="foot" style="margin-bottom:6px">Lecture pour <strong>une part</strong> de quotient familial (${euro(d.quotientParPart)} par part, ${d.parts} part${d.parts > 1 ? "s" : ""}) — hauteur = revenu logé par tranche, montant = impôt de la tranche, par part. La tranche « TMI » est votre tranche marginale (${tmiPct} %).</div>
+      ${renderBracketChartSVG(d.bracketFill, t, { referenceValue: d.quotientParPart, badgeActif: "TMI", formatBorne: "euro" })}
+      <div class="foot">Barème appliqué au revenu par part (quotient) : impôt par part × ${d.parts} part${d.parts > 1 ? "s" : ""}, puis décote et plafonnement du quotient familial donnent l'impôt net dû. La somme des barres ci-dessus n'est donc pas l'impôt net.</div>
+    </div>`,
+  };
 
-    ${bandeKPI(t, kpis, { taille: "large" })}
-
-    <div style="margin-top:24px">
+  // ─── Déclaration des blocs (contrat de page, engine/contrat.ts) ───────
+  // Bascule de mécanisme (coquillePage → compilerPageContrat) : ordre visuel,
+  // libellés, styles et couleurs INCHANGÉS — seule la mise en page passe en flux.
+  const blocs: Bloc[] = [
+    // Header de page (insécable).
+    {
+      kind: "insecable",
+      html: header(t, {
+        eyebrow: "Fiscalité",
+        titre: "Impôt sur le revenu",
+        droiteHaut: d.clientName,
+        droiteBas: d.dateStr,
+      }),
+    },
+    // Bande KPI (variante "large") — insécable.
+    { kind: "insecable", html: bandeKPI(t, kpis, { taille: "large" }) },
+    // Section « Revenus par nature » (sous-titre + barre, gardés ensemble).
+    {
+      kind: "insecable",
+      html: `<div style="margin-top:24px">
       ${sousTitreSection(t, "Revenus par nature")}
       ${barreRepartition(t, segments)}
-    </div>
-
-    <div style="margin-top:24px">
+    </div>`,
+    },
+    // Section « De vos revenus à l'impôt » (sous-titre + cascade).
+    {
+      kind: "insecable",
+      html: `<div style="margin-top:24px">
       ${sousTitreSection(t, "De vos revenus à l'impôt")}
       ${cascadeRevenus(t, items)}
-    </div>
+    </div>`,
+    },
+    // Barème par tranche (par part) — inséré après la cascade, avant « Notre lecture ».
+    ...(aBareme ? [baremeBloc] : []),
+    // Encart « Notre lecture » — queue épinglée en fin de flux.
+    { kind: "queue", html: encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) },
+  ];
 
-    ${encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture })}
-  `;
-
-  const pied = piedPage(t, {
-    gauche: d.cabinetLibellePied,
-    droite: d.pagePosition,
-  });
-
-  return coquillePage(t, { contenu, pied });
+  return compilerPageContrat(blocs);
 }

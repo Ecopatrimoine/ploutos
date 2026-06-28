@@ -32,6 +32,12 @@ export function buildIFIData(p: BuildIFIDataParams): IFIPageData {
   const ifiDu = num(ifi.ifi ?? 0);
   const margeSousSeuil = SEUIL_IFI_2026 - assietteNette;
 
+  // SOURCE UNIQUE : décomposition par tranche DÉJÀ produite par computeIFI
+  // (bracketFill = FilledBracket[]) + IFI brut/décote. Aucun recalcul, aucun barème ici.
+  const bracketFill = Array.isArray(ifi.bracketFill) ? ifi.bracketFill : [];
+  const grossIfi = num(ifi.grossIfi ?? 0);
+  const decote = num(ifi.decote ?? 0);
+
   // Mapping des lignes — souple pour différentes structures possibles côté computeIFI
   const linesRaw: any[] = Array.isArray(ifi.lines) ? ifi.lines : [];
   const biens = linesRaw.map(line => ({
@@ -85,6 +91,9 @@ export function buildIFIData(p: BuildIFIDataParams): IFIPageData {
     seuilIFI: SEUIL_IFI_2026,
     margeSousSeuil,
     ifiDu,
+    bracketFill,
+    grossIfi,
+    decote,
     biens,
     notreLecture: p.notreLecture || notreLectureCalculee,
     pagePosition: p.pagePosition || "— / —",

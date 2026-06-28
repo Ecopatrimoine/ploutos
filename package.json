@@ -1,7 +1,7 @@
 {
   "name": "ploutos",
   "private": true,
-  "version": "1.24.0",
+  "version": "1.25.0",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -21,17 +21,20 @@
     "pdf:successionA": "tsx scripts/generatePdfLocal.ts successionA",
     "pdf:successionB": "tsx scripts/generatePdfLocal.ts successionB",
     "pdf:profil": "tsx scripts/generatePdfLocal.ts profil",
-    "pdf:prevoyanceInd": "tsx scripts/generatePdfLocal.ts prevoyanceInd",
     "pdf:prevoyanceColl": "tsx scripts/generatePdfLocal.ts prevoyanceColl",
     "pdf:bilanEndettement": "tsx scripts/generatePdfLocal.ts bilanEndettement",
     "pdf:lettreMission": "tsx scripts/generatePdfLocal.ts lettreMission",
     "pdf:der": "tsx scripts/generatePdfLocal.ts der",
     "pdf:ficheDDA": "tsx scripts/generatePdfLocal.ts ficheDDA",
     "pdf:declarationAdequation": "tsx scripts/generatePdfLocal.ts declarationAdequation",
+    "pdf:capitauxDeces": "tsx scripts/generatePdfLocal.ts capitauxDeces",
+    "pdf:hypos": "tsx scripts/generatePdfLocal.ts hypos",
     "electron:build:mac": "npm run build && electron-builder --mac",
     "release:mac": "npm run build && electron-builder --mac --publish always"
   },
   "dependencies": {
+    "@fontsource/fraunces": "^5.2.9",
+    "@fontsource/lato": "^5.2.7",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-select": "^2.2.6",
@@ -42,6 +45,7 @@
     "electron-log": "^5.4.3",
     "electron-updater": "^6.8.3",
     "lucide-react": "^0.577.0",
+    "pagedjs": "^0.4.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-is": "^19.2.4",

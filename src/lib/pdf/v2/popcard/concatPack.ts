@@ -20,15 +20,17 @@ import { sortPack } from "./checkCompletude";
 import { mapCabinetToThemeV2, type ThemeV2 } from "../adapters/mapTheme";
 import { buildTokens } from "../tokens";
 import { coquilleDocument } from "../primitives";
+import { FONT_FACES_STYLE } from "../fontsLocal";
 import { openPrintPopup } from "../../pdfCore";
 
 // ─── Renderers v2 ─────────────────────────────────────────────────────
 // Docs réglementaires (4) + 5 sections bilan câblées en 1ère passe.
 // Les 6 autres sections (cabinet/famille/travail/hypos/recos/mentions +
-// bilanEndettement/successionB/prevoyanceInd/prevoyanceColl) restent en
+// bilanEndettement/successionB/prevoyanceColl) restent en
 // placeholder pour une 2ème passe.
 import { pageLettreMission } from "../pages/pageLettreMission";
 import { pageDer } from "../pages/pageDer";
+import { pageDerAnnexe } from "../pages/pageDerAnnexe";
 import { pageFicheDDA } from "../pages/pageFicheDDA";
 import { pageDeclarationAdequation } from "../pages/pageDeclarationAdequation";
 import { pageCouverture } from "../pages/pageCouverture";
@@ -36,6 +38,7 @@ import { pageIR } from "../pages/pageIR";
 import { pageIFI } from "../pages/pageIFI";
 import { pageSuccessionA } from "../pages/pageSuccessionA";
 import { pageSuccessionB } from "../pages/pageSuccessionB";
+import { pageCapitauxDeces } from "../pages/pageCapitauxDeces";
 import { pageProfil } from "../pages/pageProfil";
 import { pageBilanEndettement } from "../pages/pageBilanEndettement";
 import { pagePrevoyancePerso } from "../pages/pagePrevoyancePerso";
@@ -57,6 +60,7 @@ import { buildIRData } from "../adapters/buildIRData";
 import { buildIFIData } from "../adapters/buildIFIData";
 import { buildSuccessionAData } from "../adapters/buildSuccessionAData";
 import { buildSuccessionBData } from "../adapters/buildSuccessionBData";
+import { buildCapitauxDecesData } from "../adapters/buildCapitauxDecesData";
 import { buildProfilData } from "../adapters/buildProfilData";
 import { buildBilanEndettementData } from "../adapters/buildBilanEndettementData";
 import { buildPrevoyancePersoData } from "../adapters/buildPrevoyancePersoData";
@@ -129,6 +133,13 @@ function renderItemBody(
       const d = buildDerData({ cabinet, dateLettre });
       return pageDer(t, d);
     }
+    case "derAnnexe": {
+      // Mirror exact du case "der" mais appelant pageDerAnnexe : même DerPageData
+      // (via buildDerData), section séparée portant data-pdf-doc=DOC_DER (compteur
+      // X/N commun). Auto-incluse après "der" par renderPackItemBodies (LOT 1).
+      const d = buildDerData({ cabinet, dateLettre });
+      return pageDerAnnexe(t, d);
+    }
     case "dda": {
       const d = buildFicheDDAData({ cabinet, mission, data, recommandations, piecesJointes, dateLettre });
       return pageFicheDDA(t, d);
@@ -170,6 +181,17 @@ function renderItemBody(
       if (!payload.succession) return placeholderSection(t, item, "Section Succession B requiert le résultat de computeSuccession (non fourni)");
       const d = buildSuccessionBData({ succession: payload.succession, data, cabinet, clientName: payload.clientName, dateLettre, pagePosition });
       return pageSuccessionB(t, d);
+    }
+    case "capitauxDeces": {
+      // Section informative (capitaux décès exonérés + rentes de survie). Garde
+      // succession : sans computeSuccession → exclu du pack (corps vide, PAS un
+      // placeholder bavard). Idem si aucun capital/rente n'existe → corps vide → exclu.
+      if (!payload.succession) return "";
+      const d = buildCapitauxDecesData({ succession: payload.succession, data, cabinet, clientName: payload.clientName, dateLettre, pagePosition });
+      const vide = d.caisses.length === 0 && d.prives.length === 0 && d.branche.length === 0
+        && d.renteEducationBranche.length === 0 && d.renteConjointBranche.length === 0 && d.rentes.length === 0;
+      if (vide) return "";
+      return pageCapitauxDeces(t, d);
     }
     case "prevoyancePersoP1": {
       const d = buildPrevoyancePersoData({ data, cabinet, which: "p1", clientName: payload.clientName, dateLettre, pagePosition });
@@ -231,7 +253,51 @@ function placeholderSection(t: any, item: PackItem, customMessage?: string): str
   </div>`;
 }
 
-/** Assemble le pack complet et ouvre la popup print. */
+/** Tokens v2 résolus pour ce pack (thème cabinet/encreOr + override per-dossier).
+ *  Exporté pour que le moteur paged.js (feeder) partage exactement la même palette. */
+export function resolvePackTokens(cabinet: Record<string, any>, overrides: PackOverrides) {
+  const themeV2 = resolveTheme(cabinet, overrides);
+  return buildTokens(themeV2.theme, themeV2.cabinetColors);
+}
+
+/** Rend les BODY HTML de CHAQUE section du pack (un par section, ordre canonique).
+ *  Réutilise renderItemBody — aucun contenu réécrit. Partagé par generatePack
+ *  (chemin window.print historique) ET le feeder paged.js (Phase 1). */
+export function renderPackItemBodies(
+  packItems: PackItem[],
+  overrides: PackOverrides,
+  payload: PackPayload,
+): string[] {
+  // Ordre canonique : bilan AVANT docs réglementaires
+  const ordered = sortPack(packItems);
+  const themeV2 = resolveTheme(payload.cabinet, overrides);
+  // Override lieu signature : injecté dans le payload mission temporairement
+  const missionWithOverride = overrides.lieuSignatureOverride
+    ? { ...payload.mission, lieuSignature: overrides.lieuSignatureOverride }
+    : payload.mission;
+  const payloadFinal = { ...payload, mission: missionWithOverride };
+  // Pagination "X / N" calculée ici (N = total sections du pack).
+  const total = ordered.length;
+  // Auto-inclusion derAnnexe : l'annexe Références suit "der" SANS apparaître dans
+  // l'UI (PopcardImpression a une liste de cases explicite, derAnnexe n'y est pas).
+  // PACK_ORDER place derAnnexe juste après "der" ; on l'insère ici à cette même
+  // position. derAnnexe n'est PAS ajouté à `ordered` pour le calcul index/total →
+  // ZÉRO perturbation de la numérotation des autres sections (invisibilité LOT 1 :
+  // derAnnexe rend "" → non poussé).
+  const autoAnnexe = ordered.includes("der") && !ordered.includes("derAnnexe");
+  const out: string[] = [];
+  ordered.forEach((item, idx) => {
+    const body = renderItemBody(item, payloadFinal, themeV2, { index: idx + 1, total });
+    if (body) out.push(body);
+    if (autoAnnexe && item === "der") {
+      const annexe = renderItemBody("derAnnexe", payloadFinal, themeV2, { index: idx + 1, total });
+      if (annexe) out.push(annexe);
+    }
+  });
+  return out;
+}
+
+/** Assemble le pack complet et ouvre la popup print (chemin historique, INCHANGÉ). */
 export function generatePack(
   packItems: PackItem[],
   overrides: PackOverrides,
@@ -239,30 +305,15 @@ export function generatePack(
 ): void {
   if (packItems.length === 0) return;
 
-  // Ordre canonique : bilan AVANT docs réglementaires
-  const ordered = sortPack(packItems);
-
-  // Résolution du thème selon override
-  const themeV2 = resolveTheme(payload.cabinet, overrides);
-
-  // Override lieu signature : injecté dans le payload mission temporairement
-  const missionWithOverride = overrides.lieuSignatureOverride
-    ? { ...payload.mission, lieuSignature: overrides.lieuSignatureOverride }
-    : payload.mission;
-  const payloadFinal = { ...payload, mission: missionWithOverride };
-
-  // Rendu de chaque item — pagination "X / N" calculée ici (N = total sections du pack).
-  const total = ordered.length;
-  const bodies = ordered
-    .map((item, idx) => renderItemBody(item, payloadFinal, themeV2, { index: idx + 1, total }))
-    .filter(Boolean)
-    .join("");
+  // Bodies (mêmes que le moteur paged.js) concaténés en boîtes A4 fixes.
+  const bodies = renderPackItemBodies(packItems, overrides, payload).join("");
 
   // Assemblage final via coquilleDocument (header html + fonts + CSS + body)
-  const t = buildTokens(themeV2.theme, themeV2.cabinetColors);
+  const t = resolvePackTokens(payload.cabinet, overrides);
   const html = coquilleDocument(t, {
-    titre: `Pack PDF — ${payload.clientName || "Dossier client"} — ${ordered.length} document(s)`,
+    titre: `Pack PDF — ${payload.clientName || "Dossier client"} — ${sortPack(packItems).length} document(s)`,
     body: bodies,
+    fontsHtml: FONT_FACES_STYLE,
   });
 
   openPrintPopup(html);

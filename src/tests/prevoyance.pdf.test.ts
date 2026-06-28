@@ -200,14 +200,14 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     expect(html).not.toMatch(REGEX_ASSUREURS);
   });
 
-  it("module inactif : une feuille unique, DDA presente exactement une fois", () => {
+  it("module inactif : flux unique, DDA presente exactement une fois", () => {
     const d = buildPrevoyanceCollData({ data: dataSalarie(), cabinet, dateLettre });
     expect(d.active).toBe(false);
     const html = pagePrevoyanceColl(t, d);
     expect(html).toContain("Activer le module Prévoyance collective");
-    const feuilles = html.split("width:210mm;height:297mm").slice(1);
-    expect(feuilles.length).toBe(1);
-    expect(html.split("L.521-4").length - 1).toBe(1); // DDA une seule fois
+    expect(html).toContain('class="pdf-contrat"');               // flux unique
+    expect(html).not.toContain("width:210mm;height:297mm");      // plus de boite A4
+    expect(html.split("L.521-4").length - 1).toBe(1);            // DDA une seule fois
   });
 
   it("Syntec riche (garanties renseignees) : verdicts + synthese (feuille 2)", () => {
@@ -226,23 +226,22 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     expect(html).not.toMatch(REGEX_ASSUREURS);
   });
 
-  it("decoupage : feuille 1 = Audit borne ; obligations + DDA sur la DERNIERE feuille", () => {
+  it("flux unique : Audit puis Obligations puis DDA (ordre), DDA une seule fois", () => {
     const data = dataAvecSouscrit({ cadres: { capitalDC: { tauxSalaireRef: 1.0 } } });
     const d = buildPrevoyanceCollData({ data, cabinet, dateLettre });
     const html = pagePrevoyanceColl(t, d);
-    const feuilles = html.split("width:210mm;height:297mm").slice(1);
-    expect(feuilles.length).toBeGreaterThanOrEqual(2);
-    const f1 = feuilles[0];
-    expect(f1).toContain("Audit de conformit");
-    expect(f1).not.toContain("Constats et pistes");   // plus de feuille constats (doublon retire du PDF)
-    expect(f1).not.toContain("L.521-4");               // DDA pas sur la feuille 1
-    expect(f1).not.toContain("Obligation de branche"); // obligations ailleurs
-    // obligations ET DDA sur la DERNIERE feuille
-    const fObl = feuilles[feuilles.length - 1];
-    expect(fObl).toContain("Obligation de branche");
-    expect(fObl).toContain("L.521-4");
-    // les feuilles de constats (entre Conformite et Obligations) ne portent pas la DDA
-    for (const f of feuilles.slice(1, -1)) expect(f).not.toContain("L.521-4");
+    // Flux unique : pas de boite A4, pas de doublon "Constats" (deja retire du PDF).
+    expect(html).not.toContain("width:210mm;height:297mm");
+    expect(html).not.toContain("Constats et pistes");
+    // Ordre du flux : Audit AVANT Obligations (colonne) AVANT DDA (queue en fin).
+    const idxAudit = html.indexOf("Audit de conformit");
+    const idxObl = html.indexOf("Obligation de branche");   // colonne -> tableau present
+    const idxDDA = html.indexOf("L.521-4");
+    expect(idxAudit).toBeGreaterThan(-1);
+    expect(idxObl).toBeGreaterThan(idxAudit);
+    expect(idxDDA).toBeGreaterThan(idxObl);
+    // DDA exactement une fois.
+    expect(html.split("L.521-4").length - 1).toBe(1);
   });
 
   it("Syntec garanties vides : bandeau 'comparaison non realisee', pas de colonne Verdict", () => {
@@ -253,18 +252,14 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     expect(html).not.toMatch(REGEX_ASSUREURS);
   });
 
-  it("Banque 2120 (etat vide, contenu court) : FUSION en 1 feuille, statut obligations sans tableau", () => {
-    // Changement de comportement ASSUME (Lot pagination) : contenu court (peu de
-    // controles, 0 convention, 0 obligation) -> fusion en UNE feuille au lieu de deux.
+  it("Banque 2120 (etat vide) : flux unique, statut obligations sans tableau", () => {
     const d = buildPrevoyanceCollData({ data: dataDirigeant("2120", "Banque"), cabinet, dateLettre });
     const html = pagePrevoyanceColl(t, d);
-    const feuilles = html.split("width:210mm;height:297mm").slice(1);
-    expect(feuilles.length).toBe(1);
-    const fUnique = feuilles[0];
-    expect(fUnique).toContain("Audit de conformité");                        // audit sur la feuille fusionnee
-    expect(fUnique).toContain("Aucune obligation de prevoyance de branche");  // statut obligations (etat vide)
-    expect(fUnique).not.toContain("Obligation de branche");                  // pas de tableau obligations
-    expect(html.split("L.521-4").length - 1).toBe(1);                        // DDA une seule fois
+    expect(html).not.toContain("width:210mm;height:297mm");                   // flux unique
+    expect(html).toContain("Audit de conformité");                            // audit present
+    expect(html).toContain("Aucune obligation de prevoyance de branche");     // statut obligations (etat vide)
+    expect(html).not.toContain("Obligation de branche");                      // pas de colonne -> pas de tableau
+    expect(html.split("L.521-4").length - 1).toBe(1);                         // DDA une seule fois
   });
 
   it("DDA centralisee : texte legal byte-a-byte inchange (anti-divergence)", () => {

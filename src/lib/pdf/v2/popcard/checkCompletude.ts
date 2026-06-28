@@ -9,11 +9,11 @@ import type { PieceJointe } from "../../../conformite/piecesJointes";
 
 export type PackItem =
   // Documents réglementaires
-  | "lettre" | "der" | "dda" | "adequation"
+  | "lettre" | "der" | "derAnnexe" | "dda" | "adequation"
   // Bilan patrimonial — sections
   | "couverture" | "cabinet" | "famille" | "travail"
   | "bilanEndettement" | "ir" | "ifi"
-  | "successionA" | "successionB"
+  | "successionA" | "successionB" | "capitauxDeces"
   | "profil" | "prevoyancePersoP1" | "prevoyancePersoP2" | "prevoyanceColl"
   | "hypos" | "recommandations" | "mentions";
 
@@ -37,6 +37,7 @@ export type CheckParams = {
 const PACK_LABELS: Record<PackItem, string> = {
   lettre:           "Lettre de mission",
   der:              "DER",
+  derAnnexe:        "DER - annexe",
   dda:              "Fiche conseil DDA",
   adequation:       "Déclaration d'adéquation",
   couverture:       "Page de couverture",
@@ -48,6 +49,7 @@ const PACK_LABELS: Record<PackItem, string> = {
   ifi:              "IFI",
   successionA:      "Succession civile",
   successionB:     "Assurance-vie & transmission",
+  capitauxDeces:    "Capitaux décès",
   profil:           "Profil & adéquation MIF II",
   prevoyancePersoP1: "Prévoyance personnelle (P1)",
   prevoyancePersoP2: "Prévoyance personnelle (P2)",
@@ -96,6 +98,12 @@ function collectMissing(pack: PackItem, p: CheckParams): string[] {
         out.push("Aucun statut ORIAS coché — la page 3 « Références légales » sera vide");
       }
       if (cabinet.statutCif && empty(cabinet.mediateurAmf)) out.push("cabinet.mediateurAmf (CIF actif sans médiateur AMF)");
+      break;
+    }
+    case "derAnnexe": {
+      // L'annexe Références partage exactement les prérequis de "der" (mêmes statuts
+      // ORIAS) : on NE double-compte PAS les manques ici (sinon ils apparaîtraient en
+      // double dans la pop-card de complétude). No-op → retourne [].
       break;
     }
     case "dda": {
@@ -153,6 +161,11 @@ function collectMissing(pack: PackItem, p: CheckParams): string[] {
       if (noChildren && noProps) out.push("Aucun enfant ni bien à transmettre saisi");
       break;
     }
+    case "capitauxDeces": {
+      // Section informative tolérante : données « non disponibles » rendues « n.d. »,
+      // corps vide exclu du pack (cf. concatPack). Aucun manque bloquant à signaler.
+      break;
+    }
     case "profil": {
       if (empty(mission.attitude)) out.push("mission.attitude (Q1 profil non répondu)");
       if (empty(mission.horizon)) out.push("mission.horizon (horizon non sélectionné)");
@@ -195,11 +208,11 @@ export const PACK_ORDER: PackItem[] = [
   // Bilan patrimonial
   "couverture", "cabinet", "famille", "travail",
   "bilanEndettement", "ir", "ifi",
-  "successionA", "successionB",
+  "successionA", "successionB", "capitauxDeces",
   "profil", "prevoyancePersoP1", "prevoyancePersoP2", "prevoyanceColl",
   "hypos", "recommandations", "mentions",
   // Documents réglementaires (après le bilan)
-  "lettre", "der", "dda", "adequation",
+  "lettre", "der", "derAnnexe", "dda", "adequation",
 ];
 
 /** Trie un pack selon l'ordre canonique. */

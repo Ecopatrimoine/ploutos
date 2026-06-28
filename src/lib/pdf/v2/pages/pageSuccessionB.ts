@@ -3,42 +3,26 @@
 // Reproduit fidèlement la maquette
 //   revue-preview/pdf/refonte_pdf_succession_pageB_consolide_deux_lignes.html
 //
-// Réutilise les primitives v2 : header, bandeKPI (compact, 1 KPI vert
-// succès), sousTitreSection, tableauTitresDores, noteIconee (nouvelle),
-// bandeauConsolide (nouveau), encartNotreLecture, piedPage, coquillePage.
-//
-// PAGINATION (Lot débordement) : la liste de bénéficiaires peut dépasser une feuille.
-// On garde EXACTEMENT le chemin v1.23.0 (corps centré) tant que tout tient sur une
-// feuille ; sinon on découpe la table PAR COMPTAGE (paginerLignesSurFeuilles), en-tête
-// de colonnes répété, clause + bandeau consolidé + encart sur la dernière feuille.
+// PHASE 3 (moteur paged.js) — page DÉCLARÉE via le contrat (engine/contrat.ts).
+// Sortie de coquillePage + abandon du chunking par comptage : la table de
+// bénéficiaires devient une ListeEcoulable (thead répété + « (suite) »). La clause
+// bénéficiaire, le bandeau consolidé (TOTAL) et « Notre lecture » sont épinglés EN
+// QUEUE — le montant de synthèse ne flotte jamais au milieu de l'écoulement.
 
 import {
   header,
   bandeKPI,
   sousTitreSection,
-  tableauTitresDores,
   noteIconee,
   bandeauConsolide,
   encartNotreLecture,
-  piedPage,
-  coquillePage,
-  regionCorpsCentree,
-  paginerLignesSurFeuilles,
-  H_HEADER_PX,
-  H_BANDE_KPI_PX,
-  H_LIGNE_TEXTE_PX,
-  H_SOUSTITRE_PX,
-  H_CLAUSE_BENEF_PX,
-  H_BANDEAU_CONSOLIDE_PX,
-  H_ENCART_NOTRE_LECTURE_BASE_PX,
-  CHARS_PAR_LIGNE_CONVENTION,
-  CHARS_PAR_LIGNE_ENCART,
-  RESERVE_PIED_PX,
+  construireTableEcoulable,
   euro,
   icones,
   type Col,
   type Cell,
 } from "../primitives";
+import { compilerPageContrat, type Bloc } from "../engine/contrat";
 import type { Tokens } from "../tokens";
 
 export type BeneficiaireAV = {
@@ -95,7 +79,6 @@ export function pageSuccessionB(t: Tokens, d: SuccessionBPageData): string {
     { label: "Fiscalité",    align: "right", width: "12%" },
     { label: "Net",          align: "right", width: "16%" },
   ];
-  // 1 row = 1 bénéficiaire (unité de découpage). Pas de champ composition ⇒ poids 1.
   const rendreLigne = (b: BeneficiaireAV): Cell[] => ([
     { value: b.nom },
     { value: b.lien, color: t.texteFaible },
@@ -106,103 +89,59 @@ export function pageSuccessionB(t: Tokens, d: SuccessionBPageData): string {
       : { value: euro(b.fiscalite), align: "right", color: t.thOr },
     { value: euro(b.net), align: "right", bold: true },
   ]);
-  const poidsLigne = (_b: BeneficiaireAV): number => 1;
   const rows: Cell[][] = d.beneficiaires.map(rendreLigne);
+  const { enteteHtml, lignesHtml } = construireTableEcoulable(t, { cols, rows });
 
-  // ─── Pièces partagées (extraites en consts : interpolation byte-identique au
-  //     chemin v1.23.0 ; réutilisées telles quelles dans le bloc de queue) ──
-  const enTete = header(t, {
-    eyebrow: "Transmission — volet 2 / 2",
-    titre: "Assurance-vie & PER",
-    droiteHaut: d.clientName,
-    droiteBas: d.dateStr,
-  });
-  const clauseHTML = noteIconee(t, {
-    iconeSvg: icones.fileText(t.eyebrowOr, 15),
-    texteHtml: d.clauseBeneficiaireHtml,
-  });
-  const bandeauHTML = bandeauConsolide(t, {
-    labelHaut: d.totalLabelHaut,
-    labelBas: d.totalLabelBas,
-    valeur: euro(d.totalNetTransmis),
-  });
-  const encartHTML = encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture });
+  // ─── Déclaration des blocs (contrat de page) ──
+  const blocs: Bloc[] = [];
 
-  // ─── Assemblage (chemin v1.23.0, conservé byte-identique en feuille unique) ──
-  const zoneHaute = `
-    ${enTete}
-
-    ${bandeKPI(t, kpis)}
-    <div class="foot">${d.noteKpi}</div>
-  `;
-
-  const corps = `
-
-    <div style="margin-top:24px">
-      ${sousTitreSection(t, "Détail par bénéficiaire")}
-      ${tableauTitresDores(t, { cols, rows })}
-      ${clauseHTML}
-    </div>
-
-    ${bandeauHTML}
-
-    ${encartHTML}
-  `;
-
-  const pied = piedPage(t, {
-    gauche: d.cabinetLibellePied,
-    droite: d.pagePosition,
+  // Header (insécable).
+  blocs.push({
+    kind: "insecable",
+    html: header(t, {
+      eyebrow: "Transmission — volet 2 / 2",
+      titre: "Assurance-vie & PER",
+      droiteHaut: d.clientName,
+      droiteBas: d.dateStr,
+    }),
   });
 
-  // ─── Décision de pagination par comptage (conservatrice, zéro DOM) ──
-  // Zone haute feuille 1 = header + KPI + note + sous-titre table.
-  // Zone haute continuation = header + sous-titre table (thead géré par le helper).
-  // Bloc de queue = clause + bandeau consolidé + encart (épinglé dernière feuille).
-  const lignesNote = Math.max(1, Math.ceil(d.noteKpi.length / CHARS_PAR_LIGNE_CONVENTION));
-  const lignesNotreLecture = Math.max(1, Math.ceil(d.notreLecture.length / CHARS_PAR_LIGNE_ENCART));
-  const zoneHaute1Px = H_HEADER_PX + H_BANDE_KPI_PX + lignesNote * H_LIGNE_TEXTE_PX + H_SOUSTITRE_PX;
-  const zoneHauteContPx = H_HEADER_PX + H_SOUSTITRE_PX;
-  const hauteurBlocQueuePx =
-    H_CLAUSE_BENEF_PX + H_BANDEAU_CONSOLIDE_PX + H_ENCART_NOTRE_LECTURE_BASE_PX + lignesNotreLecture * H_LIGNE_TEXTE_PX;
-  const blocQueueHTML = `${clauseHTML}${bandeauHTML}${encartHTML}`;
-
-  const fragments = paginerLignesSurFeuilles<BeneficiaireAV>({
-    t,
-    lignes: d.beneficiaires,
-    cols,
-    rendreLigne,
-    poidsLigne,
-    blocQueueHTML,
-    zoneHaute1Px,
-    zoneHauteContPx,
-    hauteurBlocQueuePx,
+  // Bande KPI + note (insécables, gardées ensemble).
+  blocs.push({
+    kind: "insecable",
+    html: `${bandeKPI(t, kpis)}
+    <div class="foot">${d.noteKpi}</div>`,
   });
 
-  // ── Cas courant : tout tient sur UNE feuille → chemin v1.23.0 INCHANGÉ (corps centré) ──
-  if (fragments.length <= 1) {
-    const hauteurZoneHautPx = H_HEADER_PX + H_BANDE_KPI_PX + lignesNote * H_LIGNE_TEXTE_PX;
-    const contenu = `
-    ${zoneHaute}
-    ${regionCorpsCentree(corps, { hauteurZoneHautPx, reserveBasPx: RESERVE_PIED_PX })}
-  `;
-    return coquillePage(t, { contenu, pied });
-  }
+  // Sous-titre « Détail par bénéficiaire » : solidaire de son tableau.
+  blocs.push({
+    kind: "insecable",
+    solidaireAvecSuivant: true,
+    html: `<div style="margin-top:24px">${sousTitreSection(t, "Détail par bénéficiaire")}</div>`,
+  });
 
-  // ── Multi-feuilles : table en flux depuis le haut, thead répété par feuille, clause
-  //    + bandeau + encart sur la dernière. Même pied sur toutes les feuilles (l'écart
-  //    X/N sections↔feuilles physiques reste hors périmètre).
-  return fragments
-    .map((frag, i) => {
-      const estPremiere = i === 0;
-      const sousTitre = sousTitreSection(t, estPremiere ? "Détail par bénéficiaire" : "Détail par bénéficiaire (suite)");
-      const zone = estPremiere
-        ? `
-    ${zoneHaute}
-    <div style="margin-top:24px">${sousTitre}</div>`
-        : `
-    ${enTete}
-    <div style="margin-top:24px">${sousTitre}</div>`;
-      return coquillePage(t, { contenu: `${zone}\n    ${frag}`, pied });
-    })
-    .join("");
+  // Table bénéficiaires = ListeEcoulable.
+  blocs.push({
+    kind: "liste",
+    enteteHtml,
+    lignesHtml,
+    styleTable: `width:100%;border-collapse:collapse;table-layout:fixed;border:0.5px solid ${t.bordureClaire};margin-top:12px`,
+  });
+
+  // Queue épinglée en bas de la dernière feuille : clause + bandeau consolidé (TOTAL) + Notre lecture.
+  // Le TOTAL reste ainsi toujours APRÈS tous les bénéficiaires, jamais au milieu de l'écoulement.
+  blocs.push({
+    kind: "queue",
+    html: noteIconee(t, { iconeSvg: icones.fileText(t.eyebrowOr, 15), texteHtml: d.clauseBeneficiaireHtml }),
+  });
+  blocs.push({
+    kind: "queue",
+    html: bandeauConsolide(t, { labelHaut: d.totalLabelHaut, labelBas: d.totalLabelBas, valeur: euro(d.totalNetTransmis) }),
+  });
+  blocs.push({
+    kind: "queue",
+    html: encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }),
+  });
+
+  return compilerPageContrat(blocs);
 }

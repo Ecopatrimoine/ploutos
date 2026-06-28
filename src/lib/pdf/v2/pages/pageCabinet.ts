@@ -7,9 +7,8 @@
 import {
   header,
   sousTitreSection,
-  piedPage,
-  coquillePage,
 } from "../primitives";
+import { compilerPageContrat, type Bloc } from "../engine/contrat";
 import type { Tokens } from "../tokens";
 
 export type CabinetInfoLigne = {
@@ -51,15 +50,25 @@ export function pageCabinet(t: Tokens, d: CabinetPageData): string {
       </div>
     </div>`;
 
-  const contenu = `
-    ${header(t, {
-      eyebrow: "À propos",
-      titre: "Cabinet & démarche",
-      droiteHaut: d.clientName,
-      droiteBas: d.dateStr,
-    })}
-
-    <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  // ─── Déclaration des blocs (contrat de page, engine/contrat.ts) ───────
+  // Bascule de mécanisme (coquillePage → compilerPageContrat) : ordre visuel,
+  // libellés, styles et couleurs INCHANGÉS — seul le pied disparaît (géré par
+  // les margin-boxes @page du feeder).
+  const blocs: Bloc[] = [
+    // Header de page (insécable).
+    {
+      kind: "insecable",
+      html: header(t, {
+        eyebrow: "À propos",
+        titre: "Cabinet & démarche",
+        droiteHaut: d.clientName,
+        droiteBas: d.dateStr,
+      }),
+    },
+    // Deux cartes côte à côte (À propos + Objet du document) — grille insécable.
+    {
+      kind: "insecable",
+      html: `<div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div style="background:${t.fondEncart};border:0.5px solid ${t.bordureClaire};border-radius:10px;padding:14px 16px">
         ${sousTitreSection(t, "À propos")}
         <div style="margin-top:6px">
@@ -71,18 +80,17 @@ export function pageCabinet(t: Tokens, d: CabinetPageData): string {
         <div style="margin-top:6px;font-size:10.5px;line-height:1.55;color:${t.texte}">${d.objetDocument}</div>
         ${d.porteeMif2 ? `<div style="margin-top:8px;font-size:9.5px;line-height:1.55;color:${t.texteFaibleClair};font-style:italic">${d.porteeMif2}</div>` : ""}
       </div>
-    </div>
-
-    <div style="margin-top:18px">
+    </div>`,
+    },
+    // Section « Notre démarche » (sous-titre + 5 étapes) — un seul bloc insécable.
+    {
+      kind: "insecable",
+      html: `<div style="margin-top:18px">
       ${sousTitreSection(t, "Notre démarche")}
       <div style="margin-top:6px">${d.demarcheEtapes.map(renderEtape).join("")}</div>
-    </div>
-  `;
+    </div>`,
+    },
+  ];
 
-  const pied = piedPage(t, {
-    gauche: d.cabinetLibellePied,
-    droite: d.pagePosition,
-  });
-
-  return coquillePage(t, { contenu, pied });
+  return compilerPageContrat(blocs);
 }

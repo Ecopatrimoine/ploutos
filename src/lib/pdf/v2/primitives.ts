@@ -7,7 +7,6 @@
 // revue-preview/pdf/refonte_pdf_*.html — c'est la source de vérité visuelle.
 
 import { FONTS_HTML_LINKS, type Tokens } from "./tokens";
-import { repartirLignesEnFeuilles } from "./paginationListe";
 
 // ─── CSS commun (classes utilitaires partagées) ──────────────────────────
 // Reproduit les classes .ser/.lt/.eb/.sct/.kpi/.klbl/.kval/.foot/.th/.td
@@ -17,6 +16,7 @@ export function cssCommun(t: Tokens): string {
   return `
   @page { size: A4; margin: 0; }
   *{box-sizing:border-box;}
+  * { font-variant-ligatures: none; }
   html,body{margin:0;padding:0;background:#fff;}
   body{font-family:'Lato',system-ui,sans-serif;color:${t.texte};}
   .ser{font-family:'Fraunces',Georgia,serif;}
@@ -468,10 +468,16 @@ export type Cell = {
   bold?: boolean;
 };
 
-export function tableauTitresDores(t: Tokens, opts: {
+// ─── construireTableEcoulable : thead + lignes <tr> SÉPARÉS, pour les tables
+//     ListeEcoulable du contrat (engine/contrat.ts). Helper PARTAGÉ qui factorise le
+//     rendu .th/.td jadis dupliqué inline dans pageIFI (dette Phase 3).
+//     tableauTitresDores le réutilise pour l'intérieur de sa table → rendu INCHANGÉ
+//     au byte près (goldens stables) : enteteHtml conserve EXACTEMENT le whitespace
+//     (saut + indentation) de l'ancien template de tableauTitresDores.
+export function construireTableEcoulable(t: Tokens, opts: {
   cols: Col[];
-  rows: Cell[][];        // chaque ligne = tableau de Cell, dans l'ordre des cols
-}): string {
+  rows: Cell[][];
+}): { enteteHtml: string; lignesHtml: string[] } {
   const renderTh = (c: Col) =>
     `<th class="th" style="text-align:${c.align || "left"};${c.width ? `width:${c.width}` : ""}">${c.label}</th>`;
   const renderTd = (cell: Cell, col: Col) => {
@@ -480,16 +486,26 @@ export function tableauTitresDores(t: Tokens, opts: {
     const weight = cell.bold ? "font-weight:700;" : "";
     return `<td class="td" style="text-align:${align};${color}${weight}">${cell.value}</td>`;
   };
-  const renderRow = (row: Cell[], idx: number) =>
-    `<tr${idx % 2 === 1 ? ` style="background:${t.fondTableauAlt}"` : ""}>${row.map((cell, i) => renderTd(cell, opts.cols[i])).join("")}</tr>`;
-  return `
-    <div style="border:0.5px solid ${t.bordureClaire};border-radius:10px;overflow:hidden;margin-top:12px">
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-        <thead><tr style="background:${t.fondTableau};border-bottom:1px solid ${t.bordureSeuilRail}">
+  const enteteHtml = `<thead><tr style="background:${t.fondTableau};border-bottom:1px solid ${t.bordureSeuilRail}">
           ${opts.cols.map(renderTh).join("")}
-        </tr></thead>
+        </tr></thead>`;
+  const lignesHtml = opts.rows.map((row, idx) =>
+    `<tr${idx % 2 === 1 ? ` style="background:${t.fondTableauAlt}"` : ""}>${row.map((cell, i) => renderTd(cell, opts.cols[i])).join("")}</tr>`
+  );
+  return { enteteHtml, lignesHtml };
+}
+
+export function tableauTitresDores(t: Tokens, opts: {
+  cols: Col[];
+  rows: Cell[][];        // chaque ligne = tableau de Cell, dans l'ordre des cols
+}): string {
+  const { enteteHtml, lignesHtml } = construireTableEcoulable(t, opts);
+  return `
+    <div style="border:0.5px solid ${t.bordureClaire};border-radius:10px;margin-top:12px">
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        ${enteteHtml}
         <tbody>
-          ${opts.rows.map(renderRow).join("")}
+          ${lignesHtml.join("")}
         </tbody>
       </table>
     </div>
@@ -891,57 +907,6 @@ export function coquillePage(_t: Tokens, opts: {
   });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// PAGINATION COLLECTIVE — décision de fusion + corps centré (Lot pagination)
-// ════════════════════════════════════════════════════════════════════════
-//
-// Helpers PURS (aucun DOM, aucune mesure) pour la page Prévoyance collective :
-//  (1) décider si le contenu actif (Conformité + Obligations) tient sur UNE
-//      feuille A4 (fusion) ou doit rester sur DEUX ;
-//  (2) centrer verticalement un corps court pour supprimer le bloc blanc en bas.
-// BIAIS CONSERVATEUR : on sur-compte le contenu et on sous-compte la place ;
-// toute incertitude => "ne tient pas" (jamais de clip silencieux).
-// Ces helpers ne sont câblés QUE dans pagePrevoyanceColl (opt-in) ; aucun autre
-// builder n'est impacté.
-
-// ── Géométrie de la feuille (px @ 96 dpi ; cf. coquillePage) ──
-const HAUTEUR_FEUILLE_PX = 1122;   // 297mm @ 96 dpi (coquillePage height:297mm)
-const PADDING_HAUT_PX = 32;        // coquillePage : padding:32px 38px 0
-export const RESERVE_BAS_PX = 120; // bande basse PHYSIQUE : pied + slot DDA (réserve la place
-                                   // de la DDA quoi qu'il arrive — anti-chevauchement façon pageProfil)
-export const RESERVE_PIED_PX = 30; // pied SEUL (piedPage : border-top + padding-top 8 + texte ~ 25, arrondi)
-const MARGE_SECURITE_PX = 120;     // sécurité d'ESTIMATION uniquement — seule molette réglable du doute
-// Repartition du blanc autour du corps centre, en RATIO (pas un cap pixel) :
-// l'entretoise HAUTE prend RATIO_HAUT_CORPS parts, la BASSE RATIO_BAS_CORPS parts de
-// l'espace libre. 1:2 => le corps est ancre dans le TIERS SUPERIEUR (1/3 du blanc
-// au-dessus, 2/3 en dessous) -- choix David 22/06 : prominence des inscriptions en
-// haut > centrage strict. AUCUN plafond.
-// POURQUOI un ratio et non un cap pixel : le ratio se transfere a TOUTE taille de
-// region. Un cap pixel sur l'entretoise haute bornait le blanc du HAUT ; sur une
-// grande region (page header-seul type pageFamille) tout le surplus se deversait alors
-// EN BAS -> corps colle en haut + gros blanc en bas. Le ratio garde la meme proportion
-// quelle que soit la hauteur libre.
-const RATIO_HAUT_CORPS = 1;
-const RATIO_BAS_CORPS = 2;
-
-// Budget de FLUX en feuille fusionnée = feuille - haut - bande basse (DDA réservée).
-const BUDGET_CONTENU_FUSION_PX = HAUTEUR_FEUILLE_PX - PADDING_HAUT_PX - RESERVE_BAS_PX; // = 970
-
-// ── Hauteurs FIXES par bloc (conservatrices ; source = helper correspondant) ──
-export const H_HEADER_PX = 80;     // header() : eyebrow + titre + sousTitre + filet + marges
-export const H_BANDE_KPI_PX = 90;  // bandeKPI compact : margin-top 18 + cellule ~ 66 + jeu
-export const H_SOUSTITRE_PX = 26;  // sousTitreSection .sct + marge
-export const H_SOUSTITRE_SERIF_PX = 30; // sousTitreSection serif (13.5px) + margin-bottom 8
-export const H_LIGNE_TEXTE_PX = 20; // texte 11px line-height 1.6 (~ 17.6 arrondi haut)
-export const CHARS_PAR_LIGNE_CONVENTION = 60; // largeur utile ~ 718px : 60 = SUR-compte les lignes
-const H_TABLE_ENTETE_PX = 28;      // tableauTitresDores thead (.th padding 7 + font 8.5)
-const H_LIGNE_AUDIT_PX = 34;       // .td 1-2 lignes (la référence peut wrapper) — conservateur
-const H_OBLIG_STATUT_PX = 18;      // ligne statutLabel des obligations
-const H_OBLIG_SYNTHESE_PX = 28;    // rangée des compteurs de synthèse (si présente)
-const H_LIGNE_OBLIG_PX = 46;       // ligne obligation : cadres/non-cadres (2 sous-lignes) + verdict empilé
-const H_NOTE_OBLIG_PX = 16;        // par note de bas
-const H_SEPARATEUR_PX = 16;        // margin-top:16px inter-sections (page)
-
 // ── Pagination de liste Succession A/B (hauteurs MESURÉES Chromium, arrondi conservateur) ──
 // Aucune constante magique : chaque valeur = mesure getBoundingClientRect + margin-top
 // du bloc correspondant, arrondie vers le haut (sur-compte = jamais de clip).
@@ -952,138 +917,6 @@ export const H_ENCART_NOTRE_LECTURE_BASE_PX = 76; // encartNotreLecture HORS tex
 export const H_BANDEAU_CONSOLIDE_PX = 82;    // Succession B : bandeauConsolide (mesuré 59) + margin-top 22
 export const H_CLAUSE_BENEF_PX = 48;         // Succession B : noteIconee clause (mesuré 35) + margin-top 11
 export const CHARS_PAR_LIGNE_ENCART = 75;    // encart 12.5px sur ~684px utile : 75 = sur-compte modéré le nb de lignes
-
-export type CountsFeuilleCollective = {
-  modeActif: boolean;
-  nbControles: number;            // d.controles.length
-  conventionLongueur: number;     // nb de caractères de champApplicationCCN (0 = absente)
-  nbLignesObligations: number;    // vue.lignes.length (0 si vue absente/vide)
-  nbNotesObligations: number;     // nb de notes de bas (nonPrevues + maintien)
-  syntheseObligations: boolean;   // vue.afficherComparaison && !!vue.synthese
-};
-
-// true SEULEMENT si le contenu actif tient sur UNE feuille, marge de sécurité
-// incluse. Conservateur : sur-compte le contenu, sous-compte la place ; tout
-// doute (NaN / undefined / négatif / mode inactif) => false. PUR.
-export function tientSurUneFeuille(c: CountsFeuilleCollective): boolean {
-  if (!c || c.modeActif !== true) return false; // l'inactif a son propre chemin, ce n'est pas une fusion
-  const entierSain = (n: number): boolean => typeof n === "number" && Number.isFinite(n) && n >= 0;
-  if (
-    !entierSain(c.nbControles) ||
-    !entierSain(c.conventionLongueur) ||
-    !entierSain(c.nbLignesObligations) ||
-    !entierSain(c.nbNotesObligations)
-  ) {
-    return false; // incertitude => traité comme "trop grand"
-  }
-
-  const lignesConvention =
-    c.conventionLongueur > 0 ? Math.ceil(c.conventionLongueur / CHARS_PAR_LIGNE_CONVENTION) : 0;
-
-  let h = H_HEADER_PX + H_BANDE_KPI_PX;
-
-  // Convention applicable (optionnelle).
-  if (c.conventionLongueur > 0) {
-    h += H_SEPARATEUR_PX + H_SOUSTITRE_SERIF_PX + lignesConvention * H_LIGNE_TEXTE_PX;
-  }
-
-  // Bloc Audit de conformité (toujours présent en mode actif).
-  h += H_SEPARATEUR_PX + H_SOUSTITRE_PX + H_TABLE_ENTETE_PX + c.nbControles * H_LIGNE_AUDIT_PX;
-
-  // Bloc Obligations de branche.
-  h += H_SEPARATEUR_PX + H_SOUSTITRE_PX + H_OBLIG_STATUT_PX;
-  if (c.syntheseObligations === true) h += H_OBLIG_SYNTHESE_PX;
-  if (c.nbLignesObligations > 0) h += H_TABLE_ENTETE_PX + c.nbLignesObligations * H_LIGNE_OBLIG_PX;
-  h += c.nbNotesObligations * H_NOTE_OBLIG_PX;
-
-  return h + MARGE_SECURITE_PX <= BUDGET_CONTENU_FUSION_PX;
-}
-
-// Enveloppe un corps dans une région à hauteur BORNEE, ancré dans le TIERS SUPERIEUR
-// par RATIO d'entretoises. Corps long => remonte en haut sans dilution (les
-// entretoises se reduisent par shrink). PUR.
-//
-// Mécanique DÉTERMINISTE : 2 entretoises flex, SANS justify-content. La HAUTE pousse
-// avec RATIO_HAUT_CORPS parts, la BASSE avec RATIO_BAS_CORPS parts (flex-grow). Le
-// blanc libre se repartit donc 1:2 quelle que soit la hauteur de la region (1/3 au
-// dessus du corps, 2/3 en dessous) -- aucun cap pixel (cf RATIO_*). Corps plus haut
-// que la région -> entretoises réduites à 0 (shrink) -> aucune dilution, corps en
-// haut, clip en extrême.
-export function regionCorpsCentree(
-  corpsHTML: string,
-  opts: { hauteurZoneHautPx: number; reserveBasPx?: number }
-): string {
-  const reserveBas = opts.reserveBasPx ?? RESERVE_PIED_PX;
-  const hauteurRegion = Math.max(
-    0,
-    HAUTEUR_FEUILLE_PX - PADDING_HAUT_PX - opts.hauteurZoneHautPx - reserveBas
-  );
-  return (
-    `<div style="height:${hauteurRegion}px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box">` +
-    `<div style="flex:${RATIO_HAUT_CORPS} 1 0"></div>` +
-    `<div>${corpsHTML}</div>` +
-    `<div style="flex:${RATIO_BAS_CORPS} 1 0"></div>` +
-    `</div>`
-  );
-}
-
-// ─── paginerLignesSurFeuilles : découpe une liste de rows homogènes en fragments
-//     de CORPS (table thead+rows + queue), un par feuille A4. Généralise la concat
-//     2-feuilles de pagePrevoyanceColl au cas « liste longue ». Le builder enveloppe
-//     ensuite chaque fragment dans coquillePage (header / pied / numérotation gérés
-//     côté builder, inchangés). PUR (HTML). Conserve le débordement-zéro : on
-//     SUR-compte (cf. constantes mesurées) puis on découpe par comptage.
-//
-// Le thead est ré-émis dans CHAQUE fragment (tableauTitresDores le porte) : son
-// budget (H_TABLE_ENTETE_PX) est donc soustrait UNE fois par feuille, des deux
-// régions. La queue (blocQueueHTML) n'est ajoutée que sur la DERNIÈRE feuille.
-export function paginerLignesSurFeuilles<T>(opts: {
-  t: Tokens;
-  lignes: T[];
-  cols: Col[];
-  rendreLigne: (ligne: T) => Cell[];
-  poidsLigne: (ligne: T) => number;
-  blocQueueHTML: string;
-  /** Hauteur fixe (px) au-dessus de la table, feuille 1 (header + KPI + note + Dévolution + sous-titre). */
-  zoneHaute1Px: number;
-  /** Hauteur fixe (px) au-dessus de la table, feuilles de continuation (header + sous-titre). */
-  zoneHauteContPx: number;
-  /** Hauteur (px) du bloc de queue, épinglé sur la dernière feuille. */
-  hauteurBlocQueuePx: number;
-  /** Hauteur d'une unité-ligne (défaut H_LIGNE_LISTE_PX). */
-  hauteurLignePx?: number;
-  /** Réserve basse (défaut RESERVE_PIED_PX : pied seul, ni DDA ni signature sur Succession). */
-  reserveBasPx?: number;
-}): string[] {
-  const hLigne = opts.hauteurLignePx ?? H_LIGNE_LISTE_PX;
-  const reserveBas = opts.reserveBasPx ?? RESERVE_PIED_PX;
-  // Région de ROWS = feuille − padding haut − zone haute fixe − réserve basse − thead (répété).
-  const regionFeuille1Px =
-    HAUTEUR_FEUILLE_PX - PADDING_HAUT_PX - opts.zoneHaute1Px - reserveBas - H_TABLE_ENTETE_PX;
-  const regionContinuationPx =
-    HAUTEUR_FEUILLE_PX - PADDING_HAUT_PX - opts.zoneHauteContPx - reserveBas - H_TABLE_ENTETE_PX;
-
-  const poids = opts.lignes.map(opts.poidsLigne);
-  const feuilles = repartirLignesEnFeuilles(poids, {
-    hauteurLignePx: hLigne,
-    regionFeuille1Px,
-    regionContinuationPx,
-    hauteurBlocQueuePx: opts.hauteurBlocQueuePx,
-    margeSecuritePx: MARGE_SECURITE_PX,
-  });
-
-  return feuilles.map((indices, f) => {
-    const estDerniere = f === feuilles.length - 1;
-    const table =
-      indices.length > 0
-        ? tableauTitresDores(opts.t, {
-            cols: opts.cols,
-            rows: indices.map((i) => opts.rendreLigne(opts.lignes[i])),
-          })
-        : "";
-    return `${table}${estDerniere ? opts.blocQueueHTML : ""}`;
-  });
-}
 
 // ════════════════════════════════════════════════════════════════════════
 // DOCUMENTS RÉGLEMENTAIRES — primitives partagées par les 4 documents v2
@@ -1325,13 +1158,17 @@ export function cadresSignatureDocReg(t: Tokens, opts: {
 export function coquilleDocument(t: Tokens, opts: {
   titre: string;
   body: string;
+  /** Bloc polices a injecter. Defaut = <link> jsdelivr reseau (FONTS_HTML_LINKS),
+   *  conserve pour le harnais DEV `tsx`. Le runtime (generatePack) passe les
+   *  @font-face locaux bundles (FONT_FACES_STYLE) -> rendu offline. */
+  fontsHtml?: string;
 }): string {
   return `<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
 <title>${opts.titre}</title>
-${FONTS_HTML_LINKS}
+${opts.fontsHtml ?? FONTS_HTML_LINKS}
 <style>${cssCommun(t)}</style>
 </head>
 <body>

@@ -86,13 +86,13 @@ export function pageCouverture(t: Tokens, d: CouverturePageData): string {
       `;
 
   return `
-    <div style="position:relative;width:210mm;height:297mm;overflow:hidden;background:${t.cream}">
+    <div data-pdf-cover="1" style="position:relative;width:210mm;height:297mm;overflow:hidden;background:${t.cream}">
       <!-- Liseré latéral gauche : 10px navy + 3px or -->
       <div style="position:absolute;left:0;top:0;bottom:0;width:10px;background:${t.navy}"></div>
       <div style="position:absolute;left:10px;top:0;bottom:0;width:3px;background:${t.or}"></div>
 
       <!-- Motif décoratif d'arcs or en bas à droite -->
-      ${motifArcsBasDroit(t, 300)}
+      ${motifArcsBasDroit(t, 460)}
 
       <!-- Contenu principal (avec padding adapté au liseré) -->
       <div style="padding:40px 42px 0 56px;position:relative;z-index:1">

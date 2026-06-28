@@ -1,8 +1,7 @@
 // ─── Lot 9 — Page Prévoyance personnelle v2 (module Prévoyance) ─────────
 //
-// Remplace l'ancienne pagePrevoyanceInd (générique). Consomme désormais
-// le VRAI moteur de projection : graphique d'aires empilées en SVG
-// inline + tableau des jalons + constats triés + mention DDA.
+// Consomme le VRAI moteur de projection : graphique d'aires empilées en
+// SVG inline + tableau des jalons + constats triés + mention DDA.
 //
 // Une page par personne (P1 / P2). Mentions DDA non négociables en bas
 // (spec §13.3).
@@ -14,10 +13,9 @@ import {
   tableauTitresDores,
   encartNotreLecture,
   noteIconee,
-  piedPage,
-  coquillePage,
   icones,
 } from "../primitives";
+import { compilerPageContrat, type Bloc } from "../engine/contrat";
 import type { Tokens } from "../tokens";
 import type { Constat, ProjectionResult } from "../../../prevoyance/types";
 import { renderProjectionSVG } from "../prevoyanceChart";
@@ -76,24 +74,34 @@ function renderConstatHTML(t: Tokens, c: Constat): string {
   `;
 }
 
+// PHASE 3 (moteur paged.js) — page DÉCLARÉE via le contrat (engine/contrat.ts), comme
+// Recommandations/Hypos/IFI. Sortie de coquillePage (boîte overflow:hidden → clip des
+// constats EN PROD). Ordre du flux : header / KPI / warning / sous-titre+chart /
+// sous-titre+jalons / « Notre lecture » (MILIEU de flux) / sous-titre+constats /
+// mention DDA = QueueEpinglee (la VRAIE queue, épinglée en bas, spec §13.3).
+// Mêmes données pour P1 et P2 (which) → la migration couvre les 2 sections d'un coup.
 export function pagePrevoyancePerso(t: Tokens, d: PrevoyancePersoPageData): string {
+  // ── Branche « non disponible » : header + message, sans queue ──
   if (!d.disponible || !d.projection) {
-    const contenu = `
-      ${header(t, {
-        eyebrow: "Prévoyance",
-        titre: `Prévoyance personnelle — ${d.personneLibelle}`,
-        droiteHaut: d.clientName,
-        droiteBas: d.dateStr,
-      })}
-      <div style="margin-top:40px;text-align:center;font-size:12px;color:${t.texteFaible};line-height:1.6">
+    const blocs: Bloc[] = [
+      {
+        kind: "insecable",
+        html: header(t, {
+          eyebrow: "Prévoyance",
+          titre: `Prévoyance personnelle — ${d.personneLibelle}`,
+          droiteHaut: d.clientName,
+          droiteBas: d.dateStr,
+        }),
+      },
+      {
+        kind: "insecable",
+        html: `<div style="margin-top:40px;text-align:center;font-size:12px;color:${t.texteFaible};line-height:1.6">
         Données professionnelles non renseignées pour cette personne.<br/>
         Compléter l'onglet Travail pour activer la projection prévoyance.
-      </div>
-    `;
-    return coquillePage(t, {
-      contenu,
-      pied: piedPage(t, { gauche: d.cabinetLibellePied, droite: d.pagePosition }),
-    });
+      </div>`,
+      },
+    ];
+    return compilerPageContrat(blocs);
   }
 
   const kpis = [
@@ -118,52 +126,83 @@ export function pagePrevoyancePerso(t: Tokens, d: PrevoyancePersoPageData): stri
     ]),
   });
 
-  const constatsHTML =
-    d.constats.length > 0
-      ? d.constats.map((c) => renderConstatHTML(t, c)).join("")
-      : `<div style="margin-top:8px;font-size:10.5px;color:${t.texteFaible};font-style:italic">Aucun constat à signaler — la couverture en place semble cohérente avec la situation déclarée.</div>`;
+  // ── Déclaration des blocs (contrat de page) ──
+  const blocs: Bloc[] = [];
 
-  const contenu = `
-    ${header(t, {
+  // 1. Header (insécable).
+  blocs.push({
+    kind: "insecable",
+    html: header(t, {
       eyebrow: "Prévoyance",
       titre: `Prévoyance personnelle — ${d.personneLibelle}`,
       sousTitre: d.ageInfo,
       droiteHaut: d.clientName,
       droiteBas: d.dateStr,
-    })}
+    }),
+  });
 
-    ${bandeKPI(t, kpis)}
+  // 2. Bande KPI (insécable).
+  blocs.push({ kind: "insecable", html: bandeKPI(t, kpis) });
 
-    ${d.warningMicroTNS
-      ? `<div style="margin-top:12px;border:1px solid #F59E0B;border-radius:8px;background:#FBF3E3;padding:10px 12px;font-size:10px;line-height:1.45;color:#7C4A04">${d.warningMicroTNS}</div>`
-      : ""}
+  // 3. Avertissement micro-TNS (conditionnel, insécable).
+  if (d.warningMicroTNS) {
+    blocs.push({
+      kind: "insecable",
+      html: `<div style="margin-top:12px;border:1px solid #F59E0B;border-radius:8px;background:#FBF3E3;padding:10px 12px;font-size:10px;line-height:1.45;color:#7C4A04">${d.warningMicroTNS}</div>`,
+    });
+  }
 
-    <div style="margin-top:16px">
-      ${sousTitreSection(t, "Projection des revenus de remplacement (arrêt maladie puis invalidité)")}
-      ${renderProjectionSVG(d.projection, t)}
-    </div>
+  // 4. Sous-titre « Projection » : solidaire du graphique (titre non orphelin).
+  blocs.push({
+    kind: "insecable",
+    solidaireAvecSuivant: true,
+    html: `<div style="margin-top:16px">${sousTitreSection(t, "Projection des revenus de remplacement (arrêt maladie puis invalidité)")}</div>`,
+  });
 
-    <div style="margin-top:14px">
-      ${sousTitreSection(t, "Points clés")}
-      ${jalonsTable}
-    </div>
+  // 5. ProjectionChart SVG + légende (insécable : jamais coupé).
+  blocs.push({ kind: "insecable", html: renderProjectionSVG(d.projection, t) });
 
-    ${encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture })}
+  // 6. Sous-titre « Points clés » : solidaire du tableau des jalons.
+  blocs.push({
+    kind: "insecable",
+    solidaireAvecSuivant: true,
+    html: `<div style="margin-top:14px">${sousTitreSection(t, "Points clés")}</div>`,
+  });
 
-    <div style="margin-top:14px">
-      ${sousTitreSection(t, "Constats et pistes")}
-      ${constatsHTML}
-    </div>
+  // 7. Tableau des jalons (≤ 7 lignes) : insécable, sécable en dernier recours (garde-fou).
+  blocs.push({ kind: "insecable", secableEnDernierRecours: true, html: jalonsTable });
 
-    ${noteIconee(t, {
+  // 8. « Notre lecture » : MILIEU DE FLUX (PAS la queue), avant les constats.
+  blocs.push({ kind: "insecable", html: encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) });
+
+  // 9. Sous-titre « Constats et pistes » : solidaire de son 1er constat.
+  blocs.push({
+    kind: "insecable",
+    solidaireAvecSuivant: true,
+    html: `<div style="margin-top:14px">${sousTitreSection(t, "Constats et pistes")}</div>`,
+  });
+
+  // 10. Constats : suite de cartes insécables (écoulées sur N feuilles, zéro perte).
+  if (d.constats.length > 0) {
+    for (const c of d.constats) {
+      blocs.push({ kind: "insecable", html: renderConstatHTML(t, c) });
+    }
+  } else {
+    blocs.push({
+      kind: "insecable",
+      html: `<div style="margin-top:8px;font-size:10.5px;color:${t.texteFaible};font-style:italic">Aucun constat à signaler — la couverture en place semble cohérente avec la situation déclarée.</div>`,
+    });
+  }
+
+  // 11. Mention DDA = QueueEpinglee : LA vraie queue, épinglée en bas de la dernière feuille.
+  blocs.push({
+    kind: "queue",
+    html: noteIconee(t, {
       iconeSvg: icones.infoCircle(t.eyebrowOr, 14),
       texteHtml: d.mentionDDA,
       style: "discrete",
-    })}
-  `;
-
-  return coquillePage(t, {
-    contenu,
-    pied: piedPage(t, { gauche: d.cabinetLibellePied, droite: d.pagePosition }),
+    }),
   });
+
+  return compilerPageContrat(blocs);
 }

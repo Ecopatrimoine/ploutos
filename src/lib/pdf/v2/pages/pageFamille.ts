@@ -9,16 +9,12 @@
 import {
   header,
   sousTitreSection,
-  tableauTitresDores,
   encartNotreLecture,
-  piedPage,
-  coquillePage,
-  regionCorpsCentree,
-  H_HEADER_PX,
-  RESERVE_PIED_PX,
+  construireTableEcoulable,
   type Col,
   type Cell,
 } from "../primitives";
+import { compilerPageContrat, type Bloc } from "../engine/contrat";
 import type { Tokens } from "../tokens";
 
 export type PersonneFamille = {
@@ -98,47 +94,61 @@ export function pageFamille(t: Tokens, d: FamillePageData): string {
     { value: e.handicap ? "✓" : "—", align: "center", color: e.handicap ? t.thOr : t.texteFaibleClair },
   ]));
 
-  // ZONE HAUTE : header seul (pas d'intro/legende sur cette page) -> reste en haut.
-  const zoneHaute = header(t, {
-    eyebrow: "Composition du foyer",
-    titre: "Situation familiale",
-    droiteHaut: d.clientName,
-    droiteBas: d.dateStr,
+  // ─── Déclaration des blocs (contrat de page, engine/contrat.ts) ───────
+  // Bascule de mécanisme (coquillePage + regionCorpsCentree → compilerPageContrat) :
+  // plus de boîte A4 ni de centrage manuel — le flux gère le placement (corps en
+  // haut sous le header). Le pied est géré par les margin-boxes @page du feeder.
+  // Ordre visuel, libellés, styles et couleurs INCHANGÉS.
+  const blocs: Bloc[] = [];
+
+  // Header de page (insécable).
+  blocs.push({
+    kind: "insecable",
+    html: header(t, {
+      eyebrow: "Composition du foyer",
+      titre: "Situation familiale",
+      droiteHaut: d.clientName,
+      droiteBas: d.dateStr,
+    }),
   });
 
-  // CORPS : la composition du foyer (cards personnes/situation + table enfants +
-  // notre lecture). C'est lui qu'on centre verticalement sur un foyer court.
-  const corps = `
-    <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  // Cartes personnes (grille 2 colonnes) — un seul bloc. En foyer solo, la 2e
+  // cellule porte la carte « Situation familiale ».
+  blocs.push({
+    kind: "insecable",
+    html: `<div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
       ${renderPersonne(d.personne1, "Personne 1")}
       ${d.personne2 ? renderPersonne(d.personne2, "Personne 2") : cardSituation}
-    </div>
-
-    ${d.personne2 ? `<div style="margin-top:16px">${cardSituation}</div>` : ""}
-
-    ${d.enfants.length > 0 ? `
-      <div style="margin-top:18px">
-        ${sousTitreSection(t, `Enfants — ${d.enfants.length} enregistré${d.enfants.length > 1 ? "s" : ""}`)}
-        ${tableauTitresDores(t, { cols, rows })}
-      </div>
-    ` : ""}
-
-    ${d.notreLecture ? encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) : ""}
-  `;
-
-  // Centrage (pilote generalisation, regionCorpsCentree du Lot 1) : header en haut,
-  // corps centre dans la zone restante. hauteurZoneHaut = H_HEADER_PX (header seul),
-  // reserveBas = RESERVE_PIED_PX (pied simple, aucune signature/DDA epinglee ici).
-  // Constantes FIGEES Lot 1 -> aucun nombre magique nouveau. Pied inchange (coquille).
-  const contenu = `
-    ${zoneHaute}
-    ${regionCorpsCentree(corps, { hauteurZoneHautPx: H_HEADER_PX, reserveBasPx: RESERVE_PIED_PX })}
-  `;
-
-  const pied = piedPage(t, {
-    gauche: d.cabinetLibellePied,
-    droite: d.pagePosition,
+    </div>`,
   });
 
-  return coquillePage(t, { contenu, pied });
+  // En couple, la carte « Situation familiale » est sur sa propre ligne — bloc séparé.
+  if (d.personne2) {
+    blocs.push({ kind: "insecable", html: `<div style="margin-top:16px">${cardSituation}</div>` });
+  }
+
+  // Section « Enfants » : sous-titre solidaire de sa table, puis la table en
+  // ListeEcoulable (coupable ENTRE lignes ; thead répété + « (suite) » par le
+  // handler) → s'écoule sur N feuilles si beaucoup d'enfants, au lieu de clipper.
+  if (d.enfants.length > 0) {
+    const { enteteHtml, lignesHtml } = construireTableEcoulable(t, { cols, rows });
+    blocs.push({
+      kind: "insecable",
+      solidaireAvecSuivant: true,
+      html: `<div style="margin-top:18px">${sousTitreSection(t, `Enfants — ${d.enfants.length} enregistré${d.enfants.length > 1 ? "s" : ""}`)}</div>`,
+    });
+    blocs.push({
+      kind: "liste",
+      enteteHtml,
+      lignesHtml,
+      styleTable: `width:100%;border-collapse:collapse;table-layout:fixed;border:0.5px solid ${t.bordureClaire};margin-top:12px`,
+    });
+  }
+
+  // Encart « Notre lecture » — queue épinglée en fin de flux (si présent).
+  if (d.notreLecture) {
+    blocs.push({ kind: "queue", html: encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) });
+  }
+
+  return compilerPageContrat(blocs);
 }

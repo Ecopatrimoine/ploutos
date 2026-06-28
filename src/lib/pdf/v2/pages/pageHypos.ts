@@ -11,10 +11,9 @@ import {
   bandeKPI,
   sousTitreSection,
   encartNotreLecture,
-  piedPage,
-  coquillePage,
   euro,
 } from "../primitives";
+import { compilerPageContrat, type Bloc } from "../engine/contrat";
 import type { Tokens } from "../tokens";
 
 export type HypoScenarioKpi = {
@@ -27,6 +26,10 @@ export type HypoScenario = {
   titre: string;
   objectif?: string;
   notes?: string;
+  /** Synthèse signée = somme des 3 deltas (IR + IFI + Succession), = kpis[3].delta.
+   *  Convention : < 0 gain, > 0 surcoût, === 0 neutre. Pilote le filet de sévérité.
+   *  Aucune logique fiscale : simple nommage d'une valeur déjà calculée par l'adapter. */
+  deltaTotal: number;
   kpis: HypoScenarioKpi[];   // 4 KPI : IR, IFI, Succession, Total
 };
 
@@ -52,9 +55,14 @@ export function pageHypos(t: Tokens, d: HyposPageData): string {
   const formatDelta = (delta: number): { texte: string; couleur: string } => {
     if (delta === 0)  return { texte: `±0 €`, couleur: t.texteFaible };
     if (delta < 0)    return { texte: `− ${euro(Math.abs(delta))}`, couleur: t.succes };
-    // Pas de token danger défini ; rouge bordeaux sobre, cohérent navy/or.
-    return { texte: `+ ${euro(delta)}`, couleur: "#B0413E" };
+    return { texte: `+ ${euro(delta)}`, couleur: t.danger };
   };
+
+  // Filet de sévérité : MÊME classification de signe que formatDelta (aucun nouveau seuil).
+  // < 0 gain → vert ; > 0 surcoût → rouge ; === 0 neutre → or sobre (filet toujours visible,
+  // la position du filet fait partie de la redondance non-couleur avec le signe +/-).
+  const filetSeverite = (deltaTotal: number): string =>
+    deltaTotal < 0 ? t.succes : deltaTotal > 0 ? t.danger : t.or;
 
   const renderKpi = (k: HypoScenarioKpi) => {
     const { texte, couleur } = formatDelta(k.delta);
@@ -66,8 +74,11 @@ export function pageHypos(t: Tokens, d: HyposPageData): string {
       </div>`;
   };
 
+  // Carte scénario : bordure t.bordureMoyenne (mieux délimitée que bordureClaire) + filet
+  // vertical gauche 3px piloté par le SIGNE de deltaTotal. Coin gauche carré (le filet = bord
+  // plein), coins droits arrondis. Les tuiles KPI gardent leur aplat doux existant t.fondTableauAlt.
   const renderScenario = (s: HypoScenario) => `
-    <div style="background:${t.fondEncart};border:0.5px solid ${t.bordureClaire};border-radius:10px;padding:14px 16px;margin-top:12px">
+    <div style="background:${t.fondEncart};border:0.5px solid ${t.bordureMoyenne};border-left:3px solid ${filetSeverite(s.deltaTotal)};border-radius:0 10px 10px 0;padding:14px 16px;margin-top:12px">
       <div style="font-size:12.5px;font-weight:700;color:${t.navy};margin-bottom:4px">${s.titre}</div>
       ${s.objectif ? `<div style="font-size:10.5px;color:${t.eyebrowOr};font-weight:600;margin-bottom:4px">Objectif : ${s.objectif}</div>` : ""}
       ${s.notes ? `<div style="font-size:10.5px;color:${t.texteFaible};line-height:1.5;margin-bottom:8px;font-style:italic">${s.notes}</div>` : ""}
@@ -76,51 +87,79 @@ export function pageHypos(t: Tokens, d: HyposPageData): string {
       </div>
     </div>`;
 
-  const corpsScenarios = d.scenarios.length > 0
-    ? d.scenarios.map(renderScenario).join("")
-    : `<div style="margin-top:14px;font-size:10.5px;color:${t.texteFaibleClair};font-style:italic;background:${t.fondTableauAlt};border:0.5px solid ${t.bordureClaire};border-radius:8px;padding:14px 16px">Aucune hypothèse complète saisie pour ce dossier. Les scénarios alternatifs sont à modéliser dans l'onglet « Hypothèses ».</div>`;
+  // ─── Déclaration des blocs (contrat de page, engine/contrat.ts) ──
+  const blocs: Bloc[] = [];
 
-  const contenu = `
-    ${header(t, {
+  // Header de page (insécable).
+  blocs.push({
+    kind: "insecable",
+    html: header(t, {
       eyebrow: "Optimisation",
       titre: "Scénarios d'optimisation",
       droiteHaut: d.clientName,
       droiteBas: d.dateStr,
-    })}
-
-    ${bandeKPI(t, kpiBase)}
-    <div class="foot">Référence de comparaison. Chaque scénario ci-dessous affiche le delta vs cette base — gain en vert, surcoût en rouge.</div>
-
-    ${d.scenarios.length > 0 ? `
-      <div style="margin-top:14px">
-        ${sousTitreSection(t, "Comparatif visuel — IR / IFI / Succession")}
-        ${renderHyposBarChart(t, d)}
-      </div>
-    ` : ""}
-
-    <div style="margin-top:14px">
-      ${sousTitreSection(t, `Scénarios étudiés — ${d.scenarios.length}`)}
-      ${corpsScenarios}
-    </div>
-
-    ${d.notreLecture ? encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) : ""}
-  `;
-
-  const pied = piedPage(t, {
-    gauche: d.cabinetLibellePied,
-    droite: d.pagePosition,
+    }),
   });
 
-  return coquillePage(t, { contenu, pied });
+  // Bande KPI de référence + note (insécables, gardées ensemble).
+  blocs.push({
+    kind: "insecable",
+    html: `${bandeKPI(t, kpiBase)}
+    <div class="foot">Référence de comparaison. Chaque scénario ci-dessous affiche le delta vs cette base — gain en vert, surcoût en rouge.</div>`,
+  });
+
+  // Comparatif visuel : sous-titre + chart SVG dans UN bloc insécable (le graphique
+  // n'est jamais coupé). Cap retiré (Lot 5.2) : le chart trace TOUS les scénarios,
+  // largeur de barre auto-adaptée, palette qualitative t.paletteScenarios.
+  if (d.scenarios.length > 0) {
+    blocs.push({
+      kind: "insecable",
+      html: `<div style="margin-top:14px">
+        ${sousTitreSection(t, "Comparatif visuel — IR / IFI / Succession")}
+        ${renderHyposBarChart(t, d)}
+      </div>`,
+    });
+  }
+
+  // Sous-titre « Scénarios étudiés — N » : solidaire de sa 1ʳᵉ carte (titre non orphelin).
+  blocs.push({
+    kind: "insecable",
+    solidaireAvecSuivant: true,
+    html: `<div style="margin-top:14px">${sousTitreSection(t, `Scénarios étudiés — ${d.scenarios.length}`)}</div>`,
+  });
+
+  // CHAQUE carte de scénario = bloc insécable. Suite écoulée sur N feuilles, ZÉRO perte
+  // (cartes et chart désormais tous deux sans cap).
+  if (d.scenarios.length > 0) {
+    for (const s of d.scenarios) {
+      blocs.push({ kind: "insecable", html: renderScenario(s) });
+    }
+  } else {
+    blocs.push({
+      kind: "insecable",
+      html: `<div style="margin-top:14px;font-size:10.5px;color:${t.texteFaibleClair};font-style:italic;background:${t.fondTableauAlt};border:0.5px solid ${t.bordureClaire};border-radius:8px;padding:14px 16px">Aucune hypothèse complète saisie pour ce dossier. Les scénarios alternatifs sont à modéliser dans l'onglet « Hypothèses ».</div>`,
+    });
+  }
+
+  // Note de fin (queue épinglée en fin de flux).
+  if (d.notreLecture) {
+    blocs.push({ kind: "queue", html: encartNotreLecture(t, { titre: "Notre lecture", texte: d.notreLecture }) });
+  }
+
+  return compilerPageContrat(blocs);
 }
 
 // ─── Bar chart vertical groupé (IR / IFI / Succession) ──────────────
-// Compare la Base + chaque scénario (max 3 affichés pour rester lisible).
-// SVG inline, palette v2 (navy pour Base, gold/sky/eyebrowOr pour scénarios).
+// Compare la Base + TOUS les scénarios (cap retiré, Lot 5.2). SVG inline ;
+// navy pour la Base, palette qualitative t.paletteScenarios pour les scénarios.
+// Lisibilité : les étiquettes de valeur au-dessus des barres commencent à se
+// chevaucher vers ~5 scénarios/groupe (barre < ~22u) ; repli (rotation/abréviation)
+// volontairement NON implémenté (cf. recap) tant que les packs réels restent en deçà.
 function renderHyposBarChart(t: Tokens, d: HyposPageData): string {
-  const MAX_SCENARIOS_AFFICHES = 3;
-  const visibles = d.scenarios.slice(0, MAX_SCENARIOS_AFFICHES);
-  const surplus = d.scenarios.length - visibles.length;
+  // Cap retiré (Lot 5.2) : TOUS les scénarios sont tracés (avant : 3 max + note de surplus).
+  // barWidth s'auto-adapte au nombre de barres (cf. plus bas) ; la palette qualitative
+  // t.paletteScenarios évite la répétition de teinte jusqu'à 6 scénarios.
+  const visibles = d.scenarios;
 
   const groupes = [
     { label: "IR",         base: d.baseIR,         values: visibles.map(s => s.kpis[0]?.valeur || 0) },
@@ -131,7 +170,10 @@ function renderHyposBarChart(t: Tokens, d: HyposPageData): string {
   const allValues = groupes.flatMap(g => [g.base, ...g.values]);
   const maxValue = Math.max(...allValues, 1);
 
-  const couleursScenarios = [t.or, t.sectionGrisBleu, t.eyebrowOr];
+  // Palette qualitative tokenisée (6 teintes distinctes, a11y-réglée). Le modulo reste
+  // un garde-fou au-delà de 6 scénarios (rare) ; la légende + la position de barre lèvent
+  // alors l'ambiguïté de teinte répétée.
+  const couleursScenarios = t.paletteScenarios;
 
   // Dimensions (en unités SVG, viewBox responsive)
   const width = 600;
@@ -179,10 +221,6 @@ function renderHyposBarChart(t: Tokens, d: HyposPageData): string {
     </div>
   `).join("");
 
-  const noteSurplus = surplus > 0
-    ? `<div style="margin-top:6px;font-size:9.5px;color:${t.texteFaibleClair};font-style:italic">+ ${surplus} scénario${surplus > 1 ? "s" : ""} non affiché${surplus > 1 ? "s" : ""} dans le graphique (voir détail ci-dessous).</div>`
-    : "";
-
   return `
     <div style="background:${t.fondTableauAlt};border:0.5px solid ${t.bordureClaire};border-radius:10px;padding:12px 14px;margin-top:6px">
       <div style="margin-bottom:8px;line-height:1.6">${legende}</div>
@@ -191,7 +229,6 @@ function renderHyposBarChart(t: Tokens, d: HyposPageData): string {
         ${bars}
         ${labels}
       </svg>
-      ${noteSurplus}
     </div>
   `;
 }

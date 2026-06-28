@@ -1,13 +1,13 @@
-// Lot pagination collective — tests BUILDER de pagePrevoyanceColl :
-//  - fusion (contenu court) -> 1 feuille ; CCN lourde -> 2 feuilles ; inactif -> 1.
-//  - DDA exactement une fois, en bande ancree (bottom:42px) sur la derniere feuille.
-//  - chemin 2-feuilles : marqueur de centrage (entretoise region flex 1:2) present
-//    sur la feuille 1, ABSENT de la feuille 2.
-//  - aucun contenu perdu : tous les libelles de controles + tous les garantieLabel
-//    presents (fusion ET 2-feuilles).
+// Phase 3 — tests BUILDER de pagePrevoyanceColl (flux unique, contrat de page) :
+//  - FLUX UNIQUE : un seul conteneur `pdf-contrat`, AUCUNE boite A4
+//    (width:210mm;height:297mm), AUCUN slot signature absolu (bottom:42px),
+//    AUCUNE region de centrage (flex:1 1 0). paged.js pagine seul.
+//  - 2 tables ecoulables (audit + obligations) -> 2x `data-pdf-tbl`.
+//  - DDA en QueueEpinglee (`pdf-queue`), exactement une fois, APRES le contenu.
+//  - aucun contenu perdu : tous les libelles de controles + tous les garantieLabel.
 //
-// Dossiers SYNTHETIQUES (counts deterministes) pour piloter exactement la decision
-// de fusion ; le rendu visuel reel est validee a part (validation David).
+// Dossiers SYNTHETIQUES (counts deterministes) ; le rendu visuel reel est valide
+// a part (validation David).
 
 import { describe, it, expect } from "vitest";
 import { buildTokens } from "../lib/pdf/v2/tokens";
@@ -68,20 +68,26 @@ function dColl(over: Partial<PrevoyanceCollPageData>): PrevoyanceCollPageData {
 }
 
 const CONVENTION_LONGUE = "X".repeat(600);
+// Plus aucune boite A4 ni slot absolu en flux contrat : ces compteurs doivent
+// rester a zero / absents (sentinelle anti-regression du mecanisme).
 const nbFeuilles = (html: string) => html.split("width:210mm;height:297mm").length - 1;
 const nbOcc = (html: string, s: string) => html.split(s).length - 1;
 
-describe("pagePrevoyanceColl — pagination adaptative (builder)", () => {
-  it("contenu court -> FUSION en 1 feuille pleine (pas de centrage), DDA en pied, rien perdu", () => {
+describe("pagePrevoyanceColl — flux unique (builder)", () => {
+  it("contenu court -> flux unique (pdf-contrat), 2 tables ecoulables, DDA en queue, rien perdu", () => {
     const d = dColl({ controles: [ctrl(1), ctrl(2)], vueObligations: vue(2) });
     const html = pagePrevoyanceColl(t, d);
-    expect(nbFeuilles(html)).toBe(1);
-    // pas de region de centrage sur la feuille fusionnee (feuille PLEINE)
+    // flux unique : un seul conteneur contrat, AUCUNE boite A4 ni slot/centrage
+    expect(html).toContain('class="pdf-contrat"');
+    expect(nbFeuilles(html)).toBe(0);
+    expect(html).not.toContain("bottom:42px");
     expect(html).not.toContain("flex:1 1 0");
-    // DDA exactement une fois, ancree bottom:42px, et apres le contenu
+    // 2 tables ecoulables (audit + obligations)
+    expect(nbOcc(html, "data-pdf-tbl")).toBe(2);
+    // DDA exactement une fois, en QueueEpinglee, APRES le contenu (audit)
     expect(nbOcc(html, "L.521-4")).toBe(1);
-    expect(html).toContain("bottom:42px");
-    expect(html.indexOf("L.521-4")).toBeGreaterThan(html.indexOf("bottom:42px"));
+    expect(html).toContain('class="pdf-queue"');
+    expect(html.indexOf("L.521-4")).toBeGreaterThan(html.indexOf("Audit de conformité"));
     // aucun contenu perdu
     expect(html).toContain("Controle numero 1");
     expect(html).toContain("Controle numero 2");
@@ -89,39 +95,40 @@ describe("pagePrevoyanceColl — pagination adaptative (builder)", () => {
     expect(html).toContain("Garantie numero 2");
   });
 
-  it("CCN lourde -> 2 feuilles : feuille 1 audit CENTRE, feuille 2 obligations + DDA, rien perdu", () => {
+  it("contenu lourd (CCN longue + 12 controles + 16 obligations) -> flux unique, rien perdu", () => {
     const d = dColl({
       controles: Array.from({ length: 12 }, (_, i) => ctrl(i + 1)),
       champApplicationCCN: CONVENTION_LONGUE,
       vueObligations: vue(16, { synthese: true }),
     });
     const html = pagePrevoyanceColl(t, d);
-    const feuilles = html.split("width:210mm;height:297mm").slice(1);
-    expect(feuilles.length).toBe(2);
-    const [f1, f2] = feuilles;
-    // centrage : la region (entretoises flex 1:2) est sur la feuille 1, pas la feuille 2
-    expect(f1).toContain("flex:1 1 0");
-    expect(f2).not.toContain("flex:1 1 0");
-    expect(f1).toContain("Audit de conformité");
-    // DDA exactement une fois, sur la DERNIERE feuille, ancree bottom:42px
+    // plus de scission 2-feuilles : un seul flux, pas de boite A4 ni centrage
+    expect(nbFeuilles(html)).toBe(0);
+    expect(html).not.toContain("flex:1 1 0");
+    expect(html).toContain("Audit de conformité");
+    // 2 tables ecoulables ; comparaison active -> colonne Verdict
+    expect(nbOcc(html, "data-pdf-tbl")).toBe(2);
+    expect(html).toContain("Verdict");
+    // DDA exactement une fois, en queue, APRES les obligations
     expect(nbOcc(html, "L.521-4")).toBe(1);
-    expect(f1).not.toContain("L.521-4");
-    expect(f2).toContain("bottom:42px");
-    expect(f2.indexOf("L.521-4")).toBeGreaterThan(f2.indexOf("bottom:42px"));
-    // aucun contenu perdu : 12 controles (feuille 1) + 16 garanties (feuille 2)
+    expect(html).toContain('class="pdf-queue"');
+    expect(html.indexOf("L.521-4")).toBeGreaterThan(html.indexOf("Obligations de prevoyance de branche"));
+    // aucun contenu perdu : 12 controles + 16 garanties
     for (let i = 1; i <= 12; i++) expect(html).toContain(`Controle numero ${i}`);
     for (let i = 1; i <= 16; i++) expect(html).toContain(`Garantie numero ${i}`);
   });
 
-  it("module inactif -> 1 feuille : message centre, DDA en pied, pas d'audit", () => {
+  it("module inactif -> flux unique : header + message + DDA en queue, pas d'audit", () => {
     const d = dColl({ active: false });
     const html = pagePrevoyanceColl(t, d);
-    expect(nbFeuilles(html)).toBe(1);
+    expect(html).toContain('class="pdf-contrat"');
+    expect(nbFeuilles(html)).toBe(0);
     expect(html).toContain("Activer le module Prévoyance collective");
-    expect(html).toContain("flex:1 1 0");          // message centre (region)
+    expect(html).not.toContain("flex:1 1 0");
     expect(html).not.toContain("Audit de conformité");
+    expect(html).not.toContain("data-pdf-tbl");   // aucune table
     expect(nbOcc(html, "L.521-4")).toBe(1);
-    expect(html).toContain("bottom:42px");
-    expect(html.indexOf("L.521-4")).toBeGreaterThan(html.indexOf("bottom:42px"));
+    expect(html).not.toContain("bottom:42px");
+    expect(html).toContain('class="pdf-queue"');   // DDA en queue
   });
 });

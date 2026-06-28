@@ -109,7 +109,7 @@ export function buildTravailData(p: BuildTravailDataParams): TravailPageData {
       revenusPassifs: foncierBrut + taxablePlacements,
       salaries: salary1 + salary2, ca: ca1 + ca2,
       foncierBrut, taxablePlacements, perDeduction,
-      irEstime,
+      irEstime, averageRate: Number(ir.averageRate),
     }),
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Revenus — confidentiel`,
@@ -123,7 +123,7 @@ function salairesActifs(s1: number, s2: number, c1: number, c2: number, p1: numb
 function composeNotreLectureTravail(o: {
   revenusBruts: number; revenusActifs: number; revenusPassifs: number;
   salaries: number; ca: number; foncierBrut: number; taxablePlacements: number;
-  perDeduction: number; irEstime: number;
+  perDeduction: number; irEstime: number; averageRate: number;
 }): string {
   const totalRefer = o.revenusBruts > 0 ? o.revenusBruts : 1;
   const partPassif = Math.round((o.revenusPassifs / totalRefer) * 100);
@@ -156,7 +156,7 @@ function composeNotreLectureTravail(o: {
     <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
       <li><strong>Revenus actifs (salaires, CA, pensions)</strong> — ${formatEuroT(o.revenusActifs)}, soit ${Math.round((o.revenusActifs / totalRefer) * 100)} % des revenus bruts.</li>
       <li><strong>Revenus passifs (foncier + mobiliers)</strong> — ${formatEuroT(o.revenusPassifs)}, soit ${partPassif} %.</li>
-      <li><strong>Pression fiscale</strong> — IR ${formatEuroT(o.irEstime)} sur ${formatEuroT(o.revenusBruts)} bruts (${o.revenusBruts > 0 ? ((o.irEstime / o.revenusBruts) * 100).toFixed(1).replace(".", ",") : "0,0"} % en taux moyen).</li>
+      <li><strong>Pression fiscale</strong> — IR ${formatEuroT(o.irEstime)} — taux moyen ${formatPct(o.averageRate)} (IR / revenu net imposable).</li>
     </ul>
     <p style="margin:0;font-style:italic;color:#6B6353"><strong>Points d'attention :</strong> ${points.join(" ; ")}.</p>
   `.trim();
@@ -164,6 +164,17 @@ function composeNotreLectureTravail(o: {
 
 function formatEuroT(n: number): string {
   return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Math.round(n)) + " €";
+}
+
+// Identique a buildIRData.formatPct : le taux moyen affiche dans la prose Travail
+// matche EXACTEMENT le KPI net (formatPct(ir.averageRate)). averageRate est un taux
+// decimal (0-1) => *100 ; valeur absente/non finie => "—".
+function formatPct(v: any): string {
+  if (v === undefined || v === null || v === "") return "—";
+  const n = typeof v === "string" ? parseFloat(v.replace(/\s|%/g, "").replace(",", ".")) : v;
+  if (!Number.isFinite(n)) return "—";
+  const pct = n <= 1 ? n * 100 : n;
+  return `${pct.toFixed(1).replace(".", ",")} %`;
 }
 
 function num(v: any): number {
