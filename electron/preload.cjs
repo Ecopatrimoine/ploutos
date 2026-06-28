@@ -19,4 +19,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // ─── Paramètres cabinet (logo, couleurs, coordonnées) ───
   readCabinet: () => ipcRenderer.invoke("read-cabinet"),
   writeCabinet: (data) => ipcRenderer.invoke("write-cabinet", data),
+
+  // ─── Export PDF (rendu Electron printToPDF, B2a) ───
+  // html DOIT être autoportant (polices base64 inline, cf. B2b). Renvoie
+  // { canceled } | { canceled:false, path } | { error }.
+  exportPdf: (html, suggestedName) => ipcRenderer.invoke("export-pdf", html, suggestedName),
 });
