@@ -20,6 +20,9 @@ import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTi
 const TabFamiliale = React.memo(function TabFamiliale(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
   const { data, setField, addChild, updateChild, removeChild, person1, person2 } = props;
+  // Foyer mono-adulte (celibataire) : un seul parent -> le choix de parente enfant
+  // n'a pas de sens. On masque le selecteur et on affiche un libelle statique.
+  const isMonoAdulte = data.coupleStatus === "single";
 
   return (
 <TabsContent value="famille" className="space-y-6">
@@ -181,10 +184,14 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
           </div>
         </Field>
         <Field label="Parenté">
-          <Select value={child.parentLink} onValueChange={(v) => updateChild(index, "parentLink", v)}>
-            <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-            <SelectContent>{CHILD_LINKS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-          </Select>
+          {isMonoAdulte ? (
+            <div className="rounded-xl px-2 py-1.5 text-xs" style={{ color: BRAND.muted }}>Enfant de {person1}</div>
+          ) : (
+            <Select value={child.parentLink} onValueChange={(v) => updateChild(index, "parentLink", v)}>
+              <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent>{CHILD_LINKS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+            </Select>
+          )}
         </Field>
         <Field label="Garde">
           <Select value={child.custody} onValueChange={(v) => updateChild(index, "custody", v)}>
