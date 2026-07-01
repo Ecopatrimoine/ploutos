@@ -71,8 +71,9 @@ export function pageBilanEndettement(t: Tokens, d: BilanEndettementPageData): st
   const autresRev = d.calculTaux.autresRevenusRetenus || 0;
   const totalCharges = d.calculTaux.chargesCreditAnnuelles + d.calculTaux.assuranceCreditAnnuelle;
   const totalRevenus = d.calculTaux.salairesNetsAnnuels + loyersRetenus + autresRev;
-  const tauxCalcule = totalRevenus > 0 ? (totalCharges / totalRevenus) * 100 : 0;
-  const tauxCalculeFmt = tauxCalcule.toFixed(1).replace(".", ",") + " %";
+  // Le taux N'EST PLUS recalcule ici : la page AFFICHE d.tauxEndettement (source
+  // unique computeTauxEndettement, via buildBilanEndettementData). totalCharges /
+  // totalRevenus ne servent qu'a la ventilation pedagogique (somme des lignes).
   const ligneCalc = (label: string, valeur: string, opts: { gras?: boolean; topSeparator?: boolean; couleurValeur?: string } = {}) => {
     const border = opts.topSeparator ? `border-top:1px solid ${t.bordureClaire};padding-top:5px;margin-top:3px;` : "";
     const weight = opts.gras ? "font-weight:700;" : "";
@@ -99,7 +100,7 @@ export function pageBilanEndettement(t: Tokens, d: BilanEndettementPageData): st
       </div>
       <div style="grid-column:1 / -1;border-top:1px solid ${t.bordureMoyenne};padding-top:8px;margin-top:2px;display:flex;justify-content:space-between;align-items:baseline">
         <span class="lt" style="font-size:10.5px;color:${t.texteFaible}">${euro(totalCharges)} / ${euro(totalRevenus)} =</span>
-        <span class="lt" style="font-size:13px;font-weight:700;color:${t.navy}">${tauxCalculeFmt}</span>
+        <span class="lt" style="font-size:13px;font-weight:700;color:${t.navy}">${d.tauxEndettement}</span>
       </div>
     </div>
   `;
