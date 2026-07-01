@@ -17,6 +17,7 @@
 
 import React from "react";
 import { Input } from "@/components/ui/input";
+import { DateFr } from "@/components/ui/DateFr";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BRAND, SURFACE } from "../../constants";
@@ -298,10 +299,9 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
       {isSal && (
       <div className="grid gap-3 md:grid-cols-3 items-start">
         <Field label="Date d'embauche">
-          <Input
-            type="date"
+          <DateFr
             value={value.dateEmbauche ?? ""}
-            onChange={(e) => onChange({ dateEmbauche: e.target.value || null })}
+            onChange={(iso) => onChange({ dateEmbauche: iso || null })}
             className="rounded-xl"
           />
         </Field>
@@ -360,10 +360,9 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
             label="Début d'activité / 1ʳᵉ affiliation à la caisse"
             tooltip="Date de début d'activité libérale ou de 1ʳᵉ affiliation à votre caisse (CIPAV, CARMF…). Sert à calculer votre ancienneté d'affiliation."
           >
-            <Input
-              type="date"
+            <DateFr
               value={value.dateDebutActivite ?? ""}
-              onChange={(e) => onChange({ dateDebutActivite: e.target.value || null })}
+              onChange={(iso) => onChange({ dateDebutActivite: iso || null })}
               className="rounded-xl"
             />
           </Field>
