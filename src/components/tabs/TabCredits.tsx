@@ -11,7 +11,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, 
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
-import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
+import { computeTauxEndettement } from "../../lib/calculs/endettement";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
 
 
@@ -110,30 +110,27 @@ const TabCredits = React.memo(function TabCredits(props: any) {
       </CardContent>
     </Card>
   ))}
-  {(data.otherLoans || []).length > 0 && (() => {
+  {(() => {
+    // Recap credit : s'affiche des qu'il existe une charge de credit (immo OU autre).
+    // Le taux vient de la source unique computeTauxEndettement (meme chiffre que le PDF).
+    const res = computeTauxEndettement(data);
+    if (res.numerateurAnnuel <= 0) return null;
     const totalPassif = (data.otherLoans || []).reduce((s, l) => s + n(l.capitalRemaining), 0);
-    const totalMensualites = (data.otherLoans || []).reduce((s, l) => s + n(l.monthlyPayment), 0);
+    const chargesMensuelles = Math.round(res.numerateurAnnuel / 12);
+    const over = res.tauxPct > 35;
     return (
       <div className="border p-4 grid grid-cols-3 gap-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
         <div><div className="text-xs" style={{ color: BRAND.muted }}>Total passif autres crédits</div><div className="text-lg font-bold" style={{ color: BRAND.navy }}>{euro(totalPassif)}</div></div>
-        <div><div className="text-xs" style={{ color: BRAND.muted }}>Total mensualités</div><div className="text-lg font-bold" style={{ color: BRAND.navy }}>{euro(totalMensualites)}/mois</div></div>
-        {(() => {
-          // Mensualités immo
-          const mensImmo = data.properties.reduce((s, p) => s + resolveLoanValuesMulti(p).monthlyPayment, 0);
-          const mensTotal = totalMensualites + mensImmo;
-          const revenus = (n(data.salary1) + n(data.salary2) + n(data.pensions1 || "") + n(data.pensions2 || "") + n(data.pensions) + n(data.ca1) + n(data.ca2)) / 12;
-          const taux = revenus > 0 ? Math.round(mensTotal / revenus * 1000) / 10 : 0;
-          const over = taux > 35;
-          return mensTotal > 0 && revenus > 0 ? (
-            <div style={{ borderLeft: `3px solid ${over ? BRAND.danger : BRAND.gold}`, paddingLeft: 12 }}>
-              <div className="text-xs" style={{ color: BRAND.muted }}>Taux d'endettement</div>
-              <div className="text-xl font-black" style={{ color: BRAND.navy }}>{taux} %</div>
-              <div className="text-xs font-bold" style={{ color: over ? BRAND.danger : BRAND.success }}>
-                {over ? "⚠ Seuil HCSF : 35 %" : "✓ Sous le seuil HCSF (35 %)"}
-              </div>
+        <div><div className="text-xs" style={{ color: BRAND.muted }}>Charges de crédit</div><div className="text-lg font-bold" style={{ color: BRAND.navy }}>{euro(chargesMensuelles)}/mois</div></div>
+        {res.denominateurAnnuel > 0 ? (
+          <div style={{ borderLeft: `3px solid ${over ? BRAND.danger : BRAND.gold}`, paddingLeft: 12 }}>
+            <div className="text-xs" style={{ color: BRAND.muted }}>Taux d'endettement</div>
+            <div className="text-xl font-black" style={{ color: BRAND.navy }}>{res.tauxPct} %</div>
+            <div className="text-xs font-bold" style={{ color: over ? BRAND.danger : BRAND.success }}>
+              {over ? "⚠ Seuil HCSF : 35 %" : "✓ Sous le seuil HCSF (35 %)"}
             </div>
-          ) : null;
-        })()}
+          </div>
+        ) : null}
       </div>
     );
   })()}
