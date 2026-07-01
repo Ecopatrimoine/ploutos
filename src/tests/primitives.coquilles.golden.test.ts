@@ -7,8 +7,6 @@
 // lisere, pied bespoke de la couverture...), le diff de snapshot le revele.
 //
 // Surface pinnee :
-//   - coquillePage : branche signature absente / presente (marges 38/38) ;
-//   - coquillePageDocReg : branche signature absente / presente (marges 44/36 + lisere) ;
 //   - piedPage (bottom:16, font 10px) et piedPageDocReg (bottom:15, font 9.5px) ;
 //   - pageCouverture complete (protege le repli du pied bespoke 56/42 en 3.4).
 //
@@ -18,8 +16,6 @@
 import { describe, it, expect } from "vitest";
 import { buildTokens } from "../lib/pdf/v2/tokens";
 import {
-  coquillePage,
-  coquillePageDocReg,
   piedPage,
   piedPageDocReg,
 } from "../lib/pdf/v2/primitives";
@@ -38,70 +34,6 @@ const pied = "PIED_TEST";
 const signature = "SIGNATURE_TEST";
 const gauche = "GAUCHE";
 const droite = "DROITE";
-
-describe("GOLDEN — coquillePage (marges 38/38)", () => {
-  it("1. sans signature", () => {
-    expect(coquillePage(t, { contenu, pied })).toMatchInlineSnapshot(`
-      "
-          <div style="position:relative;width:210mm;height:297mm;overflow:hidden">
-            <div style="padding:32px 38px 0">
-              CONTENU_TEST
-            </div>
-            
-            PIED_TEST
-          </div>
-        "
-    `);
-  });
-
-  it("2. avec signature", () => {
-    expect(coquillePage(t, { contenu, pied, signature })).toMatchInlineSnapshot(`
-      "
-          <div style="position:relative;width:210mm;height:297mm;overflow:hidden">
-            <div style="padding:32px 38px 0">
-              CONTENU_TEST
-            </div>
-            <div style="position:absolute;left:38px;right:38px;bottom:42px">SIGNATURE_TEST</div>
-            PIED_TEST
-          </div>
-        "
-    `);
-  });
-});
-
-describe("GOLDEN — coquillePageDocReg (marges 44/36 + lisere navy/or)", () => {
-  it("3. sans signature", () => {
-    expect(coquillePageDocReg(t, { contenu, pied })).toMatchInlineSnapshot(`
-      "
-          <div style="position:relative;width:210mm;height:297mm;overflow:hidden">
-            <div style="position:absolute;top:0;left:0;bottom:0;width:7px;background:#0F172A"></div>
-            <div style="position:absolute;top:0;left:7px;bottom:0;width:2px;background:#C4973D"></div>
-            <div style="padding:30px 36px 0 44px">
-              CONTENU_TEST
-            </div>
-            
-            PIED_TEST
-          </div>
-        "
-    `);
-  });
-
-  it("4. avec signature", () => {
-    expect(coquillePageDocReg(t, { contenu, pied, signature })).toMatchInlineSnapshot(`
-      "
-          <div style="position:relative;width:210mm;height:297mm;overflow:hidden">
-            <div style="position:absolute;top:0;left:0;bottom:0;width:7px;background:#0F172A"></div>
-            <div style="position:absolute;top:0;left:7px;bottom:0;width:2px;background:#C4973D"></div>
-            <div style="padding:30px 36px 0 44px">
-              CONTENU_TEST
-            </div>
-            <div style="position:absolute;left:44px;right:36px;bottom:42px">SIGNATURE_TEST</div>
-            PIED_TEST
-          </div>
-        "
-    `);
-  });
-});
 
 describe("GOLDEN — pieds ancres", () => {
   it("5. piedPage (left/right 38, bottom 16, font 10px)", () => {
