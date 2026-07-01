@@ -2,6 +2,7 @@ import React from "react";
 import { computeDonation, applyDonationsToData } from "../../lib/calculs/donation";
 import { euro as euroFmt } from "../../lib/calculs/utils";
 import { Input } from "@/components/ui/input";
+import { DateFr } from "@/components/ui/DateFr";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -149,7 +150,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                 <div className="grid gap-2 grid-cols-[1fr_1fr_1.2fr_1.3fr_auto] items-end">
                   <Field label="Prénom"><Input value={heir.firstName} onChange={(e) => updateTestamentHeir(index, "firstName", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
                   <Field label="Nom"><Input value={heir.lastName} onChange={(e) => updateTestamentHeir(index, "lastName", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
-                  <Field label="Date de naissance"><Input type="date" value={heir.birthDate} onChange={(e) => updateTestamentHeir(index, "birthDate", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
+                  <Field label="Date de naissance"><DateFr value={heir.birthDate} onChange={(iso) => updateTestamentHeir(index, "birthDate", iso || "")} className="rounded-xl h-8 text-sm" /></Field>
                   <Field label="Lien de parenté">
                     <Select value={heir.relation} onValueChange={(v) => updateTestamentHeir(index, "relation", v)}>
                       <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
@@ -207,7 +208,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                             <SelectContent>{TESTAMENT_RELATION_OPTIONS.map((o: any) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                           </Select>
                         </Field>
-                        <Field label="Date naissance"><Input type="date" value={cp.heirBirthDate} onChange={(e) => updateContrepartieGlobal(index, ci, "heirBirthDate", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
+                        <Field label="Date naissance"><DateFr value={cp.heirBirthDate} onChange={(iso) => updateContrepartieGlobal(index, ci, "heirBirthDate", iso || "")} className="rounded-xl h-8 text-sm" /></Field>
                         <MoneyField label="Quotité (%)" tooltip="Répartition entre les NP." value={cp.sharePercent} onChange={(e: any) => updateContrepartieGlobal(index, ci, "sharePercent", e.target.value)} compact />
                         <Button variant="outline" className="h-8 w-8 rounded-xl p-0 mb-0.5" onClick={() => removeContrepartieGlobal(index, ci)}><Trash2 className="h-3.5 w-3.5" /></Button>
                       </div>
@@ -332,7 +333,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                           </div>
                           <div className="flex items-center gap-3 flex-wrap">
                             <Field label="Date de naissance" tooltip={isDismembered ? "Requise pour le barème Duvergier." : "Optionnelle."}>
-                              <Input type="date" value={leg.heirBirthDate} onChange={(e) => updateLegataire(itemIdx, legIdx, "heirBirthDate", e.target.value)} className="rounded-xl h-8 text-sm w-44" />
+                              <DateFr value={leg.heirBirthDate} onChange={(iso) => updateLegataire(itemIdx, legIdx, "heirBirthDate", iso || "")} className="rounded-xl h-8 text-sm w-44" />
                             </Field>
                             {assetValue > 0 && (
                               <div className="text-xs rounded-lg px-2 py-1 mt-4" style={{ background: `${BRAND.gold}20`, color: BRAND.navy }}>
@@ -361,7 +362,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                                       <SelectContent>{TESTAMENT_RELATION_OPTIONS.map((o: any) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                                     </Select>
                                   </Field>
-                                  <Field label="Date naissance"><Input type="date" value={cp.heirBirthDate} onChange={(e) => updateContrepartieLegataire(itemIdx, legIdx, ci, "heirBirthDate", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
+                                  <Field label="Date naissance"><DateFr value={cp.heirBirthDate} onChange={(iso) => updateContrepartieLegataire(itemIdx, legIdx, ci, "heirBirthDate", iso || "")} className="rounded-xl h-8 text-sm" /></Field>
                                   <Field label="Quotité (%)"><Input placeholder="100" value={cp.sharePercent} onChange={(e) => updateContrepartieLegataire(itemIdx, legIdx, ci, "sharePercent", e.target.value)} className="rounded-xl h-8 text-sm text-right" /></Field>
                                   <Button variant="outline" className="h-8 w-8 rounded-xl p-0 mb-0.5" onClick={() => removeContrepartieLegataire(itemIdx, legIdx, ci)}><Trash2 className="h-3.5 w-3.5" /></Button>
                                 </div>
