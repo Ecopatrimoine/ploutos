@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateFr } from "@/components/ui/DateFr";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Field, MoneyField } from "./shared";
 import { BRAND, SURFACE } from "../constants";
@@ -110,7 +111,7 @@ export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, up
                     <Input type="number" min="1" max="30" placeholder="20" value={loan.duration} onChange={(e) => updateLoan(loanModalIndex, li, "duration", e.target.value)} className="rounded-xl h-8 text-sm" />
                   </Field>
                   <Field label="Date de départ">
-                    <Input type="date" value={loan.startDate} onChange={(e) => updateLoan(loanModalIndex, li, "startDate", e.target.value)} className="rounded-xl h-8 text-sm" />
+                    <DateFr value={loan.startDate} onChange={(iso) => updateLoan(loanModalIndex, li, "startDate", iso || "")} className="rounded-xl h-8 text-sm" />
                   </Field>
                 </div>
                 {/* Ligne 2 : capital restant + intérêts + mensualité */}
