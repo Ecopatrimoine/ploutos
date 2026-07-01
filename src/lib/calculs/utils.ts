@@ -68,6 +68,13 @@ export function isAV(type: string): boolean {
 export function isPERType(type: string): boolean {
   return ["PER bancaire", "PER assurantiel", "Madelin"].includes(type);
 }
+// Enveloppes mixtes fonds euros / UC hors AV pure : AV en unites de compte
+// et contrat de capitalisation. Predicat unique (deplace du composant
+// TabPlacements) reutilise par l'UI (affichage du champ Part UC) et par
+// computeExpositionMarche (ponderation par ucRatio).
+export function isUCorCapi(type: string): boolean {
+  return type === "Assurance-vie unités de compte" || type === "Contrat de capitalisation";
+}
 // ── Helpers calcul crédit immobilier ─────────────────────────────────
 export function calcMonthlyPayment(capital: number, rateAnnual: number, durationYears: number): number {
   if (capital <= 0 || durationYears <= 0) return 0;
