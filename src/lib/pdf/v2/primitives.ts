@@ -794,22 +794,17 @@ export function piedPage(t: Tokens, opts: { gauche: string; droite: string }): s
 }
 
 // ─── bandePiedAncree : bande basse ancree (slot signature optionnel + pied) ──
-// Primitive partagee par coquillePage et coquillePageDocReg (LOT #3, etape 3.2).
 // Emet, dans l'ORDRE HTML historique, le slot signature absolu (si `signature`
-// fourni) PUIS le pied, separes par "\n" + 6 espaces (l'indentation des coquilles).
+// fourni) PUIS le pied, separes par "\n" + 6 espaces d'indentation.
 //
-// MODE ACTUEL (3.2) : `pied` est fourni DEJA CONSTRUIT par l'appelant (piedPage /
-// piedPageDocReg cote builders) et injecte VERBATIM. C'est ce que figent les
-// snapshots golden (primitives.coquilles) -> rendu byte-identique exige.
+// MODE construirePied : si construirePied=true, bandePiedAncree BATIT le div pied
+// absolu (left/right/piedBottom/piedPaddingTop + bordureMoyenne) autour de `pied`
+// (contenu interne), avec piedExtraStyle ajoute au style du div. Consomme par le
+// pied bespoke de la couverture (pageCouverture : 56/42, bottom 30, flex-end + gap).
+// `piedFont` reste reserve (la police vit dans les spans internes, pas sur le div).
 //
-// MODE construirePied (LOT #3 etape 3.4) : si construirePied=true, bandePiedAncree
-// BATIT le div pied absolu (left/right/piedBottom/piedPaddingTop + bordureMoyenne)
-// autour de `pied` (contenu interne), avec piedExtraStyle ajoute au style du div.
-// Active pour le pied bespoke de la couverture (56/42, bottom 30, flex-end + gap).
-// `piedFont` reste reserve (la police vit dans les spans internes, pas sur le div) ;
-// migrer piedPage / piedPageDocReg vers ce mode est differe au lot #2. Defaut
-// (construirePied absent/false) = comportement historique : `pied` deja construit,
-// injecte VERBATIM apres le slot signature -> golden cas 1-6 inchanges.
+// MODE par defaut (construirePied absent/false) : `pied` est fourni DEJA CONSTRUIT
+// par l'appelant et injecte VERBATIM apres le slot signature.
 export function bandePiedAncree(t: Tokens, opts: {
   left: number;
   right: number;
@@ -834,79 +829,6 @@ export function bandePiedAncree(t: Tokens, opts: {
       ${opts.pied}`;
 }
 
-// ─── coquilleBase : base A4 commune (conteneur + liseres? + padding + ancre) ──
-// Base INTERNE partagee par coquillePage et coquillePageDocReg (LOT #3, etape 3.3).
-// Conteneur A4 identique ; ordre HTML inchange : [liseres?] [div padding contenu]
-// [bandePiedAncree]. Les valeurs DIVERGENTES (padding top 30 vs 32, marges 44/36 vs
-// 38/38, etc.) ne sont PAS unifiees : elles restent passees PAR PARAMETRE, pour un
-// rendu byte-identique (cf golden master primitives.coquilles).
-function coquilleBase(t: Tokens, opts: {
-  contenu: string;
-  paddingTop: number;
-  paddingRight: number;
-  paddingBottom: number;
-  paddingLeft: number;
-  liseres?: string;
-  pied: string;
-  signature?: string;
-  ancre: {
-    left: number;
-    right: number;
-    piedBottom: number;
-    piedPaddingTop: number;
-    piedFont: number;
-    signatureBottom: number;
-  };
-}): string {
-  // Reproduit EXACTEMENT les deux formes de padding existantes (byte-identique) :
-  //   coquillePage       -> "32px 38px 0"       (left == right : 3 valeurs, bas nu "0")
-  //   coquillePageDocReg -> "30px 36px 0 44px"  (left != right : 4 valeurs)
-  const bas = opts.paddingBottom === 0 ? "0" : `${opts.paddingBottom}px`;
-  const gauche = opts.paddingLeft !== opts.paddingRight ? ` ${opts.paddingLeft}px` : "";
-  const padding = `${opts.paddingTop}px ${opts.paddingRight}px ${bas}${gauche}`;
-  return `
-    <div style="position:relative;width:210mm;height:297mm;overflow:hidden">${opts.liseres ?? ""}
-      <div style="padding:${padding}">
-        ${opts.contenu}
-      </div>
-      ${bandePiedAncree(t, { left: opts.ancre.left, right: opts.ancre.right, piedBottom: opts.ancre.piedBottom, piedPaddingTop: opts.ancre.piedPaddingTop, piedFont: opts.ancre.piedFont, pied: opts.pied, signature: opts.signature, signatureBottom: opts.ancre.signatureBottom })}
-    </div>
-  `;
-}
-
-// ─── coquillePage : structure A4 complète d'une page (avec padding standard
-//                   + pied absolute + slot signature absolute optionnel). ─
-// Le slot `signature` est calé en bas absolu (au-dessus du pied) pour que
-// la signature soit toujours au même endroit, quel que soit le volume du
-// contenu au-dessus. Utilisé pour la page Profil et les 4 documents
-// réglementaires v2 à venir.
-//
-// 🔴 RÈGLES DE PAGINATION (Lot 9 — pagination manuelle) :
-//   • Chaque container A4 a une zone SAFE pour le contenu :
-//     - sans signature : bottom ~35px (pied seul, à 16px du bas + 19px hauteur)
-//     - avec signature : bottom ~170px (signature ~130px + marge 42px)
-//   • Le contenu qui dépasse est CACHÉ (overflow:hidden) — pas de saut auto.
-//   • Si une page risque de déborder (contenu variable), créer DEUX containers
-//     A4 séquentiels dans le même render et placer la signature uniquement
-//     sur le dernier (cf. documents 2-pages : lettre mission, DER, etc.).
-//   • Pour les contenus FORTEMENT variables (tableaux d'hypothèses, annexes
-//     biens…), prévoir un futur passage à la pagination automatique Chromium
-//     (@page + page-break-inside:avoid + displayHeaderFooter), hors périmètre
-//     du Lot 9 socle.
-export function coquillePage(_t: Tokens, opts: {
-  contenu: string;
-  pied: string;
-  signature?: string;
-}): string {
-  return coquilleBase(_t, {
-    contenu: opts.contenu,
-    paddingTop: 32, paddingRight: 38, paddingBottom: 0, paddingLeft: 38,
-    pied: opts.pied,
-    signature: opts.signature,
-    ancre: { left: 38, right: 38, piedBottom: 16, piedPaddingTop: 8, piedFont: 10, signatureBottom: 42 },
-  });
-}
-
 // ── Pagination de liste Succession A/B (hauteurs MESURÉES Chromium, arrondi conservateur) ──
 // Aucune constante magique : chaque valeur = mesure getBoundingClientRect + margin-top
 // du bloc correspondant, arrondie vers le haut (sur-compte = jamais de clip).
@@ -922,33 +844,6 @@ export const CHARS_PAR_LIGNE_ENCART = 75;    // encart 12.5px sur ~684px utile :
 // DOCUMENTS RÉGLEMENTAIRES — primitives partagées par les 4 documents v2
 // (lettre de mission, DER, fiche DDA, déclaration d'adéquation)
 // ════════════════════════════════════════════════════════════════════════
-
-// ─── coquillePageDocReg : structure A4 avec liseré gauche navy+or ───────
-// Variante pour documents réglementaires (lettre de mission, DER, fiche
-// DDA, déclaration d'adéquation). Padding ajusté pour le liseré.
-//
-// Slot `signature?` : même convention que `coquillePage` pour les pages
-// thématiques — la signature est CALÉE EN BAS ABSOLU (au-dessus du pied),
-// au même emplacement sur toutes les pages signables. Convention non
-// négociable établie sur la page Profil et étendue à tous les documents
-// réglementaires v2 (DER, fiche DDA, déclaration d'adéquation à venir).
-export function coquillePageDocReg(t: Tokens, opts: {
-  contenu: string;
-  pied: string;
-  signature?: string;
-}): string {
-  const liseres =
-    `\n      <div style="position:absolute;top:0;left:0;bottom:0;width:7px;background:${t.navy}"></div>` +
-    `\n      <div style="position:absolute;top:0;left:7px;bottom:0;width:2px;background:${t.or}"></div>`;
-  return coquilleBase(t, {
-    contenu: opts.contenu,
-    paddingTop: 30, paddingRight: 36, paddingBottom: 0, paddingLeft: 44,
-    liseres,
-    pied: opts.pied,
-    signature: opts.signature,
-    ancre: { left: 44, right: 36, piedBottom: 15, piedPaddingTop: 7, piedFont: 9.5, signatureBottom: 42 },
-  });
-}
 
 // ─── piedPageDocReg : pied compact (police 9.5px, espacement ajusté) ───
 // Variante du piedPage standard pour les documents réglementaires.
