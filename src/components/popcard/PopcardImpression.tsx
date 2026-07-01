@@ -400,7 +400,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
               <button
                 onClick={handleApercu}
                 disabled={count === 0}
-                title="Aperçu paginé via le nouveau moteur paged.js (Phase 1)"
+                title="Aperçu paginé du document PDF"
                 style={{
                   background: count === 0 ? "#E2E8F0" : "transparent",
                   color: count === 0 ? "#7E8F9F" : "#101B3B",
@@ -410,7 +410,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
                   display: "inline-flex", alignItems: "center", gap: 6,
                 }}
               >
-                <span>◷</span> Aperçu (nouveau moteur)
+                <span>◷</span> Aperçu
               </button>
             </div>
           </div>
