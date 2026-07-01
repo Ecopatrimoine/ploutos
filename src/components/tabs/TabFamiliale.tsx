@@ -15,6 +15,13 @@ import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, comput
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
 
+// Barriere douce (B1) : au-dela de 25 ans, un enfant est de-rattache automatiquement
+// a la saisie de sa date de naissance. SENS UNIQUE (jamais de re-rattachement auto),
+// seuil STRICT (> 25 ; 25 pile ne declenche rien) ; date vide/invalide -> false.
+export function doitDeRattacher(iso: string): boolean {
+  const age = getAgeFromBirthDate(iso);
+  return age !== null && age > 25;
+}
 
 // ── TabFamiliale ─────────────────────────────────────────────────────────────────────
 const TabFamiliale = React.memo(function TabFamiliale(props: any) {
@@ -175,7 +182,16 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
         <Field label="Nom"><Input value={child.lastName} onChange={(e) => updateChild(index, "lastName", e.target.value)} className="rounded-xl" /></Field>
         <Field label="Date de naissance">
           <div className="flex items-center gap-1.5">
-            <DateFr value={child.birthDate} onChange={(iso) => updateChild(index, "birthDate", iso || "")} className="rounded-xl flex-1" />
+            <DateFr
+              value={child.birthDate}
+              onChange={(iso) => {
+                const v = iso || "";
+                updateChild(index, "birthDate", v);
+                // Au-dela de 25 ans : de-rattachement auto (reversible via le toggle Foyer fiscal).
+                if (doitDeRattacher(v)) updateChild(index, "rattached", false);
+              }}
+              className="rounded-xl flex-1"
+            />
             {child.birthDate && getAgeFromBirthDate(child.birthDate) !== null && (
               <span className="text-xs font-bold px-1.5 py-0.5 rounded shrink-0" style={{ background: BRAND.cream, color: BRAND.goldText, border: `1px solid ${BRAND.warningBorder}` }}>
                 {getAgeFromBirthDate(child.birthDate)}
