@@ -50,6 +50,25 @@ export function computeBeneficeImposable(
   return Math.max(0, ca - chargesReelles);
 }
 
+// ─── Bénéfice imposable TNS d'une personne (extrait de computeIR) ─────────────
+// Réutilisable (ex. taux d'endettement). Décide isIndep/isBNC/isBA via PCS/CSP
+// EXACTEMENT comme computeIR, puis applique computeBeneficeImposable. 0 si non-TNS.
+// Refactor PUR : logique déplacée, non réécrite.
+export function resolveBeneficeTns(data: PatrimonialData, personne: 1 | 2): number {
+  const g = personne === 1 ? data.person1PcsGroupe : data.person2PcsGroupe;
+  const cat = personne === 1 ? data.person1Csp : data.person2Csp;
+  const isIndep = g === "1" || g === "2" || isProfessionLiberale(cat);
+  if (!isIndep) return 0;
+  const isBA = g === "1";
+  const isBNC = isProfessionLiberale(cat);
+  const ca = personne === 1 ? n(data.ca1) : n(data.ca2);
+  const bicType = personne === 1 ? data.bicType1 : data.bicType2;
+  const microRegime = personne === 1 ? data.microRegime1 : data.microRegime2;
+  const chargesReelles = personne === 1 ? n(data.chargesReelles1) : n(data.chargesReelles2);
+  const baRevenue = personne === 1 ? n(data.baRevenue1) : n(data.baRevenue2);
+  return computeBeneficeImposable(ca, bicType, isBNC, isBA, microRegime, chargesReelles, baRevenue);
+}
+
 export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeConcubinPerson: 1 | 2 = 1) {
   // ── Revenus selon PCS ──
   const g1 = data.person1PcsGroupe;
@@ -59,18 +78,9 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
 
   const isIndep1 = g1 === "1" || g1 === "2" || isProfessionLiberale(cat1);
   const isIndep2 = g2 === "1" || g2 === "2" || isProfessionLiberale(cat2);
-  const isBA1 = g1 === "1";
-  const isBA2 = g2 === "1";
-  const isBNC1 = isProfessionLiberale(cat1);
-  const isBNC2 = isProfessionLiberale(cat2);
-
-  // Bénéfice imposable indépendants
-  const benefice1 = isIndep1
-    ? computeBeneficeImposable(n(data.ca1), data.bicType1, isBNC1, isBA1, data.microRegime1, n(data.chargesReelles1), n(data.baRevenue1))
-    : 0;
-  const benefice2 = isIndep2
-    ? computeBeneficeImposable(n(data.ca2), data.bicType2, isBNC2, isBA2, data.microRegime2, n(data.chargesReelles2), n(data.baRevenue2))
-    : 0;
+  // Bénéfice imposable indépendants — extrait dans resolveBeneficeTns (logique identique)
+  const benefice1 = resolveBeneficeTns(data, 1);
+  const benefice2 = resolveBeneficeTns(data, 2);
 
   // Salaires (uniquement pour les non-indépendants)
   const salary1 = isIndep1 ? 0 : n(data.salary1);
