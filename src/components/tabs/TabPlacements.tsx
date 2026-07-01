@@ -1,5 +1,6 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
+import { DateFr } from "@/components/ui/DateFr";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -104,7 +105,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
             {placementNeedsTaxableIncome(placement.type) && !isPERType(placement.type) && <MoneyField label="Part taxable" tooltip="Fraction des revenus soumise à l'impôt après abattements éventuels. Pour les dividendes : abattement de 40% en régime au barème. À saisir après abattement." value={placement.taxableIncome} onChange={(e) => updatePlacementStr(index, "taxableIncome", e.target.value)} compact />}
             {!isAVType && !isCash && !isPERType(placement.type) && <MoneyField label="Valeur au décès" tooltip="Valeur du placement retenue pour le calcul de la succession. Peut différer de l'encours (ex : contrat de capitalisation transmis par testament)." value={placement.deathValue} onChange={(e) => updatePlacementStr(index, "deathValue", e.target.value)} compact />}
             {!isAVType && placementNeedsOpenDate(placement.type) && (
-              <Field label="Date d'ouverture"><Input type="date" value={placement.openDate} onChange={(e) => updatePlacementStr(index, "openDate", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
+              <Field label="Date d'ouverture"><DateFr value={placement.openDate} onChange={(iso) => updatePlacementStr(index, "openDate", iso || "")} className="rounded-xl h-8 text-sm" /></Field>
             )}
             {!isAVType && !isCash && placementNeedsPFU(placement.type) && (
               <Field label="PFU">
@@ -133,7 +134,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
             {(isAVType || isPERType(placement.type)) && <MoneyField label="Primes < 70 ans" tooltip="Versements avant les 70 ans de l'assuré. Abattement 152 500 € par bénéficiaire hors succession (art. 990 I CGI) — même régime que l'AV pour les PER assurantiels." value={placement.premiumsBefore70} onChange={(e) => updatePlacementStr(index, "premiumsBefore70", e.target.value)} compact />}
             {(isAVType || isPERType(placement.type)) && <MoneyField label="Primes ≥ 70 ans" tooltip="Versements après les 70 ans de l'assuré. Abattement global 30 500 € (art. 757 B CGI) — même régime pour les PER assurantiels et Madelin." value={placement.premiumsAfter70} onChange={(e) => updatePlacementStr(index, "premiumsAfter70", e.target.value)} compact />}
             {isAVType && placementNeedsOpenDate(placement.type) && (
-              <Field label="Date d'ouverture"><Input type="date" value={placement.openDate} onChange={(e) => updatePlacementStr(index, "openDate", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
+              <Field label="Date d'ouverture"><DateFr value={placement.openDate} onChange={(iso) => updatePlacementStr(index, "openDate", iso || "")} className="rounded-xl h-8 text-sm" /></Field>
             )}
             {(isAVType || isPERType(placement.type)) && <MoneyField label="Capital exonéré succ." tooltip="Capital transmis hors succession via la clause bénéficiaire (art. 990 I pour primes < 70 ans). Même régime AV/PER assurantiel/Madelin." value={placement.exemptFromSuccession} onChange={(e) => updatePlacementStr(index, "exemptFromSuccession", e.target.value)} compact />}
             {isUCorCapi && (

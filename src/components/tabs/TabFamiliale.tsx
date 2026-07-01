@@ -1,5 +1,6 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
+import { DateFr } from "@/components/ui/DateFr";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,11 +15,21 @@ import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, comput
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
 
+// Barriere douce (B1) : au-dela de 25 ans, un enfant est de-rattache automatiquement
+// a la saisie de sa date de naissance. SENS UNIQUE (jamais de re-rattachement auto),
+// seuil STRICT (> 25 ; 25 pile ne declenche rien) ; date vide/invalide -> false.
+export function doitDeRattacher(iso: string): boolean {
+  const age = getAgeFromBirthDate(iso);
+  return age !== null && age > 25;
+}
 
 // ── TabFamiliale ─────────────────────────────────────────────────────────────────────
 const TabFamiliale = React.memo(function TabFamiliale(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
   const { data, setField, addChild, updateChild, removeChild, person1, person2 } = props;
+  // Foyer mono-adulte (celibataire) : un seul parent -> le choix de parente enfant
+  // n'a pas de sens. On masque le selecteur et on affiche un libelle statique.
+  const isMonoAdulte = data.coupleStatus === "single";
 
   return (
 <TabsContent value="famille" className="space-y-6">
@@ -50,7 +61,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
       </div>
       <Field label="Date de naissance">
         <div className="flex items-center gap-2">
-          <Input type="date" value={data.person1BirthDate} onChange={(e) => setField("person1BirthDate", e.target.value)} className="rounded-xl flex-1" />
+          <DateFr value={data.person1BirthDate} onChange={(iso) => setField("person1BirthDate", iso || "")} className="rounded-xl flex-1" />
           {data.person1BirthDate && getAgeFromBirthDate(data.person1BirthDate) !== null && (
             <span className="text-xs font-bold px-2 py-0.5 rounded-md shrink-0" style={{ background: BRAND.cream, color: BRAND.goldText, border: `1px solid ${BRAND.warningBorder}` }}>
               {getAgeFromBirthDate(data.person1BirthDate)} ans
@@ -93,7 +104,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
       </div>
       <Field label="Date de naissance">
         <div className="flex items-center gap-2">
-          <Input type="date" value={data.person2BirthDate} onChange={(e) => setField("person2BirthDate", e.target.value)} className="rounded-xl flex-1" />
+          <DateFr value={data.person2BirthDate} onChange={(iso) => setField("person2BirthDate", iso || "")} className="rounded-xl flex-1" />
           {data.person2BirthDate && getAgeFromBirthDate(data.person2BirthDate) !== null && (
             <span className="text-xs font-bold px-2 py-0.5 rounded-md shrink-0" style={{ background: BRAND.cream, color: BRAND.goldText, border: `1px solid ${BRAND.warningBorder}` }}>
               {getAgeFromBirthDate(data.person2BirthDate)} ans
@@ -143,10 +154,9 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
       </Select>
     </Field>
     <Field label="Date de mariage / PACS">
-      <Input
-        type="date"
+      <DateFr
         value={data.dateMariage ?? ""}
-        onChange={(e) => setField("dateMariage", e.target.value || null)}
+        onChange={(iso) => setField("dateMariage", iso || null)}
         disabled={data.coupleStatus !== "married" && data.coupleStatus !== "pacs"}
         className={`rounded-xl ${data.coupleStatus !== "married" && data.coupleStatus !== "pacs" ? "bg-slate-100 text-slate-400" : ""}`}
       />
@@ -172,7 +182,16 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
         <Field label="Nom"><Input value={child.lastName} onChange={(e) => updateChild(index, "lastName", e.target.value)} className="rounded-xl" /></Field>
         <Field label="Date de naissance">
           <div className="flex items-center gap-1.5">
-            <Input type="date" value={child.birthDate} onChange={(e) => updateChild(index, "birthDate", e.target.value)} className="rounded-xl flex-1" />
+            <DateFr
+              value={child.birthDate}
+              onChange={(iso) => {
+                const v = iso || "";
+                updateChild(index, "birthDate", v);
+                // Au-dela de 25 ans : de-rattachement auto (reversible via le toggle Foyer fiscal).
+                if (doitDeRattacher(v)) updateChild(index, "rattached", false);
+              }}
+              className="rounded-xl flex-1"
+            />
             {child.birthDate && getAgeFromBirthDate(child.birthDate) !== null && (
               <span className="text-xs font-bold px-1.5 py-0.5 rounded shrink-0" style={{ background: BRAND.cream, color: BRAND.goldText, border: `1px solid ${BRAND.warningBorder}` }}>
                 {getAgeFromBirthDate(child.birthDate)}
@@ -181,10 +200,14 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
           </div>
         </Field>
         <Field label="Parenté">
-          <Select value={child.parentLink} onValueChange={(v) => updateChild(index, "parentLink", v)}>
-            <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-            <SelectContent>{CHILD_LINKS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-          </Select>
+          {isMonoAdulte ? (
+            <div className="rounded-xl px-2 py-1.5 text-xs" style={{ color: BRAND.muted }}>Enfant de {person1}</div>
+          ) : (
+            <Select value={child.parentLink} onValueChange={(v) => updateChild(index, "parentLink", v)}>
+              <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent>{CHILD_LINKS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+            </Select>
+          )}
         </Field>
         <Field label="Garde">
           <Select value={child.custody} onValueChange={(v) => updateChild(index, "custody", v)}>
