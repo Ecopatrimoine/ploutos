@@ -64,7 +64,7 @@ exports[`CONTRAT — pageBilanEndettement (flux paged.js) > 11. cas court : base
       </div>
       <div style="grid-column:1 / -1;border-top:1px solid #E4DDCF;padding-top:8px;margin-top:2px;display:flex;justify-content:space-between;align-items:baseline">
         <span class="lt" style="font-size:10.5px;color:#6B6353">12 600 € / 60 000 € =</span>
-        <span class="lt" style="font-size:13px;font-weight:700;color:#0F172A">21,0 %</span>
+        <span class="lt" style="font-size:13px;font-weight:700;color:#0F172A">20 %</span>
       </div>
     </div>
   </div>
