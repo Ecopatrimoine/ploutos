@@ -87,6 +87,9 @@ export function PopcardImpression(p: PopcardImpressionProps) {
   const [lieuOverride, setLieuOverride] = useState("");
   const [checkOpen, setCheckOpen] = useState(false);
   const [missing, setMissing] = useState<CompletudeManque[]>([]);
+  // Intention memorisee quand la pop-card "Donnees incompletes" s'ouvre : "Continuer quand
+  // meme" doit reprendre le chemin d'ou vient l'utilisateur (ancienne generation ou apercu).
+  const [forceTarget, setForceTarget] = useState<"generate" | "apercu" | null>(null);
   // Phase 1 — aperçu nouveau moteur paged.js (args figés à l'ouverture pour éviter le re-render).
   const [apercuArgs, setApercuArgs] = useState<{ packItems: PackItem[]; overrides: PackOverrides; payload: PackPayload } | null>(null);
   // Destinataire — pertinent uniquement en concubinage (foyers fiscaux séparés).
@@ -101,6 +104,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
       setPaletteOverride((p.mission?.pdfPaletteOverride as any) || "");
       setRecipientChoice(p.recipient || "couple");
       setApercuArgs(null);
+      setForceTarget(null);
     }
   }, [p.open, p.mission?.pdfPaletteOverride, p.recipient]);
 
@@ -157,6 +161,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
     if (manques.length === 0) {
       doGenerate();
     } else {
+      setForceTarget("generate");
       setMissing(manques);
       setCheckOpen(true);
     }
@@ -200,12 +205,41 @@ export function PopcardImpression(p: PopcardImpressionProps) {
     p.onClose();
   };
 
-  // Phase 1 — aperçu nouveau moteur paged.js (prévisualisation : pas de gate complétude).
-  const handleApercu = () => {
-    if (packArr.length === 0) return;
+  // Ouvre l'aperçu paged.js (partie non gatée : réutilisée par handleApercu au cas complet
+  // ET par le routeur « Continuer quand même »).
+  const ouvrirApercu = () => {
     persistPalette();
     const { overrides, payload } = buildOverridesPayload();
     setApercuArgs({ packItems: packArr, overrides, payload });
+  };
+
+  // Phase 1 — aperçu nouveau moteur paged.js. Depuis le Lot 1a : même gate de complétude
+  // que handleGenerate (checkCompletude, même contexte) avant d'ouvrir la prévisualisation.
+  const handleApercu = () => {
+    if (packArr.length === 0) return;
+    const ordered = sortPack(packArr);
+    const manques = checkCompletude(ordered, {
+      cabinet: p.cabinet,
+      mission: p.mission,
+      data: p.data,
+      recommandations: p.recommandations,
+      piecesJointes: p.piecesJointes,
+    });
+    if (manques.length > 0) {
+      setForceTarget("apercu");
+      setMissing(manques);
+      setCheckOpen(true);
+      return;
+    }
+    ouvrirApercu();
+  };
+
+  // Routeur « Continuer quand même » : reprend l'intention mémorisée (ancienne génération
+  // ou aperçu nouveau moteur) selon le bouton d'où vient l'utilisateur.
+  const onForceContinue = () => {
+    setCheckOpen(false);
+    if (forceTarget === "apercu") ouvrirApercu();
+    else doGenerate();
   };
 
   return (
@@ -457,8 +491,8 @@ export function PopcardImpression(p: PopcardImpressionProps) {
             <div style={{ padding: "16px 28px 24px", borderTop: "1px solid #D8D2C6", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
               <div style={{ fontSize: 10.5, color: "#7E8F9F", fontStyle: "italic" }}>{missing.reduce((s, m) => s + m.fields.length, 0)} champ(s) manquant(s)</div>
               <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={() => setCheckOpen(false)} style={{ background: "transparent", color: "#637896", border: "1px solid #D8D2C6", padding: "9px 16px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>← Compléter d'abord</button>
-                <button onClick={doGenerate} style={{ background: "#92400E", color: "#fff", border: "none", padding: "9px 18px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 1px 3px rgba(146,64,14,.4)" }}>Continuer quand même →</button>
+                <button onClick={() => { setCheckOpen(false); setForceTarget(null); }} style={{ background: "transparent", color: "#637896", border: "1px solid #D8D2C6", padding: "9px 16px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>← Compléter d'abord</button>
+                <button onClick={onForceContinue} style={{ background: "#92400E", color: "#fff", border: "none", padding: "9px 18px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 1px 3px rgba(146,64,14,.4)" }}>Continuer quand même →</button>
               </div>
             </div>
           </div>
