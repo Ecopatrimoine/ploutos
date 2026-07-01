@@ -135,7 +135,7 @@ export function ApercuPdf(p: ApercuPdfProps) {
         {/* Header */}
         <div style={{ padding: "16px 22px", borderBottom: "1px solid #D8D2C6", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, background: "#fff" }}>
           <div>
-            <h2 style={{ fontSize: 16, fontWeight: 800, color: "#101B3B", margin: 0 }}>Aperçu PDF — nouveau moteur (paged.js)</h2>
+            <h2 style={{ fontSize: 16, fontWeight: 800, color: "#101B3B", margin: 0 }}>Aperçu PDF</h2>
             <div style={{ fontSize: 11.5, color: "#637896", marginTop: 3 }}>
               {pret ? `${pages ?? "?"} feuille(s) A4 paginées — pagination mesurée, plus de coupe silencieuse.` : "Pagination en cours…"}
             </div>

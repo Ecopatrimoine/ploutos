@@ -1,27 +1,19 @@
-// ─── Lot Dossier client — concaténation de pack PDF + popup print ─────
+// ─── Lot Dossier client — rendu des BODY HTML d'un pack PDF ───────────
 //
 // Prend une liste ordonnée d'éléments cochés (PackItem[]) + les overrides
-// per-dossier (palette PDF, lieu signature), et :
-//  1. génère pour chaque item le BODY HTML (sans <html><head><style>)
-//  2. assemble le tout dans une coquille HTML unique avec :
-//     - les fonts CDN (Fraunces + Lato)
-//     - le CSS commun v2 (cssCommun) — palette résolue selon override
-//     - le CSS legacy v1 pour les sections v1-only (cabinet/famille/travail/
-//       hypos/recommandations/mentions) — chargé seulement si nécessaires
-//  3. ouvre une popup print (openPrintPopup) → 1 seul PDF à imprimer
+// per-dossier (palette PDF, lieu signature) et génère pour chaque item le
+// BODY HTML (sans <html><head><style>), dans l'ordre PACK_ORDER (bilan AVANT
+// docs réglementaires). Ces bodies sont consommés par le moteur paged.js
+// (feeder / ApercuPdf) via renderPackItemBodies ; resolvePackTokens partage
+// la même palette v2.
 //
-// Ordre = PACK_ORDER (bilan AVANT docs réglementaires).
-// Cohabitation CSS v1+v2 dans le même HTML : les classes v1 et v2 peuvent
-// se chevaucher (.kpi notamment). Pour la première version, on émet les
-// 2 jeux de CSS ; collisions à surveiller au test visuel.
+// Cohabitation CSS v1+v2 : certaines sections portent des classes v1 et v2
+// pouvant se chevaucher (.kpi notamment) — à surveiller au test visuel.
 
 import type { PackItem } from "./checkCompletude";
 import { sortPack } from "./checkCompletude";
 import { mapCabinetToThemeV2, type ThemeV2 } from "../adapters/mapTheme";
 import { buildTokens } from "../tokens";
-import { coquilleDocument } from "../primitives";
-import { FONT_FACES_STYLE } from "../fontsLocal";
-import { openPrintPopup } from "../../pdfCore";
 
 // ─── Renderers v2 ─────────────────────────────────────────────────────
 // Docs réglementaires (4) + 5 sections bilan câblées en 1ère passe.
@@ -261,8 +253,8 @@ export function resolvePackTokens(cabinet: Record<string, any>, overrides: PackO
 }
 
 /** Rend les BODY HTML de CHAQUE section du pack (un par section, ordre canonique).
- *  Réutilise renderItemBody — aucun contenu réécrit. Partagé par generatePack
- *  (chemin window.print historique) ET le feeder paged.js (Phase 1). */
+ *  Réutilise renderItemBody — aucun contenu réécrit. Consommé par le feeder
+ *  paged.js (ApercuPdf). */
 export function renderPackItemBodies(
   packItems: PackItem[],
   overrides: PackOverrides,
@@ -295,28 +287,6 @@ export function renderPackItemBodies(
     }
   });
   return out;
-}
-
-/** Assemble le pack complet et ouvre la popup print (chemin historique, INCHANGÉ). */
-export function generatePack(
-  packItems: PackItem[],
-  overrides: PackOverrides,
-  payload: PackPayload,
-): void {
-  if (packItems.length === 0) return;
-
-  // Bodies (mêmes que le moteur paged.js) concaténés en boîtes A4 fixes.
-  const bodies = renderPackItemBodies(packItems, overrides, payload).join("");
-
-  // Assemblage final via coquilleDocument (header html + fonts + CSS + body)
-  const t = resolvePackTokens(payload.cabinet, overrides);
-  const html = coquilleDocument(t, {
-    titre: `Pack PDF — ${payload.clientName || "Dossier client"} — ${sortPack(packItems).length} document(s)`,
-    body: bodies,
-    fontsHtml: FONT_FACES_STYLE,
-  });
-
-  openPrintPopup(html);
 }
 
 function formatDateFr(d: Date): string {

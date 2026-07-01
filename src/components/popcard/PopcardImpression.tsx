@@ -15,7 +15,7 @@
 
 import React, { useState, useMemo } from "react";
 import { checkCompletude, sortPack, type PackItem, type CompletudeManque } from "../../lib/pdf/v2/popcard/checkCompletude";
-import { generatePack, type PackOverrides, type PackPayload } from "../../lib/pdf/v2/popcard/concatPack";
+import { type PackOverrides, type PackPayload } from "../../lib/pdf/v2/popcard/concatPack";
 import { ApercuPdf } from "./ApercuPdf";
 
 export type PopcardImpressionProps = {
@@ -144,24 +144,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
   const hasRegl = packArr.some(k => PACK_ITEMS.find(i => i.key === k)?.group === "regl");
   const orderNote = hasBilan && hasRegl ? "Ordre du PDF : Bilan patrimonial → Documents réglementaires" : "";
 
-  // ─── Génération + vérification ────────────────────────────────────
-  const handleGenerate = () => {
-    const ordered = sortPack(packArr);
-    const manques = checkCompletude(ordered, {
-      cabinet: p.cabinet,
-      mission: p.mission,
-      data: p.data,
-      recommandations: p.recommandations,
-      piecesJointes: p.piecesJointes,
-    });
-    if (manques.length === 0) {
-      doGenerate();
-    } else {
-      setMissing(manques);
-      setCheckOpen(true);
-    }
-  };
-  // Construit overrides + payload (partagé : ancien chemin generatePack ET aperçu paged.js).
+  // Construit overrides + payload (consommés par l'aperçu paged.js).
   const buildOverridesPayload = (): { overrides: PackOverrides; payload: PackPayload } => {
     const overrides: PackOverrides = {
       pdfPaletteOverride: paletteOverride,
@@ -192,20 +175,39 @@ export function PopcardImpression(p: PopcardImpressionProps) {
     }
   };
 
-  const doGenerate = () => {
-    persistPalette();
-    const { overrides, payload } = buildOverridesPayload();
-    generatePack(packArr, overrides, payload);
-    setCheckOpen(false);
-    p.onClose();
-  };
-
-  // Phase 1 — aperçu nouveau moteur paged.js (prévisualisation : pas de gate complétude).
-  const handleApercu = () => {
-    if (packArr.length === 0) return;
+  // Ouvre l'aperçu paged.js (partie non gatée : réutilisée par handleApercu au cas complet
+  // ET par le routeur « Continuer quand même »).
+  const ouvrirApercu = () => {
     persistPalette();
     const { overrides, payload } = buildOverridesPayload();
     setApercuArgs({ packItems: packArr, overrides, payload });
+  };
+
+  // Aperçu nouveau moteur paged.js : gate de complétude (checkCompletude) avant d'ouvrir la
+  // prévisualisation ; si des champs manquent, pop-card « Données incomplètes ».
+  const handleApercu = () => {
+    if (packArr.length === 0) return;
+    const ordered = sortPack(packArr);
+    const manques = checkCompletude(ordered, {
+      cabinet: p.cabinet,
+      mission: p.mission,
+      data: p.data,
+      recommandations: p.recommandations,
+      piecesJointes: p.piecesJointes,
+    });
+    if (manques.length > 0) {
+      setMissing(manques);
+      setCheckOpen(true);
+      return;
+    }
+    ouvrirApercu();
+  };
+
+  // « Continuer quand même » depuis la pop-card « Données incomplètes » : ouvre l'aperçu
+  // malgré les champs manquants (seul chemin restant depuis le retrait de l'ancienne génération).
+  const onForceContinue = () => {
+    setCheckOpen(false);
+    ouvrirApercu();
   };
 
   return (
@@ -398,7 +400,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
               <button
                 onClick={handleApercu}
                 disabled={count === 0}
-                title="Aperçu paginé via le nouveau moteur paged.js (Phase 1)"
+                title="Aperçu paginé du document PDF"
                 style={{
                   background: count === 0 ? "#E2E8F0" : "transparent",
                   color: count === 0 ? "#7E8F9F" : "#101B3B",
@@ -408,21 +410,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
                   display: "inline-flex", alignItems: "center", gap: 6,
                 }}
               >
-                <span>◷</span> Aperçu (nouveau moteur)
-              </button>
-              <button
-                onClick={handleGenerate}
-                disabled={count === 0}
-                style={{
-                  background: count === 0 ? "#E2E8F0" : "#7C3AED",
-                  color: count === 0 ? "#7E8F9F" : "#fff",
-                  border: "none", padding: "9px 18px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
-                  cursor: count === 0 ? "not-allowed" : "pointer",
-                  boxShadow: count === 0 ? "none" : "0 1px 3px rgba(124,58,237,.4)",
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                }}
-              >
-                <span>↓</span>{count === 0 ? "Cocher au moins 1 élément" : "Générer le pack PDF"}
+                <span>◷</span> Aperçu
               </button>
             </div>
           </div>
@@ -458,7 +446,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
               <div style={{ fontSize: 10.5, color: "#7E8F9F", fontStyle: "italic" }}>{missing.reduce((s, m) => s + m.fields.length, 0)} champ(s) manquant(s)</div>
               <div style={{ display: "flex", gap: 10 }}>
                 <button onClick={() => setCheckOpen(false)} style={{ background: "transparent", color: "#637896", border: "1px solid #D8D2C6", padding: "9px 16px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>← Compléter d'abord</button>
-                <button onClick={doGenerate} style={{ background: "#92400E", color: "#fff", border: "none", padding: "9px 18px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 1px 3px rgba(146,64,14,.4)" }}>Continuer quand même →</button>
+                <button onClick={onForceContinue} style={{ background: "#92400E", color: "#fff", border: "none", padding: "9px 18px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 1px 3px rgba(146,64,14,.4)" }}>Continuer quand même →</button>
               </div>
             </div>
           </div>
