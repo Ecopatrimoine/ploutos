@@ -4,7 +4,7 @@
 // LOCAL (@font-face Fraunces + Lato, woff2 bundlés par Vite) et ne référence AUCUN
 // CDN réseau (jsdelivr / cdn.). Les deux seuls constructeurs de document livrés :
 //   - buildFeederDocument  → aperçu paged.js (iframe srcDoc) + offscreen Electron ;
-//   - coquilleDocument(... fontsHtml: FONT_FACES_STYLE) → popup runtime (generatePack).
+//   - coquilleDocument(... fontsHtml: FONT_FACES_STYLE) → coquille avec polices locales.
 //
 // HORS SCOPE (intentionnel) : le défaut jsdelivr de coquilleDocument, exercé
 // UNIQUEMENT par le harnais DEV (scripts/generatePdfLocal.ts + render*.ts), jamais
@@ -40,9 +40,9 @@ describe("Polices PDF — auto-suffisance des chemins LIVRÉS (offline-safe)", (
     attendAutoSuffisant(html);
   });
 
-  it("coquilleDocument tel qu'appelé par generatePack (fontsHtml: FONT_FACES_STYLE) : @font-face local, pas de CDN", () => {
-    // Forme EXACTE du chemin livré : generatePack passe fontsHtml: FONT_FACES_STYLE
-    // (concatPack.ts). On reproduit cet appel au plus près du runtime.
+  it("coquilleDocument (fontsHtml: FONT_FACES_STYLE) : @font-face local, pas de CDN", () => {
+    // Forme EXACTE du chemin coquille livré : coquilleDocument reçoit fontsHtml:
+    // FONT_FACES_STYLE (polices locales). On reproduit cet appel au plus près du rendu.
     const html = coquilleDocument(t, {
       titre: "Pack PDF — Dossier client",
       body: `<div class="pdf-contrat">Section</div>`,
