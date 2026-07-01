@@ -7,6 +7,8 @@
 import type { BilanEndettementPageData } from "../pages/pageBilanEndettement";
 import { isAV, isPERType } from "../../../calculs/utils";
 import { resolveLoanValuesMulti } from "../../../calculs/credit";
+import { resolveBeneficeTns } from "../../../calculs/ir";
+import { computeTauxEndettement } from "../../../calculs/endettement";
 import { SEMANTIC_DANGER } from "../tokens";
 
 const isAvOrPer = (type: any): boolean => isAV(type) || isPERType(type);
@@ -42,10 +44,15 @@ export function buildBilanEndettementData(p: BuildBilanEndettementDataParams): B
   const avEtPER = placements.filter(pl => isAvOrPer(pl.type)).reduce((s, pl) => s + num(pl.value), 0);
   const placementsFinanciers = placements.filter(pl => !isAvOrPer(pl.type)).reduce((s, pl) => s + num(pl.value), 0);
 
-  // ─── Crédits immobiliers via resolveLoanValuesMulti ──────────────
-  // Gère le nouveau système multi-crédits (property.loans[]) ET l'ancien
-  // (property.loan*). Auto-calcul depuis loanAmount/Rate/Duration si
-  // loanCapitalRemaining est vide. Retourne aussi insurancePremiumAnnual.
+  // ─── Taux d'endettement : SOURCE UNIQUE (computeTauxEndettement, ecran + PDF) ──
+  const res = computeTauxEndettement(data as any);
+  const tauxEndettementPct = res.tauxPct;
+  const tauxEndettement = `${res.tauxPct.toFixed(1).replace(".", ",")} %`;
+
+  // ─── Sous-totaux de DETAIL pour l'encart pedagogique. Ils refletent la meme
+  // formule que res (assurance autres, CA TNS net, pensions fallback) : leur
+  // somme == numerateur/denominateur de res, donc l'encart affiche le MEME
+  // taux. res reste la source du chiffre-cle (KPI + note).
   let monthlyCreditImmo = 0;
   let annualInsuranceImmo = 0;
   let creditImmobilier = 0;
@@ -56,24 +63,27 @@ export function buildBilanEndettementData(p: BuildBilanEndettementDataParams): B
     creditImmobilier += r.capital || 0;
   }
   const monthlyCreditAutre = otherLoans.reduce((s, l) => s + num(l.monthlyPayment), 0);
+  // Assurance des autres credits : annuelle, comptee seulement si hasInsurance (cf endettement.ts).
+  const assuranceCreditAutre = otherLoans.reduce((s, l) => s + (l.hasInsurance ? num(l.insurancePremium) : 0), 0);
   const chargesCreditAnnuelles = Math.round((monthlyCreditImmo + monthlyCreditAutre) * 12);
-  const assuranceCreditAnnuelle = Math.round(annualInsuranceImmo);
+  const assuranceCreditAnnuelle = Math.round(annualInsuranceImmo + assuranceCreditAutre);
 
   // ─── Bilan agrégé ─────────────────────────────────────────────────
   const actifBrut = immobilier + placementsFinanciers + avEtPER;
   const passifTotal = creditImmobilier + autresCredits;
   const patrimoineNet = actifBrut - passifTotal;
 
-  // Revenus : salaires + loyers (clé réelle = rentGrossAnnual, déjà annuel)
-  const salairesNetsAnnuels = num(data.salary1) + num(data.salary2 || 0);
+  // Revenus retenus (memes termes que res) : salaires + CA TNS NET + pensions
+  // (fallback safe, jamais la somme des 3) + loyers ponderes x0,70.
+  const salairesNetsAnnuels = num(data.salary1) + num(data.salary2 || 0) + resolveBeneficeTns(data as any, 1) + resolveBeneficeTns(data as any, 2);
   const loyersBrutsAnnuels = properties.reduce((s, p) => s + num(p.rentGrossAnnual), 0);
   const quotitLoyers = 0.70;
-  const autresRevenusRetenus = num(data.pensions || 0) + num(data.pensions1 || 0) + num(data.pensions2 || 0);
+  const pP1 = num(data.pensions1 || 0);
+  const pP2 = num(data.pensions2 || 0);
+  const autresRevenusRetenus = pP1 + pP2 > 0 ? pP1 + pP2 : num(data.pensions || 0);
 
   const totalCharges = chargesCreditAnnuelles + assuranceCreditAnnuelle;
   const totalRevenus = salairesNetsAnnuels + Math.round(loyersBrutsAnnuels * quotitLoyers) + autresRevenusRetenus;
-  const tauxEndettementPct = totalRevenus > 0 ? (totalCharges / totalRevenus) * 100 : 0;
-  const tauxEndettement = `${tauxEndettementPct.toFixed(1).replace(".", ",")} %`;
 
   return {
     clientName,
