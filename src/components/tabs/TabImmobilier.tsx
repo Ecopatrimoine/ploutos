@@ -1,5 +1,6 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
+import { DateFr } from "@/components/ui/DateFr";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -194,7 +195,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                     {currentRight !== "full" && currentKey === "other" && (
                       <div style={{ flex: "0 0 auto" }}>
                         <Field label="Date naissance">
-                          <Input type="date" value={currentBirthDate || ""} onChange={(e) => onBirthDate(e.target.value)} className="rounded-xl h-8 text-sm w-36" />
+                          <DateFr value={currentBirthDate || ""} onChange={(iso) => onBirthDate(iso || "")} className="rounded-xl h-8 text-sm w-36" />
                         </Field>
                       </div>
                     )}
@@ -277,8 +278,8 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                               </Select>
                             </div>
                             {cp.key === "other" && (
-                              <Input type="date" value={cp.birthDate} onChange={(e) => {
-                                const updated = dp.counterparts.map((c, i) => i === ci ? { ...c, birthDate: e.target.value } : c);
+                              <DateFr value={cp.birthDate} onChange={(iso) => {
+                                const updated = dp.counterparts.map((c, i) => i === ci ? { ...c, birthDate: iso || "" } : c);
                                 mkDismember(pKey, dp, pRight, updated);
                               }} className="rounded-xl h-7 text-xs w-32" />
                             )}
@@ -346,7 +347,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                 {property.counterpartKey === "other" && (
                   <div style={{ minWidth: "160px", flex: "1" }}>
                     <Field label="Date de naissance">
-                      <Input type="date" value={property.counterpartBirthDate || ""} onChange={(e) => updateProperty(index, "counterpartBirthDate", e.target.value)} className="rounded-xl h-8 text-sm" />
+                      <DateFr value={property.counterpartBirthDate || ""} onChange={(iso) => updateProperty(index, "counterpartBirthDate", iso || "")} className="rounded-xl h-8 text-sm" />
                     </Field>
                   </div>
                 )}
