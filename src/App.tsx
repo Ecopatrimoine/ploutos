@@ -615,7 +615,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
 
   const addProperty = useCallback((type: string) => setData((prev) => ({
     ...prev,
-    properties: [...prev.properties, { id: newId(), name: "", type, ownership: "person1", propertyRight: "full", usufructAge: "", counterpartKey: "", counterpartBirthDate: "", counterpartRelation: "", counterpartName: "", value: "", propertyTaxAnnual: "", rentGrossAnnual: "", insuranceAnnual: "", worksAnnual: "", otherChargesAnnual: "", loanEnabled: false, loanType: "amortissable", loanAmount: "", loanRate: "", loanDuration: "", loanStartDate: "", loanCapitalRemaining: "", loanInterestAnnual: "", loanPledgedPlacementIndex: "-1", loanInsurance: false, loanInsuranceGuarantees: "dc", loanInsuranceRate: "", loanInsuranceRate1: "", loanInsuranceRate2: "", loanInsurancePremium: "", loanInsuranceCoverage: "banque", indivisionShare1: "", indivisionShare2: "" }],
+    properties: [{ id: newId(), name: "", type, ownership: "person1", propertyRight: "full", usufructAge: "", counterpartKey: "", counterpartBirthDate: "", counterpartRelation: "", counterpartName: "", value: "", propertyTaxAnnual: "", rentGrossAnnual: "", insuranceAnnual: "", worksAnnual: "", otherChargesAnnual: "", loanEnabled: false, loanType: "amortissable", loanAmount: "", loanRate: "", loanDuration: "", loanStartDate: "", loanCapitalRemaining: "", loanInterestAnnual: "", loanPledgedPlacementIndex: "-1", loanInsurance: false, loanInsuranceGuarantees: "dc", loanInsuranceRate: "", loanInsuranceRate1: "", loanInsuranceRate2: "", loanInsurancePremium: "", loanInsuranceCoverage: "banque", indivisionShare1: "", indivisionShare2: "" }, ...prev.properties],
   })), []);
   const updateProperty = useCallback((id: string, key: keyof Property, value: string | boolean | Loan[]) =>
     setData((prev) => ({ ...prev, properties: prev.properties.map((p) => p.id === id ? { ...p, [key]: value } : p) })), []);
@@ -682,7 +682,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
 
   const addPlacement = useCallback((type: string) => setData((prev) => ({
     ...prev,
-    placements: [...prev.placements, { id: newId(), name: "", type, ownership: "person1", value: "", annualIncome: "", taxableIncome: "", deathValue: "", openDate: "", pfuEligible: placementNeedsPFU(type), pfuOptOut: false, totalPremiumsNet: "", premiumsBefore70: "", premiumsAfter70: "", exemptFromSuccession: "", ucRatio: "", annualWithdrawal: "", annualContribution: "", perDeductible: true, perWithdrawal: "", perWithdrawalCapital: "", perWithdrawalInterest: "", perAnticiped: false, beneficiaries: [{ name: "", relation: "autre", share: "100" }] }],
+    placements: [{ id: newId(), name: "", type, ownership: "person1", value: "", annualIncome: "", taxableIncome: "", deathValue: "", openDate: "", pfuEligible: placementNeedsPFU(type), pfuOptOut: false, totalPremiumsNet: "", premiumsBefore70: "", premiumsAfter70: "", exemptFromSuccession: "", ucRatio: "", annualWithdrawal: "", annualContribution: "", perDeductible: true, perWithdrawal: "", perWithdrawalCapital: "", perWithdrawalInterest: "", perAnticiped: false, beneficiaries: [{ name: "", relation: "autre", share: "100" }] }, ...prev.placements],
   })), []);
   const updatePlacementStr = useCallback(<K extends Exclude<keyof Placement, "pfuEligible" | "beneficiaries">>(id: string, key: K, value: Placement[K]) =>
     setData((prev) => ({ ...prev, placements: prev.placements.map((p) => p.id === id ? { ...p, [key]: value } : p) })), []);
