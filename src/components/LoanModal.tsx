@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { DateFr } from "@/components/ui/DateFr";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Field, MoneyField } from "./shared";
-import { BRAND, SURFACE } from "../constants";
+import { BRAND, SURFACE, labelPlacement } from "../constants";
 import type { PatrimonialData, Loan } from "../types/patrimoine";
 import { euro, n, isAV, isPERType } from "../lib/calculs/utils";
 import { resolveLoanValuesMulti, resolveOneLoan } from "../lib/calculs/credit";
@@ -140,7 +140,7 @@ export function LoanModal({ loanModalPropertyId, setLoanModalPropertyId, data, a
                         <SelectItem value="__none__">Aucune</SelectItem>
                         {data.placements.map((p) => (
                           <SelectItem key={p.id} value={p.id!}>
-                            {p.name || p.type}{isAV(p.type) || isPERType(p.type) ? "" : " ⚠️ non-AV"}
+                            {p.name || labelPlacement(p.type)}{isAV(p.type) || isPERType(p.type) ? "" : " ⚠️ non-AV"}
                           </SelectItem>
                         ))}
                       </SelectContent>

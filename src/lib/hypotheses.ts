@@ -1,7 +1,7 @@
 // Diff hypothèses
 import type { PatrimonialData, IrOptions, SuccessionData, DifferenceLine } from '../types/patrimoine';
 import { euro, n, isAV } from './calculs/utils';
-import { PLACEMENT_TYPES_BY_FAMILY } from '../constants';
+import { PLACEMENT_TYPES_BY_FAMILY, labelPlacement } from '../constants';
 import { computeIR } from './calculs/ir';
 import { computeIFI } from './calculs/ifi';
 import { computeSuccession } from './calculs/succession';
@@ -95,11 +95,11 @@ export function buildHypothesisDifferenceLines(
   // Placements
   alignAssetsForDiff(baseData.placements, hypothesisData.placements).forEach(([bl, hl], i) => {
     const label = hl?.name || bl?.name || `Placement ${i + 1}`;
-    if (!bl && hl) { push({ label: `Nouveau placement · ${label}`, baseValue: "Absent", hypothesisValue: `${hl.type} · ${euro(hl.value)}`, impact: "up", fiscalArea: isAV(hl.type) ? "Succession / AV" : "IR / Succession" }); return; }
-    if (bl && !hl) { push({ label: `Placement supprimé · ${label}`, baseValue: `${bl.type} · ${euro(bl.value)}`, hypothesisValue: "Absent", impact: "down", fiscalArea: isAV(bl.type) ? "Succession / AV" : "IR / Succession" }); return; }
+    if (!bl && hl) { push({ label: `Nouveau placement · ${label}`, baseValue: "Absent", hypothesisValue: `${labelPlacement(hl.type)} · ${euro(hl.value)}`, impact: "up", fiscalArea: isAV(hl.type) ? "Succession / AV" : "IR / Succession" }); return; }
+    if (bl && !hl) { push({ label: `Placement supprimé · ${label}`, baseValue: `${labelPlacement(bl.type)} · ${euro(bl.value)}`, hypothesisValue: "Absent", impact: "down", fiscalArea: isAV(bl.type) ? "Succession / AV" : "IR / Succession" }); return; }
     if (bl && hl) {
       const area = isAV(bl.type) || isAV(hl.type) ? "Succession / AV" : "IR / Succession";
-      push(textDiffLine(`Type · ${label}`, bl.type, hl.type, area));
+      push(textDiffLine(`Type · ${label}`, labelPlacement(bl.type), labelPlacement(hl.type), area));
       push(textDiffLine(`Titulaire · ${label}`, bl.ownership, hl.ownership, area));
       push(moneyDiffLine(`Valeur · ${label}`, n(bl.value), n(hl.value), area));
       push(moneyDiffLine(`Revenu taxable · ${label}`, n(bl.taxableIncome), n(hl.taxableIncome), "IR"));
