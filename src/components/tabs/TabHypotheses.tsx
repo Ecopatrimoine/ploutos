@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CardAccentTop } from "../CardAccentTop";
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload } from "lucide-react";
-import { BRAND, SURFACE } from "../../constants";
+import { BRAND, SURFACE, labelPlacement } from "../../constants";
 import type { DonationItem, DonationHeir, Hypothesis, DifferenceLine } from "../../types/patrimoine";
 import { n, euro, deepClone, getDemembrementPercentages } from "../../lib/calculs/utils";
 import { Field, DifferenceBadge } from "../shared";
@@ -443,7 +443,7 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
     value: p.id, label: p.name || p.type || ("Bien " + (i + 1)),
   }));
   const placementOptions = (data?.placements || []).map((p: any, i: number) => ({
-    value: p.id, label: p.name || p.type || ("Placement " + (i + 1)),
+    value: p.id, label: p.name || labelPlacement(p.type) || ("Placement " + (i + 1)),
   }));
 
   const inp: React.CSSProperties = {
