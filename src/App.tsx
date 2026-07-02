@@ -69,6 +69,7 @@ import { applyDonationsToData } from "./lib/calculs/donation";
 import { buildHypothesisDifferenceLines } from "./lib/hypotheses";
 import { runSelfChecks } from "./lib/selfChecks";
 import { ensureAssetIds } from "./lib/migrations/ensureAssetIds";
+import { newId } from "./lib/id";
 
 // ── Composants onglets (React.memo — re-render uniquement si leurs données changent) ──
 import { TabFamiliale } from "./components/tabs/TabFamiliale";
@@ -517,7 +518,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const [concubinPerson, setConcubinPerson] = useState<1 | 2>(1);
   // Picker famille pour les legs
   const [legsPickerOpen, setLegsPickerOpen] = useState<"global" | "precis" | null>(null);
-  const [loanModalIndex, setLoanModalIndex] = useState<number | null>(null); // index du bien dont on édite les crédits
+  const [loanModalPropertyId, setLoanModalPropertyId] = useState<string | null>(null); // id du bien dont on édite les crédits
   const [exportStatus, setExportStatus] = useState("");
   const [exportFallbackOpen, setExportFallbackOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
@@ -615,12 +616,12 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
 
   const addProperty = useCallback((type: string) => setData((prev) => ({
     ...prev,
-    properties: [...prev.properties, { name: "", type, ownership: "person1", propertyRight: "full", usufructAge: "", counterpartKey: "", counterpartBirthDate: "", counterpartRelation: "", counterpartName: "", value: "", propertyTaxAnnual: "", rentGrossAnnual: "", insuranceAnnual: "", worksAnnual: "", otherChargesAnnual: "", loanEnabled: false, loanType: "amortissable", loanAmount: "", loanRate: "", loanDuration: "", loanStartDate: "", loanCapitalRemaining: "", loanInterestAnnual: "", loanPledgedPlacementIndex: "-1", loanInsurance: false, loanInsuranceGuarantees: "dc", loanInsuranceRate: "", loanInsuranceRate1: "", loanInsuranceRate2: "", loanInsurancePremium: "", loanInsuranceCoverage: "banque", indivisionShare1: "", indivisionShare2: "" }],
+    properties: [...prev.properties, { id: newId(), name: "", type, ownership: "person1", propertyRight: "full", usufructAge: "", counterpartKey: "", counterpartBirthDate: "", counterpartRelation: "", counterpartName: "", value: "", propertyTaxAnnual: "", rentGrossAnnual: "", insuranceAnnual: "", worksAnnual: "", otherChargesAnnual: "", loanEnabled: false, loanType: "amortissable", loanAmount: "", loanRate: "", loanDuration: "", loanStartDate: "", loanCapitalRemaining: "", loanInterestAnnual: "", loanPledgedPlacementIndex: "-1", loanInsurance: false, loanInsuranceGuarantees: "dc", loanInsuranceRate: "", loanInsuranceRate1: "", loanInsuranceRate2: "", loanInsurancePremium: "", loanInsuranceCoverage: "banque", indivisionShare1: "", indivisionShare2: "" }],
   })), []);
-  const updateProperty = useCallback((index: number, key: keyof Property, value: string | boolean | Loan[]) =>
-    setData((prev) => ({ ...prev, properties: prev.properties.map((p, i) => i === index ? { ...p, [key]: value } : p) })), []);
-  const removeProperty = useCallback((index: number) =>
-    setData((prev) => ({ ...prev, properties: prev.properties.filter((_, i) => i !== index) })), []);
+  const updateProperty = useCallback((id: string, key: keyof Property, value: string | boolean | Loan[]) =>
+    setData((prev) => ({ ...prev, properties: prev.properties.map((p) => p.id === id ? { ...p, [key]: value } : p) })), []);
+  const removeProperty = useCallback((id: string) =>
+    setData((prev) => ({ ...prev, properties: prev.properties.filter((p) => p.id !== id) })), []);
 
   // ── CRUD Loans (multi-crédits) ──
   const generateLoanId = () => `loan_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -633,10 +634,10 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     insuranceRate: "", insuranceRate1: "", insuranceRate2: "",
     insurancePremium: "", insuranceCoverage: "banque",
   });
-  const addLoan = useCallback((propertyIndex: number) => {
+  const addLoan = useCallback((propertyId: string) => {
     setData((prev) => ({
-      ...prev, properties: prev.properties.map((p, i) => {
-        if (i !== propertyIndex) return p;
+      ...prev, properties: prev.properties.map((p) => {
+        if (p.id !== propertyId) return p;
         const loans = p.loans || [];
         const newLoan = emptyLoan();
         if (loans.length === 0) newLoan.label = "Prêt principal";
@@ -646,16 +647,16 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       }),
     }));
   }, []);
-  const updateLoan = useCallback((propertyIndex: number, loanIndex: number, key: keyof Loan, value: string | boolean) =>
+  const updateLoan = useCallback((propertyId: string, loanId: string, key: keyof Loan, value: string | boolean) =>
     setData((prev) => ({
-      ...prev, properties: prev.properties.map((p, i) => i !== propertyIndex ? p : {
-        ...p, loans: (p.loans || []).map((l, li) => li !== loanIndex ? l : { ...l, [key]: value }),
+      ...prev, properties: prev.properties.map((p) => p.id !== propertyId ? p : {
+        ...p, loans: (p.loans || []).map((l) => l.id !== loanId ? l : { ...l, [key]: value }),
       }),
     })), []);
-  const removeLoan = useCallback((propertyIndex: number, loanIndex: number) =>
+  const removeLoan = useCallback((propertyId: string, loanId: string) =>
     setData((prev) => ({
-      ...prev, properties: prev.properties.map((p, i) => i !== propertyIndex ? p : {
-        ...p, loans: (p.loans || []).filter((_, li) => li !== loanIndex),
+      ...prev, properties: prev.properties.map((p) => p.id !== propertyId ? p : {
+        ...p, loans: (p.loans || []).filter((l) => l.id !== loanId),
       }),
     })), []);
   // Migration : convertir anciens champs loan* → loans[0] si loanEnabled et loans vide
@@ -682,14 +683,14 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
 
   const addPlacement = useCallback((type: string) => setData((prev) => ({
     ...prev,
-    placements: [...prev.placements, { name: "", type, ownership: "person1", value: "", annualIncome: "", taxableIncome: "", deathValue: "", openDate: "", pfuEligible: placementNeedsPFU(type), pfuOptOut: false, totalPremiumsNet: "", premiumsBefore70: "", premiumsAfter70: "", exemptFromSuccession: "", ucRatio: "", annualWithdrawal: "", annualContribution: "", perDeductible: true, perWithdrawal: "", perWithdrawalCapital: "", perWithdrawalInterest: "", perAnticiped: false, beneficiaries: [{ name: "", relation: "autre", share: "100" }] }],
+    placements: [...prev.placements, { id: newId(), name: "", type, ownership: "person1", value: "", annualIncome: "", taxableIncome: "", deathValue: "", openDate: "", pfuEligible: placementNeedsPFU(type), pfuOptOut: false, totalPremiumsNet: "", premiumsBefore70: "", premiumsAfter70: "", exemptFromSuccession: "", ucRatio: "", annualWithdrawal: "", annualContribution: "", perDeductible: true, perWithdrawal: "", perWithdrawalCapital: "", perWithdrawalInterest: "", perAnticiped: false, beneficiaries: [{ name: "", relation: "autre", share: "100" }] }],
   })), []);
-  const updatePlacementStr = useCallback(<K extends Exclude<keyof Placement, "pfuEligible" | "beneficiaries">>(index: number, key: K, value: Placement[K]) =>
-    setData((prev) => ({ ...prev, placements: prev.placements.map((p, i) => i === index ? { ...p, [key]: value } : p) })), []);
-  const updatePlacementBool = useCallback((index: number, value: boolean) =>
-    setData((prev) => ({ ...prev, placements: prev.placements.map((p, i) => i === index ? { ...p, pfuEligible: value } : p) })), []);
-  const removePlacement = useCallback((index: number) =>
-    setData((prev) => ({ ...prev, placements: prev.placements.filter((_, i) => i !== index) })), []);
+  const updatePlacementStr = useCallback(<K extends Exclude<keyof Placement, "pfuEligible" | "beneficiaries">>(id: string, key: K, value: Placement[K]) =>
+    setData((prev) => ({ ...prev, placements: prev.placements.map((p) => p.id === id ? { ...p, [key]: value } : p) })), []);
+  const updatePlacementBool = useCallback((id: string, value: boolean) =>
+    setData((prev) => ({ ...prev, placements: prev.placements.map((p) => p.id === id ? { ...p, pfuEligible: value } : p) })), []);
+  const removePlacement = useCallback((id: string) =>
+    setData((prev) => ({ ...prev, placements: prev.placements.filter((p) => p.id !== id) })), []);
 
   const addPlacementBeneficiary = useCallback((placementIndex: number) =>
     setData((prev) => ({ ...prev, placements: prev.placements.map((p, i) => i === placementIndex ? { ...p, beneficiaries: [...p.beneficiaries, { name: "", relation: "autre", share: "0" }] } : p) })), []);
@@ -1530,7 +1531,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
                   <TabFamiliale data={data} setField={setField} addChild={addChild} updateChild={updateChild} removeChild={removeChild} person1={person1} person2={person2} />
                   <TabTravail data={data} setField={setField} setChargesDetailField={setChargesDetailField} chargesDialogOpen={chargesDialogOpen} setChargesDialogOpen={setChargesDialogOpen} irOptions={irOptions} setIrOptions={setIrOptions} ir={ir} person1={person1} person2={person2} />
                   <TabRevenus data={data} setField={setField} setData={setData} setChargesDialogOpen={setChargesDialogOpen} irOptions={irOptions} setIrOptions={setIrOptions} ir={ir} person1={person1} person2={person2} />
-                  <TabImmobilier data={activeDonations.length > 0 ? successionData_effective : data} setField={setField} addProperty={addProperty} updateProperty={updateProperty} removeProperty={removeProperty} addLoan={addLoan} updateLoan={updateLoan} removeLoan={removeLoan} loanModalIndex={loanModalIndex} setLoanModalIndex={setLoanModalIndex} ownerOptions={ownerOptions} person1={person1} person2={person2} activeDonations={activeDonations} restoreBaseSnapshot={restoreBaseSnapshot} />
+                  <TabImmobilier data={activeDonations.length > 0 ? successionData_effective : data} setField={setField} addProperty={addProperty} updateProperty={updateProperty} removeProperty={removeProperty} addLoan={addLoan} updateLoan={updateLoan} removeLoan={removeLoan} loanModalPropertyId={loanModalPropertyId} setLoanModalPropertyId={setLoanModalPropertyId} ownerOptions={ownerOptions} person1={person1} person2={person2} activeDonations={activeDonations} restoreBaseSnapshot={restoreBaseSnapshot} />
                   <TabPlacements data={data} placementFamily={placementFamily} setPlacementFamily={setPlacementFamily} addPlacement={addPlacement} updatePlacementStr={updatePlacementStr} updatePlacementBool={updatePlacementBool} removePlacement={removePlacement} addPlacementBeneficiary={addPlacementBeneficiary} updatePlacementBeneficiary={updatePlacementBeneficiary} removePlacementBeneficiary={removePlacementBeneficiary} importFamilyBeneficiaries={importFamilyBeneficiaries} setField={setField} setData={setData} ownerOptions={ownerOptions} ir={ir} irOptions={irOptions} person1={person1} person2={person2} />
                   <TabCredits data={data} setField={setField} setData={setData} person1={person1} person2={person2} />
                 </Tabs>
@@ -1560,7 +1561,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
             addContrepartieWithBalance={addContrepartieWithBalance} removeContrepartieWithBalance={removeContrepartieWithBalance}
             legsPickerOpen={legsPickerOpen} setLegsPickerOpen={setLegsPickerOpen}
             addFamilyMemberToLegsGlobal={addFamilyMemberToLegsGlobal} addFamilyMemberToLegsPrecis={addFamilyMemberToLegsPrecis}
-            loanModalIndex={loanModalIndex} setLoanModalIndex={setLoanModalIndex}
+            loanModalPropertyId={loanModalPropertyId} setLoanModalPropertyId={setLoanModalPropertyId}
             addLoan={addLoan} updateLoan={updateLoan} removeLoan={removeLoan}
             effectiveSpouseOption={effectiveSpouseOption} spouseOptions={spouseOptions}
             person1={person1} person2={person2}
@@ -1636,8 +1637,8 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
       />
 
       <LoanModal
-        loanModalIndex={loanModalIndex}
-        setLoanModalIndex={setLoanModalIndex}
+        loanModalPropertyId={loanModalPropertyId}
+        setLoanModalPropertyId={setLoanModalPropertyId}
         data={data}
         addLoan={addLoan}
         updateLoan={updateLoan}
