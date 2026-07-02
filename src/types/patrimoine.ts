@@ -24,7 +24,10 @@ export type Loan = {
   startDate: string;
   capitalRemaining: string;   // vide = auto-calculé
   interestAnnual: string;     // vide = auto-calculé
+  /** @deprecated Cible par index (position dans data.placements). Conservé pour lire
+   *  les payloads anciens ; remplacé par pledgedPlacementId après ensureAssetIds. */
   pledgedPlacementIndex: string; // AV nantie pour in_fine (-1 = aucune)
+  pledgedPlacementId?: string;   // id stable de l'AV nantie (posé par ensureAssetIds)
   insurance: boolean;
   insuranceGuarantees: string; // "dc"|"dc_ptia"|...
   insuranceRate: string;       // bien propre ou mono
@@ -44,6 +47,9 @@ export type DismemberCounterpart = {
 };
 
 export type Property = {
+  // Identifiant stable, posé à la migration (ensureAssetIds). Optionnel : les
+  // payloads antérieurs à la refonte n'en ont pas avant migration au chargement.
+  id?: string;
   name: string;
   type: string;
   ownership: string;
@@ -78,7 +84,10 @@ export type Property = {
   loanStartDate: string;
   loanCapitalRemaining: string;
   loanInterestAnnual: string;
+  /** @deprecated Cible par index (position dans data.placements), legacy mono-crédit.
+   *  Conservé pour lire les payloads anciens ; remplacé par loanPledgedPlacementId. */
   loanPledgedPlacementIndex: string; // index AV nantie (-1 = aucune)
+  loanPledgedPlacementId?: string;   // id stable de l'AV nantie (posé par ensureAssetIds)
   // ── Assurance ────────────────────────────────────────
   loanInsurance: boolean;
   loanInsuranceGuarantees: string;  // "dc"|"dc_ptia"|"dc_ptia_itt"|"dc_ptia_itt_ipp"
@@ -115,6 +124,9 @@ export type Beneficiary = {
 };
 
 export type Placement = {
+  // Identifiant stable, posé à la migration (ensureAssetIds). Optionnel : les
+  // payloads antérieurs à la refonte n'en ont pas avant migration au chargement.
+  id?: string;
   name: string;
   type: string;
   ownership: string;
@@ -692,7 +704,10 @@ export type LegsPrecisLegataire = {
 
 // Legs précis : centré sur le BIEN — un bien peut avoir plusieurs légataires
 export type LegsPrecisItem = {
+  /** @deprecated Cible par index selon assetType (data.properties[i] / data.placements[i]).
+   *  Conservé pour lire les payloads anciens ; remplacé par assetId après ensureAssetIds. */
   propertyIndex: number;
+  assetId?: string;    // id stable du bien/placement légué (posé par ensureAssetIds)
   assetType: "property" | "placement" | "free";
   freeLabel?: string;       // si bien libre (assetType="free")
   freeValue?: string;       // valeur estimée du bien libre
@@ -747,7 +762,10 @@ export type DonationHeir = {
 export type DonationItem = {
   id: string;
   assetType: "property" | "placement" | "free";
+  /** @deprecated Cible par index selon assetType (data.properties[i] / data.placements[i]).
+   *  Conservé pour lire les payloads anciens ; remplacé par assetId après ensureAssetIds. */
   assetIndex: number;
+  assetId?: string;    // id stable du bien/placement donné (posé par ensureAssetIds)
   freeLabel: string;
   freeValue: string;
   donationType: "full" | "dismembered"; // pleine propriété ou démembrement NP/US
