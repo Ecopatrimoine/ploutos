@@ -823,9 +823,34 @@ export function forfaitaireCapitalDeces(caisseRef: any, entree: EntreePerso): nu
   const cap = caisseRef?.capitalDeces;
   if (!cap) return null;
   const cle = resolveDiscriminant(caisseRef, entree);
-  // cf. forfaitaireInvalMensuel : assiette = commissions brutes (mode
-  // pourcentageRevenu), ignorée par uniforme / parDiscriminant.
-  const assiette = entree.forfait?.commissionsBrutes;
+  // Assiette du mode pourcentageRevenu : par defaut commissions brutes (TNS
+  // forfaitaire, ex. CAVAMAC) ; "remunerationAnnuelle" (Fonction publique) =
+  // revenu annuel declaré (meme champ que les IJ salariees, decision David 02/07).
+  const assiette = cap.assiette === "remunerationAnnuelle"
+    ? (entree.salaireBrutAnnuel > 0 ? entree.salaireBrutAnnuel : (entree.revenuTNSAnnuel ?? 0))
+    : entree.forfait?.commissionsBrutes;
+
+  // Capital statutaire Fonction publique : un an de remuneration (taux 1.00) +
+  // majoration par enfant a charge, avec plancher statutaire (16 036 EUR). Apres
+  // l'age minimal de retraite (64), bascule a taux reduit SANS majoration ni
+  // plancher. Age depuis la date de naissance (entree.age) ; age inconnu/0 ->
+  // branche avant 64 avec majorations (comportement le moins surprenant).
+  if (cap.mode === "pourcentageRevenu" && cap.assiette === "remunerationAnnuelle") {
+    const base = safeNum(assiette) ?? 0;
+    const ageMin = safeNum(cap.ageMinRetraite);
+    const age = safeNum(entree.age);
+    if (ageMin !== null && age !== null && age >= ageMin) {
+      const tauxApres = safeNum(cap.apresAgeMinRetraite?.taux) ?? 0;
+      return base * tauxApres; // apres l'age min de retraite : pas de majoration ni plancher
+    }
+    const taux = safeNum(cap.taux) ?? 0;
+    const majEnfant = safeNum(cap.majorationParEnfant) ?? 0;
+    const nbEnfants = safeNum(entree.nbEnfantsACharge) ?? 0;
+    let montant = base * taux + majEnfant * nbEnfants;
+    const plancher = safeNum(cap.plancher);
+    if (plancher !== null) montant = Math.max(montant, plancher);
+    return montant;
+  }
 
   // Capital 25/50 selon la situation familiale (ex. CAVAMAC). Activé
   // UNIQUEMENT en mode pourcentageRevenu AVEC tauxMajoreFamille déclaré : taux
