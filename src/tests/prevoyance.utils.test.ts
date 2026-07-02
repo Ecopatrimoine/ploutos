@@ -85,7 +85,10 @@ describe("suggestCaisseFromStatut", () => {
     expect(suggestCaisseFromStatut("salarie_cadre")).toBe("CPAM");
     expect(suggestCaisseFromStatut("president_sas")).toBe("CPAM");
     expect(suggestCaisseFromStatut("eurl_unique")).toBe("CPAM");
-    expect(suggestCaisseFromStatut("fonctionnaire")).toBe("CPAM");
+  });
+
+  it("FONCTION_PUBLIQUE pour fonctionnaire (titulaire)", () => {
+    expect(suggestCaisseFromStatut("fonctionnaire")).toBe("FONCTION_PUBLIQUE");
   });
 
   it("SSI pour TNS commerce / artisan / gérant majoritaire", () => {
