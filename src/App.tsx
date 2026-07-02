@@ -863,7 +863,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
         items[itemIndex] = { ...items[itemIndex], legataires: [...(items[itemIndex].legataires || []), newLegataire] };
       } else {
         // Créer un nouveau bien avec ce légataire
-        items.push({ propertyIndex: 0, assetType: "property" as const, legataires: [newLegataire] });
+        items.push({ propertyIndex: 0, assetType: "property" as const, assetId: data.properties[0]?.id, legataires: [newLegataire] });
       }
       return { ...prev, legsPrecisItems: items };
     });
@@ -908,7 +908,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     setSuccessionData((prev) => ({ ...prev, testamentHeirs: prev.testamentHeirs.map((h, i) => i === index ? { ...h, [key]: value } : h) }));
   const removeTestamentHeir = (index: number) =>
     setSuccessionData((prev) => ({ ...prev, testamentHeirs: prev.testamentHeirs.filter((_, i) => i !== index) }));
-  const addLegsPrecisItem = () => setSuccessionData((prev) => ({ ...prev, legsPrecisItems: [...(prev.legsPrecisItems || []), { propertyIndex: 0, assetType: "property" as const, legataires: [] }] }));
+  const addLegsPrecisItem = () => setSuccessionData((prev) => ({ ...prev, legsPrecisItems: [...(prev.legsPrecisItems || []), { propertyIndex: 0, assetType: "property" as const, assetId: data.properties[0]?.id, legataires: [] }] }));
   const addLegsPrecisItemFree = () => setSuccessionData((prev) => ({ ...prev, legsPrecisItems: [...(prev.legsPrecisItems || []), { propertyIndex: 0, assetType: "free" as const, freeLabel: "", freeValue: "", legataires: [] }] }));
   const addLegsPrecisItemResidual = () => setSuccessionData((prev) => ({ ...prev, legsPrecisItems: [...(prev.legsPrecisItems || []), { propertyIndex: 0, assetType: "free" as const, freeLabel: "Reste du patrimoine", freeValue: "", isResidual: true, legataires: [] }] }));
   const updateLegsPrecisItem = (index: number, key: keyof LegsPrecisItem, value: any) =>
