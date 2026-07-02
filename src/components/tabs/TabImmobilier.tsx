@@ -19,7 +19,7 @@ import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTi
 // ── TabImmobilier ─────────────────────────────────────────────────────────────────────
 const TabImmobilier = React.memo(function TabImmobilier(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
-  const { data, setField, addProperty, updateProperty, removeProperty, addLoan, updateLoan, removeLoan, loanModalIndex, setLoanModalIndex, ownerOptions, person1, person2, activeDonations, restoreBaseSnapshot } = props;
+  const { data, setField, addProperty, updateProperty, removeProperty, addLoan, updateLoan, removeLoan, loanModalPropertyId, setLoanModalPropertyId, ownerOptions, person1, person2, activeDonations, restoreBaseSnapshot } = props;
 
   // Indices des biens concernés par une donation active
   const donatedPropertyIndices = React.useMemo(() => {
@@ -46,7 +46,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
   {data.properties.map((property, index) => {
     const isDonated = donatedPropertyIndices.has(index);
     return (
-    <Card key={index} className="border " style={{ borderColor: isDonated ? "rgba(227,175,100,0.6)" : SURFACE.border, position: "relative", overflow: "hidden" }}>
+    <Card key={property.id} className="border " style={{ borderColor: isDonated ? "rgba(227,175,100,0.6)" : SURFACE.border, position: "relative", overflow: "hidden" }}>
       {/* Badge donation active */}
       {isDonated && (
         <div style={{
@@ -92,21 +92,21 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
         {/* Identité + suppression */}
         <div className="flex items-end gap-2">
           <div className="flex-1 grid gap-2 grid-cols-[1.4fr_1.6fr_1fr_1fr]">
-            <Field label="Nom"><Input value={property.name} onChange={(e) => updateProperty(index, "name", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
+            <Field label="Nom"><Input value={property.name} onChange={(e) => updateProperty(property.id, "name", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
             <Field label="Nature">
-              <Select value={property.type} onValueChange={(v) => updateProperty(index, "type", v)}>
+              <Select value={property.type} onValueChange={(v) => updateProperty(property.id, "type", v)}>
                 <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>{PROPERTY_TYPES.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
             <Field label="Propriétaire">
-              <Select value={property.ownership} onValueChange={(v) => updateProperty(index, "ownership", v)}>
+              <Select value={property.ownership} onValueChange={(v) => updateProperty(property.id, "ownership", v)}>
                 <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>{ownerOptions.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
             <Field label="Droit">
-              <Select value={property.propertyRight} onValueChange={(v) => updateProperty(index, "propertyRight", v)}>
+              <Select value={property.propertyRight} onValueChange={(v) => updateProperty(property.id, "propertyRight", v)}>
                 <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>{PROPERTY_RIGHTS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
               </Select>
@@ -123,11 +123,11 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
               </span>
             );
           })()}
-          <Button variant="outline" className="h-8 w-8 shrink-0 rounded-xl p-0 mb-0.5" onClick={() => removeProperty(index)}><Trash2 className="h-3.5 w-3.5" /></Button>
+          <Button variant="outline" className="h-8 w-8 shrink-0 rounded-xl p-0 mb-0.5" onClick={() => removeProperty(property.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
         </div>
         {/* Valeurs financières — grille adaptative, sans divs vides */}
         <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(130px,1fr))]">
-          <MoneyField label={property.propertyRight === "full" ? "Valeur estimée" : "Valeur PP"} tooltip="Valeur vénale actuelle du bien. En pleine propriété, c'est la valeur retenue pour l'IFI et la succession. En démembrement, seule la valeur de la pleine propriété est saisie ici." value={property.value} onChange={(e) => updateProperty(index, "value", e.target.value)} compact />
+          <MoneyField label={property.propertyRight === "full" ? "Valeur estimée" : "Valeur PP"} tooltip="Valeur vénale actuelle du bien. En pleine propriété, c'est la valeur retenue pour l'IFI et la succession. En démembrement, seule la valeur de la pleine propriété est saisie ici." value={property.value} onChange={(e) => updateProperty(property.id, "value", e.target.value)} compact />
           {property.propertyRight !== "full" && (() => {
             const familyOptions = [
               { key: "person1", label: person1, birthDate: data.person1BirthDate, relation: "conjoint" },
@@ -214,7 +214,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
 
             // Helper pour ajouter/modifier/supprimer une contrepartie dans la liste
             const mkDismember = (pKey: "dismemberP1" | "dismemberP2", current: any, right: string, counterparts: DismemberCounterpart[]) =>
-              updateProperty(index, pKey, { propertyRight: right, counterparts });
+              updateProperty(property.id, pKey, { propertyRight: right, counterparts });
 
             if (isCommon) {
               const defaultRight = property.propertyRight;
@@ -332,10 +332,10 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                   <Field label={isNP ? "Usufruitier (contrepartie NP)" : "Nu-propriétaire (contrepartie US)"} tooltip="Personne qui détient l'autre partie du bien.">
                     <Select value={property.counterpartKey || ""} onValueChange={(v) => {
                       const found = familyOptions.find(f => f.key === v);
-                      updateProperty(index, "counterpartKey", v);
-                      updateProperty(index, "counterpartBirthDate", found?.birthDate || "");
-                      updateProperty(index, "counterpartRelation", found?.relation || "tiers");
-                      updateProperty(index, "counterpartName", found?.label || "");
+                      updateProperty(property.id, "counterpartKey", v);
+                      updateProperty(property.id, "counterpartBirthDate", found?.birthDate || "");
+                      updateProperty(property.id, "counterpartRelation", found?.relation || "tiers");
+                      updateProperty(property.id, "counterpartName", found?.label || "");
                     }}>
                       <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue placeholder="Choisir…" /></SelectTrigger>
                       <SelectContent>
@@ -347,7 +347,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                 {property.counterpartKey === "other" && (
                   <div style={{ minWidth: "160px", flex: "1" }}>
                     <Field label="Date de naissance">
-                      <DateFr value={property.counterpartBirthDate || ""} onChange={(iso) => updateProperty(index, "counterpartBirthDate", iso || "")} className="rounded-xl h-8 text-sm" />
+                      <DateFr value={property.counterpartBirthDate || ""} onChange={(iso) => updateProperty(property.id, "counterpartBirthDate", iso || "")} className="rounded-xl h-8 text-sm" />
                     </Field>
                   </div>
                 )}
@@ -364,11 +364,11 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
               </div>
             );
           })()}
-          {propertyNeedsPropertyTax(property.type) && <MoneyField label="Taxe foncière/an" tooltip="Montant annuel de la taxe foncière. Déductible des revenus fonciers en régime réel." value={property.propertyTaxAnnual} onChange={(e) => updateProperty(index, "propertyTaxAnnual", e.target.value)} compact />}
-          {propertyNeedsRent(property.type) && <MoneyField label="Loyer brut/an" tooltip="Total des loyers encaissés sur l'année, avant déduction des charges. Utilisé pour calculer le revenu foncier net imposable." value={property.rentGrossAnnual} onChange={(e) => updateProperty(index, "rentGrossAnnual", e.target.value)} compact />}
-          {propertyNeedsInsurance(property.type) && <MoneyField label="Assurance/an" tooltip="Prime d'assurance habitation annuelle du bien locatif. Déductible des revenus fonciers en régime réel." value={property.insuranceAnnual} onChange={(e) => updateProperty(index, "insuranceAnnual", e.target.value)} compact />}
-          {propertyNeedsWorks(property.type) && <MoneyField label="Travaux/an" tooltip="Dépenses de travaux d'entretien et de réparation annuelles. Déductibles des revenus fonciers en régime réel. Les travaux de construction ou d'agrandissement ne sont pas déductibles." value={property.worksAnnual} onChange={(e) => updateProperty(index, "worksAnnual", e.target.value)} compact />}
-          {propertyNeedsRent(property.type) && <MoneyField label="Autres charges/an" tooltip="Autres charges déductibles : frais de gestion locative, charges de copropriété non récupérables, frais comptables, etc." value={property.otherChargesAnnual} onChange={(e) => updateProperty(index, "otherChargesAnnual", e.target.value)} compact />}
+          {propertyNeedsPropertyTax(property.type) && <MoneyField label="Taxe foncière/an" tooltip="Montant annuel de la taxe foncière. Déductible des revenus fonciers en régime réel." value={property.propertyTaxAnnual} onChange={(e) => updateProperty(property.id, "propertyTaxAnnual", e.target.value)} compact />}
+          {propertyNeedsRent(property.type) && <MoneyField label="Loyer brut/an" tooltip="Total des loyers encaissés sur l'année, avant déduction des charges. Utilisé pour calculer le revenu foncier net imposable." value={property.rentGrossAnnual} onChange={(e) => updateProperty(property.id, "rentGrossAnnual", e.target.value)} compact />}
+          {propertyNeedsInsurance(property.type) && <MoneyField label="Assurance/an" tooltip="Prime d'assurance habitation annuelle du bien locatif. Déductible des revenus fonciers en régime réel." value={property.insuranceAnnual} onChange={(e) => updateProperty(property.id, "insuranceAnnual", e.target.value)} compact />}
+          {propertyNeedsWorks(property.type) && <MoneyField label="Travaux/an" tooltip="Dépenses de travaux d'entretien et de réparation annuelles. Déductibles des revenus fonciers en régime réel. Les travaux de construction ou d'agrandissement ne sont pas déductibles." value={property.worksAnnual} onChange={(e) => updateProperty(property.id, "worksAnnual", e.target.value)} compact />}
+          {propertyNeedsRent(property.type) && <MoneyField label="Autres charges/an" tooltip="Autres charges déductibles : frais de gestion locative, charges de copropriété non récupérables, frais comptables, etc." value={property.otherChargesAnnual} onChange={(e) => updateProperty(property.id, "otherChargesAnnual", e.target.value)} compact />}
           {/* ── Bloc crédit ── */}
           </div>
           {/* ── Multi-crédits : bouton ouvre modale ── */}
@@ -381,7 +381,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
               <div className="flex items-center gap-2 mt-1">
                 <button
                   onClick={() => {
-                    setLoanModalIndex(index);
+                    setLoanModalPropertyId(property.id);
                   }}
                   className="flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-medium border transition-colors hover:opacity-90"
                   style={{
@@ -398,8 +398,8 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
           <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(145px,1fr))]">
           {property.ownership === "indivision" && (
             <>
-              <MoneyField label={`% ${person1}`} tooltip={`Quote-part de propriété de ${person1} dans l'indivision. La somme des deux parts (foyer + co-indivisaires extérieurs s'il y en a) doit égaler 100%.`} value={property.indivisionShare1} onChange={(e) => updateProperty(index, "indivisionShare1", e.target.value)} compact />
-              <MoneyField label={`% ${person2}`} tooltip={`Quote-part de propriété de ${person2} dans l'indivision. La somme des deux parts (foyer + co-indivisaires extérieurs s'il y en a) doit égaler 100%.`} value={property.indivisionShare2} onChange={(e) => updateProperty(index, "indivisionShare2", e.target.value)} compact />
+              <MoneyField label={`% ${person1}`} tooltip={`Quote-part de propriété de ${person1} dans l'indivision. La somme des deux parts (foyer + co-indivisaires extérieurs s'il y en a) doit égaler 100%.`} value={property.indivisionShare1} onChange={(e) => updateProperty(property.id, "indivisionShare1", e.target.value)} compact />
+              <MoneyField label={`% ${person2}`} tooltip={`Quote-part de propriété de ${person2} dans l'indivision. La somme des deux parts (foyer + co-indivisaires extérieurs s'il y en a) doit égaler 100%.`} value={property.indivisionShare2} onChange={(e) => updateProperty(property.id, "indivisionShare2", e.target.value)} compact />
             </>
           )}
         </div>
@@ -416,15 +416,15 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
           const ecartSomme = 100 - totalSomme;
           const addExternal = () => {
             const next = [...externals, { id: `ext-${Date.now()}`, name: "", relation: "Associé", sharePercent: "0" }];
-            updateProperty(index, "externalShares", next);
+            updateProperty(property.id, "externalShares", next);
           };
           const updateExternal = (extIdx: number, field: "name" | "relation" | "sharePercent", value: string) => {
             const next = externals.map((e, i) => i === extIdx ? { ...e, [field]: value } : e);
-            updateProperty(index, "externalShares", next);
+            updateProperty(property.id, "externalShares", next);
           };
           const removeExternal = (extIdx: number) => {
             const next = externals.filter((_, i) => i !== extIdx);
-            updateProperty(index, "externalShares", next);
+            updateProperty(property.id, "externalShares", next);
           };
           return (
             <div className="mt-3 rounded-xl p-3" style={{ background: "rgba(81,106,199,0.04)", border: `1px solid rgba(81,106,199,0.15)` }}>
