@@ -491,7 +491,6 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   };
   const [clientName, setClientName] = useState("Client");
   const [notes, setNotes] = useState("");
-  const [placementFamily, setPlacementFamily] = useState("cash");
   const [data, setData] = useState<PatrimonialData>({
     person1FirstName: "", person1LastName: "", person1BirthDate: "", person1JobTitle: "", person1Csp: "", person1PcsGroupe: "5",
     person2FirstName: "", person2LastName: "", person2BirthDate: "", person2JobTitle: "", person2Csp: "", person2PcsGroupe: "5",
@@ -1532,7 +1531,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
                   <TabTravail data={data} setField={setField} setChargesDetailField={setChargesDetailField} chargesDialogOpen={chargesDialogOpen} setChargesDialogOpen={setChargesDialogOpen} irOptions={irOptions} setIrOptions={setIrOptions} ir={ir} person1={person1} person2={person2} />
                   <TabRevenus data={data} setField={setField} setData={setData} setChargesDialogOpen={setChargesDialogOpen} irOptions={irOptions} setIrOptions={setIrOptions} ir={ir} person1={person1} person2={person2} />
                   <TabImmobilier data={activeDonations.length > 0 ? successionData_effective : data} setField={setField} addProperty={addProperty} updateProperty={updateProperty} removeProperty={removeProperty} addLoan={addLoan} updateLoan={updateLoan} removeLoan={removeLoan} loanModalPropertyId={loanModalPropertyId} setLoanModalPropertyId={setLoanModalPropertyId} ownerOptions={ownerOptions} person1={person1} person2={person2} activeDonations={activeDonations} restoreBaseSnapshot={restoreBaseSnapshot} />
-                  <TabPlacements data={data} placementFamily={placementFamily} setPlacementFamily={setPlacementFamily} addPlacement={addPlacement} updatePlacementStr={updatePlacementStr} updatePlacementBool={updatePlacementBool} removePlacement={removePlacement} addPlacementBeneficiary={addPlacementBeneficiary} updatePlacementBeneficiary={updatePlacementBeneficiary} removePlacementBeneficiary={removePlacementBeneficiary} importFamilyBeneficiaries={importFamilyBeneficiaries} setField={setField} setData={setData} ownerOptions={ownerOptions} ir={ir} irOptions={irOptions} person1={person1} person2={person2} />
+                  <TabPlacements data={data} addPlacement={addPlacement} updatePlacementStr={updatePlacementStr} updatePlacementBool={updatePlacementBool} removePlacement={removePlacement} addPlacementBeneficiary={addPlacementBeneficiary} updatePlacementBeneficiary={updatePlacementBeneficiary} removePlacementBeneficiary={removePlacementBeneficiary} importFamilyBeneficiaries={importFamilyBeneficiaries} setField={setField} setData={setData} ownerOptions={ownerOptions} ir={ir} irOptions={irOptions} person1={person1} person2={person2} />
                   <TabCredits data={data} setField={setField} setData={setData} person1={person1} person2={person2} />
                 </Tabs>
               </CardContent>
