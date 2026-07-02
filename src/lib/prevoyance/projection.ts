@@ -507,6 +507,31 @@ export function computeIJObligatoireJournaliere(
     return null; // aucun palier ne matche (donnée incohérente) -> trou visible, pas un faux montant
   }
 
+  // 2ter) Regle pourcentage du revenu par paliers (Fonction publique titulaire) :
+  // maintien statutaire = revenu declare x taux du palier courant. Montant
+  // JOURNALIER = (revenuAnnuel / 365) x tauxRevenu. Paliers {dureeJours,tauxRevenu}
+  // consommes en sequence a partir du 1er jour indemnise (fin de carence). AUCUN
+  // plafond PASS/SMIC (assiette = revenu declare, meme champ que les IJ salariees,
+  // decision David 02/07). Au-dela du dernier palier -> 0 (fin des droits IJ).
+  if (ij.regle === "pourcentage_revenu_paliers") {
+    const revenuAnnuel = entree.salaireBrutAnnuel > 0
+      ? entree.salaireBrutAnnuel
+      : (entree.revenuTNSAnnuel ?? 0);
+    if (revenuAnnuel <= 0) return null;
+    const paliersPct = Array.isArray(ij.paliers) ? ij.paliers : [];
+    let debutPalier = carence; // 1er jour indemnise = fin de carence
+    for (const p of paliersPct) {
+      const duree = safeNum(p?.dureeJours);
+      const tauxRevenu = safeNum(p?.tauxRevenu);
+      if (duree === null || tauxRevenu === null) continue; // palier incoherent -> ignore
+      if (t < debutPalier + duree) {
+        return (revenuAnnuel / 365) * tauxRevenu;
+      }
+      debutPalier += duree;
+    }
+    return 0; // au-dela du dernier palier -> plus d'IJ
+  }
+
   // 3) Règle tranche revenu (CPAM, SSI, CIPAV)
   const baseAnnuelle = entree.salaireBrutAnnuel > 0
     ? entree.salaireBrutAnnuel
@@ -694,6 +719,12 @@ function ijForfaitaireJournaliere(
 ): number {
   const ij = caisseRef?.ij;
   if (!ij) return 0;
+  // Regle a paliers % du revenu (Fonction publique) : deleguee au moteur generique
+  // computeIJObligatoireJournaliere (branche dediee, gere carence + paliers). Pas de
+  // phase1 CPAM ni de montantJournalier forfaitaire ici.
+  if (ij.regle === "pourcentage_revenu_paliers") {
+    return computeIJObligatoireJournaliere(t, caisseRef, entree, vars, scenarioArret) ?? 0;
+  }
   const carence = safeNum(ij.carenceJours) ?? 0;
   const plafond = safeNum(ij.plafondDureeJours);
   if (t < carence) {
