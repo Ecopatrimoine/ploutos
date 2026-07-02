@@ -80,6 +80,17 @@ function isSalarieOuAssimile(s: StatutPro | ""): boolean {
   );
 }
 
+// LOT D.1 (Fonction publique) — maintien employeur PRIVE (Code du travail + CCN).
+// Derive de isSalarieOuAssimile MAIS exclut le fonctionnaire titulaire : son
+// maintien statutaire (90 % puis 50 %) est porte par l'etage IJ obligatoire
+// (regle pourcentage_revenu_paliers), pas par le maintien employeur prive — sinon
+// double compte. Les assimiles salaries (president SAS, EURL unique) conservent
+// le maintien prive. N'affecte QUE le maintien : la base d'invalidite et la ligne
+// de revenu de reference restent salaire-based pour le fonctionnaire.
+function isSalarieMaintienPrive(s: StatutPro | ""): boolean {
+  return isSalarieOuAssimile(s) && s !== "fonctionnaire";
+}
+
 function isTNS(s: StatutPro | ""): boolean {
   return (
     s === "tns_liberal" ||
@@ -1377,6 +1388,11 @@ export function projeterArretMaladie(
   ];
   const caisseRef = lookupCaisse(entree.caisse, ref);
   const isSalarie = isSalarieOuAssimile(entree.statutPro);
+  // LOT D.1 : maintien employeur PRIVE seulement (exclut le fonctionnaire, dont
+  // le maintien statutaire est deja porte par l'IJ obligatoire). Utilise pour les
+  // trois usages maintien (axe, bande, ruptures) ; les usages base/reference
+  // gardent isSalarie (salaire-based pour le fonctionnaire).
+  const isSalarieMaintien = isSalarieMaintienPrive(entree.statutPro);
   const isTns = isTNS(entree.statutPro);
 
   // CARMF (médecins libéraux) : architecture 2 étages. IJ CPAM J4-J90
@@ -1429,7 +1445,7 @@ export function projeterArretMaladie(
   // d'interpoler en biais). Les bornes du TPT (debut/fin) sont insérées
   // pour la même raison (marche nette à la reprise / fin du mi-temps).
   const joursEvenements = [
-    ...marchesMaintienEffectif(sourcesMaintien, isSalarie).map((mar) => mar.jour),
+    ...marchesMaintienEffectif(sourcesMaintien, isSalarieMaintien).map((mar) => mar.jour),
     ...(tptActif ? [tptDebut, tptFin] : []),
     ...(isCarmf ? [J_RELAIS_CARMF, jourFinInvalCarmf] : []),
     ...(isCipav ? [J_TROU_CIPAV, jourFinInvalCipav] : []),
@@ -1649,7 +1665,7 @@ export function projeterArretMaladie(
         t,
         sourcesMaintien,
         revenuReferenceMensuel,
-        isSalarie,
+        isSalarieMaintien,
         series.ijObligatoire[i]
       );
 
@@ -1794,7 +1810,7 @@ export function projeterArretMaladie(
     series,
     BASCULE_INVALIDITE,
     sourcesMaintien,
-    isSalarie,
+    isSalarieMaintien,
     donneesIndisponibles,
     tptActif ? { debut: tptDebut, fin: tptFin, guerison: tptGuerison } : null,
     isCarmf ? J_RELAIS_CARMF : null,
