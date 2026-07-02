@@ -218,11 +218,26 @@ export const MATRIMONIAL_OPTIONS = [
 ] as const;
 
 export const PLACEMENT_FAMILIES = [
-  { value: "cash", label: "Comptes et épargne réglementée" },
-  { value: "market", label: "Valeurs mobilières" },
-  { value: "wrapper", label: "Enveloppes et capitalisation" },
+  { value: "cash", label: "Liquidités" },
+  { value: "market", label: "Marchés" },
+  { value: "wrapper", label: "Épargne assurantielle" },
   { value: "retirement", label: "Retraite" },
 ] as const;
+
+// ─── Couleurs par famille de placement ───────────────────────────────────────
+// Source UNIQUE réutilisable (servira aussi aux contours de cards lors de la
+// grande passe UI). Par famille : `solid` (point + bordure + texte de la pastille
+// ACTIVE) calibré AA sur fond clair, et `fill` (fond de la pastille de famille
+// ACTIVE uniquement). L'information de famille ne repose JAMAIS sur la couleur
+// seule : le libellé (PLACEMENT_FAMILIES) est toujours affiché à côté du point.
+// Ratios texte `solid` sur `fill` (fond clair) : cash 5.47:1, market 5.70:1,
+// wrapper 5.87:1, retirement 6.00:1 — tous AA.
+export const FAMILY_COLORS: Record<string, { solid: string; fill: string }> = {
+  cash:       { solid: "#0F6E56", fill: "#E1F5EE" }, // vert
+  market:     { solid: "#185FA5", fill: "#E6F1FB" }, // bleu
+  wrapper:    { solid: "#854F0B", fill: "#FAEEDA" }, // ambre
+  retirement: { solid: "#534AB7", fill: "#EEEDFE" }, // violet
+};
 
 export const PLACEMENT_TYPES_BY_FAMILY: Record<string, string[]> = {
   cash: ["Compte courant", "Compte à terme", "PEL", "CEL", "Livret A", "LDDS", "LEP"],
