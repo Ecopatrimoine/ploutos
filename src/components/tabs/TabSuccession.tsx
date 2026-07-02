@@ -1,6 +1,7 @@
 import React from "react";
 import { computeDonation, applyDonationsToData } from "../../lib/calculs/donation";
 import { euro as euroFmt } from "../../lib/calculs/utils";
+import { resolvePlacementRef, resolvePropertyRef } from "../../lib/calculs/refs";
 import { Input } from "@/components/ui/input";
 import { DateFr } from "@/components/ui/DateFr";
 import { Button } from "@/components/ui/button";
@@ -229,8 +230,8 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
       {/* ── LEGS PRÉCIS ── */}
       {successionData.useTestament && successionData.legsMode === "precis" && (() => {
         const allAssets = [
-          ...data.properties.map((p: Property, i: number) => ({ label: `${p.name || p.type} — ${euro(n(p.value))}`, assetType: "property" as const, idx: i, value: n(p.value) })),
-          ...data.placements.filter((p: Placement) => !isAV(p.type) && !isPERType(p.type)).map((p: Placement, i: number) => ({ label: `${p.name || p.type} — ${euro(n(p.value))}`, assetType: "placement" as const, idx: i, value: n(p.value) })),
+          ...data.properties.map((p: Property) => ({ label: `${p.name || p.type} — ${euro(n(p.value))}`, assetType: "property" as const, id: p.id, value: n(p.value) })),
+          ...data.placements.filter((p: Placement) => !isAV(p.type) && !isPERType(p.type)).map((p: Placement) => ({ label: `${p.name || p.type} — ${euro(n(p.value))}`, assetType: "placement" as const, id: p.id, value: n(p.value) })),
         ];
         const items = successionData.legsPrecisItems || [];
         const familyMembers = getFamilyMembers();
@@ -242,8 +243,8 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
         });
         const totalBiensExplicites = migratedItems.filter((it: any) => !it.isResidual).reduce((s: number, it: any) => {
           if (it.assetType === "free") return s + (n(it.freeValue) || 0);
-          const asset = it.assetType === "property" ? data.properties[it.propertyIndex] : null;
-          const val = it.assetType === "property" ? n(asset?.value) : n(data.placements[it.propertyIndex]?.value);
+          const asset = it.assetType === "property" ? resolvePropertyRef(data.properties, { id: it.assetId, index: it.propertyIndex }) : null;
+          const val = it.assetType === "property" ? n(asset?.value) : n(resolvePlacementRef(data.placements, { id: it.assetId, index: it.propertyIndex })?.value);
           return s + val;
         }, 0);
         const activeNet = (succession as any)?.activeNet || 0;
@@ -272,7 +273,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
               let assetValue = 0;
               if (item.isResidual) { assetValue = residualValue; }
               else if (item.assetType === "free") { assetValue = n(item.freeValue) || 0; }
-              else { const asset = item.assetType === "property" ? data.properties[item.propertyIndex] : null; assetValue = item.assetType === "property" ? n(asset?.value) : n(data.placements[item.propertyIndex]?.value); }
+              else { const asset = item.assetType === "property" ? resolvePropertyRef(data.properties, { id: item.assetId, index: item.propertyIndex }) : null; assetValue = item.assetType === "property" ? n(asset?.value) : n(resolvePlacementRef(data.placements, { id: item.assetId, index: item.propertyIndex })?.value); }
               return (
                 <div key={itemIdx} className="rounded-xl border p-4 space-y-3" style={{ borderColor: hasError ? BRAND.dangerBorder : SURFACE.border, background: SURFACE.card }}>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -285,10 +286,10 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                       </>
                     ) : (
                       <div className="flex-1">
-                        <select className="w-full rounded-xl px-3 h-8 text-sm" value={`${item.assetType}-${item.propertyIndex}`}
-                          onChange={(e) => { const parts = e.target.value.split("-"); const at = parts[0]; const idxStr = parts.slice(1).join("-"); updateLegsPrecisItem(itemIdx, "assetType" as any, at); updateLegsPrecisItem(itemIdx, "propertyIndex" as any, parseInt(idxStr)); }}
+                        <select className="w-full rounded-xl px-3 h-8 text-sm" value={`${item.assetType}-${item.assetId ?? ""}`}
+                          onChange={(e) => { const raw = e.target.value; const sep = raw.indexOf("-"); const at = raw.slice(0, sep); const id = raw.slice(sep + 1); updateLegsPrecisItem(itemIdx, "assetType" as any, at); updateLegsPrecisItem(itemIdx, "assetId" as any, id); }}
                           style={{ borderRadius: 14 }}>
-                          {allAssets.map((a: any) => <option key={`${a.assetType}-${a.idx}`} value={`${a.assetType}-${a.idx}`}>{a.label}</option>)}
+                          {allAssets.map((a: any) => <option key={`${a.assetType}-${a.id}`} value={`${a.assetType}-${a.id}`}>{a.label}</option>)}
                         </select>
                       </div>
                     )}
@@ -411,7 +412,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                 <button className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left text-sm border border-dashed hover:bg-slate-50 transition-colors" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}
                   onClick={() => {
                     if (legsPickerOpen === "global") { setSuccessionData((prev: any) => ({ ...prev, testamentHeirs: [...prev.testamentHeirs, { firstName: "", lastName: "", birthDate: "", relation: "autre", priorDonations: "0", shareGlobal: "", propertyRight: "full" }] })); }
-                    else { setSuccessionData((prev: any) => ({ ...prev, legsPrecisItems: [...(prev.legsPrecisItems || []), { propertyIndex: 0, assetType: "property" as const, heirName: "", heirRelation: "autre", heirBirthDate: "", sharePercent: "100", propertyRight: "full", contreparties: [] }] })); }
+                    else { setSuccessionData((prev: any) => ({ ...prev, legsPrecisItems: [...(prev.legsPrecisItems || []), { propertyIndex: 0, assetType: "property" as const, assetId: data?.properties?.[0]?.id, heirName: "", heirRelation: "autre", heirBirthDate: "", sharePercent: "100", propertyRight: "full", contreparties: [] }] })); }
                     setLegsPickerOpen(null);
                   }}>
                   <span className="h-8 w-8 rounded-full flex items-center justify-center text-slate-400 border" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>+</span>
@@ -481,7 +482,6 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
               const heirNetActuel = heir.partRecueFiscale - heir.successionDuties + (heir.avNetReceived || 0);
               const pct = total > 0 ? (heirNetActuel / total) * 100 : 0;
               const isDonated = activeDonations?.some((d: any) => {
-                const asset = d.assetType === "property" ? data?.properties?.[d.assetIndex] : null;
                 return heir.name && heir.name !== "" && d.heirs?.some((h: any) => h.name === heir.name);
               });
               return (
