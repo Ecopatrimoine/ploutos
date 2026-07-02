@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2 } from "lucide-react";
 import { BRAND, SURFACE } from "../../constants";
 import { euro } from "../../lib/calculs/utils";
+import { HelpTooltip } from "../shared";
 import type {
   CapitalDecesCaisseLine,
   CapitalDecesPriveLine,
@@ -30,6 +31,12 @@ import type {
 } from "../../types/patrimoine";
 
 const ABATTEMENT_990I = 152500;
+
+// Aide au survol propre au capital décès statutaire fonction publique (LOT D.2).
+// Attachée par le CODE de la caisse (caisseCode), pas par le libellé : n'apparait
+// que pour FONCTION_PUBLIQUE, les autres caisses gardent la ligne sans infobulle.
+const TOOLTIP_CAPITAL_FONCTION_PUBLIQUE =
+  "Capital statutaire : un an de rémunération (plancher 16 036 €), réduit à 25 % après 64 ans. Majoration de 884,33 € par enfant à charge.";
 
 const RELATIONS_SURCHARGE: Array<{ value: CapitalDecesCaisseRelation; label: string }> = [
   { value: "conjoint", label: "Conjoint (marié)" },
@@ -209,7 +216,10 @@ export function BlocCapitauxDeces({
               {caisses.map((l, i) => (
                 <div key={i} style={{ paddingBottom: "10px", marginBottom: "10px", borderBottom: i < caisses.length - 1 ? `1px solid ${SURFACE.border}` : "none" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                    <div style={{ fontSize: "13px", fontWeight: 600, color: BRAND.navy }}>{l.source}</div>
+                    <div style={{ fontSize: "13px", fontWeight: 600, color: BRAND.navy }}>
+                      {l.source}
+                      {l.caisseCode === "FONCTION_PUBLIQUE" && <HelpTooltip text={TOOLTIP_CAPITAL_FONCTION_PUBLIQUE} />}
+                    </div>
                     {l.donneeIndisponible || l.capital == null ? (
                       <div style={{ fontSize: "12px", fontStyle: "italic", color: BRAND.muted }}>
                         Donnée régime non disponible
