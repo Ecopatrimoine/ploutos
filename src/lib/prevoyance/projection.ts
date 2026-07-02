@@ -1044,7 +1044,8 @@ export function computeInvalObligatoireMensuel(
   caisseRef: any,
   categorie: CategorieInvalidite,
   salaireBrutMensuel: number,
-  revenuMensuelTNS: number
+  revenuMensuelTNS: number,
+  tauxInvaliditePct?: number
 ): number | null {
   if (isCaisseToFill(caisseRef)) return null;
   const inv = caisseRef.invalidite;
@@ -1074,6 +1075,18 @@ export function computeInvalObligatoireMensuel(
     if (max !== null) pension = Math.min(pension, max);
     const min = safeNum(direct.minMensuel);
     if (min !== null) pension = Math.max(pension, min);
+    // Plancher "taux superieur" (Fonction publique) : si le taux d'invalidite
+    // (0-100) atteint le seuil, la pension ne peut descendre sous tauxPlancher x
+    // base. inv.plancherTauxSup absent (CPAM/SSI/MSA) -> aucun effet ; parametre
+    // tauxInvaliditePct absent (appelants CPAM) -> aucun effet.
+    const seuilPlancher = safeNum(inv.plancherTauxSup?.seuilInvalidite);
+    const tauxPlancher = safeNum(inv.plancherTauxSup?.tauxPlancher);
+    if (
+      seuilPlancher !== null && tauxPlancher !== null &&
+      tauxInvaliditePct != null && tauxInvaliditePct / 100 >= seuilPlancher
+    ) {
+      pension = Math.max(pension, tauxPlancher * base);
+    }
     return pension;
   }
 
@@ -1672,18 +1685,22 @@ export function projeterArretMaladie(
         // courbe (renteInvalEnfants reste 0).
         series.pensionInvalObligatoire[i] =
           renteInvaliditeCarpimkoAnnuelle(carpimkoRef, entree.carpimko!) / 12;
-      } else if (isForfaitaire) {
+      } else if (isForfaitaire && caisseRef?.invalidite?.modele !== "categories") {
         // Pension d'invalidité forfaitaire (binaire ou proportionnelle au taux),
         // bornée par l'âge déclaré dans le JSON. Aucun flag « données
         // indisponibles » pour les caisses forfaitaires : une base null (CNBF
         // anciennete >= 20 ans) est une absence intentionnelle, pas un trou.
         series.pensionInvalObligatoire[i] = forfaitaireInvalMensuel(caisseRef, entree);
       } else {
+        // Caisses a categories cat1/2/3 (CPAM/SSI/MSA) ET Fonction publique
+        // (moteur forfaitaire mais invalidite.modele === "categories", base revenu
+        // sans PASS + plancherTauxSup). Le taux numerique (0-100) sert au plancher.
         const inv = computeInvalObligatoireMensuel(
           caisseRef,
           categorie,
           salaireBrutMensuel,
-          revenuMensuelTNS
+          revenuMensuelTNS,
+          safeNum(entree.forfait?.tauxInvalidite) ?? undefined
         );
         if (inv === null) {
           donneesIndisponibles = true;
