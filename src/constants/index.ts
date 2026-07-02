@@ -247,6 +247,19 @@ export const PLACEMENT_TYPES_BY_FAMILY: Record<string, string[]> = {
 };
 
 export const ALL_PLACEMENTS = Object.values(PLACEMENT_TYPES_BY_FAMILY).flat();
+
+// ─── Libellés d'AFFICHAGE des types de placement ─────────────────────────────
+// Mapping type interne (valeur persistée, inchangée) -> libellé montré à l'écran
+// et dans les PDF. Seuls les 2 types AV sont renommés (monosupport/multisupport) ;
+// tout autre type s'affiche tel quel via labelPlacement(). AUCUN prédicat, AUCUNE
+// fixture, AUCUNE migration ne dépend de ce mapping — affichage pur.
+export const PLACEMENT_TYPE_LABELS: Record<string, string> = {
+  "Assurance-vie fonds euros": "Assurance-vie monosupport",
+  "Assurance-vie unités de compte": "Assurance-vie multisupport",
+};
+export function labelPlacement(type: string): string {
+  return PLACEMENT_TYPE_LABELS[type] ?? type;
+}
 export const AV_TYPES = ["Assurance-vie fonds euros", "Assurance-vie unités de compte"];
 
 export const TESTAMENT_RELATION_OPTIONS = [
