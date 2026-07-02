@@ -2,7 +2,7 @@
 import type { PatrimonialData, SuccessionData, TaxBracket, FilledBracket,
   Heir, SuccessionPropertyLine, SuccessionPlacementLine, SuccessionAvLine,
   SuccessionResult, PieDatum, ContratTransmissionDeces,
-  CapitalDecesCaisseRelation, CapitalDecesCaisseSurcharge } from '../../types/patrimoine';
+  CapitalDecesCaisseRelation, CapitalDecesCaisseSurcharge, CodeCaisse } from '../../types/patrimoine';
 import { n, getDemembrementPercentages, computeTaxFromBrackets, isAV, isPERType,
   childMatchesDeceased, getAgeFromBirthDate, isSpouseHeirEligible, getAvailableSpouseOptions,
   getQuotiteDisponible, buildCollectedHeirs, euro } from './utils';
@@ -24,6 +24,11 @@ import { referentiels, type Referentiels } from '../../data/prevoyance';
 // et ne sont JAMAIS sommés avec des capitaux.
 export type CapitalDecesCaisseLine = {
   source: string;
+  // Code de la caisse ayant produit la ligne (LOT D.2) : identifiant NEUTRE
+  // consommé par l'affichage pour attacher une aide au survol propre à la caisse
+  // (ex. maintien statutaire fonction publique). Optionnel — les appelants
+  // historiques (tests / PDF) ne le posent pas, aucune infobulle alors.
+  caisseCode?: CodeCaisse;
   capital: number | null;            // capital décès (€), null si TO_VERIFY
   capitalParEnfant?: number;         // capital orphelin par enfant (SSI)
   nbEnfants: number;                 // enfants à charge retenus (contexte)
@@ -1264,6 +1269,7 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
 
     capitalDecesCaisseLines.push({
       source: cap.source,
+      caisseCode: entreeDefunt.caisse,
       capital: cap.capital,
       capitalParEnfant: cap.capitalParEnfant,
       nbEnfants,

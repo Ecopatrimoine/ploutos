@@ -614,6 +614,55 @@
         "Invalidite : permanente ET totale uniquement (partielle non couverte) -> binaire, seuil 100",
         "Arret de travail : aucune IJ CPRN propre ; CPAM J4->J90 ; rien au-dela de J90"
       ]
+    },
+    "FONCTION_PUBLIQUE": {
+      "nom": "Fonction publique (titulaire)",
+      "publicConcerne": "Fonctionnaires titulaires (fonction publique territoriale / hospitaliere)",
+      "dateVerification": "2026-07-02",
+      "moteur": "forfaitaire",
+      "discriminant": { "type": "aucun" },
+      "ij": {
+        "regle": "pourcentage_revenu_paliers",
+        "carenceJours": 1,
+        "paliers": [
+          { "dureeJours": 90, "tauxRevenu": 0.90 },
+          { "dureeJours": 270, "tauxRevenu": 0.50 }
+        ]
+      },
+      "longueDuree": {
+        "regle": "pourcentage_revenu_paliers",
+        "paliers": [
+          { "dureeJours": 365, "tauxRevenu": 1.00 },
+          { "dureeJours": 730, "tauxRevenu": 0.50 }
+        ]
+      },
+      "invalidite": {
+        "modele": "categories",
+        "base": "revenu",
+        "categories": {
+          "cat1": { "taux": 0.30 },
+          "cat2": { "taux": 0.50 },
+          "cat3": { "taux": 0.50, "mtp": true }
+        },
+        "plancherTauxSup": { "seuilInvalidite": 0.60, "tauxPlancher": 0.50 }
+      },
+      "capitalDeces": {
+        "mode": "pourcentageRevenu",
+        "assiette": "remunerationAnnuelle",
+        "taux": 1.00,
+        "plancher": 16036,
+        "majorationParEnfant": 884.33,
+        "ageMinRetraite": 64,
+        "apresAgeMinRetraite": { "taux": 0.25, "majorationParEnfant": 0 }
+      },
+      "_comment": "Caisse Fonction publique (titulaire). Sources : LF2025 art. 189 + decret 2025-197 (jour de carence, remuneration CMO) ; CGFP art. L822 (CMO 90j plein traitement puis 270j demi-traitement) ; decret 2024-555 ; CPCMR art. L28-L30 (invalidite / retraite pour invalidite) ; capital deces regime general 4009 EUR au 01/04/2026, plancher statutaire = 4 x 4009 = 16036 EUR ; majoration 884,33 EUR par enfant. Decisions David 02/07/2026 : perimetre territorial/hospitalier (PAS de FPE) ; CLD, imputabilite au service et reversion ENTERRES (hors MVP) ; assiette unique = revenu declare dans Ploutos (net de cotisations, brut d'impot), meme champ que les IJ salariees. Modele conservateur.",
+      "sources": [
+        "LF 2025 art. 189 + decret 2025-197 : jour de carence, assiette remuneration CMO",
+        "CGFP art. L822 : CMO 90 jours plein traitement puis 270 jours demi-traitement",
+        "decret 2024-555 ; CPCMR art. L28-L30 : invalidite / retraite pour invalidite",
+        "Capital deces regime general 4009 EUR au 01/04/2026 ; plancher statutaire 4 x 4009 = 16036 EUR ; majoration 884,33 EUR par enfant",
+        "Decisions David 02/07/2026 : perimetre territorial/hospitalier (pas de FPE), CLD/imputabilite/reversion enterres, assiette = revenu declare net"
+      ]
     }
   }
 }

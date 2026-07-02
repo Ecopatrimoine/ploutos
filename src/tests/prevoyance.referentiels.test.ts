@@ -125,6 +125,17 @@ describe("caisses-2026.json", () => {
     expect(c.caisses.CARMF.ij.carenceJours).toBe(90);
   });
 
+  it("FONCTION_PUBLIQUE (14e caisse) est présente et structurée", () => {
+    const fp = c.caisses.FONCTION_PUBLIQUE;
+    expect(fp).toBeDefined();
+    expect(fp.moteur).toBe("forfaitaire");
+    expect(fp.ij.regle).toBe("pourcentage_revenu_paliers");
+    expect(fp.ij.carenceJours).toBe(1);
+    expect(fp.invalidite.base).toBe("revenu");
+    expect(fp.capitalDeces.mode).toBe("pourcentageRevenu");
+    expect(fp.capitalDeces.plancher).toBe(16036);
+  });
+
   it("liste au moins une source", () => {
     expect(Array.isArray(c.sources)).toBe(true);
     expect(c.sources.length).toBeGreaterThan(0);

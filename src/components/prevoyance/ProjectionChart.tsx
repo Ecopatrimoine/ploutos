@@ -28,12 +28,19 @@ import {
 } from "recharts";
 import type { ProjectionResult } from "../../lib/prevoyance/types";
 import { BRAND } from "../../constants";
+import { HelpTooltip } from "../shared";
 
 type Props = {
   projection: ProjectionResult;
   codeCaisse?: string | null;       // ex. "CARMF"
   publicCaisse?: string | null;     // ex. "Médecins libéraux"
 };
+
+// Aide au survol propre au maintien statutaire fonction publique (LOT D.2).
+// Le texte n'apparait QUE pour la caisse FONCTION_PUBLIQUE : les autres caisses
+// gardent l'entete sans infobulle.
+const TOOLTIP_IJ_FONCTION_PUBLIQUE =
+  "Fonctionnaire titulaire : maintien statutaire 90 % du revenu pendant 3 mois puis 50 % pendant 9 mois (modèle conservateur territorial/hospitalier). Assiette : revenus déclarés.";
 
 // Palette charte (SPEC_PREVOYANCE_UI_GRAPHIQUE §5). Navy et gold restent
 // surchargeables par le thème cabinet ; les teintes intermédiaires sont
@@ -197,6 +204,7 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
     <div style={{ width: "100%" }}>
       <div className="text-xs mb-2" style={{ color: BRAND.muted }}>
         Régime obligatoire : <strong style={{ color: BRAND.navy }}>{libelleCaisse}</strong>
+        {codeCaisse === "FONCTION_PUBLIQUE" && <HelpTooltip text={TOOLTIP_IJ_FONCTION_PUBLIQUE} />}
       </div>
       {hasInvalidite && (
         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">

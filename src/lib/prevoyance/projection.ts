@@ -80,6 +80,17 @@ function isSalarieOuAssimile(s: StatutPro | ""): boolean {
   );
 }
 
+// LOT D.1 (Fonction publique) — maintien employeur PRIVE (Code du travail + CCN).
+// Derive de isSalarieOuAssimile MAIS exclut le fonctionnaire titulaire : son
+// maintien statutaire (90 % puis 50 %) est porte par l'etage IJ obligatoire
+// (regle pourcentage_revenu_paliers), pas par le maintien employeur prive — sinon
+// double compte. Les assimiles salaries (president SAS, EURL unique) conservent
+// le maintien prive. N'affecte QUE le maintien : la base d'invalidite et la ligne
+// de revenu de reference restent salaire-based pour le fonctionnaire.
+function isSalarieMaintienPrive(s: StatutPro | ""): boolean {
+  return isSalarieOuAssimile(s) && s !== "fonctionnaire";
+}
+
 function isTNS(s: StatutPro | ""): boolean {
   return (
     s === "tns_liberal" ||
@@ -507,6 +518,31 @@ export function computeIJObligatoireJournaliere(
     return null; // aucun palier ne matche (donnée incohérente) -> trou visible, pas un faux montant
   }
 
+  // 2ter) Regle pourcentage du revenu par paliers (Fonction publique titulaire) :
+  // maintien statutaire = revenu declare x taux du palier courant. Montant
+  // JOURNALIER = (revenuAnnuel / 365) x tauxRevenu. Paliers {dureeJours,tauxRevenu}
+  // consommes en sequence a partir du 1er jour indemnise (fin de carence). AUCUN
+  // plafond PASS/SMIC (assiette = revenu declare, meme champ que les IJ salariees,
+  // decision David 02/07). Au-dela du dernier palier -> 0 (fin des droits IJ).
+  if (ij.regle === "pourcentage_revenu_paliers") {
+    const revenuAnnuel = entree.salaireBrutAnnuel > 0
+      ? entree.salaireBrutAnnuel
+      : (entree.revenuTNSAnnuel ?? 0);
+    if (revenuAnnuel <= 0) return null;
+    const paliersPct = Array.isArray(ij.paliers) ? ij.paliers : [];
+    let debutPalier = carence; // 1er jour indemnise = fin de carence
+    for (const p of paliersPct) {
+      const duree = safeNum(p?.dureeJours);
+      const tauxRevenu = safeNum(p?.tauxRevenu);
+      if (duree === null || tauxRevenu === null) continue; // palier incoherent -> ignore
+      if (t < debutPalier + duree) {
+        return (revenuAnnuel / 365) * tauxRevenu;
+      }
+      debutPalier += duree;
+    }
+    return 0; // au-dela du dernier palier -> plus d'IJ
+  }
+
   // 3) Règle tranche revenu (CPAM, SSI, CIPAV)
   const baseAnnuelle = entree.salaireBrutAnnuel > 0
     ? entree.salaireBrutAnnuel
@@ -694,6 +730,12 @@ function ijForfaitaireJournaliere(
 ): number {
   const ij = caisseRef?.ij;
   if (!ij) return 0;
+  // Regle a paliers % du revenu (Fonction publique) : deleguee au moteur generique
+  // computeIJObligatoireJournaliere (branche dediee, gere carence + paliers). Pas de
+  // phase1 CPAM ni de montantJournalier forfaitaire ici.
+  if (ij.regle === "pourcentage_revenu_paliers") {
+    return computeIJObligatoireJournaliere(t, caisseRef, entree, vars, scenarioArret) ?? 0;
+  }
   const carence = safeNum(ij.carenceJours) ?? 0;
   const plafond = safeNum(ij.plafondDureeJours);
   if (t < carence) {
@@ -792,9 +834,34 @@ export function forfaitaireCapitalDeces(caisseRef: any, entree: EntreePerso): nu
   const cap = caisseRef?.capitalDeces;
   if (!cap) return null;
   const cle = resolveDiscriminant(caisseRef, entree);
-  // cf. forfaitaireInvalMensuel : assiette = commissions brutes (mode
-  // pourcentageRevenu), ignorée par uniforme / parDiscriminant.
-  const assiette = entree.forfait?.commissionsBrutes;
+  // Assiette du mode pourcentageRevenu : par defaut commissions brutes (TNS
+  // forfaitaire, ex. CAVAMAC) ; "remunerationAnnuelle" (Fonction publique) =
+  // revenu annuel declaré (meme champ que les IJ salariees, decision David 02/07).
+  const assiette = cap.assiette === "remunerationAnnuelle"
+    ? (entree.salaireBrutAnnuel > 0 ? entree.salaireBrutAnnuel : (entree.revenuTNSAnnuel ?? 0))
+    : entree.forfait?.commissionsBrutes;
+
+  // Capital statutaire Fonction publique : un an de remuneration (taux 1.00) +
+  // majoration par enfant a charge, avec plancher statutaire (16 036 EUR). Apres
+  // l'age minimal de retraite (64), bascule a taux reduit SANS majoration ni
+  // plancher. Age depuis la date de naissance (entree.age) ; age inconnu/0 ->
+  // branche avant 64 avec majorations (comportement le moins surprenant).
+  if (cap.mode === "pourcentageRevenu" && cap.assiette === "remunerationAnnuelle") {
+    const base = safeNum(assiette) ?? 0;
+    const ageMin = safeNum(cap.ageMinRetraite);
+    const age = safeNum(entree.age);
+    if (ageMin !== null && age !== null && age >= ageMin) {
+      const tauxApres = safeNum(cap.apresAgeMinRetraite?.taux) ?? 0;
+      return base * tauxApres; // apres l'age min de retraite : pas de majoration ni plancher
+    }
+    const taux = safeNum(cap.taux) ?? 0;
+    const majEnfant = safeNum(cap.majorationParEnfant) ?? 0;
+    const nbEnfants = safeNum(entree.nbEnfantsACharge) ?? 0;
+    let montant = base * taux + majEnfant * nbEnfants;
+    const plancher = safeNum(cap.plancher);
+    if (plancher !== null) montant = Math.max(montant, plancher);
+    return montant;
+  }
 
   // Capital 25/50 selon la situation familiale (ex. CAVAMAC). Activé
   // UNIQUEMENT en mode pourcentageRevenu AVEC tauxMajoreFamille déclaré : taux
@@ -1013,7 +1080,8 @@ export function computeInvalObligatoireMensuel(
   caisseRef: any,
   categorie: CategorieInvalidite,
   salaireBrutMensuel: number,
-  revenuMensuelTNS: number
+  revenuMensuelTNS: number,
+  tauxInvaliditePct?: number
 ): number | null {
   if (isCaisseToFill(caisseRef)) return null;
   const inv = caisseRef.invalidite;
@@ -1043,6 +1111,18 @@ export function computeInvalObligatoireMensuel(
     if (max !== null) pension = Math.min(pension, max);
     const min = safeNum(direct.minMensuel);
     if (min !== null) pension = Math.max(pension, min);
+    // Plancher "taux superieur" (Fonction publique) : si le taux d'invalidite
+    // (0-100) atteint le seuil, la pension ne peut descendre sous tauxPlancher x
+    // base. inv.plancherTauxSup absent (CPAM/SSI/MSA) -> aucun effet ; parametre
+    // tauxInvaliditePct absent (appelants CPAM) -> aucun effet.
+    const seuilPlancher = safeNum(inv.plancherTauxSup?.seuilInvalidite);
+    const tauxPlancher = safeNum(inv.plancherTauxSup?.tauxPlancher);
+    if (
+      seuilPlancher !== null && tauxPlancher !== null &&
+      tauxInvaliditePct != null && tauxInvaliditePct / 100 >= seuilPlancher
+    ) {
+      pension = Math.max(pension, tauxPlancher * base);
+    }
     return pension;
   }
 
@@ -1308,6 +1388,11 @@ export function projeterArretMaladie(
   ];
   const caisseRef = lookupCaisse(entree.caisse, ref);
   const isSalarie = isSalarieOuAssimile(entree.statutPro);
+  // LOT D.1 : maintien employeur PRIVE seulement (exclut le fonctionnaire, dont
+  // le maintien statutaire est deja porte par l'IJ obligatoire). Utilise pour les
+  // trois usages maintien (axe, bande, ruptures) ; les usages base/reference
+  // gardent isSalarie (salaire-based pour le fonctionnaire).
+  const isSalarieMaintien = isSalarieMaintienPrive(entree.statutPro);
   const isTns = isTNS(entree.statutPro);
 
   // CARMF (médecins libéraux) : architecture 2 étages. IJ CPAM J4-J90
@@ -1360,7 +1445,7 @@ export function projeterArretMaladie(
   // d'interpoler en biais). Les bornes du TPT (debut/fin) sont insérées
   // pour la même raison (marche nette à la reprise / fin du mi-temps).
   const joursEvenements = [
-    ...marchesMaintienEffectif(sourcesMaintien, isSalarie).map((mar) => mar.jour),
+    ...marchesMaintienEffectif(sourcesMaintien, isSalarieMaintien).map((mar) => mar.jour),
     ...(tptActif ? [tptDebut, tptFin] : []),
     ...(isCarmf ? [J_RELAIS_CARMF, jourFinInvalCarmf] : []),
     ...(isCipav ? [J_TROU_CIPAV, jourFinInvalCipav] : []),
@@ -1580,7 +1665,7 @@ export function projeterArretMaladie(
         t,
         sourcesMaintien,
         revenuReferenceMensuel,
-        isSalarie,
+        isSalarieMaintien,
         series.ijObligatoire[i]
       );
 
@@ -1641,18 +1726,22 @@ export function projeterArretMaladie(
         // courbe (renteInvalEnfants reste 0).
         series.pensionInvalObligatoire[i] =
           renteInvaliditeCarpimkoAnnuelle(carpimkoRef, entree.carpimko!) / 12;
-      } else if (isForfaitaire) {
+      } else if (isForfaitaire && caisseRef?.invalidite?.modele !== "categories") {
         // Pension d'invalidité forfaitaire (binaire ou proportionnelle au taux),
         // bornée par l'âge déclaré dans le JSON. Aucun flag « données
         // indisponibles » pour les caisses forfaitaires : une base null (CNBF
         // anciennete >= 20 ans) est une absence intentionnelle, pas un trou.
         series.pensionInvalObligatoire[i] = forfaitaireInvalMensuel(caisseRef, entree);
       } else {
+        // Caisses a categories cat1/2/3 (CPAM/SSI/MSA) ET Fonction publique
+        // (moteur forfaitaire mais invalidite.modele === "categories", base revenu
+        // sans PASS + plancherTauxSup). Le taux numerique (0-100) sert au plancher.
         const inv = computeInvalObligatoireMensuel(
           caisseRef,
           categorie,
           salaireBrutMensuel,
-          revenuMensuelTNS
+          revenuMensuelTNS,
+          safeNum(entree.forfait?.tauxInvalidite) ?? undefined
         );
         if (inv === null) {
           donneesIndisponibles = true;
@@ -1721,7 +1810,7 @@ export function projeterArretMaladie(
     series,
     BASCULE_INVALIDITE,
     sourcesMaintien,
-    isSalarie,
+    isSalarieMaintien,
     donneesIndisponibles,
     tptActif ? { debut: tptDebut, fin: tptFin, guerison: tptGuerison } : null,
     isCarmf ? J_RELAIS_CARMF : null,

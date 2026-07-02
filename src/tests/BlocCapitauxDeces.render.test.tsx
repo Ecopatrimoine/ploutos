@@ -4,7 +4,7 @@
 // Composant PUR (divs only, pas de Radix) : montage direct, sans polyfill.
 
 import { describe, it, expect } from "vitest";
-import { render } from "@testing-library/react";
+import { render, fireEvent, screen } from "@testing-library/react";
 import { BlocCapitauxDeces, renteConjointLibelle } from "../components/succession/BlocCapitauxDeces";
 import type {
   CapitalDecesCaisseLine,
@@ -311,5 +311,33 @@ describe("renteConjointLibelle — libellé mode-conscient (LOT UI-LABEL)", () =
     const l = renteConjointLibelle(undefined, undefined, 5);
     expect(l.titre).toBe("Rente de conjoint");
     expect(l.sousTitre).toBeNull();
+  });
+});
+
+describe("BlocCapitauxDeces — infobulle capital deces fonction publique (LOT D.2)", () => {
+  it("caisseCode FONCTION_PUBLIQUE → bouton d'aide + texte statutaire au survol", () => {
+    const caisse: CapitalDecesCaisseLine = {
+      source: "Fonction publique (titulaire)", caisseCode: "FONCTION_PUBLIQUE",
+      capital: 40000, nbEnfants: 0, donneeIndisponible: false, exonere: true, repartition: [],
+    };
+    const { getByLabelText } = render(
+      <BlocCapitauxDeces {...EMPTY} caisses={[caisse]} totalCaisseExonere={40000} />
+    );
+    const aide = getByLabelText("Aide");
+    expect(aide).toBeInTheDocument();
+    fireEvent.mouseEnter(aide);
+    expect(screen.getByText(/Capital statutaire : un an de rémunération/)).toBeInTheDocument();
+    expect(screen.getByText(/884,33 € par enfant/)).toBeInTheDocument();
+  });
+
+  it("autre caisse (CPAM) → aucune infobulle d'aide sur la ligne capital", () => {
+    const caisse: CapitalDecesCaisseLine = {
+      source: "Caisse primaire d'assurance maladie", caisseCode: "CPAM",
+      capital: 4009, nbEnfants: 0, donneeIndisponible: false, exonere: true, repartition: [],
+    };
+    const { queryByLabelText } = render(
+      <BlocCapitauxDeces {...EMPTY} caisses={[caisse]} totalCaisseExonere={4009} />
+    );
+    expect(queryByLabelText("Aide")).toBeNull();
   });
 });
