@@ -13,6 +13,7 @@ import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PL
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan, DismemberCounterpart } from "../../types/patrimoine";
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
+import { resolvePropertyRef } from "../../lib/calculs/refs";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
 
 
@@ -22,14 +23,16 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
   const { data, setField, addProperty, updateProperty, removeProperty, addLoan, updateLoan, removeLoan, loanModalPropertyId, setLoanModalPropertyId, ownerOptions, person1, person2, activeDonations, restoreBaseSnapshot } = props;
 
   // Indices des biens concernés par une donation active
-  const donatedPropertyIndices = React.useMemo(() => {
-    if (!activeDonations || activeDonations.length === 0) return new Set<number>();
-    return new Set<number>(
-      activeDonations
-        .filter((d: any) => d.assetType === "property")
-        .map((d: any) => d.assetIndex)
-    );
-  }, [activeDonations]);
+  const donatedPropertyIds = React.useMemo(() => {
+    const ids = new Set<string>();
+    if (!activeDonations || activeDonations.length === 0) return ids;
+    for (const d of activeDonations as any[]) {
+      if (d.assetType !== "property") continue;
+      const prop = resolvePropertyRef(data.properties, { id: d.assetId, index: d.assetIndex });
+      if (prop?.id) ids.add(prop.id);
+    }
+    return ids;
+  }, [activeDonations, data.properties]);
 
   return (
 <TabsContent value="immobilier" className="space-y-4">
@@ -44,7 +47,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
   </div>
   {data.properties.length === 0 && <div className="border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>Aucun bien immobilier saisi. Choisissez une nature dans le menu ci-dessus.</div>}
   {data.properties.map((property, index) => {
-    const isDonated = donatedPropertyIndices.has(index);
+    const isDonated = property.id != null && donatedPropertyIds.has(property.id);
     return (
     <Card key={property.id} className="border " style={{ borderColor: isDonated ? "rgba(227,175,100,0.6)" : SURFACE.border, position: "relative", overflow: "hidden" }}>
       {/* Badge donation active */}
