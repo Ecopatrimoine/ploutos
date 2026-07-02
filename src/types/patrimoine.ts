@@ -286,7 +286,8 @@ export type CodeCaisse =
   | "CAVOM"
   | "CAVEC"
   | "CAVAMAC"
-  | "CRN";
+  | "CRN"
+  | "FONCTION_PUBLIQUE";
 
 export type EmployeurInfo = {
   siret: string | null;
