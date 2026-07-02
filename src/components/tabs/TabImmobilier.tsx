@@ -9,11 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Settings } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
-import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
+import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_GROUPS, PROPERTY_GROUP_COLORS, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan, DismemberCounterpart } from "../../types/patrimoine";
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { resolvePropertyRef } from "../../lib/calculs/refs";
+import { AssetPickerModal } from "../AssetPickerModal";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
 
 
@@ -34,18 +35,42 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
     return ids;
   }, [activeDonations, data.properties]);
 
+  // Modale d'ajout de bien (pivot UI, symetrique aux placements). Etat local ;
+  // focus rendu au bouton d'ouverture a la fermeture. Groupes 100% data-driven.
+  const [addPropModalOpen, setAddPropModalOpen] = React.useState(false);
+  const addPropBtnRef = React.useRef<HTMLButtonElement>(null);
+  const closeAddPropModal = React.useCallback(() => {
+    setAddPropModalOpen(false);
+    addPropBtnRef.current?.focus();
+  }, []);
+  const pickProperty = React.useCallback((type: string) => {
+    addProperty(type);
+    closeAddPropModal();
+  }, [addProperty, closeAddPropModal]);
+  const propertyGroups = PROPERTY_GROUPS.map((g) => ({
+    label: g.label,
+    color: PROPERTY_GROUP_COLORS[g.value],
+    items: g.types.map((t) => ({ value: t, label: t })),
+  }));
+
   return (
 <TabsContent value="immobilier" className="space-y-4">
   <div className="flex items-center justify-between gap-4">
     <h3 className="font-semibold" style={{ color: BRAND.navy }}>Immobilier</h3>
-    <div className="flex items-end gap-2">
-      <Select onValueChange={(v) => { if (v) addProperty(v); }}>
-        <SelectTrigger className="h-9 rounded-xl min-w-[240px] text-sm"><SelectValue placeholder="Ajouter un bien…" /></SelectTrigger>
-        <SelectContent>{PROPERTY_TYPES.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
-      </Select>
-    </div>
+    <button
+      ref={addPropBtnRef}
+      type="button"
+      onClick={() => setAddPropModalOpen(true)}
+      className="inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#26428B]"
+      style={{ background: BRAND.navy, borderColor: BRAND.navy, color: "#fff" }}
+    >
+      <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
+      Ajouter un bien
+    </button>
   </div>
-  {data.properties.length === 0 && <div className="border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>Aucun bien immobilier saisi. Choisissez une nature dans le menu ci-dessus.</div>}
+
+  <AssetPickerModal open={addPropModalOpen} title="Ajouter un bien" groups={propertyGroups} onClose={closeAddPropModal} onPick={pickProperty} />
+  {data.properties.length === 0 && <div className="border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>Aucun bien immobilier saisi. Cliquez « Ajouter un bien » pour commencer.</div>}
   {data.properties.map((property, index) => {
     const isDonated = property.id != null && donatedPropertyIds.has(property.id);
     return (
