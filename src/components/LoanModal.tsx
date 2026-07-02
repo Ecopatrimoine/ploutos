@@ -134,12 +134,12 @@ export function LoanModal({ loanModalPropertyId, setLoanModalPropertyId, data, a
                 {/* AV nantie */}
                 {isInFine && (
                   <Field label="AV nantie en garantie" tooltip="AV nantie à la banque pour un crédit in fine.">
-                    <Select value={loan.pledgedPlacementIndex || "-1"} onValueChange={(v) => updateLoan(loanModalPropertyId, loan.id, "pledgedPlacementIndex", v)}>
+                    <Select value={loan.pledgedPlacementId || "__none__"} onValueChange={(v) => updateLoan(loanModalPropertyId, loan.id, "pledgedPlacementId", v === "__none__" ? "" : v)}>
                       <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="-1">Aucune</SelectItem>
-                        {data.placements.map((p, pi) => (
-                          <SelectItem key={pi} value={String(pi)}>
+                        <SelectItem value="__none__">Aucune</SelectItem>
+                        {data.placements.map((p) => (
+                          <SelectItem key={p.id} value={p.id!}>
                             {p.name || p.type}{isAV(p.type) || isPERType(p.type) ? "" : " ⚠️ non-AV"}
                           </SelectItem>
                         ))}
