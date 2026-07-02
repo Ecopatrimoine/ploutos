@@ -5,6 +5,7 @@
 import type { PatrimonialData, DonationItem, DonationHeir } from "../../types/patrimoine";
 import { n, getDemembrementPercentages, computeTaxFromBrackets, getAgeFromBirthDate } from "./utils";
 import { getSuccessionTaxProfile } from "./succession";
+import { resolvePlacementRef, resolvePropertyRef } from "./refs";
 
 // ─── Résultat pour un donataire ───────────────────────────────────────────────
 export type DonationHeirResult = {
@@ -55,7 +56,7 @@ export function getDonationAssetValue(
     };
   }
   if (donation.assetType === "property") {
-    const p = data.properties[donation.assetIndex];
+    const p = resolvePropertyRef(data.properties, { id: donation.assetId, index: donation.assetIndex });
     if (!p) return { label: "—", value: 0 };
     // Quote-part du donateur selon ownership
     let ownerShare = 1;
@@ -75,7 +76,7 @@ export function getDonationAssetValue(
     return { label: p.name || p.type || "Immobilier", value: netValue };
   }
   // placement
-  const pl = data.placements[donation.assetIndex];
+  const pl = resolvePlacementRef(data.placements, { id: donation.assetId, index: donation.assetIndex });
   if (!pl) return { label: "—", value: 0 };
   return { label: pl.name || pl.type || "Placement", value: n(pl.value) };
 }
@@ -249,8 +250,9 @@ export function applyDonationsToData(
   for (const don of donations) {
     const share = Math.min(100, Math.max(0, n(don.sharePercent))) / 100;
 
-    if (don.assetType === "property" && don.assetIndex < d.properties.length) {
-      const prop = d.properties[don.assetIndex];
+    if (don.assetType === "property") {
+      const prop = resolvePropertyRef(d.properties, { id: don.assetId, index: don.assetIndex });
+      if (!prop) continue;
       const isCommon = prop.ownership === "common" || prop.ownership === "indivision";
       const donorKey = don.donorPersonKey || "person1";
 
@@ -298,8 +300,9 @@ export function applyDonationsToData(
           prop.counterpartName = cpName;
         }
       }
-    } else if (don.assetType === "placement" && don.assetIndex < d.placements.length) {
-      const plac = d.placements[don.assetIndex];
+    } else if (don.assetType === "placement") {
+      const plac = resolvePlacementRef(d.placements, { id: don.assetId, index: don.assetIndex });
+      if (!plac) continue;
       if (don.donationType === "full") {
         const currentVal = n(plac.value);
         plac.value = String(Math.max(0, currentVal * (1 - share)));
