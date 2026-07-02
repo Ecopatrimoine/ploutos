@@ -229,7 +229,7 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                       onClick={() => {
                         const newDon: DonationItem = {
                           id: Date.now().toString(),
-                          assetType: "property", assetIndex: 0,
+                          assetType: "property", assetIndex: 0, assetId: data?.properties?.[0]?.id,
                           freeLabel: "", freeValue: "",
                           donationType: "full", sharePercent: "100",
                           donorAge: "", donationDate: new Date().toISOString().slice(0, 10),
@@ -407,7 +407,7 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
   const [don, setDon] = React.useState<DonationItem>(
     donation || {
       id: Date.now().toString(),
-      assetType: "property", assetIndex: 0,
+      assetType: "property", assetIndex: 0, assetId: data?.properties?.[0]?.id,
       freeLabel: "", freeValue: "",
       donationType: "full", sharePercent: "100",
       donorAge: "", donationDate: new Date().toISOString().slice(0, 10),
@@ -440,10 +440,10 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
     setDon(d => ({ ...d, heirs: d.heirs.filter(h => h.id !== hid) }));
 
   const propertyOptions = (data?.properties || []).map((p: any, i: number) => ({
-    value: i, label: p.name || p.type || ("Bien " + (i + 1)),
+    value: p.id, label: p.name || p.type || ("Bien " + (i + 1)),
   }));
   const placementOptions = (data?.placements || []).map((p: any, i: number) => ({
-    value: i, label: p.name || p.type || ("Placement " + (i + 1)),
+    value: p.id, label: p.name || p.type || ("Placement " + (i + 1)),
   }));
 
   const inp: React.CSSProperties = {
@@ -491,7 +491,7 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <div>
               <label style={lbl}>Type de bien</label>
-              <select value={don.assetType} onChange={e => update({ assetType: e.target.value as any, assetIndex: 0 })} style={sel}>
+              <select value={don.assetType} onChange={e => { const at = e.target.value as any; const firstId = at === "property" ? propertyOptions[0]?.value : at === "placement" ? placementOptions[0]?.value : undefined; update({ assetType: at, assetId: firstId }); }} style={sel}>
                 <option value="property">Bien immobilier</option>
                 <option value="placement">Placement / AV</option>
                 <option value="free">Montant libre</option>
@@ -501,7 +501,7 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
               {don.assetType === "property" && propertyOptions.length > 0 && (
                 <>
                   <label style={lbl}>Bien</label>
-                  <select value={don.assetIndex} onChange={e => update({ assetIndex: +e.target.value })} style={sel}>
+                  <select value={don.assetId ?? ""} onChange={e => update({ assetId: e.target.value })} style={sel}>
                     {propertyOptions.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </>
@@ -509,7 +509,7 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
               {don.assetType === "placement" && placementOptions.length > 0 && (
                 <>
                   <label style={lbl}>Placement</label>
-                  <select value={don.assetIndex} onChange={e => update({ assetIndex: +e.target.value })} style={sel}>
+                  <select value={don.assetId ?? ""} onChange={e => update({ assetId: e.target.value })} style={sel}>
                     {placementOptions.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </>
