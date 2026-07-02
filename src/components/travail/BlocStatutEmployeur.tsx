@@ -60,6 +60,7 @@ const CAISSES: Array<{ value: CodeCaisse; label: string }> = [
   { value: "CAVEC",     label: "CAVEC (experts-comptables)" },
   { value: "CAVAMAC",   label: "CAVAMAC (agents d'assurance)" },
   { value: "CRN",       label: "CRN (notaires)" },
+  { value: "FONCTION_PUBLIQUE", label: "Fonction publique (titulaire)" },
 ];
 
 const SALARIE_STATUS: StatutPro[] = [
