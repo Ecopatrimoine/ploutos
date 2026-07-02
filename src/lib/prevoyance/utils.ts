@@ -241,8 +241,9 @@ export function suggestCaisseFromStatut(
     case "salarie_cadre":
     case "president_sas":
     case "eurl_unique":
-    case "fonctionnaire":
       return "CPAM";
+    case "fonctionnaire":
+      return "FONCTION_PUBLIQUE";
     case "tns_commercant":
     case "tns_artisan":
     case "gerant_majoritaire":
