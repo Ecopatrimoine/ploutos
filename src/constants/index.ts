@@ -81,6 +81,28 @@ export const PROPERTY_RIGHTS = [
   { value: "usufruct", label: "Usufruit" },
 ] as const;
 
+// ─── Couleurs par GROUPE de biens immobiliers ────────────────────────────────
+// 4 teintes DISTINCTES des familles de placements (aucune confusion bien/placement
+// dans les futurs contours de cards). `solid` = point/bordure/texte de tuile,
+// `fill` = fond de tuile. Ratios texte `solid` sur `fill` (fond clair) :
+// usage 6.04:1, locatif 5.43:1, structures 6.05:1, autres 5.64:1 — tous AA.
+export const PROPERTY_GROUP_COLORS: Record<string, { solid: string; fill: string }> = {
+  usage:      { solid: "#993C1D", fill: "#FAECE7" }, // corail
+  locatif:    { solid: "#3B6D11", fill: "#EAF3DE" }, // vert
+  structures: { solid: "#993556", fill: "#FBEAF0" }, // rose
+  autres:     { solid: "#5F5E5A", fill: "#F1EFE8" }, // gris
+};
+
+// Groupement d'AFFICHAGE des 11 natures de PROPERTY_TYPES (valeurs internes
+// INCHANGÉES ; orthogonal au futur champ « dispositif fiscal »). 100% data-driven :
+// la fenêtre d'ajout de biens se construit entièrement d'ici.
+export const PROPERTY_GROUPS = [
+  { value: "usage",      label: "Usage personnel", types: ["Résidence principale", "Résidence secondaire"] },
+  { value: "locatif",    label: "Locatif",         types: ["Location nue", "LMNP", "LMP", "SCPI"] },
+  { value: "structures", label: "Structures",      types: ["SCI IR", "SCI IS"] },
+  { value: "autres",     label: "Autres",          types: ["Terrain", "Local professionnel", "Autre"] },
+] as const;
+
 export const CHILD_LINKS = [
   { value: "common_child", label: "Enfant commun" },
   { value: "person1_only", label: "Enfant de personne 1 uniquement" },
