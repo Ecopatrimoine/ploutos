@@ -85,9 +85,14 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
             <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: `${BRAND.gold}22`, color: BRAND.navy }}>IR : {fiscal.ir}</span>
             <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: `${BRAND.sky}15`, color: BRAND.sky }}>Succession : {fiscal.succession}</span>
             {(() => {
-              // Vérifier si ce placement est nanti par un crédit in fine
+              // Vérifier si ce placement est nanti par un crédit in fine (mono-crédit legacy).
+              // Lookup inverse par id si présent ("" = plus aucun), repli sur l'index legacy.
               const pledgingProp = data.properties.find(
-                p => p.loanEnabled && p.loanType === "in_fine" && +(p.loanPledgedPlacementIndex ?? "-1") === index
+                p => p.loanEnabled && p.loanType === "in_fine" && (
+                  p.loanPledgedPlacementId !== undefined
+                    ? p.loanPledgedPlacementId !== "" && p.loanPledgedPlacementId === placement.id
+                    : +(p.loanPledgedPlacementIndex ?? "-1") === index
+                )
               );
               if (!pledgingProp) return null;
               const lv = resolveLoanValuesMulti(pledgingProp);
