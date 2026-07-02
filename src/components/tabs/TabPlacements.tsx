@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Settings } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
-import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
+import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, FAMILY_COLORS, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, isUCorCapi, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
@@ -20,21 +20,59 @@ import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTi
 // ── TabPlacements ─────────────────────────────────────────────────────────────────────
 const TabPlacements = React.memo(function TabPlacements(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
-  const { data, placementFamily, setPlacementFamily, addPlacement, updatePlacementStr, updatePlacementBool, removePlacement, addPlacementBeneficiary, updatePlacementBeneficiary, removePlacementBeneficiary, importFamilyBeneficiaries, setField, setData, ownerOptions, ir, irOptions, person1, person2 } = props;
+  const { data, addPlacement, updatePlacementStr, updatePlacementBool, removePlacement, addPlacementBeneficiary, updatePlacementBeneficiary, removePlacementBeneficiary, importFamilyBeneficiaries, setField, setData, ownerOptions, ir, irOptions, person1, person2 } = props;
+
+  // Famille active de la barre d'ajout — etat LOCAL, memorise pendant la session
+  // (non persiste). Initial = cash (Liquidites).
+  const [activeFamily, setActiveFamily] = React.useState<string>("cash");
 
   return (
 <TabsContent value="placements" className="space-y-4">
   <div className="flex items-center justify-between gap-4">
     <h3 className="font-semibold" style={{ color: BRAND.navy }}>Placements et comptes</h3>
-    <div className="flex items-center gap-2">
-      <Select value={placementFamily} onValueChange={setPlacementFamily}>
-        <SelectTrigger className="h-9 rounded-xl w-52 text-sm"><SelectValue /></SelectTrigger>
-        <SelectContent>{PLACEMENT_FAMILIES.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-      </Select>
-      <Select onValueChange={(v) => { if (v) addPlacement(v); }}>
-        <SelectTrigger className="h-9 rounded-xl w-52 text-sm"><SelectValue placeholder="Ajouter un produit…" /></SelectTrigger>
-        <SelectContent>{(PLACEMENT_TYPES_BY_FAMILY[placementFamily] || []).map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
-      </Select>
+  </div>
+
+  {/* Barre d'ajout permanente : familles (onglets) puis produits de la famille active */}
+  <div className="rounded-2xl border p-3 space-y-2.5" style={{ borderColor: SURFACE.border, background: SURFACE.card, boxShadow: SURFACE.cardShadow }}>
+    <div role="tablist" aria-label="Famille de placement" className="flex flex-wrap gap-2">
+      {PLACEMENT_FAMILIES.map((fam) => {
+        const c = FAMILY_COLORS[fam.value];
+        const active = activeFamily === fam.value;
+        return (
+          <button
+            key={fam.value}
+            type="button"
+            role="tab"
+            aria-pressed={active}
+            aria-selected={active}
+            onClick={() => setActiveFamily(fam.value)}
+            className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#26428B]"
+            style={{
+              background: active ? c.fill : "transparent",
+              borderColor: active ? c.solid : SURFACE.border,
+              color: active ? c.solid : BRAND.navy,
+            }}
+          >
+            <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: c.solid }} aria-hidden="true" />
+            {fam.label}
+          </button>
+        );
+      })}
+    </div>
+    <div className="flex flex-wrap gap-2">
+      {(PLACEMENT_TYPES_BY_FAMILY[activeFamily] || []).map((type) => (
+        <button
+          key={type}
+          type="button"
+          title={`Ajouter : ${type}`}
+          onClick={() => addPlacement(type)}
+          className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#26428B]"
+          style={{ background: SURFACE.card, borderColor: SURFACE.border, color: BRAND.navy }}
+        >
+          <Plus className="h-3.5 w-3.5 shrink-0" style={{ color: FAMILY_COLORS[activeFamily].solid }} aria-hidden="true" />
+          {type}
+        </button>
+      ))}
     </div>
   </div>
   {data.placements.length === 0 && <div className="border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>Aucun placement saisi. Sélectionnez une famille puis un produit.</div>}
