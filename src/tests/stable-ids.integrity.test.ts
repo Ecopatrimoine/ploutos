@@ -140,3 +140,41 @@ describe("Intégrité stable-id — legs (résolution par id)", () => {
     expect(resolvePlacementRef(after, { index: 1 })).toBeNull();
   });
 });
+
+// Nouveau comportement : addPlacement/addProperty inserent EN TETE (index 0). Toutes
+// les references etant par id, ce decalage d'index ne detache aucun actif.
+describe("Intégrité stable-id — insertion en tete (addPlacement/addProperty)", () => {
+  const CTO = placement({ id: "pl-cto", name: "CTO", type: "Compte-titres", value: "50000", deathValue: "50000" });
+  const NEW0 = placement({ id: "pl-new", name: "", type: "Livret A", value: "0", deathValue: "0" });
+
+  // Succession testament « legs precis » leguant le CTO a l'enfant (par id).
+  const SUCC_LEGS = {
+    deceasedPerson: "person1" as const, spouseOption: "legal_quarter_full",
+    heirs: [{ name: "Enfant Martin", firstName: "Enfant", lastName: "Martin", birthDate: "1980-01-01",
+      relation: "enfant", childLink: "common_child", priorDonations: "0", share: "100",
+      shareGlobal: "", propertyRight: "full" }],
+    testamentHeirs: [],
+    legsPrecisItems: [{
+      assetType: "placement", assetId: "pl-cto", propertyIndex: 1,
+      legataires: [{ heirName: "Enfant Martin", heirRelation: "enfant", heirBirthDate: "1980-01-01",
+        sharePercent: "100", propertyRight: "full", contreparties: [] }],
+    }],
+    spousePresent: false, useTestament: true, legsMode: "precis" as const,
+  } as any;
+
+  const childGross = (s: any) => (s.results as any[]).find((r) => r.name === "Enfant Martin")?.grossReceived ?? 0;
+
+  it("nantissement AV : ajout d'un placement EN TETE ne change pas la reduction (computeSuccession)", () => {
+    const before = computeSuccession(SUCC, baseData([AV], [PROP_NANTI]));       // AV index 0
+    const after = computeSuccession(SUCC, baseData([NEW0, AV], [PROP_NANTI]));  // AV pousse en index 1
+    expect(avTotal(before)).toBeLessThan(100000);      // reduction bien appliquee
+    expect(avTotal(after)).toBe(avTotal(before));       // stable malgre le decalage d'index
+  });
+
+  it("legs precis : ajout d'un placement EN TETE ne detache pas le bien legue (computeSuccession)", () => {
+    const before = computeSuccession(SUCC_LEGS, baseData([AV, CTO], [PROP_NANTI]));        // CTO index 1
+    const after = computeSuccession(SUCC_LEGS, baseData([NEW0, AV, CTO], [PROP_NANTI]));   // CTO pousse en index 2
+    expect(childGross(before)).toBeGreaterThan(0);      // le legs CTO est bien attribue a l'enfant
+    expect(childGross(after)).toBe(childGross(before));  // stable : l'id resout, l'index aurait glisse
+  });
+});
