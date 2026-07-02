@@ -11,8 +11,9 @@ import { Plus, Trash2, Download, Upload, Settings } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
-import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
+import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, isUCorCapi, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
+import { computeExpositionMarche } from "../../lib/calculs/exposition";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
 
 
@@ -43,7 +44,6 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
     const shareOverflow = totalShare > 100.0001;
     const isAVType = isAV(placement.type);
     const isCash = isCashPlacement(placement.type);
-    const isUCorCapi = placement.type === "Assurance-vie unités de compte" || placement.type === "Contrat de capitalisation";
     return (
       <Card key={index} className="border " style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
         <CardContent className="p-4 space-y-2">
@@ -137,7 +137,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
               <Field label="Date d'ouverture"><DateFr value={placement.openDate} onChange={(iso) => updatePlacementStr(index, "openDate", iso || "")} className="rounded-xl h-8 text-sm" /></Field>
             )}
             {(isAVType || isPERType(placement.type)) && <MoneyField label="Capital exonéré succ." tooltip="Capital transmis hors succession via la clause bénéficiaire (art. 990 I pour primes < 70 ans). Même régime AV/PER assurantiel/Madelin." value={placement.exemptFromSuccession} onChange={(e) => updatePlacementStr(index, "exemptFromSuccession", e.target.value)} compact />}
-            {isUCorCapi && (
+            {isUCorCapi(placement.type) && (
               <Field label="Part UC (%)">
                 <Input type="number" min="0" max="100" placeholder="ex: 70" value={placement.ucRatio} onChange={(e) => updatePlacementStr(index, "ucRatio", e.target.value)} className="rounded-xl h-8 text-sm" />
               </Field>
@@ -360,20 +360,8 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
 
   {/* Widget exposition aux marchés */}
   {data.placements.length > 0 && (() => {
-    let sec = 0; let dyn = 0;
-    for (const p of data.placements) {
-      const val = n(p.value);
-      if (PLACEMENT_TYPES_BY_FAMILY.cash.includes(p.type)) { sec += val; }
-      else if (p.type === "Assurance-vie fonds euros") { sec += val; }
-      else if (p.type === "Assurance-vie unités de compte" || p.type === "Contrat de capitalisation") {
-        const uc = Math.min(100, Math.max(0, n(p.ucRatio) || (p.type === "Assurance-vie unités de compte" ? 100 : 0)));
-        dyn += val * uc / 100; sec += val * (100 - uc) / 100;
-      } else { dyn += val; }
-    }
-    const tot = sec + dyn;
+    const { securise: sec, dynamique: dyn, total: tot, securisePct: secPct, dynamiquePct: dynPct } = computeExpositionMarche(data.placements);
     if (tot <= 0) return null;
-    const secPct = Math.round(sec / tot * 100);
-    const dynPct = 100 - secPct;
     return (
       <div className="rounded-2xl p-4 border" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
         <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: BRAND.sky }}>Exposition aux marchés financiers</div>
