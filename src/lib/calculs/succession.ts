@@ -7,6 +7,7 @@ import { n, getDemembrementPercentages, computeTaxFromBrackets, isAV, isPERType,
   childMatchesDeceased, getAgeFromBirthDate, isSpouseHeirEligible, getAvailableSpouseOptions,
   getQuotiteDisponible, buildCollectedHeirs, euro } from './utils';
 import { resolveLoanValuesMulti } from './credit';
+import { resolvePlacementRef, resolvePropertyRef } from './refs';
 import { buildEntreePerso } from '../prevoyance/mapping';
 import { resolveCapitauxDeces } from '../prevoyance/capitaux-deces';
 import { resolveCapitalDecesBranche, resolveRenteEducationBranche, resolveRenteConjointSubstitutiveBranche } from '../prevoyance/capitaux-deces-branche';
@@ -881,10 +882,16 @@ export function computeSuccession(successionData: SuccessionData, data: Patrimon
     const rawValue = Math.max(0, n(placement.value));
     // Nantissement : réduire capital AV du crédit in fine nanti
     const placementIndexInData = data.placements.indexOf(placement);
+    // Appartenance nantissement : par id si le champ id est présent (placement
+    // migré ; "" = plus aucun nantissement), sinon repli sur l'index legacy.
+    const pledgesThis = (pledgedId: string | undefined, pledgedIndex: string | undefined) =>
+      pledgedId !== undefined
+        ? pledgedId !== "" && pledgedId === placement.id
+        : +(pledgedIndex || "-1") === placementIndexInData;
     const pledgedProperty = data.properties.find(
       p => (p.loans && p.loans.length > 0
-        ? p.loans.some(l => l.type === "in_fine" && +(l.pledgedPlacementIndex || "-1") === placementIndexInData)
-        : p.loanEnabled && p.loanType === "in_fine" && +(p.loanPledgedPlacementIndex || "-1") === placementIndexInData)
+        ? p.loans.some(l => l.type === "in_fine" && pledgesThis(l.pledgedPlacementId, l.pledgedPlacementIndex))
+        : p.loanEnabled && p.loanType === "in_fine" && pledgesThis(p.loanPledgedPlacementId, p.loanPledgedPlacementIndex))
     );
     let pledgedDebt = 0;
     if (pledgedProperty) {
@@ -1020,9 +1027,9 @@ export function computeSuccession(successionData: SuccessionData, data: Patrimon
     } else if (testamentCoversAll && successionData.legsMode === "precis") {
       // Legs précis : valeur totale reçue = items principaux + contreparties
       const _dk = successionData.deceasedPerson;
-      const getAssetBaseValue = (it: { propertyIndex: number; assetType: string }) => {
-        const _rp = it.assetType === "property" ? data.properties[it.propertyIndex] : null;
-        const _rv = it.assetType === "property" ? n(_rp?.value) : n(data.placements[it.propertyIndex]?.value);
+      const getAssetBaseValue = (it: { propertyIndex: number; assetId?: string; assetType: string }) => {
+        const _rp = it.assetType === "property" ? resolvePropertyRef(data.properties, { id: it.assetId, index: it.propertyIndex }) : null;
+        const _rv = it.assetType === "property" ? n(_rp?.value) : n(resolvePlacementRef(data.placements, { id: it.assetId, index: it.propertyIndex })?.value);
         const _bs = _rp
           ? _rp.ownership === "indivision"
             ? (_dk === "person1" ? Math.min(1, Math.max(0, n(_rp.indivisionShare1) / 100 || 0.5)) : Math.min(1, Math.max(0, n(_rp.indivisionShare2) / 100 || 0.5)))

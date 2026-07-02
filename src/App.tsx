@@ -68,6 +68,8 @@ import { computeSuccession } from "./lib/calculs/succession";
 import { applyDonationsToData } from "./lib/calculs/donation";
 import { buildHypothesisDifferenceLines } from "./lib/hypotheses";
 import { runSelfChecks } from "./lib/selfChecks";
+import { ensureAssetIds } from "./lib/migrations/ensureAssetIds";
+import { newId } from "./lib/id";
 
 // ── Composants onglets (React.memo — re-render uniquement si leurs données changent) ──
 import { TabFamiliale } from "./components/tabs/TabFamiliale";
@@ -90,6 +92,62 @@ import { TabPrevoyanceCollective } from "./components/tabs/TabPrevoyanceCollecti
 // Logo chargé dynamiquement — remplacez ce placeholder par votre fichier PNG via l'interface
 const DEFAULT_LOGO_SRC = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUxIiBoZWlnaHQ9IjI3NiIgdmlld0JveD0iMCAwIDI1MSAyNzYiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xNjdfMTA0KSI+CjxwYXRoIGQ9Ik0xMDAuMjMgMjIwLjA4Qzg5LjAyMDEgMjIwLjA4IDc5LjYzMDEgMjE0Ljg3IDc0LjQ2MDEgMjA1Ljc5QzY1LjcxMDEgMTkwLjQxIDc0LjYzMDEgMTc3LjI4IDgxLjgwMDEgMTY2LjcyQzg2Ljk2MDEgMTU5LjEyIDkyLjgxMDEgMTUwLjUxIDk1LjkwMDEgMTM4LjU3Qzk3LjgwMDEgMTMxLjIyIDk3LjY0MDEgMTE3LjYxIDk2LjA4MDEgMTE5LjgyQzkzLjE0MDEgMTIzLjk4IDg3LjY2MDEgMTMxLjczIDc3LjMwMDEgMTMxLjczQzc0LjgzMDEgMTMxLjczIDcyLjM2MDEgMTMxLjI1IDY5Ljk1MDEgMTMwLjMxQzYyLjcyMDEgMTI3LjQ4IDU4Ljg0MDEgMTE5LjYxIDYwLjk4MDEgMTEyLjE2QzY0Ljc2MDEgOTkuMDIwMSA3NC44MDAxIDY0LjEyIDExMC43NyA2NC4wM0MxMTAuNzcgNjQuMDMgMjA2LjUgNjMuOCAyMDYuNTEgNjMuOEMyMTIuMjggNjMuOCAyMTcuNyA2Ny4xMTAxIDIyMC4yNCA3Mi42OTAxQzIyMS4yIDc0Ljc5MDEgMjIxLjU2IDc3LjEyMDEgMjIxLjU0IDc5LjQzTDIyMS4zNCA5OC4xN0MyMjEuMjUgMTA2LjMyIDIxNC42OSAxMTIuOTEgMjA2LjU0IDExMy4wNEwxOTAuMiAxMTMuMjlDMTg5Ljg0IDExMy4yOSAxODkuNTUgMTEzLjU3IDE4OS41MyAxMTMuOTNMMTg3LjAyIDE1Mi4xOEMxODYuNzQgMTU2LjUxIDE4OC45NiAxNjEuMTYgMTkwLjY3IDE1OC45OUMxOTMuODIgMTU0Ljk5IDE5OC43OSAxNTIuNiAyMDMuOTYgMTUyLjZDMjA5LjkyIDE1Mi42IDIxNS40IDE1NS42NyAyMTguNjEgMTYwLjgyQzIyNS4yMiAxNzEuNDEgMjE5LjYgMTg2LjA0IDIxMy45NiAxOTcuNjFDMjA3LjA1IDIxMS43NyAxOTMuMTMgMjIwLjIzIDE3Ni43MSAyMjAuMjNDMTc2LjcxIDIyMC4yMyAxMDIuMzkgMjIwLjEgMTAwLjI0IDIyMC4xTDEwMC4yMyAyMjAuMDhaIiBmaWxsPSIjMTAxQjNCIi8+CjxwYXRoIGQ9Ik0xNTYuNDkgMTAxLjM1QzE0Ny4yNSA5OS41OSAxMzguOTUgMTAwLjUyIDEyOS42NCAxMDAuODVDMTI3LjYyIDEyNi41OSAxMjUuOTEgMTY4LjU1IDExNy4zNSAxOTAuOTFDMTE1LjIxIDE5Ni41IDExMC45NyAyMDAuNDUgMTA2LjMxIDIwMS4yNEMxMDAgMjAyLjMxIDkzLjcxIDIwMC45NiA5MC40NiAxOTUuMjVDODMuMTUgMTgyLjQxIDEwNC41NiAxNzEuNTggMTEyLjEzIDE0Mi4zMUMxMTUuNjUgMTI4LjcgMTE3LjIyIDExNS4zOSAxMTguMTIgMTAxLjI4Qzg2LjAzIDk1LjMyIDg4LjU3IDEyMS40NSA3OS4wMyAxMTcuNzJDODQuMDMgMTAwLjMzIDkxLjkxIDgyLjU3IDExMi40NiA4Mi41MkwyMDIuOSA4Mi4zTDIwMi43IDEwMC40MkwxNzMuNTcgMTAwLjg2TDE3MC4zIDE1MC42N0MxNjkuNzggMTU4LjUyIDE2OS44NiAxNjYuNSAxNzIuMTMgMTc0LjAyQzE3NC4wMyAxODAuMzIgMTgwLjQ2IDE4Mi4zNCAxODYuMyAxODEuODdDMTk3LjU0IDE4MC45NiAxOTguNjcgMTY2LjcyIDE5OC44OSAxNjcuNjNDMTk4LjI4IDE2NS4xMiAyMDkuNSAxNjMuMDIgMTk3LjE3IDE4OC4zMUMxOTIuNzQgMTk3LjM5IDE4NC4yMSAyMDEuODQgMTc0LjMgMjAxLjdDMTU5Ljk5IDIwMS41MSAxNTAuMzcgMTkxIDE1MC42NCAxNzYuNEMxNTEuMDkgMTUxLjY1IDE1NC41MSAxMjcuODcgMTU2LjUxIDEwMS4zNkwxNTYuNDkgMTAxLjM1WiIgZmlsbD0iI0Y4RjZGNyIvPgo8cGF0aCBkPSJNMTE0Ljk5IDI2Mi45OEM4NC4wNCAyNTcuMSA1Ni43NiAyNDAuMTkgMzcuNjggMjE0Ljg2QzE3LjM0IDE4Ny44NyA4LjczMDAyIDE1NC41NyAxMy40MyAxMjEuMUMxOC4xMyA4Ny42MyAzNS41OSA1OCA2Mi41OCAzNy42NUM4OC4zMSAxOC4yNiAxMTkuNzcgOS41Mzk5NiAxNTEuNjUgMTIuODRDMTUzLjIxIDEzIDE1NC43OCAxMy4xOCAxNTYuMzQgMTMuNEMxODkuODEgMTguMSAyMTkuNDQgMzUuNTYgMjM5Ljc5IDYyLjU1TDI0Ny43MiA1Ni41OEMyMjUuMDQgMjYuNDkgMTkyLjMxIDguNDI5OTYgMTU3LjczIDMuNTY5OTZDMTU2LjE3IDMuMzQ5OTYgMTU0LjYxIDMuMTY5OTYgMTUzLjA0IDIuOTk5OTZDMTE5Ljg2IC0wLjUwMDA0NSA4NS4zNCA4LjA2OTk2IDU2LjYgMjkuNzJDLTMuNTg5OTggNzUuMDggLTE1LjYxIDE2MC42NCAyOS43NCAyMjAuODNDNTEuMDcgMjQ5LjE0IDgxLjMxIDI2Ni43OCAxMTMuNjEgMjcyLjgyTDExNC45OCAyNjIuOThIMTE0Ljk5WiIgZmlsbD0iIzEwMUIzQiIvPgo8cGF0aCBkPSJNNDAuNyAyMzYuODRDMzYuMTQgMjMyLjI4IDMxLjg4IDIyNy4zOCAyNy45NSAyMjIuMTdDNS42NjAwMSAxOTIuNTkgLTMuNzc5OTkgMTU2LjA5IDEuMzgwMDEgMTE5LjRDNi41MzAwMSA4Mi43MSAyNS42NyA1MC4yMyA1NS4yNSAyNy45M0M4My40MSA2LjcyMDAxIDExOC4yMSAtMi45Mjk5OSAxNTMuMjYgMC43ODAwMTRDMTU1LjA3IDAuOTcwMDE0IDE1Ni41OSAxLjE1MDAxIDE1OC4wMyAxLjM2MDAxQzE5NC43MiA2LjUyMDAxIDIyNy4yIDI1LjY1IDI0OS41IDU1LjI0TDI1MC44NSA1Ny4wM0wyMzkuMzUgNjUuN0wyMzggNjMuOTFDMjE4LjAyIDM3LjQgMTg4LjkxIDIwLjI1IDE1Ni4wMyAxNS42M0MxNTQuNjUgMTUuNDQgMTUzLjE0IDE1LjI1IDE1MS40MiAxNS4wOEMxMjAuMTUgMTEuODQgODkuMDggMjAuNSA2My45MyAzOS40NUMzNy40MiA1OS40MyAyMC4yNyA4OC41NCAxNS42NSAxMjEuNDJDMTEuMDMgMTU0LjMgMTkuNDkgMTg3LjAxIDM5LjQ3IDIxMy41MkM1OC4xIDIzOC4yNCA4NS4wNyAyNTUuMDMgMTE1LjQxIDI2MC43OUwxMTcuNTEgMjYxLjE5TDExNS41MiAyNzUuNDZMMTEzLjIxIDI3NS4wM0M4NS41MyAyNjkuODUgNjAuMzcgMjU2LjUxIDQwLjcxIDIzNi44Nkw0MC43IDIzNi44NFpNMjMzLjQ1IDQzLjU4QzIxMi45OSAyMy4xMiAxODYuNTcgOS44OTAwMSAxNTcuNCA1Ljc5MDAxQzE1Ni4wMSA1LjYwMDAxIDE1NC41NSA1LjQyMDAxIDE1Mi43OSA1LjIzMDAxQzExOC44NyAxLjY1MDAxIDg1LjE5IDEwLjk4IDU3Ljk1IDMxLjUxQzI5LjMyIDUzLjA5IDEwLjggODQuNTIgNS44MTAwMSAxMjAuMDJDMC44MjAwMDkgMTU1LjUyIDkuOTUwMDEgMTkwLjg0IDMxLjUzIDIxOS40N0M1MS4yNiAyNDUuNjUgNzkuNjYgMjYzLjU4IDExMS43MiAyNzAuMTVMMTEyLjQ3IDI2NC43NUM4MS44OCAyNTguNDIgNTQuNzUgMjQxLjIzIDM1Ljg4IDIxNi4xOUMxNS4xOCAxODguNzIgNi40MjAwMSAxNTQuODMgMTEuMiAxMjAuNzdDMTUuOTkgODYuNzEgMzMuNzUgNTYuNTUgNjEuMjIgMzUuODVDODcuMjggMTYuMjEgMTE5LjQ3IDcuMjUwMDEgMTUxLjg3IDEwLjZDMTUzLjY1IDEwLjc4IDE1NS4yMSAxMC45NyAxNTYuNjUgMTEuMTdDMTg5Ljk3IDE1Ljg1IDIxOS41NiAzMi45NSAyNDAuMjEgNTkuNDJMMjQ0LjU2IDU2LjE0QzI0MS4wOSA1MS42OSAyMzcuMzggNDcuNSAyMzMuNDYgNDMuNTdMMjMzLjQ1IDQzLjU4WiIgZmlsbD0iIzEwMUIzQiIvPgo8cGF0aCBkPSJNMjA2LjczIDQ5LjQ5OTlDMjE5LjI4OSA0OS40OTk5IDIyOS40NyAzOS4zMTg5IDIyOS40NyAyNi43NTk5QzIyOS40NyAxNC4yMDA5IDIxOS4yODkgNC4wMTk5IDIwNi43MyA0LjAxOTlDMTk0LjE3MSA0LjAxOTkgMTgzLjk5IDE0LjIwMDkgMTgzLjk5IDI2Ljc1OTlDMTgzLjk5IDM5LjMxODkgMTk0LjE3MSA0OS40OTk5IDIwNi43MyA0OS40OTk5WiIgZmlsbD0iI0UzQUY2NCIvPgo8cGF0aCBkPSJNMjI0LjI2IDkuMTk5OTVMMjE3LjkyIDE1LjUzOTlDMjIxLjQ4IDE5LjA5OTkgMjIzLjEyIDIzLjk4OTkgMjIyLjQyIDI4Ljk1OTlDMjIxLjIgMzcuNjA5OSAyMTMuMTcgNDMuNjYgMjA0LjUyIDQyLjQ1QzIwMS4wOCA0MS45NyAxOTcuOTggNDAuNDE5OSAxOTUuNTMgMzcuOTc5OUMxOTEuOTcgMzQuNDE5OSAxOTAuMzMgMjkuNTI5OSAxOTEuMDMgMjQuNTQ5OUMxOTIuMjUgMTUuODk5OSAyMDAuMjggOS44NDk5NSAyMDguOTMgMTEuMDU5OUMyMTIuMzcgMTEuNTM5OSAyMTUuNDcgMTMuMDg5OSAyMTcuOTIgMTUuNTI5OUwyMjQuMjYgOS4xODk5NU0yMjQuMjYgOS4xOTk5NUMyMjAuNTggNS41MTk5NSAyMTUuNzMgMi45Njk5NSAyMTAuMTggMi4xODk5NUMxOTYuNjEgMC4yNzk5NDkgMTg0LjA2IDkuNzM5OTUgMTgyLjE2IDIzLjMwOTlDMTgxLjAzIDMxLjMzOTkgMTgzLjg4IDM5IDE4OS4yIDQ0LjMyQzE5Mi44OCA0OCAxOTcuNzMgNTAuNTUgMjAzLjI4IDUxLjMzQzIxNi44NSA1My4yNCAyMjkuNCA0My43Nzk5IDIzMS4zIDMwLjIwOTlDMjMyLjQzIDIyLjE3OTkgMjI5LjU4IDE0LjUxOTkgMjI0LjI2IDkuMTk5OTVaIiBmaWxsPSIjMTAxQjNCIi8+CjwvZz4KPGRlZnM+CjxjbGlwUGF0aCBpZD0iY2xpcDBfMTY3XzEwNCI+CjxyZWN0IHdpZHRoPSIyNTAuODUiIGhlaWdodD0iMjc1LjQ1IiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo=";
 
+
+// ─── Normalisation d'un dossier au chargement ─────────────────────────────────
+// Porte UNIQUE de normalisation, appelee par handleOpenClient (Supabase/local)
+// ET par l'import de fichier JSON (recon #5 : l'import contournait migrateLoans).
+// (1) defauts des champs absents des anciens dossiers (pensions, csg, schoolLevel,
+//     assurance emprunteur, migration mono-credit -> loans[]) ;
+// (2) ensureAssetIds : ids stables + conversion des references index -> id.
+// Pure, non destructive (ne mute pas le payload d'entree).
+function normalizeClientData(p: {
+  data?: unknown;
+  successionData?: unknown;
+  hypotheses?: unknown;
+}): { data: PatrimonialData | null; successionData: SuccessionData | null; hypotheses: Hypothesis[] } {
+  const rawSuccession = (p.successionData as SuccessionData) ?? null;
+  const rawHypotheses = Array.isArray(p.hypotheses) ? (p.hypotheses as Hypothesis[]) : [];
+  if (!p.data) {
+    return { data: null, successionData: rawSuccession, hypotheses: rawHypotheses };
+  }
+  const d = { ...(p.data as any) };
+  // Migration : nouveaux champs absents des dossiers existants
+  d.pensions1 = d.pensions1 ?? "";
+  d.pensions2 = d.pensions2 ?? "";
+  d.csgDeductibleFoncier = d.csgDeductibleFoncier ?? "";
+  d.childrenData = (d.childrenData || []).map((c: any) => ({ schoolLevel: "", ...c }));
+  d.properties = (d.properties || []).map((prop: any) => {
+    const base = { loanInsuranceGuarantees: "dc", loanInsuranceCoverage: "banque", ...prop };
+    // Migration multi-credits : convertir ancien loanEnabled -> loans[0]
+    if (!base.loans || base.loans.length === 0) {
+      if (base.loanEnabled && base.loanAmount) {
+        base.loans = [{
+          id: `loan_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          type: base.loanType || "amortissable", label: "Prêt principal",
+          amount: base.loanAmount || "", rate: base.loanRate || "",
+          duration: base.loanDuration || "", startDate: base.loanStartDate || "",
+          capitalRemaining: base.loanCapitalRemaining || "", interestAnnual: base.loanInterestAnnual || "",
+          pledgedPlacementIndex: base.loanPledgedPlacementIndex || "-1",
+          insurance: base.loanInsurance || false, insuranceGuarantees: base.loanInsuranceGuarantees || "dc",
+          insuranceRate: base.loanInsuranceRate || "", insuranceRate1: base.loanInsuranceRate1 || "",
+          insuranceRate2: base.loanInsuranceRate2 || "", insurancePremium: base.loanInsurancePremium || "",
+          insuranceCoverage: base.loanInsuranceCoverage || "banque",
+        }];
+      } else {
+        base.loans = [];
+      }
+    }
+    return base;
+  });
+  // Ids stables + conversion des 4 references index -> id (bundle : data +
+  // successionData + hypotheses, resolus contre la data principale).
+  const migrated = ensureAssetIds({
+    data: d as PatrimonialData,
+    successionData: rawSuccession,
+    hypotheses: rawHypotheses,
+  });
+  return { data: migrated.data, successionData: migrated.successionData, hypotheses: migrated.hypotheses };
+}
 
 // ─── CABINET SETTINGS PERSISTENCE ────────────────────────────────────────────
 
@@ -460,7 +518,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const [concubinPerson, setConcubinPerson] = useState<1 | 2>(1);
   // Picker famille pour les legs
   const [legsPickerOpen, setLegsPickerOpen] = useState<"global" | "precis" | null>(null);
-  const [loanModalIndex, setLoanModalIndex] = useState<number | null>(null); // index du bien dont on édite les crédits
+  const [loanModalPropertyId, setLoanModalPropertyId] = useState<string | null>(null); // id du bien dont on édite les crédits
   const [exportStatus, setExportStatus] = useState("");
   const [exportFallbackOpen, setExportFallbackOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
@@ -558,12 +616,12 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
 
   const addProperty = useCallback((type: string) => setData((prev) => ({
     ...prev,
-    properties: [...prev.properties, { name: "", type, ownership: "person1", propertyRight: "full", usufructAge: "", counterpartKey: "", counterpartBirthDate: "", counterpartRelation: "", counterpartName: "", value: "", propertyTaxAnnual: "", rentGrossAnnual: "", insuranceAnnual: "", worksAnnual: "", otherChargesAnnual: "", loanEnabled: false, loanType: "amortissable", loanAmount: "", loanRate: "", loanDuration: "", loanStartDate: "", loanCapitalRemaining: "", loanInterestAnnual: "", loanPledgedPlacementIndex: "-1", loanInsurance: false, loanInsuranceGuarantees: "dc", loanInsuranceRate: "", loanInsuranceRate1: "", loanInsuranceRate2: "", loanInsurancePremium: "", loanInsuranceCoverage: "banque", indivisionShare1: "", indivisionShare2: "" }],
+    properties: [...prev.properties, { id: newId(), name: "", type, ownership: "person1", propertyRight: "full", usufructAge: "", counterpartKey: "", counterpartBirthDate: "", counterpartRelation: "", counterpartName: "", value: "", propertyTaxAnnual: "", rentGrossAnnual: "", insuranceAnnual: "", worksAnnual: "", otherChargesAnnual: "", loanEnabled: false, loanType: "amortissable", loanAmount: "", loanRate: "", loanDuration: "", loanStartDate: "", loanCapitalRemaining: "", loanInterestAnnual: "", loanPledgedPlacementIndex: "-1", loanInsurance: false, loanInsuranceGuarantees: "dc", loanInsuranceRate: "", loanInsuranceRate1: "", loanInsuranceRate2: "", loanInsurancePremium: "", loanInsuranceCoverage: "banque", indivisionShare1: "", indivisionShare2: "" }],
   })), []);
-  const updateProperty = useCallback((index: number, key: keyof Property, value: string | boolean | Loan[]) =>
-    setData((prev) => ({ ...prev, properties: prev.properties.map((p, i) => i === index ? { ...p, [key]: value } : p) })), []);
-  const removeProperty = useCallback((index: number) =>
-    setData((prev) => ({ ...prev, properties: prev.properties.filter((_, i) => i !== index) })), []);
+  const updateProperty = useCallback((id: string, key: keyof Property, value: string | boolean | Loan[]) =>
+    setData((prev) => ({ ...prev, properties: prev.properties.map((p) => p.id === id ? { ...p, [key]: value } : p) })), []);
+  const removeProperty = useCallback((id: string) =>
+    setData((prev) => ({ ...prev, properties: prev.properties.filter((p) => p.id !== id) })), []);
 
   // ── CRUD Loans (multi-crédits) ──
   const generateLoanId = () => `loan_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -576,10 +634,10 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     insuranceRate: "", insuranceRate1: "", insuranceRate2: "",
     insurancePremium: "", insuranceCoverage: "banque",
   });
-  const addLoan = useCallback((propertyIndex: number) => {
+  const addLoan = useCallback((propertyId: string) => {
     setData((prev) => ({
-      ...prev, properties: prev.properties.map((p, i) => {
-        if (i !== propertyIndex) return p;
+      ...prev, properties: prev.properties.map((p) => {
+        if (p.id !== propertyId) return p;
         const loans = p.loans || [];
         const newLoan = emptyLoan();
         if (loans.length === 0) newLoan.label = "Prêt principal";
@@ -589,16 +647,16 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       }),
     }));
   }, []);
-  const updateLoan = useCallback((propertyIndex: number, loanIndex: number, key: keyof Loan, value: string | boolean) =>
+  const updateLoan = useCallback((propertyId: string, loanId: string, key: keyof Loan, value: string | boolean) =>
     setData((prev) => ({
-      ...prev, properties: prev.properties.map((p, i) => i !== propertyIndex ? p : {
-        ...p, loans: (p.loans || []).map((l, li) => li !== loanIndex ? l : { ...l, [key]: value }),
+      ...prev, properties: prev.properties.map((p) => p.id !== propertyId ? p : {
+        ...p, loans: (p.loans || []).map((l) => l.id !== loanId ? l : { ...l, [key]: value }),
       }),
     })), []);
-  const removeLoan = useCallback((propertyIndex: number, loanIndex: number) =>
+  const removeLoan = useCallback((propertyId: string, loanId: string) =>
     setData((prev) => ({
-      ...prev, properties: prev.properties.map((p, i) => i !== propertyIndex ? p : {
-        ...p, loans: (p.loans || []).filter((_, li) => li !== loanIndex),
+      ...prev, properties: prev.properties.map((p) => p.id !== propertyId ? p : {
+        ...p, loans: (p.loans || []).filter((l) => l.id !== loanId),
       }),
     })), []);
   // Migration : convertir anciens champs loan* → loans[0] si loanEnabled et loans vide
@@ -625,14 +683,14 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
 
   const addPlacement = useCallback((type: string) => setData((prev) => ({
     ...prev,
-    placements: [...prev.placements, { name: "", type, ownership: "person1", value: "", annualIncome: "", taxableIncome: "", deathValue: "", openDate: "", pfuEligible: placementNeedsPFU(type), pfuOptOut: false, totalPremiumsNet: "", premiumsBefore70: "", premiumsAfter70: "", exemptFromSuccession: "", ucRatio: "", annualWithdrawal: "", annualContribution: "", perDeductible: true, perWithdrawal: "", perWithdrawalCapital: "", perWithdrawalInterest: "", perAnticiped: false, beneficiaries: [{ name: "", relation: "autre", share: "100" }] }],
+    placements: [...prev.placements, { id: newId(), name: "", type, ownership: "person1", value: "", annualIncome: "", taxableIncome: "", deathValue: "", openDate: "", pfuEligible: placementNeedsPFU(type), pfuOptOut: false, totalPremiumsNet: "", premiumsBefore70: "", premiumsAfter70: "", exemptFromSuccession: "", ucRatio: "", annualWithdrawal: "", annualContribution: "", perDeductible: true, perWithdrawal: "", perWithdrawalCapital: "", perWithdrawalInterest: "", perAnticiped: false, beneficiaries: [{ name: "", relation: "autre", share: "100" }] }],
   })), []);
-  const updatePlacementStr = useCallback(<K extends Exclude<keyof Placement, "pfuEligible" | "beneficiaries">>(index: number, key: K, value: Placement[K]) =>
-    setData((prev) => ({ ...prev, placements: prev.placements.map((p, i) => i === index ? { ...p, [key]: value } : p) })), []);
-  const updatePlacementBool = useCallback((index: number, value: boolean) =>
-    setData((prev) => ({ ...prev, placements: prev.placements.map((p, i) => i === index ? { ...p, pfuEligible: value } : p) })), []);
-  const removePlacement = useCallback((index: number) =>
-    setData((prev) => ({ ...prev, placements: prev.placements.filter((_, i) => i !== index) })), []);
+  const updatePlacementStr = useCallback(<K extends Exclude<keyof Placement, "pfuEligible" | "beneficiaries">>(id: string, key: K, value: Placement[K]) =>
+    setData((prev) => ({ ...prev, placements: prev.placements.map((p) => p.id === id ? { ...p, [key]: value } : p) })), []);
+  const updatePlacementBool = useCallback((id: string, value: boolean) =>
+    setData((prev) => ({ ...prev, placements: prev.placements.map((p) => p.id === id ? { ...p, pfuEligible: value } : p) })), []);
+  const removePlacement = useCallback((id: string) =>
+    setData((prev) => ({ ...prev, placements: prev.placements.filter((p) => p.id !== id) })), []);
 
   const addPlacementBeneficiary = useCallback((placementIndex: number) =>
     setData((prev) => ({ ...prev, placements: prev.placements.map((p, i) => i === placementIndex ? { ...p, beneficiaries: [...p.beneficiaries, { name: "", relation: "autre", share: "0" }] } : p) })), []);
@@ -805,7 +863,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
         items[itemIndex] = { ...items[itemIndex], legataires: [...(items[itemIndex].legataires || []), newLegataire] };
       } else {
         // Créer un nouveau bien avec ce légataire
-        items.push({ propertyIndex: 0, assetType: "property" as const, legataires: [newLegataire] });
+        items.push({ propertyIndex: 0, assetType: "property" as const, assetId: data.properties[0]?.id, legataires: [newLegataire] });
       }
       return { ...prev, legsPrecisItems: items };
     });
@@ -850,7 +908,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     setSuccessionData((prev) => ({ ...prev, testamentHeirs: prev.testamentHeirs.map((h, i) => i === index ? { ...h, [key]: value } : h) }));
   const removeTestamentHeir = (index: number) =>
     setSuccessionData((prev) => ({ ...prev, testamentHeirs: prev.testamentHeirs.filter((_, i) => i !== index) }));
-  const addLegsPrecisItem = () => setSuccessionData((prev) => ({ ...prev, legsPrecisItems: [...(prev.legsPrecisItems || []), { propertyIndex: 0, assetType: "property" as const, legataires: [] }] }));
+  const addLegsPrecisItem = () => setSuccessionData((prev) => ({ ...prev, legsPrecisItems: [...(prev.legsPrecisItems || []), { propertyIndex: 0, assetType: "property" as const, assetId: data.properties[0]?.id, legataires: [] }] }));
   const addLegsPrecisItemFree = () => setSuccessionData((prev) => ({ ...prev, legsPrecisItems: [...(prev.legsPrecisItems || []), { propertyIndex: 0, assetType: "free" as const, freeLabel: "", freeValue: "", legataires: [] }] }));
   const addLegsPrecisItemResidual = () => setSuccessionData((prev) => ({ ...prev, legsPrecisItems: [...(prev.legsPrecisItems || []), { propertyIndex: 0, assetType: "free" as const, freeLabel: "Reste du patrimoine", freeValue: "", isResidual: true, legataires: [] }] }));
   const updateLegsPrecisItem = (index: number, key: keyof LegsPrecisItem, value: any) =>
@@ -1031,41 +1089,12 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     const p = client.payload
     if (p.clientName) setClientName(p.clientName as string)
     if (p.notes) setNotes(p.notes as string)
-    if (p.data) {
-      const d = p.data as any;
-      // Migration : nouveaux champs absents des dossiers existants
-      d.pensions1 = d.pensions1 ?? "";
-      d.pensions2 = d.pensions2 ?? "";
-      d.csgDeductibleFoncier = d.csgDeductibleFoncier ?? "";
-      d.childrenData = (d.childrenData || []).map((c: any) => ({ schoolLevel: "", ...c }));
-      d.properties = (d.properties || []).map((p: any) => {
-        const base = { loanInsuranceGuarantees: "dc", loanInsuranceCoverage: "banque", ...p };
-        // Migration multi-crédits : convertir ancien loanEnabled → loans[0]
-        if (!base.loans || base.loans.length === 0) {
-          if (base.loanEnabled && base.loanAmount) {
-            base.loans = [{
-              id: `loan_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
-              type: base.loanType || "amortissable", label: "Prêt principal",
-              amount: base.loanAmount || "", rate: base.loanRate || "",
-              duration: base.loanDuration || "", startDate: base.loanStartDate || "",
-              capitalRemaining: base.loanCapitalRemaining || "", interestAnnual: base.loanInterestAnnual || "",
-              pledgedPlacementIndex: base.loanPledgedPlacementIndex || "-1",
-              insurance: base.loanInsurance || false, insuranceGuarantees: base.loanInsuranceGuarantees || "dc",
-              insuranceRate: base.loanInsuranceRate || "", insuranceRate1: base.loanInsuranceRate1 || "",
-              insuranceRate2: base.loanInsuranceRate2 || "", insurancePremium: base.loanInsurancePremium || "",
-              insuranceCoverage: base.loanInsuranceCoverage || "banque",
-            }];
-          } else {
-            base.loans = [];
-          }
-        }
-        return base;
-      });
-      setData(d as typeof data);
-    }
+    // Normalisation unique : defauts anciens dossiers + ensureAssetIds (ids stables).
+    const norm = normalizeClientData(p)
+    if (p.data) setData(norm.data as typeof data)
     if (p.irOptions) setIrOptions(p.irOptions as typeof irOptions)
-    if (p.successionData) setSuccessionData(p.successionData as typeof successionData)
-    if (p.hypotheses) setHypotheses(p.hypotheses as typeof hypotheses)
+    if (p.successionData) setSuccessionData(norm.successionData as typeof successionData)
+    if (p.hypotheses) setHypotheses(norm.hypotheses as typeof hypotheses)
     if (p.baseSnapshot) setBaseSnapshot(p.baseSnapshot as typeof baseSnapshot)
     if (p.mission) setMission(p.mission as typeof mission)
     // Lot 7 — recommandations (champ absent des dossiers d'avant le Lot 7 → fallback []).
@@ -1188,10 +1217,13 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
         const parsed = JSON.parse(String(reader.result || "{}"));
         if (parsed.clientName !== undefined) setClientName(String(parsed.clientName || "Client"));
         if (parsed.notes !== undefined) setNotes(String(parsed.notes || ""));
-        if (parsed.data) setData(parsed.data as PatrimonialData);
-        if (parsed.successionData) setSuccessionData(parsed.successionData as SuccessionData);
+        // Meme normalisation que handleOpenClient (recon #5 : l'import contournait
+        // migrateLoans) + ensureAssetIds (ids stables).
+        const norm = normalizeClientData(parsed);
+        if (parsed.data) setData(norm.data as PatrimonialData);
+        if (parsed.successionData) setSuccessionData(norm.successionData as SuccessionData);
         if (parsed.irOptions) setIrOptions(parsed.irOptions as IrOptions);
-        if (Array.isArray(parsed.hypotheses)) setHypotheses(parsed.hypotheses as Hypothesis[]);
+        if (Array.isArray(parsed.hypotheses)) setHypotheses(norm.hypotheses as Hypothesis[]);
         if (parsed.baseSnapshot) setBaseSnapshot(parsed.baseSnapshot as BaseSnapshot);
       } catch (error) { console.error("Import impossible", error); }
     };
@@ -1499,7 +1531,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
                   <TabFamiliale data={data} setField={setField} addChild={addChild} updateChild={updateChild} removeChild={removeChild} person1={person1} person2={person2} />
                   <TabTravail data={data} setField={setField} setChargesDetailField={setChargesDetailField} chargesDialogOpen={chargesDialogOpen} setChargesDialogOpen={setChargesDialogOpen} irOptions={irOptions} setIrOptions={setIrOptions} ir={ir} person1={person1} person2={person2} />
                   <TabRevenus data={data} setField={setField} setData={setData} setChargesDialogOpen={setChargesDialogOpen} irOptions={irOptions} setIrOptions={setIrOptions} ir={ir} person1={person1} person2={person2} />
-                  <TabImmobilier data={activeDonations.length > 0 ? successionData_effective : data} setField={setField} addProperty={addProperty} updateProperty={updateProperty} removeProperty={removeProperty} addLoan={addLoan} updateLoan={updateLoan} removeLoan={removeLoan} loanModalIndex={loanModalIndex} setLoanModalIndex={setLoanModalIndex} ownerOptions={ownerOptions} person1={person1} person2={person2} activeDonations={activeDonations} restoreBaseSnapshot={restoreBaseSnapshot} />
+                  <TabImmobilier data={activeDonations.length > 0 ? successionData_effective : data} setField={setField} addProperty={addProperty} updateProperty={updateProperty} removeProperty={removeProperty} addLoan={addLoan} updateLoan={updateLoan} removeLoan={removeLoan} loanModalPropertyId={loanModalPropertyId} setLoanModalPropertyId={setLoanModalPropertyId} ownerOptions={ownerOptions} person1={person1} person2={person2} activeDonations={activeDonations} restoreBaseSnapshot={restoreBaseSnapshot} />
                   <TabPlacements data={data} placementFamily={placementFamily} setPlacementFamily={setPlacementFamily} addPlacement={addPlacement} updatePlacementStr={updatePlacementStr} updatePlacementBool={updatePlacementBool} removePlacement={removePlacement} addPlacementBeneficiary={addPlacementBeneficiary} updatePlacementBeneficiary={updatePlacementBeneficiary} removePlacementBeneficiary={removePlacementBeneficiary} importFamilyBeneficiaries={importFamilyBeneficiaries} setField={setField} setData={setData} ownerOptions={ownerOptions} ir={ir} irOptions={irOptions} person1={person1} person2={person2} />
                   <TabCredits data={data} setField={setField} setData={setData} person1={person1} person2={person2} />
                 </Tabs>
@@ -1529,7 +1561,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
             addContrepartieWithBalance={addContrepartieWithBalance} removeContrepartieWithBalance={removeContrepartieWithBalance}
             legsPickerOpen={legsPickerOpen} setLegsPickerOpen={setLegsPickerOpen}
             addFamilyMemberToLegsGlobal={addFamilyMemberToLegsGlobal} addFamilyMemberToLegsPrecis={addFamilyMemberToLegsPrecis}
-            loanModalIndex={loanModalIndex} setLoanModalIndex={setLoanModalIndex}
+            loanModalPropertyId={loanModalPropertyId} setLoanModalPropertyId={setLoanModalPropertyId}
             addLoan={addLoan} updateLoan={updateLoan} removeLoan={removeLoan}
             effectiveSpouseOption={effectiveSpouseOption} spouseOptions={spouseOptions}
             person1={person1} person2={person2}
@@ -1605,8 +1637,8 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
       />
 
       <LoanModal
-        loanModalIndex={loanModalIndex}
-        setLoanModalIndex={setLoanModalIndex}
+        loanModalPropertyId={loanModalPropertyId}
+        setLoanModalPropertyId={setLoanModalPropertyId}
         data={data}
         addLoan={addLoan}
         updateLoan={updateLoan}

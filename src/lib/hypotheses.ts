@@ -26,6 +26,30 @@ export function textDiffLine(label: string, baseValue: string, hypoValue: string
   return { label, baseValue: a, hypothesisValue: b, impact: "neutral", fiscalArea };
 }
 
+// Aligne deux listes d'actifs pour le diff. Par ID si les DEUX cotes portent un
+// id sur TOUS leurs elements : un reordonnancement ne produit alors plus de faux
+// « ajoute »/« supprime » (modifie = meme id, ajoute = id absent de la base,
+// supprime = id absent de l'hypothese). Sinon, repli POSITIONNEL a l'identique du
+// comportement historique (snapshots legacy sans id).
+function alignAssetsForDiff<T extends { id?: string }>(
+  base: T[],
+  hypo: T[],
+): Array<[T | undefined, T | undefined]> {
+  const allIds = (arr: T[]) => arr.every((x) => !!x?.id);
+  if (allIds(base) && allIds(hypo)) {
+    const pairs: Array<[T | undefined, T | undefined]> = [];
+    const hypoById = new Map(hypo.map((h) => [h.id as string, h]));
+    const seen = new Set<string>();
+    for (const b of base) { pairs.push([b, hypoById.get(b.id as string)]); seen.add(b.id as string); }
+    for (const h of hypo) { if (!seen.has(h.id as string)) pairs.push([undefined, h]); }
+    return pairs;
+  }
+  const max = Math.max(base.length, hypo.length);
+  const pairs: Array<[T | undefined, T | undefined]> = [];
+  for (let i = 0; i < max; i++) pairs.push([base[i], hypo[i]]);
+  return pairs;
+}
+
 export function buildHypothesisDifferenceLines(
   baseData: PatrimonialData | null,
   baseIrOptions: IrOptions | null,
@@ -54,13 +78,10 @@ export function buildHypothesisDifferenceLines(
   push(moneyDiffLine("Repas P2", n(baseIrOptions.mealCount2) * n(baseIrOptions.mealUnit2), n(hypothesisIrOptions.mealCount2) * n(hypothesisIrOptions.mealUnit2), "IR"));
 
   // Immobilier
-  const maxProp = Math.max(baseData.properties.length, hypothesisData.properties.length);
-  for (let i = 0; i < maxProp; i++) {
-    const bp = baseData.properties[i];
-    const hp = hypothesisData.properties[i];
+  alignAssetsForDiff(baseData.properties, hypothesisData.properties).forEach(([bp, hp], i) => {
     const label = hp?.name || bp?.name || `Bien ${i + 1}`;
-    if (!bp && hp) { push({ label: `Nouveau bien · ${label}`, baseValue: "Absent", hypothesisValue: `${hp.type} · ${euro(hp.value)}`, impact: "up", fiscalArea: "IFI / Succession" }); continue; }
-    if (bp && !hp) { push({ label: `Bien supprimé · ${label}`, baseValue: `${bp.type} · ${euro(bp.value)}`, hypothesisValue: "Absent", impact: "down", fiscalArea: "IFI / Succession" }); continue; }
+    if (!bp && hp) { push({ label: `Nouveau bien · ${label}`, baseValue: "Absent", hypothesisValue: `${hp.type} · ${euro(hp.value)}`, impact: "up", fiscalArea: "IFI / Succession" }); return; }
+    if (bp && !hp) { push({ label: `Bien supprimé · ${label}`, baseValue: `${bp.type} · ${euro(bp.value)}`, hypothesisValue: "Absent", impact: "down", fiscalArea: "IFI / Succession" }); return; }
     if (bp && hp) {
       push(textDiffLine(`Type · ${label}`, bp.type, hp.type, "IFI / Succession"));
       push(textDiffLine(`Droit · ${label}`, bp.propertyRight, hp.propertyRight, "IFI / Succession"));
@@ -69,16 +90,13 @@ export function buildHypothesisDifferenceLines(
       push(moneyDiffLine(`Capital restant dû · ${label}`, n(bp.loanCapitalRemaining), n(hp.loanCapitalRemaining), "IFI / Succession"));
       push(moneyDiffLine(`Loyer brut · ${label}`, n(bp.rentGrossAnnual), n(hp.rentGrossAnnual), "IR"));
     }
-  }
+  });
 
   // Placements
-  const maxPlac = Math.max(baseData.placements.length, hypothesisData.placements.length);
-  for (let i = 0; i < maxPlac; i++) {
-    const bl = baseData.placements[i];
-    const hl = hypothesisData.placements[i];
+  alignAssetsForDiff(baseData.placements, hypothesisData.placements).forEach(([bl, hl], i) => {
     const label = hl?.name || bl?.name || `Placement ${i + 1}`;
-    if (!bl && hl) { push({ label: `Nouveau placement · ${label}`, baseValue: "Absent", hypothesisValue: `${hl.type} · ${euro(hl.value)}`, impact: "up", fiscalArea: isAV(hl.type) ? "Succession / AV" : "IR / Succession" }); continue; }
-    if (bl && !hl) { push({ label: `Placement supprimé · ${label}`, baseValue: `${bl.type} · ${euro(bl.value)}`, hypothesisValue: "Absent", impact: "down", fiscalArea: isAV(bl.type) ? "Succession / AV" : "IR / Succession" }); continue; }
+    if (!bl && hl) { push({ label: `Nouveau placement · ${label}`, baseValue: "Absent", hypothesisValue: `${hl.type} · ${euro(hl.value)}`, impact: "up", fiscalArea: isAV(hl.type) ? "Succession / AV" : "IR / Succession" }); return; }
+    if (bl && !hl) { push({ label: `Placement supprimé · ${label}`, baseValue: `${bl.type} · ${euro(bl.value)}`, hypothesisValue: "Absent", impact: "down", fiscalArea: isAV(bl.type) ? "Succession / AV" : "IR / Succession" }); return; }
     if (bl && hl) {
       const area = isAV(bl.type) || isAV(hl.type) ? "Succession / AV" : "IR / Succession";
       push(textDiffLine(`Type · ${label}`, bl.type, hl.type, area));
@@ -89,7 +107,7 @@ export function buildHypothesisDifferenceLines(
       push(moneyDiffLine(`Primes avant 70 ans · ${label}`, n(bl.premiumsBefore70), n(hl.premiumsBefore70), "Succession / AV"));
       push(moneyDiffLine(`Primes après 70 ans · ${label}`, n(bl.premiumsAfter70), n(hl.premiumsAfter70), "Succession / AV"));
     }
-  }
+  });
 
   return lines;
 }

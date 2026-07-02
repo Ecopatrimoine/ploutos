@@ -10,19 +10,19 @@ import { euro, n, isAV, isPERType } from "../lib/calculs/utils";
 import { resolveLoanValuesMulti, resolveOneLoan } from "../lib/calculs/credit";
 
 interface LoanModalProps {
-  loanModalIndex: number | null;
-  setLoanModalIndex: (v: number | null) => void;
+  loanModalPropertyId: string | null;
+  setLoanModalPropertyId: (v: string | null) => void;
   data: PatrimonialData;
-  addLoan: (propertyIndex: number) => void;
-  updateLoan: (propertyIndex: number, loanIndex: number, key: keyof Loan, value: string | boolean) => void;
-  removeLoan: (propertyIndex: number, loanIndex: number) => void;
+  addLoan: (propertyId: string) => void;
+  updateLoan: (propertyId: string, loanId: string, key: keyof Loan, value: string | boolean) => void;
+  removeLoan: (propertyId: string, loanId: string) => void;
   person1: string;
   person2: string;
 }
 
-export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, updateLoan, removeLoan, person1, person2 }: LoanModalProps) {
-  if (loanModalIndex === null) return null;
-  const prop = data.properties[loanModalIndex];
+export function LoanModal({ loanModalPropertyId, setLoanModalPropertyId, data, addLoan, updateLoan, removeLoan, person1, person2 }: LoanModalProps) {
+  if (loanModalPropertyId === null) return null;
+  const prop = data.properties.find((p) => p.id === loanModalPropertyId);
   if (!prop) return null;
 
   const loans = prop.loans || [];
@@ -32,7 +32,7 @@ export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, up
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.5)" }}
-      onClick={() => setLoanModalIndex(null)}>
+      onClick={() => setLoanModalPropertyId(null)}>
       <div className="border shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
         style={{ borderRadius: 14, background: "#fff", borderColor: SURFACE.border }}
         onClick={(e) => e.stopPropagation()}>
@@ -48,10 +48,10 @@ export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, up
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" className="h-8 rounded-xl px-3 text-sm" onClick={() => addLoan(loanModalIndex)}>
+            <Button variant="outline" className="h-8 rounded-xl px-3 text-sm" onClick={() => addLoan(loanModalPropertyId)}>
               <Plus className="mr-1 h-3.5 w-3.5" />Ajouter un crédit
             </Button>
-            <button onClick={() => setLoanModalIndex(null)} className="text-slate-400 hover:text-slate-600 text-xl leading-none ml-1">✕</button>
+            <button onClick={() => setLoanModalPropertyId(null)} className="text-slate-400 hover:text-slate-600 text-xl leading-none ml-1">✕</button>
           </div>
         </div>
 
@@ -62,7 +62,7 @@ export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, up
               Aucun crédit. Cliquez sur "Ajouter un crédit" pour commencer.
             </div>
           )}
-          {loans.map((loan, li) => {
+          {loans.map((loan) => {
             const lv = resolveOneLoan(loan);
             const isInFine = loan.type === "in_fine";
             const isPTZ = loan.type === "ptz" || loan.type === "pel";
@@ -72,7 +72,7 @@ export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, up
                 {/* En-tête crédit */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Input value={loan.label} onChange={(e) => updateLoan(loanModalIndex, li, "label", e.target.value)}
+                    <Input value={loan.label} onChange={(e) => updateLoan(loanModalPropertyId, loan.id, "label", e.target.value)}
                       className="rounded-xl h-7 text-sm font-semibold w-40 border-0 bg-transparent px-1"
                       style={{ color: BRAND.navy }} placeholder="Nom du crédit" />
                     <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(38,66,139,0.1)", color: BRAND.sky }}>
@@ -84,14 +84,14 @@ export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, up
                       </span>
                     )}
                   </div>
-                  <Button variant="outline" className="h-7 w-7 rounded-xl p-0" onClick={() => removeLoan(loanModalIndex, li)}>
+                  <Button variant="outline" className="h-7 w-7 rounded-xl p-0" onClick={() => removeLoan(loanModalPropertyId, loan.id)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
                 {/* Ligne 1 : type + montant + taux + durée + date */}
                 <div className="grid gap-2 grid-cols-[1.1fr_1fr_0.7fr_0.7fr_1fr]">
                   <Field label="Type">
-                    <Select value={loan.type} onValueChange={(v) => updateLoan(loanModalIndex, li, "type", v)}>
+                    <Select value={loan.type} onValueChange={(v) => updateLoan(loanModalPropertyId, loan.id, "type", v)}>
                       <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="amortissable">Amortissable</SelectItem>
@@ -103,21 +103,21 @@ export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, up
                       </SelectContent>
                     </Select>
                   </Field>
-                  <MoneyField label="Montant initial (€)" tooltip="Capital emprunté." value={loan.amount} onChange={(e) => updateLoan(loanModalIndex, li, "amount", e.target.value)} compact />
+                  <MoneyField label="Montant initial (€)" tooltip="Capital emprunté." value={loan.amount} onChange={(e) => updateLoan(loanModalPropertyId, loan.id, "amount", e.target.value)} compact />
                   <Field label="Taux (%)">
-                    <Input type="number" step="0.01" placeholder="3.5" disabled={isPTZ} value={loan.rate} onChange={(e) => updateLoan(loanModalIndex, li, "rate", e.target.value)} className="rounded-xl h-8 text-sm" />
+                    <Input type="number" step="0.01" placeholder="3.5" disabled={isPTZ} value={loan.rate} onChange={(e) => updateLoan(loanModalPropertyId, loan.id, "rate", e.target.value)} className="rounded-xl h-8 text-sm" />
                   </Field>
                   <Field label="Durée (ans)">
-                    <Input type="number" min="1" max="30" placeholder="20" value={loan.duration} onChange={(e) => updateLoan(loanModalIndex, li, "duration", e.target.value)} className="rounded-xl h-8 text-sm" />
+                    <Input type="number" min="1" max="30" placeholder="20" value={loan.duration} onChange={(e) => updateLoan(loanModalPropertyId, loan.id, "duration", e.target.value)} className="rounded-xl h-8 text-sm" />
                   </Field>
                   <Field label="Date de départ">
-                    <DateFr value={loan.startDate} onChange={(iso) => updateLoan(loanModalIndex, li, "startDate", iso || "")} className="rounded-xl h-8 text-sm" />
+                    <DateFr value={loan.startDate} onChange={(iso) => updateLoan(loanModalPropertyId, loan.id, "startDate", iso || "")} className="rounded-xl h-8 text-sm" />
                   </Field>
                 </div>
                 {/* Ligne 2 : capital restant + intérêts + mensualité */}
                 <div className="grid gap-2 grid-cols-3">
-                  <MoneyField label="Capital restant dû (€)" tooltip="Auto-calculé si vide. Saisissez pour forcer la valeur." value={loan.capitalRemaining} onChange={(e) => updateLoan(loanModalIndex, li, "capitalRemaining", e.target.value)} compact />
-                  <MoneyField label="Intérêts/an (€)" tooltip="Auto-calculés si vide. Déductibles en régime réel foncier pour les biens locatifs." value={loan.interestAnnual} onChange={(e) => updateLoan(loanModalIndex, li, "interestAnnual", e.target.value)} compact />
+                  <MoneyField label="Capital restant dû (€)" tooltip="Auto-calculé si vide. Saisissez pour forcer la valeur." value={loan.capitalRemaining} onChange={(e) => updateLoan(loanModalPropertyId, loan.id, "capitalRemaining", e.target.value)} compact />
+                  <MoneyField label="Intérêts/an (€)" tooltip="Auto-calculés si vide. Déductibles en régime réel foncier pour les biens locatifs." value={loan.interestAnnual} onChange={(e) => updateLoan(loanModalPropertyId, loan.id, "interestAnnual", e.target.value)} compact />
                   <div className="flex flex-col">
                     <span className="text-xs text-slate-500 mb-1">Mensualité calculée</span>
                     <div className="flex items-center h-8 rounded-xl px-3 text-sm font-medium" style={{ background: "rgba(81,106,199,0.07)", color: BRAND.sky }}>
@@ -134,12 +134,12 @@ export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, up
                 {/* AV nantie */}
                 {isInFine && (
                   <Field label="AV nantie en garantie" tooltip="AV nantie à la banque pour un crédit in fine.">
-                    <Select value={loan.pledgedPlacementIndex || "-1"} onValueChange={(v) => updateLoan(loanModalIndex, li, "pledgedPlacementIndex", v)}>
+                    <Select value={loan.pledgedPlacementId || "__none__"} onValueChange={(v) => updateLoan(loanModalPropertyId, loan.id, "pledgedPlacementId", v === "__none__" ? "" : v)}>
                       <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="-1">Aucune</SelectItem>
-                        {data.placements.map((p, pi) => (
-                          <SelectItem key={pi} value={String(pi)}>
+                        <SelectItem value="__none__">Aucune</SelectItem>
+                        {data.placements.map((p) => (
+                          <SelectItem key={p.id} value={p.id!}>
                             {p.name || p.type}{isAV(p.type) || isPERType(p.type) ? "" : " ⚠️ non-AV"}
                           </SelectItem>
                         ))}
@@ -151,7 +151,7 @@ export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, up
                 <div className="rounded-xl border p-2.5 space-y-2" style={{ borderColor: SURFACE.border }}>
                   <div className="flex items-center gap-2">
                     <button role="switch" aria-checked={loan.insurance}
-                      onClick={() => updateLoan(loanModalIndex, li, "insurance", !loan.insurance)}
+                      onClick={() => updateLoan(loanModalPropertyId, loan.id, "insurance", !loan.insurance)}
                       className="relative inline-flex h-4 w-7 items-center rounded-full transition-colors"
                       style={{ background: loan.insurance ? BRAND.gold : SURFACE.border }}>
                       <span className="inline-block h-3 w-3 rounded-full bg-white shadow transition-transform"
@@ -162,7 +162,7 @@ export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, up
                   {loan.insurance && (
                     <div className="grid gap-2 grid-cols-[1.2fr_0.9fr_1fr_0.9fr]">
                       <Field label="Garanties">
-                        <Select value={loan.insuranceGuarantees || "dc"} onValueChange={(v) => updateLoan(loanModalIndex, li, "insuranceGuarantees", v)}>
+                        <Select value={loan.insuranceGuarantees || "dc"} onValueChange={(v) => updateLoan(loanModalPropertyId, loan.id, "insuranceGuarantees", v)}>
                           <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="dc">DC</SelectItem>
@@ -173,16 +173,16 @@ export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, up
                         </Select>
                       </Field>
                       {!isJoint ? (
-                        <MoneyField label="Quotité DC (%)" tooltip="% couvert en cas de décès." value={loan.insuranceRate} onChange={(e) => updateLoan(loanModalIndex, li, "insuranceRate", e.target.value)} compact />
+                        <MoneyField label="Quotité DC (%)" tooltip="% couvert en cas de décès." value={loan.insuranceRate} onChange={(e) => updateLoan(loanModalPropertyId, loan.id, "insuranceRate", e.target.value)} compact />
                       ) : (
                         <>
-                          <MoneyField label={`DC ${person1} (%)`} value={loan.insuranceRate1} onChange={(e) => updateLoan(loanModalIndex, li, "insuranceRate1", e.target.value)} compact />
-                          <MoneyField label={`DC ${person2} (%)`} value={loan.insuranceRate2} onChange={(e) => updateLoan(loanModalIndex, li, "insuranceRate2", e.target.value)} compact />
+                          <MoneyField label={`DC ${person1} (%)`} value={loan.insuranceRate1} onChange={(e) => updateLoan(loanModalPropertyId, loan.id, "insuranceRate1", e.target.value)} compact />
+                          <MoneyField label={`DC ${person2} (%)`} value={loan.insuranceRate2} onChange={(e) => updateLoan(loanModalPropertyId, loan.id, "insuranceRate2", e.target.value)} compact />
                         </>
                       )}
-                      <MoneyField label="Prime annuelle (€)" tooltip="Auto-calculée si vide (estimation 0.3% capital/an). Déductible en régime réel foncier." value={loan.insurancePremium} onChange={(e) => updateLoan(loanModalIndex, li, "insurancePremium", e.target.value)} compact />
+                      <MoneyField label="Prime annuelle (€)" tooltip="Auto-calculée si vide (estimation 0.3% capital/an). Déductible en régime réel foncier." value={loan.insurancePremium} onChange={(e) => updateLoan(loanModalPropertyId, loan.id, "insurancePremium", e.target.value)} compact />
                       <Field label="Couverture">
-                        <Select value={loan.insuranceCoverage || "banque"} onValueChange={(v) => updateLoan(loanModalIndex, li, "insuranceCoverage", v)}>
+                        <Select value={loan.insuranceCoverage || "banque"} onValueChange={(v) => updateLoan(loanModalPropertyId, loan.id, "insuranceCoverage", v)}>
                           <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="banque">Banque</SelectItem>
@@ -218,7 +218,7 @@ export function LoanModal({ loanModalIndex, setLoanModalIndex, data, addLoan, up
         </div>
         {/* Footer */}
         <div className="flex justify-end px-5 py-3 border-t" style={{ borderColor: SURFACE.border }}>
-          <Button className="rounded-xl px-5" style={{ background: BRAND.navy }} onClick={() => setLoanModalIndex(null)}>
+          <Button className="rounded-xl px-5" style={{ background: BRAND.navy }} onClick={() => setLoanModalPropertyId(null)}>
             Fermer
           </Button>
         </div>
