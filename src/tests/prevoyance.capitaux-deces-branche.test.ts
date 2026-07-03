@@ -1,7 +1,7 @@
 // ─── LOT DECES-A — Résolveur capital décès de branche (CCN) ─────────────────
 //
-// Valeurs Syntec (IDCC 1486) : capital = max(1,70 × salaireRef, minimumPass ×
-// PASS), salaireRef plafonné à 8 PASS. minimumPass = 3,40 (cadres) / 1,70
+// Valeurs Syntec (IDCC 1486) : capital = max(2,00 × salaireRef, minimumPass ×
+// PASS), salaireRef plafonné à 8 PASS. minimumPass = 3,00 (cadres) / 2,00
 // (non-cadres). PASS 2026 = 48 060. Toute donnée absente → null + indispo.
 
 import { describe, it, expect } from "vitest";
@@ -16,35 +16,35 @@ import type { Referentiels } from "../data/prevoyance";
 const PASS = 48060;
 
 describe("resolveCapitalDecesBranche — Syntec (1486)", () => {
-  it("cadre, salaire 60 000 → plancher 3,40 PASS = 163 404", () => {
+  it("cadre, salaire 60 000 → plancher 3,00 PASS = 144 180", () => {
     const r = resolveCapitalDecesBranche("1486", "cadres", 60000, PASS, referentiels);
     expect(r.donneeIndisponible).toBe(false);
     expect(r.categorie).toBe("cadres");
-    // max(1,70×60000=102000 ; 3,40×48060=163404) = 163404
-    expect(r.capital).toBeCloseTo(163404, 2);
+    // max(2,00×60000=120000 ; 3,00×48060=144180) = 144180
+    expect(r.capital).toBeCloseTo(144180, 2);
   });
 
-  it("cadre, salaire 120 000 → 1,70 × salaire = 204 000 (plafond 8 PASS non atteint)", () => {
+  it("cadre, salaire 120 000 → 2,00 × salaire = 240 000 (plafond 8 PASS non atteint)", () => {
     const r = resolveCapitalDecesBranche("1486", "cadres", 120000, PASS, referentiels);
-    expect(r.capital).toBeCloseTo(204000, 2);
+    expect(r.capital).toBeCloseTo(240000, 2);
   });
 
   it("plafond 8 PASS : salaire 500 000 → salaireRef plafonné = 8 × PASS", () => {
     const r = resolveCapitalDecesBranche("1486", "cadres", 500000, PASS, referentiels);
-    // 1,70 × (8 × 48060) = 1,70 × 384480 = 653 616
-    expect(r.capital).toBeCloseTo(1.7 * 8 * PASS, 2);
+    // 2,00 × (8 × 48060) = 2,00 × 384480 = 768 960
+    expect(r.capital).toBeCloseTo(2.0 * 8 * PASS, 2);
   });
 
-  it("non-cadre, salaire 30 000 → plancher 1,70 PASS = 81 702", () => {
+  it("non-cadre, salaire 30 000 → plancher 2,00 PASS = 96 120", () => {
     const r = resolveCapitalDecesBranche("1486", "nonCadres", 30000, PASS, referentiels);
     expect(r.donneeIndisponible).toBe(false);
-    // max(1,70×30000=51000 ; 1,70×48060=81702) = 81702
-    expect(r.capital).toBeCloseTo(81702, 2);
+    // max(2,00×30000=60000 ; 2,00×48060=96120) = 96120
+    expect(r.capital).toBeCloseTo(96120, 2);
   });
 
-  it("non-cadre, salaire 60 000 → 1,70 × salaire = 102 000 (au-dessus du plancher)", () => {
+  it("non-cadre, salaire 60 000 → 2,00 × salaire = 120 000 (au-dessus du plancher)", () => {
     const r = resolveCapitalDecesBranche("1486", "nonCadres", 60000, PASS, referentiels);
-    expect(r.capital).toBeCloseTo(102000, 2);
+    expect(r.capital).toBeCloseTo(120000, 2);
   });
 
   it("idcc inconnu → null + donneeIndisponible", () => {
@@ -95,15 +95,15 @@ function stubRef(plafondSalaireRefPass?: unknown): Referentiels {
 }
 
 describe("resolveCapitalDecesBranche — plafond salaire de référence (PASS-CAP)", () => {
-  it("ISO Syntec : brut < 8 PASS → plafond ne mord pas (cadre 120 000 = 204 000)", () => {
+  it("ISO Syntec : brut < 8 PASS → plafond ne mord pas (cadre 120 000 = 240 000)", () => {
     const r = resolveCapitalDecesBranche("1486", "cadres", 120000, PASS, referentiels);
-    // salaireRef = min(120000 ; 8×48060=384480) = 120000 → 1,70×120000 = 204000
-    expect(r.capital).toBeCloseTo(204000, 2);
+    // salaireRef = min(120000 ; 8×48060=384480) = 120000 → 2,00×120000 = 240000
+    expect(r.capital).toBeCloseTo(240000, 2);
   });
 
-  it("ISO Syntec : brut > 8 PASS → plafond mord toujours à 8 (cadre 500 000 = 1,70×8×PASS)", () => {
+  it("ISO Syntec : brut > 8 PASS → plafond mord toujours à 8 (cadre 500 000 = 2,00×8×PASS)", () => {
     const r = resolveCapitalDecesBranche("1486", "cadres", 500000, PASS, referentiels);
-    expect(r.capital).toBeCloseTo(1.7 * 8 * PASS, 2); // 653 616
+    expect(r.capital).toBeCloseTo(2.0 * 8 * PASS, 2); // 768 960
   });
 
   it("plafond configurable = 1 PASS (futur HCR, config inline) : cadre 500 000 = 1,70×1×PASS", () => {
@@ -281,7 +281,7 @@ describe("resolveCapitalDecesBranche — mode situationFamiliale par blocs (LOT 
   it("ISO — mode pourcentageSalaireRef inchangé, le contexte famille est INERTE", () => {
     const sans = resolveCapitalDecesBranche("1486", "cadres", 120000, PASS, referentiels);
     const avec = resolveCapitalDecesBranche("1486", "cadres", 120000, PASS, referentiels, { conjointPresent: true, concubinPresent: true, nbEnfantsACharge: 3 });
-    expect(sans.capital).toBeCloseTo(204000, 2);
+    expect(sans.capital).toBeCloseTo(240000, 2);
     expect(avec.capital).toBe(sans.capital);
   });
 });

@@ -299,7 +299,7 @@ describe("colonne souscrit — formatSouscritResume via la fusion", () => {
 
   it("CORRECTIF 1 : souscrit renseigne d'un seul cote -> split avec 'non renseigne'", () => {
     // capitalDC souscrit cadres uniquement (1.5) ; nonCadres absent.
-    // Obligation Syntec 1,70 sur les 2 colleges -> cadres insuffisant (1,5 < 1,70),
+    // Obligation Syntec 2,00 sur les 2 colleges -> cadres insuffisant (1,5 < 2,00),
     // nonCadres indetermine (souscrit absent) -> verdict split -> souscrit DOIT etre split.
     const vue = buildVueObligationsFusionnee(
       ent({ idccCCN: "1486", garantiesSouscrites: { cadres: { capitalDC: { tauxSalaireRef: 1.5 } } } }),

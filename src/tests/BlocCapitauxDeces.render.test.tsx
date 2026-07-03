@@ -89,13 +89,13 @@ describe("BlocCapitauxDeces — montage", () => {
 describe("BlocCapitauxDeces — sous-bloc prévoyance collective de branche (LOT DECES-A)", () => {
   it("capital de branche exonéré → libellé, montant et badge exonéré", () => {
     const branche: CapitalDecesBrancheLine = {
-      source: "Syntec", capital: 163404, categorie: "cadres",
+      source: "Syntec", capital: 144180, categorie: "cadres",
       exonere: true, donneeIndisponible: false, beneficiairesAuContrat: true,
     };
     const { container, getByText } = render(<BlocCapitauxDeces {...EMPTY} branche={[branche]} />);
     expect(getByText(/Prévoyance collective de branche/)).toBeInTheDocument();
     const t = norm(container.textContent);
-    expect(t).toContain("163404€");
+    expect(t).toContain("144180€");
     expect(t).toContain(norm("Versé aux bénéficiaires désignés au contrat"));
   });
 
@@ -111,23 +111,23 @@ describe("BlocCapitauxDeces — sous-bloc prévoyance collective de branche (LOT
 
   it("répartition par défaut (clause Syntec) → libellé + bénéficiaire + montant exonéré", () => {
     const branche: CapitalDecesBrancheLine = {
-      source: "Syntec", capital: 163404, categorie: "cadres",
+      source: "Syntec", capital: 144180, categorie: "cadres",
       exonere: true, donneeIndisponible: false, beneficiairesAuContrat: true,
-      repartition: [{ beneficiaire: "Marie Martin", relation: "conjoint", montant: 163404, origine: "capital_principal", source: "auto" }],
+      repartition: [{ beneficiaire: "Marie Martin", relation: "conjoint", montant: 144180, origine: "capital_principal", source: "auto" }],
     };
     const { container, getByText } = render(<BlocCapitauxDeces {...EMPTY} branche={[branche]} />);
     expect(getByText(/clause type Syntec/)).toBeInTheDocument();
     const t = norm(container.textContent);
     expect(t).toContain(norm("Marie Martin"));
-    expect(t).toContain("163404€");
+    expect(t).toContain("144180€");
     expect(t).toContain("exonéré".replace(/\s/g, ""));
   });
 
   it("répartition personnalisée (surcharge) → libellé « répartition personnalisée »", () => {
     const branche: CapitalDecesBrancheLine = {
-      source: "Syntec", capital: 163404, categorie: "cadres",
+      source: "Syntec", capital: 144180, categorie: "cadres",
       exonere: true, donneeIndisponible: false, beneficiairesAuContrat: true,
-      repartition: [{ beneficiaire: "Fondation Y", relation: "autre", montant: 163404, origine: "capital_principal", source: "manuel" }],
+      repartition: [{ beneficiaire: "Fondation Y", relation: "autre", montant: 144180, origine: "capital_principal", source: "manuel" }],
     };
     const { getByText } = render(<BlocCapitauxDeces {...EMPTY} branche={[branche]} />);
     expect(getByText(/répartition personnalisée/)).toBeInTheDocument();
@@ -137,7 +137,7 @@ describe("BlocCapitauxDeces — sous-bloc prévoyance collective de branche (LOT
 
 describe("BlocCapitauxDeces — sous-section rente éducation de branche (LOT DECES-B-ii)", () => {
   const brancheCapital: CapitalDecesBrancheLine = {
-    source: "Syntec", capital: 163404, categorie: "cadres",
+    source: "Syntec", capital: 144180, categorie: "cadres",
     exonere: true, donneeIndisponible: false, beneficiairesAuContrat: true,
     repartition: [],
   };

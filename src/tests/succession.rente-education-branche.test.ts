@@ -143,9 +143,9 @@ describe("computeSuccession — non-régression : rente éducation strictement a
 
   it("le capital de branche et sa dévolution ne sont PAS gonflés par la rente", () => {
     const s = computeSuccession(baseSuccession(), cadreSyntec(children));
-    // Capital branche = capital seul (163 404), JAMAIS capital + rentes.
-    expect(s.capitalDecesBrancheExonere).toBeCloseTo(163404, 2);
-    expect(s.capitalDecesLines.branche[0].capital).toBeCloseTo(163404, 2);
+    // Capital branche = capital seul (144 180), JAMAIS capital + rentes.
+    expect(s.capitalDecesBrancheExonere).toBeCloseTo(144180, 2);
+    expect(s.capitalDecesLines.branche[0].capital).toBeCloseTo(144180, 2);
     // La dévolution du capital reste produite (poste capital intact).
     expect(s.capitalDecesLines.branche[0].repartition.length).toBeGreaterThan(0);
     // La rente vit dans un poste SÉPARÉ (2 enfants à charge → 2 lignes).
@@ -154,7 +154,7 @@ describe("computeSuccession — non-régression : rente éducation strictement a
     const totalRente = s.capitalDecesLines.renteEducationBranche
       .reduce((acc, l) => acc + (l.montantAnnuelCourant ?? 0), 0);
     expect(totalRente).toBeGreaterThan(0);
-    expect(s.capitalDecesBrancheExonere).toBeLessThan(163404 + totalRente);
+    expect(s.capitalDecesBrancheExonere).toBeLessThan(144180 + totalRente);
   });
 
   it("rentes caisses (rentesSurvieAnnuelles) inchangées par la branche", () => {

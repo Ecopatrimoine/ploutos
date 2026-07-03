@@ -1,6 +1,6 @@
 // ─── Tests compareObligationsSouscrit (LOT COMPARE) ───────────────────────────
 // Gap-analysis obligation CCN vs souscrit. Cas d'or : valeurs Syntec derivees du
-// JSON reel (ccn-2026.json) — capitalDC 1.70, ij 0.80 / franchise 90, invalidite
+// JSON reel (ccn-2026.json) — capitalDC 2.00, ij 0.80 / franchise 90, invalidite
 // cat1 0.40 / cat2 0.80 / cat3 0.80 (FRACTIONS).
 
 import { describe, it, expect } from "vitest";
@@ -23,7 +23,7 @@ describe("compareObligationsSouscrit — cas d'or", () => {
   it("Syntec cadres, souscrit strictement superieur -> conforme par garantie comparable, jamais insuffisant", () => {
     const souscrit: GarantiesSouscrites = {
       cadres: {
-        capitalDC: { tauxSalaireRef: 2.0 },          // > 1.70
+        capitalDC: { tauxSalaireRef: 2.5 },          // > 2.00
         ij: { pctSalaire: 0.9, franchiseJours: 30 }, // 0.9 > 0.8 ET 30 j < 90 j
         invalidite: { cat1: 0.5, cat2: 0.9, cat3: 0.9 },
       },
@@ -38,7 +38,7 @@ describe("compareObligationsSouscrit — cas d'or", () => {
   it("Syntec cadres, capitalDC souscrit inferieur -> insuffisant sur capitalDC UNIQUEMENT", () => {
     const souscrit: GarantiesSouscrites = {
       cadres: {
-        capitalDC: { tauxSalaireRef: 1.0 },          // < 1.70
+        capitalDC: { tauxSalaireRef: 1.0 },          // < 2.00
         ij: { pctSalaire: 0.9, franchiseJours: 30 },
         invalidite: { cat1: 0.5, cat2: 0.9, cat3: 0.9 },
       },

@@ -195,13 +195,13 @@ function baseSuccession(): SuccessionData {
 }
 
 describe("computeSuccession — répartition du capital de branche (Syntec)", () => {
-  it("défunt cadre Syntec marié → 100 % du capital (163 404) au conjoint, exonéré, source auto", () => {
+  it("défunt cadre Syntec marié → 100 % du capital (144 180) au conjoint, exonéré, source auto", () => {
     void PASS;
     const s = computeSuccession(baseSuccession(), baseData({ travail: travailDefunt("salarie_cadre", employeurSyntec("1486")) }));
     const rep = s.capitalDecesLines.branche[0].repartition;
     expect(rep).toHaveLength(1);
     expect(rep[0]).toMatchObject({ relation: "conjoint", source: "auto" });
-    expect(rep[0].montant).toBeCloseTo(163404, 2);
+    expect(rep[0].montant).toBeCloseTo(144180, 2);
     expect(rep[0].beneficiaire).toContain("Marie");
   });
 
@@ -212,7 +212,7 @@ describe("computeSuccession — répartition du capital de branche (Syntec)", ()
         version: 1,
         p1: {
           contratsIndividuels: [], couvertureCollective: null, categorieInvaliditeProjetee: "cat2",
-          capitalDecesBrancheSurcharge: { beneficiaires: [{ name: "Fondation Y", relation: "autre", montant: 163404 }] },
+          capitalDecesBrancheSurcharge: { beneficiaires: [{ name: "Fondation Y", relation: "autre", montant: 144180 }] },
         },
         p2: null,
       } as unknown as PatrimonialData["prevoyance"],

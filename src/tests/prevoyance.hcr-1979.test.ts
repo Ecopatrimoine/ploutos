@@ -137,9 +137,9 @@ describe("HCR (1979) — IJ / invalidité (resolveCouvertureBranche)", () => {
 });
 
 describe("HCR (1979) — NON-RÉGRESSION : Syntec (1486) inchangé", () => {
-  it("capital Syntec cadre 60 000 → 163 404 (plancher 3,40 PASS, plafond 8 PASS)", () => {
+  it("capital Syntec cadre 60 000 → 144 180 (plancher 3,00 PASS, plafond 8 PASS)", () => {
     const r = resolveCapitalDecesBranche("1486", "cadres", 60000, PASS, referentiels);
-    expect(r.capital).toBeCloseTo(163404, 2);
+    expect(r.capital).toBeCloseTo(144180, 2);
   });
 
   it("dévolution Syntec concubin (cohab) → relation autre 100 % (concubin admis rang 1)", () => {

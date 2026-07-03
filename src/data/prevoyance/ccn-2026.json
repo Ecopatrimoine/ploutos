@@ -38,8 +38,8 @@
       "champApplication": "Convention dite « Syntec » (BETIC) : couvre le personnel des bureaux d'études techniques, cabinets d'ingénieurs-conseils et sociétés de conseils — secteurs du numérique et de l'informatique (ESN), de l'ingénierie, des études, du conseil, de l'événementiel et de la traduction-interprétation. Catégories ETAM et ingénieurs-cadres ; le rattachement dépend de l'activité principale réelle de l'entreprise (le code NAF n'est qu'un indice).",
       "_champApplication_source": "Legifrance CCN IDCC 1486 (KALICONT000005635173) + Code du travail numerique (code.travail.gouv.fr) ; verifie 2026-06-21",
       "accordPrevoyanceReference": "Accord de prévoyance Syntec du 27/03/1997 (Légifrance)",
-      "_accordPrevoyanceReference_source": "Accord de prevoyance Syntec du 27/03/1997, Legifrance ; verifie 2026-06-21",
-      "datesVerification": "2026-06-09",
+      "_accordPrevoyanceReference_source": "Accord de prevoyance Syntec du 27/03/1997, Legifrance ; verifie 2026-06-21 ; avenant n8 du 16/12/2025 (capital deces 200%, planchers 200%/300% PASS), etendu arrete 21/05/2026 JORF 05/06/2026, applicable 01/07/2026",
+      "datesVerification": "2026-06-09 ; capital deces avenant n8 revu 2026-07-03",
       "maintienEmployeur": {
         "cadres": {
           "carenceJours": 0,
@@ -73,7 +73,7 @@
       "prevoyanceCadres": {
         "tauxT1Minimum": 1.50,
         "garantiesMinimum": {
-          "capitalDC": { "mode": "pourcentageSalaireRef", "tauxSalaireRef": 1.70, "minimumPass": 3.40 },
+          "capitalDC": { "mode": "pourcentageSalaireRef", "tauxSalaireRef": 2.00, "minimumPass": 3.00 },
           "renteConjoint": null,
           "_renteConjoint_commentaire": "Syntec : pas de rente conjoint (art. 5 accord prevoyance 27/03/1997)",
           "renteEducation": { "mode": "trancheAge", "tranches": [
@@ -87,7 +87,7 @@
       },
       "prevoyanceNonCadres": {
         "garantiesMinimum": {
-          "capitalDC": { "mode": "pourcentageSalaireRef", "tauxSalaireRef": 1.70, "minimumPass": 1.70 },
+          "capitalDC": { "mode": "pourcentageSalaireRef", "tauxSalaireRef": 2.00, "minimumPass": 2.00 },
           "renteConjoint": null,
           "_renteConjoint_commentaire": "Syntec : pas de rente conjoint (art. 5 accord prevoyance 27/03/1997)",
           "renteEducation": { "mode": "trancheAge", "tranches": [

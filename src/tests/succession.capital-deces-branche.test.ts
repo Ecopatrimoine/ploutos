@@ -92,23 +92,23 @@ function baseSuccession(): SuccessionData {
 }
 
 describe("LOT DECES-A — capital décès de branche dans la succession", () => {
-  it("défunt salarié cadre IDCC 1486 → ligne branche exonérée, capital 163 404", () => {
+  it("défunt salarié cadre IDCC 1486 → ligne branche exonérée, capital 144 180", () => {
     const data = baseData({ travail: travailDefunt("salarie_cadre", employeurSyntec("1486")) });
     const s = computeSuccession(baseSuccession(), data);
     expect(s.capitalDecesLines.branche).toHaveLength(1);
     const l = s.capitalDecesLines.branche[0];
-    expect(l.capital).toBeCloseTo(163404, 2); // cadre 60000 → plancher 3,40 PASS
+    expect(l.capital).toBeCloseTo(144180, 2); // cadre 60000 → plancher 3,00 PASS
     expect(l.categorie).toBe("cadres");
     expect(l.exonere).toBe(true);
     expect(l.donneeIndisponible).toBe(false);
     expect(l.beneficiairesAuContrat).toBe(true);
-    expect(s.capitalDecesBrancheExonere).toBeCloseTo(163404, 2);
+    expect(s.capitalDecesBrancheExonere).toBeCloseTo(144180, 2);
   });
 
-  it("défunt salarié non-cadre IDCC 1486 → capital 102 000 (1,70 × salaire)", () => {
+  it("défunt salarié non-cadre IDCC 1486 → capital 120 000 (2,00 × salaire)", () => {
     const data = baseData({ travail: travailDefunt("salarie_non_cadre", employeurSyntec("1486")) });
     const s = computeSuccession(baseSuccession(), data);
-    expect(s.capitalDecesLines.branche[0].capital).toBeCloseTo(102000, 2);
+    expect(s.capitalDecesLines.branche[0].capital).toBeCloseTo(120000, 2);
     expect(s.capitalDecesLines.branche[0].categorie).toBe("nonCadres");
   });
 
