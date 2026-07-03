@@ -10,7 +10,7 @@
 // constante, jamais plonger dans le code.
 
 import { isCashPlacement } from "../calculs/utils";
-import { resolveLoanValuesMulti } from "../calculs/credit";
+import { resolveLoanValuesMulti, resolveOtherLoan } from "../calculs/credit";
 import type { PatrimonialData } from "../../types/patrimoine";
 
 export type NiveauCapacitePerte = "faible" | "modérée" | "moyenne" | "élevée";
@@ -79,7 +79,7 @@ export function computeCapacitePerte(data: PatrimonialData): CapacitePerte {
   const endettementBiens = (data.properties || []).reduce(
     (s, p) => s + Math.max(0, resolveLoanValuesMulti(p as any).capital), 0);
   const endettementAutres = (data.otherLoans || []).reduce((s: number, l: any) =>
-    s + num(l?.capitalRemaining || l?.amount), 0);
+    s + Math.max(0, resolveOtherLoan(l).capitalRemaining), 0); // CRD résolu (saisi ou déduit)
   const endettementTotal = endettementBiens + endettementAutres;
 
   const patrimoineImmo      = (data.properties  || []).reduce((s, p) => s + num(p?.value), 0);

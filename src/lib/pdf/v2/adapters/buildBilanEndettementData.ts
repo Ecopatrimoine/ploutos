@@ -39,7 +39,7 @@ export function buildBilanEndettementData(p: BuildBilanEndettementDataParams): B
   const otherLoans: any[] = Array.isArray(data.otherLoans) ? data.otherLoans : [];
 
   const immobilier = properties.reduce((s, p) => s + num(p.value), 0);
-  const autresCredits = otherLoans.reduce((s, l) => s + num(l.capitalRemaining ?? l.capitalRestant), 0);
+  const autresCredits = otherLoans.reduce((s, l) => s + Math.max(0, resolveOtherLoan(l as any).capitalRemaining), 0); // CRD résolu (saisi ou déduit)
 
   const avEtPER = placements.filter(pl => isAvOrPer(pl.type)).reduce((s, pl) => s + num(pl.value), 0);
   const placementsFinanciers = placements.filter(pl => !isAvOrPer(pl.type)).reduce((s, pl) => s + num(pl.value), 0);

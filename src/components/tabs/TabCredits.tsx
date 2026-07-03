@@ -120,7 +120,7 @@ const TabCredits = React.memo(function TabCredits(props: any) {
     // Le taux vient de la source unique computeTauxEndettement (meme chiffre que le PDF).
     const res = computeTauxEndettement(data);
     if (res.numerateurAnnuel <= 0) return null;
-    const totalPassif = (data.otherLoans || []).reduce((s, l) => s + n(l.capitalRemaining), 0);
+    const totalPassif = (data.otherLoans || []).reduce((s, l) => s + Math.max(0, resolveOtherLoan(l).capitalRemaining), 0); // CRD résolu (saisi ou déduit)
     const chargesMensuelles = Math.round(res.numerateurAnnuel / 12);
     const over = res.tauxPct > 35;
     return (
