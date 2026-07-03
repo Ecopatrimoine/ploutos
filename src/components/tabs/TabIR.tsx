@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Settings, FileText, Database } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
-import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
+import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, DISPOSITIFS_FISCAUX, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
@@ -434,6 +434,35 @@ const TabIR = React.memo(function TabIR(props: any) {
                 );
               })}
             </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Dispositifs fiscaux immobiliers (Lot D2) — restitution minimale ── */}
+      {(() => {
+        const df: any = ir.dispositifsFiscaux;
+        if (!df) return null;
+        const reducDispositifs = (df.reductions || []).filter((r: any) => r.id !== "forfait_scolaire" && r.impute > 0);
+        const jeanbrunRetenu = df.jeanbrun ? df.jeanbrun.parBien.reduce((s: number, p: any) => s + p.montantRetenu, 0) : 0;
+        const statutsNonOk = df.statuts || [];
+        if (reducDispositifs.length === 0 && jeanbrunRetenu <= 0 && statutsNonOk.length === 0) return null;
+        const dispoLabel = (id: string) => DISPOSITIFS_FISCAUX.find((d) => d.value === id.split("_")[0])?.label ?? id.split("_")[0];
+        return (
+          <div className="p-4 border mt-4" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+            <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: BRAND.sky }}>Dispositifs fiscaux immobiliers</div>
+            <div className="space-y-1 text-xs">
+              {reducDispositifs.map((r: any, i: number) => (
+                <div key={`r${i}`} className="flex justify-between"><span style={{ color: BRAND.muted }}>Réduction {dispoLabel(r.id)}</span><span className="font-bold" style={{ color: "#0F766E" }}>− {euro(r.impute)}</span></div>
+              ))}
+              {jeanbrunRetenu > 0 && (
+                <div className="flex justify-between"><span style={{ color: BRAND.muted }}>Amortissement Jeanbrun (déduit du foncier)</span><span className="font-bold" style={{ color: "#0F766E" }}>− {euro(jeanbrunRetenu)}{df.jeanbrun.ecretement > 0 ? ` (écrêté ${euro(df.jeanbrun.ecretement)})` : ""}</span></div>
+              )}
+            </div>
+            {statutsNonOk.length > 0 && (
+              <div className="mt-2 text-[11px]" style={{ color: BRAND.muted }}>
+                {statutsNonOk.map((s: any, i: number) => <div key={`s${i}`}>⚠ {s.dispositif} — {s.motif}</div>)}
+              </div>
+            )}
           </div>
         );
       })()}

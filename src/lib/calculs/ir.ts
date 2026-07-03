@@ -1,11 +1,12 @@
 // Calcul IR — barème, QF, PFU, foncier, PER, concubinage
-import type { PatrimonialData, IrOptions, TaxBracket } from '../../types/patrimoine';
+import type { PatrimonialData, IrOptions, TaxBracket, Property } from '../../types/patrimoine';
 import { n, computeTaxFromBrackets, isAV, isPERType, fractionRVTO, getHandicapAbattement,
   getChildrenFiscalParts, getBaseFiscalParts, computeIRConcubin, getQuotientCapPerHalfPart,
   isProfessionLiberale, computeKilometricAllowance } from './utils';
 import { resolveLoanValuesMulti } from './credit';
 import { referentiels } from '../../data/prevoyance';
 import { sommeCotisationsMadelin, plafondMadelinPrevoyance, estEligibleMadelin } from '../prevoyance/madelin';
+import { resolveReductionDispositif, resolveDeductionsJeanbrun, estReduction, type JeanbrunResultat } from '../fiscal/dispositifs-resolveur';
 
 // ─── CALCUL IR ────────────────────────────────────────────────────────────────
 
@@ -136,6 +137,34 @@ export function appliquerReductionsIR(
   };
 }
 
+// ─── Dispositifs fiscaux immobiliers (Lot D2) ─────────────────────────────────
+// Évalue le dispositif d'UN bien pour l'année fiscale : soit une réduction d'IR
+// (à ajouter au socle), soit un statut non-ok (remonté pour affichage, jamais
+// silencieux), soit rien. Barrière douce micro-foncier (art. 32 CGI) : Jeanbrun
+// (déduction, gérée à part) et Loc'Avantages sont INCOMPATIBLES avec le micro.
+type EvalDispositifReduction = { kind: "reduction"; idBien: string; id: string; label: string; montant: number; plafondNiches: boolean };
+type EvalDispositifStatut = { kind: "statut"; idBien: string; dispositif: string; statut: string; motif: string };
+type EvalDispositif = EvalDispositifReduction | EvalDispositifStatut | null;
+
+function evaluerDispositifBien(b: Property, anneeFiscale: number, regime: string): EvalDispositif {
+  const dispo = b.dispositifFiscal as string | undefined;
+  if (!dispo || dispo === "aucun") return null;
+  const idBien = String(b.id ?? "");
+  if (dispo === "jeanbrunRelanceLogement") {
+    // Déduction foncière : gérée par resolveDeductionsJeanbrun (réel). Au micro : incompatible.
+    return regime === "micro"
+      ? { kind: "statut", idBien, dispositif: dispo, statut: "incompatible", motif: "incompatible micro-foncier (art. 32 CGI)" }
+      : null;
+  }
+  if (dispo === "locavantages" && regime === "micro") {
+    return { kind: "statut", idBien, dispositif: dispo, statut: "incompatible", motif: "incompatible micro-foncier (art. 32 CGI)" };
+  }
+  const res = resolveReductionDispositif(b, anneeFiscale);
+  if (res === null) return null;
+  if (estReduction(res)) return { kind: "reduction", idBien, id: res.id, label: res.label, montant: res.montant, plafondNiches: res.plafondNiches };
+  return { kind: "statut", idBien, dispositif: dispo, statut: res.statut, motif: res.motif };
+}
+
 export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeConcubinPerson: 1 | 2 = 1) {
   // ── Revenus selon PCS ──
   const g1 = data.person1PcsGroupe;
@@ -193,6 +222,21 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   );
   const isOwnedByNonRattached = (ownership: string) => nonRattachedChildIndexes.has(ownership);
 
+  // ── Dispositifs fiscaux (Lot D2) : année de référence = millésime du moteur ──
+  const anneeFiscale = referentiels.pass.millesime;
+  const biensDispo = data.properties.filter((p) => !isOwnedByNonRattached(p.ownership));
+  // Déduction Jeanbrun (amortissement foncier) — FOYER COMMUN, au RÉEL uniquement
+  // (barrière douce micro). Le montant retenu total réduit le foncier au point (ii).
+  const jeanbrunFoyer = irOptions.foncierRegime === "real" ? resolveDeductionsJeanbrun(biensDispo, anneeFiscale) : null;
+  const jeanbrunRetenu = jeanbrunFoyer ? jeanbrunFoyer.parBien.reduce((s, p) => s + p.montantRetenu, 0) : 0;
+  // Évaluations par bien (réductions à imputer + statuts non-ok, jamais silencieux).
+  const evalsDispositifs = biensDispo
+    .map((b) => evaluerDispositifBien(b, anneeFiscale, irOptions.foncierRegime))
+    .filter((e): e is Exclude<EvalDispositif, null> => e !== null);
+  const statutsDispositifs = evalsDispositifs
+    .filter((e): e is EvalDispositifStatut => e.kind === "statut")
+    .map((e) => ({ idBien: e.idBien, dispositif: e.dispositif, statut: e.statut, motif: e.motif }));
+
   let foncierBrut = 0;
   let foncierCharges = 0;
   let foncierInterests = 0;
@@ -234,7 +278,10 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   let deficitFoncierImpute = 0;    // part imputée sur revenu global (≤ 10 700)
   let deficitFoncierReportable = 0; // informatif — à reporter sur revenus fonciers futurs
   if (irOptions.foncierRegime === "real") {
-    const resultatBrut = foncierBrut - foncierCharges - foncierInterests;
+    // Amortissement Jeanbrun ajouté aux charges hors intérêts AVANT le déficit foncier
+    // (il peut créer/aggraver un déficit : légal et voulu ; le plafond 10 700 € s'applique ensuite).
+    const chargesReel = foncierCharges + jeanbrunRetenu;
+    const resultatBrut = foncierBrut - chargesReel - foncierInterests;
     if (resultatBrut >= 0) {
       taxableFonciers = resultatBrut;
     } else {
@@ -242,7 +289,7 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       const interetsAbsorbes = Math.min(foncierInterests, foncierBrut);
       const interetsNonAbsorbes = foncierInterests - interetsAbsorbes;
       const loyersApresInterets = foncierBrut - interetsAbsorbes;
-      const deficitHorsInterets = Math.max(0, foncierCharges - loyersApresInterets);
+      const deficitHorsInterets = Math.max(0, chargesReel - loyersApresInterets);
       deficitFoncierImpute = Math.min(deficitHorsInterets, 10700);
       deficitFoncierReportable = interetsNonAbsorbes + Math.max(0, deficitHorsInterets - 10700);
       taxableFonciers = -deficitFoncierImpute; // négatif → réduit le revenu global
@@ -478,8 +525,19 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       const reportable = interetsNonAbsorbes + Math.max(0, deficitHorsInterets - 10700);
       return { taxable: -impute, impute, reportable };
     };
-    const foncier1 = calcFoncierPerson(foncierBrut1, foncierCharges1, foncierInterests1);
-    const foncier2 = calcFoncierPerson(foncierBrut2, foncierCharges2, foncierInterests2);
+    // Jeanbrun (amortissement foncier) PAR concubin : bien attribué au concubin
+    // majoritaire (50/50 ou commun -> P1), plafond PAR concubin (approx. v1 indivision).
+    let jeanbrun1: JeanbrunResultat | null = null, jeanbrun2: JeanbrunResultat | null = null;
+    if (irOptions.foncierRegime === "real") {
+      const biensP1 = biensDispo.filter((b) => ownerShare(b.ownership, "person1", b) >= ownerShare(b.ownership, "person2", b));
+      const biensP2 = biensDispo.filter((b) => ownerShare(b.ownership, "person2", b) > ownerShare(b.ownership, "person1", b));
+      jeanbrun1 = resolveDeductionsJeanbrun(biensP1, anneeFiscale);
+      jeanbrun2 = resolveDeductionsJeanbrun(biensP2, anneeFiscale);
+    }
+    const jeanbrunRetenu1 = jeanbrun1 ? jeanbrun1.parBien.reduce((s, p) => s + p.montantRetenu, 0) : 0;
+    const jeanbrunRetenu2 = jeanbrun2 ? jeanbrun2.parBien.reduce((s, p) => s + p.montantRetenu, 0) : 0;
+    const foncier1 = calcFoncierPerson(foncierBrut1, foncierCharges1 + jeanbrunRetenu1, foncierInterests1);
+    const foncier2 = calcFoncierPerson(foncierBrut2, foncierCharges2 + jeanbrunRetenu2, foncierInterests2);
 
     // PS foncier par personne (uniquement sur la part positive)
     const foncierPS1 = Math.max(0, foncier1.taxable) * 0.172;
@@ -576,11 +634,28 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     const bareme2 = Math.max(0, r2.bareme - decote2);
     // PFU ventilé par personne
     const totalPFU = (pfuBase1 + pfuBase2) * 0.314 + (perInteretsPFU1 + perInteretsPFU2) * 0.314;
-    const finalIR = appliquerReductionsIR(
-      bareme1 + bareme2 + totalPFU + foncierPS1 + foncierPS2 + avRachatImpot + perRentesPS1 + perRentesPS2,
-      reductionsIR,
-      plafondGlobalNiches,
-    ).impotFinal;
+    // ── Dispositifs PAR concubin (option A) : deux foyers fiscaux distincts. ──
+    // Forfait scolaire réparti par foyer (childrenP1/P2) ; réductions attribuées par
+    // ownerShare (indivision -> moitié chacun) ; plafond niches 10 000 € PAR concubin
+    // (chaque socle est appelé séparément). avRachatImpot (global, non ventilé) porté
+    // sur T1 (approx. documentée ; nul dans les verrous e1/e2/miroir).
+    const forfaitP1 = childrenP1.reduce((s, c) => s + (FORFAIT_SCOLAIRE[(c.schoolLevel || "").toLowerCase()] || 0), 0);
+    const forfaitP2 = childrenP2.reduce((s, c) => s + (FORFAIT_SCOLAIRE[(c.schoolLevel || "").toLowerCase()] || 0), 0);
+    const liste1: ReductionIR[] = [{ id: "forfait_scolaire", label: "Frais de scolarité", montant: forfaitP1, plafondNiches: false }];
+    const liste2: ReductionIR[] = [{ id: "forfait_scolaire", label: "Frais de scolarité", montant: forfaitP2, plafondNiches: false }];
+    for (const e of evalsDispositifs) {
+      if (e.kind !== "reduction") continue;
+      const bienE = biensDispo.find((b) => String(b.id ?? "") === e.idBien);
+      const s1 = bienE ? ownerShare(bienE.ownership, "person1", bienE) : 0;
+      const s2 = bienE ? ownerShare(bienE.ownership, "person2", bienE) : 0;
+      if (s1 > 0) liste1.push({ id: `${e.id}_${e.idBien}`, label: e.label, montant: e.montant * s1, plafondNiches: e.plafondNiches });
+      if (s2 > 0) liste2.push({ id: `${e.id}_${e.idBien}`, label: e.label, montant: e.montant * s2, plafondNiches: e.plafondNiches });
+    }
+    const T1 = bareme1 + foncierPS1 + perRentesPS1 + (pfuBase1 + perInteretsPFU1) * 0.314 + avRachatImpot;
+    const T2 = bareme2 + foncierPS2 + perRentesPS2 + (pfuBase2 + perInteretsPFU2) * 0.314;
+    const socle1 = appliquerReductionsIR(T1, liste1, plafondGlobalNiches);
+    const socle2 = appliquerReductionsIR(T2, liste2, plafondGlobalNiches);
+    const finalIR = socle1.impotFinal + socle2.impotFinal;
     const averageRate = revenuNetGlobal > 0 ? finalIR / revenuNetGlobal : 0;
     const brackets: TaxBracket[] = [
       { from: 0, to: 11600, rate: 0 }, { from: 11600, to: 29579, rate: 0.11 },
@@ -630,6 +705,15 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       // certaines vues, mais ici le total réel = bareme1 + bareme2 + PS + PFU)
       finalIR1: bareme1 + foncierPS1 + (pfuBase1 * 0.314) + (perInteretsPFU1 * 0.314) + perRentesPS1,
       finalIR2: bareme2 + foncierPS2 + (pfuBase2 * 0.314) + (perInteretsPFU2 * 0.314) + perRentesPS2,
+      dispositifsFiscaux: {
+        reductions: [...socle1.detail, ...socle2.detail],
+        jeanbrun: (jeanbrun1 || jeanbrun2) ? {
+          parBien: [...(jeanbrun1?.parBien ?? []), ...(jeanbrun2?.parBien ?? [])],
+          plafond: (jeanbrun1?.plafondFoyer ?? 0) + (jeanbrun2?.plafondFoyer ?? 0), // somme des plafonds par concubin
+          ecretement: (jeanbrun1?.ecretement ?? 0) + (jeanbrun2?.ecretement ?? 0),
+        } : null,
+        statuts: statutsDispositifs,
+      },
     };
   }
 
@@ -673,11 +757,17 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   const bareme = Math.max(0, baremeBeforeDecote - decote);
   const bracketFill = computeTaxFromBrackets(quotient, brackets).fill;
   const totalPFU = pfuBase * 0.314 + perInteretsPFU * 0.314; // PFU 31,4% = 12,8% IR + 18,6% PS — dividendes, intérêts, PV mob. (LFSS 2026)
-  const finalIR = appliquerReductionsIR(
+  // Réductions dispositifs (FOYER COMMUN) : ajoutées APRÈS le forfait scolaire
+  // (hors plafond d'abord, plafonnables ensuite) ; une seule liste pour tout le foyer.
+  for (const e of evalsDispositifs) {
+    if (e.kind === "reduction") reductionsIR.push({ id: `${e.id}_${e.idBien}`, label: e.label, montant: e.montant, plafondNiches: e.plafondNiches });
+  }
+  const socleReductions = appliquerReductionsIR(
     bareme + totalPFU + foncierSocialLevy + avRachatImpot + perRentesPS,
     reductionsIR,
     plafondGlobalNiches,
-  ).impotFinal;
+  );
+  const finalIR = socleReductions.impotFinal;
 
   const marginalRate = quotient <= 11600 ? 0 : quotient <= 29579 ? 0.11 : quotient <= 84577 ? 0.3 : quotient <= 181917 ? 0.41 : 0.45;
   const averageRate = revenuNetGlobal > 0 ? finalIR / revenuNetGlobal : 0;
@@ -692,5 +782,10 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     quotientFamilialCapAdjustment, qfBenefit, qfCap, marginalRate, averageRate,
     bracketFill, currentBracketLabel: currentBracket.label, indicatorPct, visualMax,
     avRachatImpot, perCapitalImposable, perInteretsPFU, perRentesImposable, perRentesPS, isConcubin: false, plafondPER, plafondPER1, plafondPER2, perDeductionCalc, perP1Deductible, perP2Deductible, deficitFoncierImpute, deficitFoncierReportable,
+    dispositifsFiscaux: {
+      reductions: socleReductions.detail,
+      jeanbrun: jeanbrunFoyer ? { parBien: jeanbrunFoyer.parBien, plafond: jeanbrunFoyer.plafondFoyer, ecretement: jeanbrunFoyer.ecretement } : null,
+      statuts: statutsDispositifs,
+    },
   };
 }
