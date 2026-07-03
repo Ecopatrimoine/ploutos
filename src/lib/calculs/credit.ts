@@ -215,14 +215,17 @@ export function resolveOtherLoan(loan: OtherLoan): {
     return Number.isFinite(val) && val > 0
       ? { monthlyPayment: M, capitalRemaining: val, durationRemaining: N, autoField: 'capitalRemaining' } : nul;
   }
-  // !hasN : déduire la durée (en mois, arrondie au supérieur) depuis mensualité + CRD
+  // !hasN : déduire la durée (en mois, arrondie au supérieur) depuis mensualité + CRD.
+  // Tolérance ε avant ceil : absorbe le bruit float (un aller-retour exact de 24 mois
+  // donne 24,0000001 -> sans ε, ceil renverrait 25).
+  const EPS = 1e-6;
   if (M <= 0) return nul;
   if (t <= 0) {
-    const val = Math.ceil(C / M);
+    const val = Math.ceil(C / M - EPS);
     return val > 0 ? { monthlyPayment: M, capitalRemaining: C, durationRemaining: val, autoField: 'durationRemaining' } : nul;
   }
   if (M <= C * t) return nul; // garde-fou : mensualité <= intérêts du 1er mois -> pas de solution finie
-  const val = Math.ceil(-Math.log(1 - C * t / M) / Math.log(1 + t));
+  const val = Math.ceil(-Math.log(1 - C * t / M) / Math.log(1 + t) - EPS);
   return Number.isFinite(val) && val > 0
     ? { monthlyPayment: M, capitalRemaining: C, durationRemaining: val, autoField: 'durationRemaining' } : nul;
 }
