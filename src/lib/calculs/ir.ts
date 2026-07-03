@@ -72,30 +72,68 @@ export function resolveBeneficeTns(data: PatrimonialData, personne: 1 | 2): numb
 // ─── Socle générique de réductions d'impôt ────────────────────────────────────
 // Une réduction vient EN DIMINUTION de l'impôt dû après décote, dans l'ordre du
 // tableau, chacune à hauteur de l'impôt restant (jamais négatif) ; la fraction
-// non imputée est perdue (pas de report). Liste vide = no-op strict (impôt
-// inchangé au centime). Point d'entrée UNIQUE des deux chemins de computeIR
-// (foyer commun ET concubins) — aucune duplication de la logique d'imputation.
+// non imputée faute d'impôt est perdue (pas de report).
+//
+// Plafonnement global des niches — art. 200-0 A CGI : le CUMUL des réductions
+// marquées plafondNiches:true partage une enveloppe commune = `plafondNiches` et
+// est écrêté à ce plafond AVANT imputation ; l'excédent est perdu et tracé
+// (ecretementNiches). Les entrées plafondNiches:false ne consomment jamais
+// l'enveloppe et ne sont jamais écrêtées. Liste vide OU aucune entrée plafonnable
+// = no-op strict (impôt inchangé au centime). Point d'entrée UNIQUE des deux
+// chemins de computeIR (foyer commun ET concubins) — aucune duplication.
 export interface ReductionIR {
   id: string;
   label: string;
   montant: number;
-  plafondNiches: boolean; // INERTE dans ce lot — réservé au plafond global des niches (Lot B)
+  plafondNiches: boolean; // true = soumis au plafond global des niches (art. 200-0 A)
+}
+
+export interface ResultatReductionsIR {
+  impotFinal: number;                       // impôt après imputation des réductions
+  totalImpute: number;                      // somme réellement imputée sur l'impôt
+  totalPlafonnableAvantEcretement: number;  // cumul brut des montants plafondNiches:true
+  ecretementNiches: number;                 // part perdue par le plafond global (art. 200-0 A)
+  perduFauteImpot: number;                  // part perdue faute d'impôt restant (distincte de l'écrêtement)
+  detail: { id: string; montant: number; impute: number }[];
 }
 
 export function appliquerReductionsIR(
   impotApresDecote: number,
   reductions: ReductionIR[],
-): { impotFinal: number; totalImpute: number; detail: { id: string; montant: number; impute: number }[] } {
+  plafondNiches: number,
+): ResultatReductionsIR {
+  const cap = Math.max(0, plafondNiches);
+  // ── Étape 1 : écrêtement du CUMUL des réductions plafonnables (art. 200-0 A) ──
+  // Enveloppe commune `cap` répartie dans l'ordre du tableau ; les entrées hors
+  // plafond (plafondNiches:false) gardent leur montant plein.
+  let totalPlafonnableAvantEcretement = 0;
+  let capRestant = cap;
+  const effectifs = reductions.map((r) => {
+    const montant = Math.max(0, r.montant);
+    if (!r.plafondNiches) return montant; // hors plafond : jamais écrêté
+    totalPlafonnableAvantEcretement += montant;
+    const alloue = Math.min(montant, capRestant);
+    capRestant -= alloue;
+    return alloue;
+  });
+  const ecretementNiches = Math.max(0, totalPlafonnableAvantEcretement - cap);
+
+  // ── Étape 2 : imputation bornée par l'impôt restant (Lot A, inchangée) ──
   let impotRestant = Math.max(0, impotApresDecote);
   let totalImpute = 0;
+  let perduFauteImpot = 0;
   const detail: { id: string; montant: number; impute: number }[] = [];
-  for (const r of reductions) {
-    const impute = Math.min(Math.max(0, r.montant), impotRestant);
+  reductions.forEach((r, i) => {
+    const impute = Math.min(effectifs[i], impotRestant);
     impotRestant -= impute;
     totalImpute += impute;
+    perduFauteImpot += effectifs[i] - impute;
     detail.push({ id: r.id, montant: r.montant, impute });
-  }
-  return { impotFinal: impotRestant, totalImpute, detail };
+  });
+  return {
+    impotFinal: impotRestant, totalImpute,
+    totalPlafonnableAvantEcretement, ecretementNiches, perduFauteImpot, detail,
+  };
 }
 
 export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeConcubinPerson: 1 | 2 = 1) {
@@ -364,12 +402,16 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     .reduce((sum, child) => sum + (FORFAIT_SCOLAIRE[(child.schoolLevel || "").toLowerCase()] || 0), 0);
 
   // Socle générique de réductions d'impôt (cf. appliquerReductionsIR). Le forfait
-  // scolaire (art. 199 quater B CGI) devient une entrée de cette liste ; les deux
-  // chemins (concubins / foyer commun) la consomment via la MÊME fonction.
-  // plafondNiches est inerte dans ce lot (réservé au plafond global des niches, Lot B).
+  // scolaire (art. 199 quater B CGI) est une entrée de cette liste ; les deux
+  // chemins (concubins / foyer commun) la consomment via la MÊME fonction, avec le
+  // MÊME plafond global des niches (art. 200-0 A CGI, référentiel millésimé — jamais
+  // 10 000 en dur). Le forfait scolaire est plafondNiches:false : avantage lié à la
+  // situation personnelle, EXCLU du plafond (BOFiP BOI-IR-LIQ-20-20-10). Le
+  // plafonnement reste DORMANT jusqu'au Lot D (aucune entrée plafonnable n'existe encore).
   const reductionsIR: ReductionIR[] = [
     { id: "forfait_scolaire", label: "Frais de scolarité", montant: forfaitScolaireReduction, plafondNiches: false },
   ];
+  const plafondGlobalNiches = referentiels.pass.plafondGlobalNiches;
 
   const isConcubin = data.coupleStatus === "cohab";
 
@@ -537,6 +579,7 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     const finalIR = appliquerReductionsIR(
       bareme1 + bareme2 + totalPFU + foncierPS1 + foncierPS2 + avRachatImpot + perRentesPS1 + perRentesPS2,
       reductionsIR,
+      plafondGlobalNiches,
     ).impotFinal;
     const averageRate = revenuNetGlobal > 0 ? finalIR / revenuNetGlobal : 0;
     const brackets: TaxBracket[] = [
@@ -633,6 +676,7 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   const finalIR = appliquerReductionsIR(
     bareme + totalPFU + foncierSocialLevy + avRachatImpot + perRentesPS,
     reductionsIR,
+    plafondGlobalNiches,
   ).impotFinal;
 
   const marginalRate = quotient <= 11600 ? 0 : quotient <= 29579 ? 0.11 : quotient <= 84577 ? 0.3 : quotient <= 181917 ? 0.41 : 0.45;

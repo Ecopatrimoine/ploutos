@@ -76,5 +76,7 @@
     "tauxReduitEpargneSalariale": 0.16,
     "tauxPrevoyance": 0.08,
     "_tauxPrevoyanceNote": "Forfait social 8% sur les contributions patronales de prévoyance complémentaire (entreprises ≥ 11 salariés), distinct du taux standard 20%. Source : art. D.242-1 CSS."
-  }
+  },
+  "plafondGlobalNiches": 10000,
+  "_plafondGlobalNiches_comment": "art. 200-0 A CGI, 10 000 EUR/an/foyer quelle que soit la composition, stable depuis 2013 (loi 2012-1509). Plafond majore 18 000 EUR (outre-mer/Sofica) NON modelise (aucun dispositif OM en v1). Source BOFiP BOI-IR-LIQ-20-20-10, verifie 03/07/2026."
 }
