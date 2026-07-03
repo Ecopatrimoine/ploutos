@@ -39,7 +39,7 @@ import { PopcardImpression } from "./components/popcard/PopcardImpression";
 // règle de validité dégradée si aucune reco complète. Date+heure paramétrable.
 
 // ── Imports modules refactorisés ──────────────────────────────────────────────
-import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "./constants";
+import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, EMPTY_CHARGES_COURANTES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "./constants";
 import type {
   Child, Property, Placement, PatrimonialData, IrOptions,
   SuccessionData, Heir, TestamentHeir, LegsPrecisItem,
@@ -115,6 +115,10 @@ function normalizeClientData(p: {
   d.pensions1 = d.pensions1 ?? "";
   d.pensions2 = d.pensions2 ?? "";
   d.csgDeductibleFoncier = d.csgDeductibleFoncier ?? "";
+  // Charges courantes du foyer (Lot budget) — non destructif : dossiers existants
+  // reçoivent chargesCourantes:"" et un détail vide (tous postes présents via spread).
+  d.chargesCourantes = d.chargesCourantes ?? "";
+  d.chargesCourantesDetail = { ...EMPTY_CHARGES_COURANTES_DETAIL, ...(d.chargesCourantesDetail || {}) };
   d.childrenData = (d.childrenData || []).map((c: any) => ({ schoolLevel: "", ...c }));
   d.properties = (d.properties || []).map((prop: any) => {
     const base = { loanInsuranceGuarantees: "dc", loanInsuranceCoverage: "banque", ...prop };

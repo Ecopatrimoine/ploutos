@@ -175,6 +175,19 @@ export type ChargesDetail = {
   autres: string;         // Autres charges
 };
 
+// ── Détail des charges courantes du foyer par poste (Lot budget) ────────────
+// Postes MENSUELS (train de vie), au niveau FOYER. Même philosophie détail vs
+// global que ChargesDetail (charges pro TNS) : le total du détail prime sur le
+// champ global `chargesCourantes` si au moins un poste est renseigné.
+export type ChargesCourantesDetail = {
+  loyerRP: string;          // Loyer de la résidence principale (si le foyer est locataire)
+  energie: string;          // Énergie (électricité, gaz, eau, chauffage)
+  assurancesPerso: string;  // Assurances personnelles (habitation, auto, santé, prévoyance...)
+  scolarite: string;        // Scolarité / garde d'enfants
+  transport: string;        // Transport (carburant, abonnements)
+  autres: string;           // Autres charges courantes
+};
+
 // ── Autre crédit (consommation, personnel, LOA…) ──────────────────────
 export type OtherLoan = {
   name: string;
@@ -235,6 +248,13 @@ export type PatrimonialData = {
   perDeduction: string;
   pensionDeductible: string;
   otherDeductible: string;
+  // ── Charges courantes du foyer (Lot budget) — train de vie MENSUEL, niveau
+  // FOYER. Optionnels/rétrocompat (patron csgDeductibleFoncier) : dossiers
+  // existants migrés par normalizeClientData. `chargesCourantes` = montant
+  // global mensuel ; `chargesCourantesDetail` = ventilation par poste (le total
+  // du détail prime sur le global si au moins un poste est renseigné). ──
+  chargesCourantes?: string;
+  chargesCourantesDetail?: ChargesCourantesDetail;
   // ── Madelin prévoyance (Lot B) — case « autre cotisation » libre par personne,
   // additionnée aux cotisations lues en prévoyance par le helper madelin.ts.
   // Optionnel/additif (number, pas string : agrégé numériquement). Absent → 0.

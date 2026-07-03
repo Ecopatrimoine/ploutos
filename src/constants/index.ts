@@ -1,4 +1,4 @@
-import type { ChargesDetail } from '../types/patrimoine';
+import type { ChargesDetail, ChargesCourantesDetail } from '../types/patrimoine';
 
 // ─── BRAND & SURFACE ─────────────────────────────────────────────────────────
 // Palette Encre & Or × Classique Vivant — validée contraste-wcag
@@ -347,6 +347,11 @@ export const LEGUE_COLORS = [BRAND.gold, "#D4A96A", BRAND.blue, "#6B8DD6", BRAND
 export const EMPTY_CHARGES_DETAIL: ChargesDetail = {
   loyer: "", materiel: "", deplacements: "", repas: "",
   tns: "", bancaires: "", comptable: "", autres: "",
+};
+
+export const EMPTY_CHARGES_COURANTES_DETAIL: ChargesCourantesDetail = {
+  loyerRP: "", energie: "", assurancesPerso: "", scolarite: "",
+  transport: "", autres: "",
 };
 
 export const SEUIL_MICRO_BA           = 120000; // Micro-BA : moyenne triennale 2025 (stable)
