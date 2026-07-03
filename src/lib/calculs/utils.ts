@@ -1,7 +1,7 @@
 // Utilitaires — n(), euro(), calculs, helpers PCS et domaine
 import type { Child, Property, PatrimonialData, TaxBracket, FilledBracket,
   Beneficiary, Heir, TestamentHeir, ChargesDetail } from '../../types/patrimoine';
-import { PLACEMENT_TYPES_BY_FAMILY, AV_TYPES, BRAND, PCS_GROUPES, PCS_CATEGORIES } from '../../constants';
+import { PLACEMENT_TYPES_BY_FAMILY, AV_TYPES, BRAND, PCS_GROUPES, PCS_CATEGORIES, DISPOSITIFS_PAR_NATURE } from '../../constants';
 
 export function isIndependant(groupeCode: string): boolean {
   return groupeCode === "1" || groupeCode === "2";
@@ -421,6 +421,13 @@ export function propertyNeedsPropertyTax(type: string) { return type !== "SCPI";
 export function propertyNeedsInsurance(type: string) { return ["Location nue", "LMNP", "LMP", "SCI IR", "SCI IS", "Local professionnel", "Autre"].includes(type); }
 export function propertyNeedsWorks(type: string) { return ["Location nue", "SCI IR", "SCI IS", "Local professionnel", "Autre"].includes(type); }
 export function propertyNeedsLoan(type: string) { return ["Résidence principale", "Résidence secondaire", "Location nue", "LMNP", "LMP", "SCI IR", "SCI IS", "SCPI", "Local professionnel", "Autre"].includes(type); }
+// Dispositif fiscal : dispositifs éligibles PAR nature de bien, via la matrice
+// data-driven DISPOSITIFS_PAR_NATURE. Renvoie la liste des ids autorisés ([] par
+// défaut = nature non éligible). Censi-Bouvard = detention directe uniquement,
+// controle au resolveur (Lot D). Aucun calcul branché ici (Lot D).
+export function dispositifsPourNature(type: string): string[] { return DISPOSITIFS_PAR_NATURE[type] ?? []; }
+// Alias booléen (rétrocompat) : la nature propose-t-elle au moins un dispositif ?
+export function propertyCanHaveDispositif(type: string) { return dispositifsPourNature(type).length > 0; }
 export function placementNeedsTaxableIncome(type: string) { return !["Livret A", "LDDS", "LEP", "Compte courant"].includes(type) && !isAV(type); }
 export function placementNeedsDeathValue(type: string) { return !isAV(type); }
 export function isCashPlacement(type: string) { return PLACEMENT_TYPES_BY_FAMILY.cash.includes(type); }

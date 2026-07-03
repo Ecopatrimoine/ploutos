@@ -103,6 +103,34 @@ export const PROPERTY_GROUPS = [
   { value: "autres",     label: "Autres",          types: ["Terrain", "Local professionnel", "Autre"] },
 ] as const;
 
+// ─── Dispositifs fiscaux immobiliers (saisie Lot C ; calcul branché au Lot D) ─
+// `value` ASCII (stockée dans Property.dispositifFiscal) ; `label` affiché (accents
+// OK). "aucun" en tête = absence de dispositif (Property.dispositifFiscal undefined
+// ou "" ⇒ « Aucun » à l'affichage). Ordre figé, orthogonal à PROPERTY_TYPES.
+export const DISPOSITIFS_FISCAUX = [
+  { value: "aucun",                   label: "Aucun" },
+  { value: "pinel",                   label: "Pinel" },
+  { value: "pinelPlus",               label: "Pinel+" },
+  { value: "denormandie",             label: "Denormandie" },
+  { value: "censiBouvard",            label: "Censi-Bouvard" },
+  { value: "locavantages",            label: "Loc'Avantages" },
+  { value: "jeanbrunRelanceLogement", label: "Jeanbrun Relance logement" },
+] as const;
+
+// Matrice juridique : nature de bien -> dispositifs éligibles (filtre la saisie).
+// _comment source : "matrice juridique - Pinel/Denormandie/Loc'A/Jeanbrun =
+// location nue ; Censi 199 sexvicies = LMNP direct uniquement (SCPI et societes
+// exclues) ; SCPI/SCI IR = societes non IS eligibles (199 novovicies, 199 tricies
+// I.B, art. 47 LF 2026). Sourcing 03/07/2026." Natures absentes de la map = []
+// (aucun dispositif proposé).
+export const DISPOSITIFS_PAR_NATURE: Record<string, string[]> = {
+  "Location nue": ["pinel", "pinelPlus", "denormandie", "locavantages", "jeanbrunRelanceLogement"],
+  "LMNP":         ["censiBouvard"],
+  "LMP":          [],
+  "SCPI":         ["pinel", "pinelPlus", "denormandie", "jeanbrunRelanceLogement"],
+  "SCI IR":       ["pinel", "pinelPlus", "denormandie", "locavantages", "jeanbrunRelanceLogement"],
+};
+
 export const CHILD_LINKS = [
   { value: "common_child", label: "Enfant commun" },
   { value: "person1_only", label: "Enfant de personne 1 uniquement" },

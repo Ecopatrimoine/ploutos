@@ -9,9 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Settings } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
-import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_GROUPS, PROPERTY_GROUP_COLORS, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
+import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_GROUPS, PROPERTY_GROUP_COLORS, PROPERTY_RIGHTS, DISPOSITIFS_FISCAUX, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan, DismemberCounterpart } from "../../types/patrimoine";
-import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
+import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, dispositifsPourNature, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { resolvePropertyRef } from "../../lib/calculs/refs";
 import { AssetPickerModal } from "../AssetPickerModal";
@@ -73,6 +73,16 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
   {data.properties.length === 0 && <div className="border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>Aucun bien immobilier saisi. Cliquez « Ajouter un bien » pour commencer.</div>}
   {data.properties.map((property, index) => {
     const isDonated = property.id != null && donatedPropertyIds.has(property.id);
+    // Dispositifs éligibles pour la nature courante (matrice data-driven). Si un
+    // dispositif saisi devient incohérent (nature changée après coup), on le
+    // conserve comme option marquée — jamais d'effacement ni de blocage.
+    const dispoIds = dispositifsPourNature(property.type);
+    const dispoCurrent = property.dispositifFiscal;
+    const dispoIncoherent = !!dispoCurrent && !dispoIds.includes(dispoCurrent);
+    const dispoOptions: { value: string; label: string }[] = [
+      ...DISPOSITIFS_FISCAUX.filter((d) => d.value === "aucun" || dispoIds.includes(d.value)).map((d) => ({ value: d.value as string, label: d.label as string })),
+      ...(dispoIncoherent ? [{ value: dispoCurrent as string, label: ((DISPOSITIFS_FISCAUX.find((d) => d.value === dispoCurrent)?.label as string) ?? dispoCurrent) + " (incoherent avec la nature du bien)" }] : []),
+    ];
     return (
     <Card key={property.id} className="border " style={{ borderColor: isDonated ? "rgba(227,175,100,0.6)" : SURFACE.border, position: "relative", overflow: "hidden" }}>
       {/* Badge donation active */}
@@ -153,6 +163,79 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
           })()}
           <Button variant="outline" className="h-8 w-8 shrink-0 rounded-xl p-0 mb-0.5" onClick={() => removeProperty(property.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
         </div>
+        {/* ── Dispositif fiscal (natures locatives éligibles) — SAISIE SEULE, aucun
+             calcul branché (Lot D). Pattern conditionnel impératif (comme démembrement /
+             indivision). Bascule vers « Aucun » : masque les sous-champs SANS effacer
+             les données (barrière douce ; onChange ne touche que dispositifFiscal). */}
+        {dispoIds.length > 0 && (
+        <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
+          <Field label="Dispositif fiscal">
+            <Select value={property.dispositifFiscal || "aucun"} onValueChange={(v) => updateProperty(property.id, "dispositifFiscal", v === "aucun" ? "" : v)}>
+              <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>{dispoOptions.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
+          {(property.dispositifFiscal === "pinel" || property.dispositifFiscal === "pinelPlus" || property.dispositifFiscal === "denormandie") && (
+            <>
+              <Field label="Année d'investissement"><Input value={property.dispositifAnnee || ""} onChange={(e) => updateProperty(property.id, "dispositifAnnee", e.target.value)} className="rounded-xl h-8 text-sm" inputMode="numeric" /></Field>
+              <MoneyField label="Base (prix de revient, €)" tooltip="Prix de revient retenu pour la réduction (plafonné par la réglementation). Montant SAISI, pas la valeur actuelle du bien." value={property.dispositifBase || ""} onChange={(e) => updateProperty(property.id, "dispositifBase", e.target.value)} compact />
+              <Field label="Engagement">
+                <Select value={property.dispositifEngagementAns || ""} onValueChange={(v) => updateProperty(property.id, "dispositifEngagementAns", v)}>
+                  <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent><SelectItem value="6">6 ans</SelectItem><SelectItem value="9">9 ans</SelectItem></SelectContent>
+                </Select>
+              </Field>
+              <Field label="Prorogation">
+                <Select value={property.dispositifProrogation || ""} onValueChange={(v) => updateProperty(property.id, "dispositifProrogation", v)}>
+                  <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent><SelectItem value="0">Aucune</SelectItem><SelectItem value="1">1re période</SelectItem><SelectItem value="2">2e période</SelectItem></SelectContent>
+                </Select>
+              </Field>
+            </>
+          )}
+          {property.dispositifFiscal === "censiBouvard" && (
+            <>
+              <Field label="Année"><Input value={property.dispositifAnnee || ""} onChange={(e) => updateProperty(property.id, "dispositifAnnee", e.target.value)} className="rounded-xl h-8 text-sm" inputMode="numeric" /></Field>
+              <MoneyField label="Base (€, engagement 9 ans)" tooltip="Censi-Bouvard : engagement de location de 9 ans. Base = prix de revient plafonné (SAISI)." value={property.dispositifBase || ""} onChange={(e) => updateProperty(property.id, "dispositifBase", e.target.value)} compact />
+            </>
+          )}
+          {property.dispositifFiscal === "locavantages" && (
+            <>
+              <Field label="Année prise d'effet" tooltip="Année de prise d'effet de la convention ANAH (Loc'Avantages)."><Input value={property.dispositifAnnee || ""} onChange={(e) => updateProperty(property.id, "dispositifAnnee", e.target.value)} className="rounded-xl h-8 text-sm" inputMode="numeric" /></Field>
+              <Field label="Niveau de loyer">
+                <Select value={property.dispositifNiveauLoyer || ""} onValueChange={(v) => updateProperty(property.id, "dispositifNiveauLoyer", v)}>
+                  <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent><SelectItem value="loc1">Loc1</SelectItem><SelectItem value="loc2">Loc2</SelectItem><SelectItem value="loc3">Loc3</SelectItem></SelectContent>
+                </Select>
+              </Field>
+              <Field label="Intermédiation" tooltip="Intermédiation locative : gestion confiée à un organisme agréé (bonus de réduction Loc'Avantages).">
+                <label className="flex items-center gap-2 h-8 text-sm">
+                  <input type="checkbox" checked={!!property.dispositifIntermediation} onChange={(e) => updateProperty(property.id, "dispositifIntermediation", e.target.checked)} className="h-4 w-4 rounded accent-[#0F172A]" />
+                  <span style={{ color: BRAND.muted }}>Oui</span>
+                </label>
+              </Field>
+            </>
+          )}
+          {property.dispositifFiscal === "jeanbrunRelanceLogement" && (
+            <>
+              <Field label="Année d'acquisition"><Input value={property.dispositifAnnee || ""} onChange={(e) => updateProperty(property.id, "dispositifAnnee", e.target.value)} className="rounded-xl h-8 text-sm" inputMode="numeric" /></Field>
+              <MoneyField label="Base (prix + travaux, €)" tooltip="Prix d'acquisition, majoré des travaux le cas échéant (ancien réhabilité). Montant SAISI." value={property.dispositifBase || ""} onChange={(e) => updateProperty(property.id, "dispositifBase", e.target.value)} compact />
+              <Field label="Neuf / Ancien réhabilité">
+                <Select value={property.dispositifNeufAncien || ""} onValueChange={(v) => updateProperty(property.id, "dispositifNeufAncien", v)}>
+                  <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent><SelectItem value="neuf">Neuf</SelectItem><SelectItem value="ancien">Ancien réhabilité</SelectItem></SelectContent>
+                </Select>
+              </Field>
+              <Field label="Niveau de loyer">
+                <Select value={property.dispositifNiveauLoyer || ""} onValueChange={(v) => updateProperty(property.id, "dispositifNiveauLoyer", v)}>
+                  <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent><SelectItem value="intermediaire">Intermédiaire</SelectItem><SelectItem value="social">Social</SelectItem><SelectItem value="tresSocial">Très social</SelectItem></SelectContent>
+                </Select>
+              </Field>
+            </>
+          )}
+        </div>
+        )}
         {/* Valeurs financières — grille adaptative, sans divs vides */}
         <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(130px,1fr))]">
           <MoneyField label={property.propertyRight === "full" ? "Valeur estimée" : "Valeur PP"} tooltip="Valeur vénale actuelle du bien. En pleine propriété, c'est la valeur retenue pour l'IFI et la succession. En démembrement, seule la valeur de la pleine propriété est saisie ici." value={property.value} onChange={(e) => updateProperty(property.id, "value", e.target.value)} compact />

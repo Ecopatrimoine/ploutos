@@ -108,6 +108,17 @@ export type Property = {
   // ── Multi-crédits (nouveau) ───────────────────────────────────────────────
   // Priorité sur les anciens champs loan* si présent et non vide
   loans?: Loan[];
+  // ── Dispositif fiscal immobilier (saisie Lot C ; calcul branché au Lot D) ──
+  // Tous optionnels : un bien sans dispositif = undefined ⇒ « Aucun » à l'affichage.
+  // Les montants suivent la convention du fichier (string, comme value / rentGrossAnnual).
+  dispositifFiscal?: "pinel" | "pinelPlus" | "denormandie" | "censiBouvard" | "locavantages" | "jeanbrunRelanceLogement";
+  dispositifAnnee?: string;             // millésime investissement / souscription / prise d'effet convention
+  dispositifBase?: string;              // prix de revient ou souscription SAISI (≠ valeur actuelle du bien)
+  dispositifEngagementAns?: "6" | "9";  // pinel / pinelPlus / denormandie
+  dispositifProrogation?: "0" | "1" | "2";
+  dispositifNiveauLoyer?: "intermediaire" | "social" | "tresSocial" | "loc1" | "loc2" | "loc3";
+  dispositifIntermediation?: boolean;   // locavantages
+  dispositifNeufAncien?: "neuf" | "ancien"; // jeanbrunRelanceLogement
 };
 
 export type ExternalShareholder = {
