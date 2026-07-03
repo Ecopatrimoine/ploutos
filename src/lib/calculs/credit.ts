@@ -1,5 +1,5 @@
 // Calcul crédit immobilier
-import type { Property } from '../../types/patrimoine';
+import type { Property, OtherLoan } from '../../types/patrimoine';
 import { n } from './utils';
 
 // ── Helpers calcul crédit immobilier ─────────────────────────────────
@@ -149,4 +149,25 @@ export function resolveLoanValuesMulti(property: import('../../types/patrimoine'
   const lv = resolveLoanValues(property);
   const insurancePremiumAnnual = property.loanInsurance ? n(property.loanInsurancePremium) : 0;
   return { ...lv, insurancePremiumAnnual, loans: [] };
+}
+
+// ── Autres crédits (conso, personnel, LOA…) ─────────────────────────────────
+/**
+ * Résout la mensualité d'un OtherLoan. Barrière douce : une mensualité SAISIE
+ * (champ NON VIDE, y compris la chaîne "0") est un override — jamais recalculée.
+ * Sinon, auto-calcul depuis le CAPITAL RESTANT DÛ amorti sur les MOIS RESTANTS
+ * (aucune dépendance à Date.now() : tout est basé sur les valeurs restantes).
+ */
+export function resolveOtherLoan(loan: OtherLoan): { monthlyPayment: number; isAuto: boolean } {
+  // "Renseigné" = chaîne non vide (distinct de truthy) : "0" est une saisie, cf. doctrine ucRatio.
+  if (String(loan.monthlyPayment ?? "").trim() !== "") {
+    return { monthlyPayment: n(loan.monthlyPayment), isAuto: false };
+  }
+  const crd = n(loan.capitalRemaining);
+  const nMois = n(loan.durationRemaining); // durée RESTANTE en mois
+  if (crd <= 0 || nMois <= 0) return { monthlyPayment: 0, isAuto: false };
+  const rate = n(loan.rate);
+  if (rate <= 0) return { monthlyPayment: crd / nMois, isAuto: true }; // taux 0 → linéaire
+  const t = rate / 100 / 12;
+  return { monthlyPayment: crd * t / (1 - Math.pow(1 + t, -nMois)), isAuto: true };
 }
