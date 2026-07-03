@@ -10,6 +10,7 @@
 // constante, jamais plonger dans le code.
 
 import { isCashPlacement } from "../calculs/utils";
+import { resolveLoanValuesMulti } from "../calculs/credit";
 import type { PatrimonialData } from "../../types/patrimoine";
 
 export type NiveauCapacitePerte = "faible" | "modérée" | "moyenne" | "élevée";
@@ -71,15 +72,12 @@ export function computeCapacitePerte(data: PatrimonialData): CapacitePerte {
     ? Math.min(999, coussinLiquide / revenuMensuel)
     : (coussinLiquide > 0 ? 999 : 0);
 
-  // 4. Endettement total = capital restant dû (loans + otherLoans + legacy
-  //    loanAmount sur les biens sans multi-crédits).
-  const endettementBiens = (data.properties || []).reduce((s, p) => {
-    const fromLoans = Array.isArray(p?.loans)
-      ? p.loans.reduce((ss: number, l: any) => ss + num(l?.capitalRemaining || l?.amount), 0)
-      : 0;
-    const legacy = num((p as any)?.loanCapitalRemaining || (p as any)?.loanAmount);
-    return s + (fromLoans > 0 ? fromLoans : legacy);
-  }, 0);
+  // 4. Endettement total = capital restant dû. Crédits IMMO : CRD RÉSOLU
+  //    (amorti automatiquement si non saisi) via resolveLoanValuesMulti — aligné
+  //    sur endettement/IFI/succession, plus jamais le capital INITIAL. Autres
+  //    crédits : capitalRemaining lu tel quel (déjà un CRD, pas de capital initial).
+  const endettementBiens = (data.properties || []).reduce(
+    (s, p) => s + Math.max(0, resolveLoanValuesMulti(p as any).capital), 0);
   const endettementAutres = (data.otherLoans || []).reduce((s: number, l: any) =>
     s + num(l?.capitalRemaining || l?.amount), 0);
   const endettementTotal = endettementBiens + endettementAutres;
