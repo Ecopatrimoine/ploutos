@@ -69,6 +69,35 @@ export function resolveBeneficeTns(data: PatrimonialData, personne: 1 | 2): numb
   return computeBeneficeImposable(ca, bicType, isBNC, isBA, microRegime, chargesReelles, baRevenue);
 }
 
+// ─── Socle générique de réductions d'impôt ────────────────────────────────────
+// Une réduction vient EN DIMINUTION de l'impôt dû après décote, dans l'ordre du
+// tableau, chacune à hauteur de l'impôt restant (jamais négatif) ; la fraction
+// non imputée est perdue (pas de report). Liste vide = no-op strict (impôt
+// inchangé au centime). Point d'entrée UNIQUE des deux chemins de computeIR
+// (foyer commun ET concubins) — aucune duplication de la logique d'imputation.
+export interface ReductionIR {
+  id: string;
+  label: string;
+  montant: number;
+  plafondNiches: boolean; // INERTE dans ce lot — réservé au plafond global des niches (Lot B)
+}
+
+export function appliquerReductionsIR(
+  impotApresDecote: number,
+  reductions: ReductionIR[],
+): { impotFinal: number; totalImpute: number; detail: { id: string; montant: number; impute: number }[] } {
+  let impotRestant = Math.max(0, impotApresDecote);
+  let totalImpute = 0;
+  const detail: { id: string; montant: number; impute: number }[] = [];
+  for (const r of reductions) {
+    const impute = Math.min(Math.max(0, r.montant), impotRestant);
+    impotRestant -= impute;
+    totalImpute += impute;
+    detail.push({ id: r.id, montant: r.montant, impute });
+  }
+  return { impotFinal: impotRestant, totalImpute, detail };
+}
+
 export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeConcubinPerson: 1 | 2 = 1) {
   // ── Revenus selon PCS ──
   const g1 = data.person1PcsGroupe;
@@ -334,6 +363,14 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     .filter(c => c.rattached !== false)
     .reduce((sum, child) => sum + (FORFAIT_SCOLAIRE[(child.schoolLevel || "").toLowerCase()] || 0), 0);
 
+  // Socle générique de réductions d'impôt (cf. appliquerReductionsIR). Le forfait
+  // scolaire (art. 199 quater B CGI) devient une entrée de cette liste ; les deux
+  // chemins (concubins / foyer commun) la consomment via la MÊME fonction.
+  // plafondNiches est inerte dans ce lot (réservé au plafond global des niches, Lot B).
+  const reductionsIR: ReductionIR[] = [
+    { id: "forfait_scolaire", label: "Frais de scolarité", montant: forfaitScolaireReduction, plafondNiches: false },
+  ];
+
   const isConcubin = data.coupleStatus === "cohab";
 
   // ── Concubinage : 2 foyers séparés ──────────────────────────────
@@ -497,7 +534,10 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     const bareme2 = Math.max(0, r2.bareme - decote2);
     // PFU ventilé par personne
     const totalPFU = (pfuBase1 + pfuBase2) * 0.314 + (perInteretsPFU1 + perInteretsPFU2) * 0.314;
-    const finalIR = Math.max(0, bareme1 + bareme2 + totalPFU + foncierPS1 + foncierPS2 + avRachatImpot + perRentesPS1 + perRentesPS2 - forfaitScolaireReduction);
+    const finalIR = appliquerReductionsIR(
+      bareme1 + bareme2 + totalPFU + foncierPS1 + foncierPS2 + avRachatImpot + perRentesPS1 + perRentesPS2,
+      reductionsIR,
+    ).impotFinal;
     const averageRate = revenuNetGlobal > 0 ? finalIR / revenuNetGlobal : 0;
     const brackets: TaxBracket[] = [
       { from: 0, to: 11600, rate: 0 }, { from: 11600, to: 29579, rate: 0.11 },
@@ -590,7 +630,10 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   const bareme = Math.max(0, baremeBeforeDecote - decote);
   const bracketFill = computeTaxFromBrackets(quotient, brackets).fill;
   const totalPFU = pfuBase * 0.314 + perInteretsPFU * 0.314; // PFU 31,4% = 12,8% IR + 18,6% PS — dividendes, intérêts, PV mob. (LFSS 2026)
-  const finalIR = Math.max(0, bareme + totalPFU + foncierSocialLevy + avRachatImpot + perRentesPS - forfaitScolaireReduction);
+  const finalIR = appliquerReductionsIR(
+    bareme + totalPFU + foncierSocialLevy + avRachatImpot + perRentesPS,
+    reductionsIR,
+  ).impotFinal;
 
   const marginalRate = quotient <= 11600 ? 0 : quotient <= 29579 ? 0.11 : quotient <= 84577 ? 0.3 : quotient <= 181917 ? 0.41 : 0.45;
   const averageRate = revenuNetGlobal > 0 ? finalIR / revenuNetGlobal : 0;
