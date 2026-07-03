@@ -1,6 +1,9 @@
 // Calcul crédit immobilier
-import type { Property } from '../../types/patrimoine';
+import type { Property, OtherLoan } from '../../types/patrimoine';
 import { n } from './utils';
+
+// "Renseigné" = chaîne non vide (distinct de truthy ; "0" est une saisie, cf. doctrine ucRatio).
+const isSet = (v: unknown) => String(v ?? "").trim() !== "";
 
 // ── Helpers calcul crédit immobilier ─────────────────────────────────
 export function calcMonthlyPayment(capital: number, rateAnnual: number, durationYears: number): number {
@@ -17,6 +20,22 @@ export function calcCapitalRemaining(capital: number, rateAnnual: number, durati
   const n = durationYears * 12;
   const k = Math.floor(yearsElapsed * 12);
 return Math.max(0, capital * (Math.pow(1 + tm, n) - Math.pow(1 + tm, k)) / (Math.pow(1 + tm, n) - 1));
+}
+// Inverse de calcCapitalRemaining : retrouve le capital emprunté INITIAL à partir
+// du CRD après k mois. C = CRD × ((1+t)^n − 1) / ((1+t)^n − (1+t)^k) — équivaut à
+// CRD × (1−(1+t)^-n)/(1−(1+t)^-(n−k)). Taux 0 → C = CRD / (1 − écoulé/durée).
+// k = mois écoulés (même arrondi que calcCapitalRemaining) → aller-retour exact.
+export function calcInitialCapitalFromCRD(crd: number, rateAnnual: number, durationYears: number, yearsElapsed: number): number {
+  if (crd <= 0 || durationYears <= 0) return 0;
+  if (rateAnnual <= 0) {
+    const frac = 1 - yearsElapsed / durationYears;
+    return frac > 0 ? crd / frac : 0;
+  }
+  const tm = rateAnnual / 100 / 12;
+  const nMonths = durationYears * 12;
+  const k = Math.floor(yearsElapsed * 12);
+  const denom = Math.pow(1 + tm, nMonths) - Math.pow(1 + tm, k);
+  return denom > 0 ? crd * (Math.pow(1 + tm, nMonths) - 1) / denom : 0;
 }
 export function calcAnnualInterests(capital: number, rateAnnual: number, durationYears: number, yearsElapsed: number): number {
   if (capital <= 0 || rateAnnual <= 0) return 0;
@@ -81,12 +100,19 @@ import type { Loan } from '../../types/patrimoine';
 /**
  * Résout un crédit individuel (Loan) — auto-calcul si champs vides, override sinon
  */
-export function resolveOneLoan(loan: Loan): { capital: number; interestAnnual: number; ifiDeduction: number; monthlyPayment: number; insurancePremiumAnnual: number } {
-  const C = n(loan.amount);
+export function resolveOneLoan(loan: Loan): { capital: number; interestAnnual: number; ifiDeduction: number; monthlyPayment: number; insurancePremiumAnnual: number; amountResolved: number; amountAuto: boolean } {
   const rate = n(loan.rate);
   const dur = n(loan.duration);
   const elapsed = yearsElapsedSince(loan.startDate);
   const ltype = loan.type || "amortissable";
+  // Capital initial déduit : amount VIDE mais CRD + taux + durée + date renseignés
+  // (barrière douce : un seul champ manquant parmi les 5 liés → on le déduit).
+  let C = n(loan.amount);
+  let amountAuto = false;
+  if (!isSet(loan.amount) && isSet(loan.capitalRemaining) && isSet(loan.rate) && isSet(loan.duration) && isSet(loan.startDate)) {
+    const deduced = calcInitialCapitalFromCRD(n(loan.capitalRemaining), rate, dur, elapsed);
+    if (deduced > 0) { C = deduced; amountAuto = true; }
+  }
 
   let capital = n(loan.capitalRemaining);       // 0 = auto-calculé
   let interestAnnual = n(loan.interestAnnual);  // 0 = auto-calculé
@@ -117,7 +143,7 @@ export function resolveOneLoan(loan: Loan): { capital: number; interestAnnual: n
     ? (n(loan.insurancePremium) > 0 ? n(loan.insurancePremium) : C * 0.003)
     : 0;
 
-  return { capital, interestAnnual, ifiDeduction, monthlyPayment, insurancePremiumAnnual };
+  return { capital, interestAnnual, ifiDeduction, monthlyPayment, insurancePremiumAnnual, amountResolved: C, amountAuto };
 }
 
 /**
@@ -149,4 +175,57 @@ export function resolveLoanValuesMulti(property: import('../../types/patrimoine'
   const lv = resolveLoanValues(property);
   const insurancePremiumAnnual = property.loanInsurance ? n(property.loanInsurancePremium) : 0;
   return { ...lv, insurancePremiumAnnual, loans: [] };
+}
+
+// ── Autres crédits (conso, personnel, LOA…) ─────────────────────────────────
+/**
+ * Résout un OtherLoan en DÉDUISANT le champ manquant (barrière douce).
+ * Grandeurs liées : monthlyPayment (M) / capitalRemaining (CRD) / durationRemaining (n mois).
+ *  - 3 renseignés  -> valeurs telles quelles, autoField=null (on respecte la saisie, aucune vérif).
+ *  - 2 renseignés  -> déduit le 3e (t = taux/100/12 ; taux vide traité comme 0).
+ *  - 0/1 renseigné -> valeurs telles quelles (manquants à 0), autoField=null.
+ * Un champ renseigné (y compris "0") n'est JAMAIS écrasé. AUCUNE dépendance à Date.now().
+ * Le taux est toujours une ENTRÉE, jamais déduit.
+ */
+export function resolveOtherLoan(loan: OtherLoan): {
+  monthlyPayment: number;
+  capitalRemaining: number;
+  durationRemaining: number;
+  autoField: 'monthlyPayment' | 'capitalRemaining' | 'durationRemaining' | null;
+} {
+  const M = n(loan.monthlyPayment);
+  const C = n(loan.capitalRemaining);
+  const N = n(loan.durationRemaining); // durée RESTANTE en mois
+  const t = n(loan.rate) / 100 / 12;   // taux vide -> 0
+  const hasM = isSet(loan.monthlyPayment), hasC = isSet(loan.capitalRemaining), hasN = isSet(loan.durationRemaining);
+  const nul = { monthlyPayment: M, capitalRemaining: C, durationRemaining: N, autoField: null };
+
+  // Déduction UNIQUEMENT si exactement 2 des 3 grandeurs sont renseignées.
+  if ((Number(hasM) + Number(hasC) + Number(hasN)) !== 2) return nul;
+
+  if (!hasM) { // déduire la mensualité depuis CRD + durée (comportement historique)
+    if (N <= 0) return nul;
+    const val = t <= 0 ? C / N : C * t / (1 - Math.pow(1 + t, -N));
+    return Number.isFinite(val) && val > 0
+      ? { monthlyPayment: val, capitalRemaining: C, durationRemaining: N, autoField: 'monthlyPayment' } : nul;
+  }
+  if (!hasC) { // déduire le CRD depuis mensualité + durée
+    if (N <= 0) return nul;
+    const val = t <= 0 ? M * N : M * (1 - Math.pow(1 + t, -N)) / t;
+    return Number.isFinite(val) && val > 0
+      ? { monthlyPayment: M, capitalRemaining: val, durationRemaining: N, autoField: 'capitalRemaining' } : nul;
+  }
+  // !hasN : déduire la durée (en mois, arrondie au supérieur) depuis mensualité + CRD.
+  // Tolérance ε avant ceil : absorbe le bruit float (un aller-retour exact de 24 mois
+  // donne 24,0000001 -> sans ε, ceil renverrait 25).
+  const EPS = 1e-6;
+  if (M <= 0) return nul;
+  if (t <= 0) {
+    const val = Math.ceil(C / M - EPS);
+    return val > 0 ? { monthlyPayment: M, capitalRemaining: C, durationRemaining: val, autoField: 'durationRemaining' } : nul;
+  }
+  if (M <= C * t) return nul; // garde-fou : mensualité <= intérêts du 1er mois -> pas de solution finie
+  const val = Math.ceil(-Math.log(1 - C * t / M) / Math.log(1 + t) - EPS);
+  return Number.isFinite(val) && val > 0
+    ? { monthlyPayment: M, capitalRemaining: C, durationRemaining: val, autoField: 'durationRemaining' } : nul;
 }

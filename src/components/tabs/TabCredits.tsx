@@ -12,6 +12,7 @@ import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PL
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { computeTauxEndettement } from "../../lib/calculs/endettement";
+import { resolveOtherLoan } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
 
 
@@ -74,6 +75,15 @@ const TabCredits = React.memo(function TabCredits(props: any) {
           <Field label="Durée restante (mois)"><Input type="number" placeholder="36" value={loan.durationRemaining} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, durationRemaining: e.target.value } : l) }))} className="rounded-xl h-8 text-sm" /></Field>
           <Field label="Objet"><Input placeholder="ex: Véhicule" value={loan.purpose} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, purpose: e.target.value } : l) }))} className="rounded-xl h-8 text-sm" /></Field>
         </div>
+        {/* Mensualité auto-calculée (barrière douce) : badge lecture seule seulement si NON saisie. */}
+        {/* Badge lecture seule du champ DÉDUIT (un seul à la fois selon autoField). */}
+        {(() => {
+          const auto = resolveOtherLoan(loan);
+          if (auto.autoField === 'monthlyPayment') return <div className="text-xs" style={{ color: BRAND.sky }}>Mensualité calculée : <strong>{euro(auto.monthlyPayment)}</strong>/mois</div>;
+          if (auto.autoField === 'capitalRemaining') return <div className="text-xs" style={{ color: BRAND.sky }}>Capital restant dû calculé : <strong>{euro(auto.capitalRemaining)}</strong></div>;
+          if (auto.autoField === 'durationRemaining') return <div className="text-xs" style={{ color: BRAND.sky }}>Durée restante calculée : <strong>{auto.durationRemaining} mois</strong></div>;
+          return null;
+        })()}
         <div className="rounded-xl border p-2.5 space-y-2" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
           <div className="flex items-center gap-2">
             <button role="switch" aria-checked={loan.hasInsurance}
@@ -115,7 +125,7 @@ const TabCredits = React.memo(function TabCredits(props: any) {
     // Le taux vient de la source unique computeTauxEndettement (meme chiffre que le PDF).
     const res = computeTauxEndettement(data);
     if (res.numerateurAnnuel <= 0) return null;
-    const totalPassif = (data.otherLoans || []).reduce((s, l) => s + n(l.capitalRemaining), 0);
+    const totalPassif = (data.otherLoans || []).reduce((s, l) => s + Math.max(0, resolveOtherLoan(l).capitalRemaining), 0); // CRD résolu (saisi ou déduit)
     const chargesMensuelles = Math.round(res.numerateurAnnuel / 12);
     const over = res.tauxPct > 35;
     return (

@@ -125,6 +125,11 @@ export function LoanModal({ loanModalPropertyId, setLoanModalPropertyId, data, a
                     </div>
                   </div>
                 </div>
+                {lv.amountAuto && (
+                  <div className="text-xs rounded-xl px-3 py-1.5" style={{ background: "rgba(81,106,199,0.06)", color: BRAND.sky, border: "1px solid rgba(81,106,199,0.18)" }}>
+                    Capital initial calculé : <strong>{euro(lv.amountResolved)}</strong>
+                  </div>
+                )}
                 {isInFine && n(loan.amount) > 0 && (
                   <div className="text-xs rounded-xl px-3 py-2" style={{ background: "rgba(81,106,199,0.06)", color: BRAND.sky, border: "1px solid rgba(81,106,199,0.18)" }}>
                     📐 <strong>IFI — Déduction dégressive (art. 974 II)</strong> : {euro(lv.ifiDeduction)} (capital réel : {euro(lv.capital)})

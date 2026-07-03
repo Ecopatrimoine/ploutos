@@ -5,7 +5,7 @@
 
 import type { PatrimonialData } from "../../types/patrimoine";
 import { resolveBeneficeTns } from "./ir";
-import { resolveLoanValuesMulti } from "./credit";
+import { resolveLoanValuesMulti, resolveOtherLoan } from "./credit";
 import { n } from "./utils";
 
 export function computeTauxEndettement(data: PatrimonialData): {
@@ -24,7 +24,8 @@ export function computeTauxEndettement(data: PatrimonialData): {
     monthlyImmo += r.monthlyPayment || 0;
     assuranceImmoAnnuelle += r.insurancePremiumAnnual || 0;
   }
-  const monthlyAutres = otherLoans.reduce((s, l) => s + n(l.monthlyPayment), 0);
+  // Mensualité auto-calculée si non saisie (barrière douce, resolveOtherLoan).
+  const monthlyAutres = otherLoans.reduce((s, l) => s + resolveOtherLoan(l).monthlyPayment, 0);
   // Assurance des autres credits : `insurancePremium` est ANNUELLE (libelle
   // "Prime annuelle (E)" dans TabCredits) et DISTINCTE de la mensualite du
   // credit (pas de double-compte). Comptee seulement si `hasInsurance`.

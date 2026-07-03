@@ -6,7 +6,7 @@
 
 import type { BilanEndettementPageData } from "../pages/pageBilanEndettement";
 import { isAV, isPERType } from "../../../calculs/utils";
-import { resolveLoanValuesMulti } from "../../../calculs/credit";
+import { resolveLoanValuesMulti, resolveOtherLoan } from "../../../calculs/credit";
 import { resolveBeneficeTns } from "../../../calculs/ir";
 import { computeTauxEndettement } from "../../../calculs/endettement";
 import { SEMANTIC_DANGER } from "../tokens";
@@ -39,7 +39,7 @@ export function buildBilanEndettementData(p: BuildBilanEndettementDataParams): B
   const otherLoans: any[] = Array.isArray(data.otherLoans) ? data.otherLoans : [];
 
   const immobilier = properties.reduce((s, p) => s + num(p.value), 0);
-  const autresCredits = otherLoans.reduce((s, l) => s + num(l.capitalRemaining ?? l.capitalRestant), 0);
+  const autresCredits = otherLoans.reduce((s, l) => s + Math.max(0, resolveOtherLoan(l as any).capitalRemaining), 0); // CRD résolu (saisi ou déduit)
 
   const avEtPER = placements.filter(pl => isAvOrPer(pl.type)).reduce((s, pl) => s + num(pl.value), 0);
   const placementsFinanciers = placements.filter(pl => !isAvOrPer(pl.type)).reduce((s, pl) => s + num(pl.value), 0);
@@ -62,7 +62,7 @@ export function buildBilanEndettementData(p: BuildBilanEndettementDataParams): B
     annualInsuranceImmo += r.insurancePremiumAnnual || 0;
     creditImmobilier += r.capital || 0;
   }
-  const monthlyCreditAutre = otherLoans.reduce((s, l) => s + num(l.monthlyPayment), 0);
+  const monthlyCreditAutre = otherLoans.reduce((s, l) => s + resolveOtherLoan(l as any).monthlyPayment, 0);
   // Assurance des autres credits : annuelle, comptee seulement si hasInsurance (cf endettement.ts).
   const assuranceCreditAutre = otherLoans.reduce((s, l) => s + (l.hasInsurance ? num(l.insurancePremium) : 0), 0);
   const chargesCreditAnnuelles = Math.round((monthlyCreditImmo + monthlyCreditAutre) * 12);
