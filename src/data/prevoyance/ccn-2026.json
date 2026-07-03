@@ -291,7 +291,7 @@
             "finAgeDefunt": 64,
             "assietteMinimumEuros": 26840,
             "beneficiaires": ["conjoint", "pacs", "concubin"],
-            "_comment": "Cible 12% SB reversion AGIRC-ARRCO comprise, jusqu'a l'age legal (64 ans, defunts nes >= 1968), CUMULABLE avec la rente education. Plancher d'assiette 4000 SR = 26 840 EUR (SR 6,71). Beneficiaires : mariage -> a defaut PACS -> a defaut concubin notoire (art 8.1). Suppression en cas de remariage/PACS du conjoint NON modelisee (gap). Maintenance : SR revalorise chaque 01/07."
+            "_comment": "Cible 12% SB reversion AGIRC-ARRCO comprise, jusqu'a l'age legal (64 ans, defunts nes >= 1968), CUMULABLE avec la rente education. Plancher d'assiette 4000 SR = 26 840 EUR (SR 6,71). Beneficiaires : mariage -> a defaut PACS -> a defaut concubin notoire (art 8.1). Suppression en cas de remariage/PACS du conjoint NON modelisee (gap). Maintenance : SR revalorise chaque 01/07. Verifie le 03/07/2026 : revalorisation 01/07/2026 non publiee (FNTP : dernier avenant 18/06/2025), statu quo 6.71 EUR. Re-controle prevu 09/2026."
           },
           "renteEducation": {
             "mode": "trancheAge",
@@ -357,7 +357,7 @@
             "finAgeDefunt": 64,
             "assietteMinimumEuros": 26840,
             "beneficiaires": ["conjoint", "pacs", "concubin"],
-            "_comment": "Cible 12% SB reversion AGIRC-ARRCO comprise, jusqu'a l'age legal (64 ans, defunts nes >= 1968), CUMULABLE avec la rente education. Plancher d'assiette 4000 SR = 26 840 EUR (SR 6,71). Beneficiaires : mariage -> a defaut PACS -> a defaut concubin notoire (art 8.1). Suppression en cas de remariage/PACS du conjoint NON modelisee (gap). Maintenance : SR revalorise chaque 01/07."
+            "_comment": "Cible 12% SB reversion AGIRC-ARRCO comprise, jusqu'a l'age legal (64 ans, defunts nes >= 1968), CUMULABLE avec la rente education. Plancher d'assiette 4000 SR = 26 840 EUR (SR 6,71). Beneficiaires : mariage -> a defaut PACS -> a defaut concubin notoire (art 8.1). Suppression en cas de remariage/PACS du conjoint NON modelisee (gap). Maintenance : SR revalorise chaque 01/07. Verifie le 03/07/2026 : revalorisation 01/07/2026 non publiee (FNTP : dernier avenant 18/06/2025), statu quo 6.71 EUR. Re-controle prevu 09/2026."
           },
           "renteEducation": {
             "mode": "trancheAge",
@@ -423,7 +423,7 @@
             "finAgeDefunt": 64,
             "assietteMinimumEuros": 26840,
             "beneficiaires": ["conjoint", "pacs", "concubin"],
-            "_comment": "Cible 12% SB reversion AGIRC-ARRCO comprise, jusqu'a l'age legal (64 ans, defunts nes >= 1968), CUMULABLE avec la rente education. Plancher d'assiette 4000 SR = 26 840 EUR (SR 6,71). Beneficiaires : mariage -> a defaut PACS -> a defaut concubin notoire (art 8.1). Suppression en cas de remariage/PACS du conjoint NON modelisee (gap). Maintenance : SR revalorise chaque 01/07."
+            "_comment": "Cible 12% SB reversion AGIRC-ARRCO comprise, jusqu'a l'age legal (64 ans, defunts nes >= 1968), CUMULABLE avec la rente education. Plancher d'assiette 4000 SR = 26 840 EUR (SR 6,71). Beneficiaires : mariage -> a defaut PACS -> a defaut concubin notoire (art 8.1). Suppression en cas de remariage/PACS du conjoint NON modelisee (gap). Maintenance : SR revalorise chaque 01/07. Verifie le 03/07/2026 : revalorisation 01/07/2026 non publiee (FNTP : dernier avenant 18/06/2025), statu quo 6.71 EUR. Re-controle prevu 09/2026."
           },
           "renteEducation": {
             "mode": "trancheAge",
