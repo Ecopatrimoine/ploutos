@@ -705,6 +705,8 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       // certaines vues, mais ici le total réel = bareme1 + bareme2 + PS + PFU)
       finalIR1: bareme1 + foncierPS1 + (pfuBase1 * 0.314) + (perInteretsPFU1 * 0.314) + perRentesPS1,
       finalIR2: bareme2 + foncierPS2 + (pfuBase2 * 0.314) + (perInteretsPFU2 * 0.314) + perRentesPS2,
+      // Exposition (Lot FIX-FONCIER) : foyer-wide, cohérent avec foncierCharges exposé.
+      jeanbrunRetenu, foncierChargesTotal: foncierCharges + jeanbrunRetenu,
       dispositifsFiscaux: {
         reductions: [...socle1.detail, ...socle2.detail],
         jeanbrun: (jeanbrun1 || jeanbrun2) ? {
@@ -782,6 +784,8 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     quotientFamilialCapAdjustment, qfBenefit, qfCap, marginalRate, averageRate,
     bracketFill, currentBracketLabel: currentBracket.label, indicatorPct, visualMax,
     avRachatImpot, perCapitalImposable, perInteretsPFU, perRentesImposable, perRentesPS, isConcubin: false, plafondPER, plafondPER1, plafondPER2, perDeductionCalc, perP1Deductible, perP2Deductible, deficitFoncierImpute, deficitFoncierReportable,
+    // Exposition (Lot FIX-FONCIER) : la card comparaison lit ces champs au lieu de recalculer.
+    jeanbrunRetenu, foncierChargesTotal: foncierCharges + jeanbrunRetenu,
     dispositifsFiscaux: {
       reductions: socleReductions.detail,
       jeanbrun: jeanbrunFoyer ? { parBien: jeanbrunFoyer.parBien, plafond: jeanbrunFoyer.plafondFoyer, ecretement: jeanbrunFoyer.ecretement } : null,

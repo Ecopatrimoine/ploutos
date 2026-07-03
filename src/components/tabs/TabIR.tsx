@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Settings, FileText, Database } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
-import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, DISPOSITIFS_FISCAUX, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
+import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, DISPOSITIFS_FISCAUX, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA, SEUIL_MICRO_FONCIER } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
@@ -62,7 +62,7 @@ const TabIR = React.memo(function TabIR(props: any) {
       })()}
 
       {/* Warning micro-foncier > 15 000 € */}
-      {irOptions.foncierRegime === "micro" && ir.foncierBrut > 15000 && (
+      {irOptions.foncierRegime === "micro" && ir.foncierBrut > SEUIL_MICRO_FONCIER && (
         <div className="flex items-start gap-2 rounded-xl px-3 py-2 text-xs"
           style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
           <span className="shrink-0 text-sm mt-0.5">⚠️</span>
@@ -340,23 +340,38 @@ const TabIR = React.memo(function TabIR(props: any) {
                 <SelectContent><SelectItem value="micro">Micro-foncier (30 %)</SelectItem><SelectItem value="real">Régime réel</SelectItem></SelectContent>
               </Select>
             </Field>
-            {/* Comparaison micro vs réel — calcul local d'affichage uniquement */}
+            {/* Comparaison micro vs réel — lit le moteur (foncierChargesTotal inclut l'amortissement Jeanbrun) */}
             {ir.foncierBrut > 0 && (() => {
+              const irAny2: any = ir;
+              const chargesTotal = irAny2.foncierChargesTotal ?? ir.foncierCharges; // inclut Jeanbrun (exposé par ir.ts)
+              const jeanbrunRetenu = irAny2.jeanbrunRetenu ?? 0;
               const microVal = Math.max(0, ir.foncierBrut * 0.7);
-              const reelVal = Math.max(0, ir.foncierBrut - ir.foncierCharges - ir.foncierInterests);
+              const reelVal = Math.max(0, ir.foncierBrut - chargesTotal - ir.foncierInterests);
               const isMicro = irOptions.foncierRegime === "micro";
+              // Éligibilité micro-foncier (art. 32) : brut <= seuil ET aucun dispositif exigeant le réel.
+              // Réutilise dispositifsFiscaux exposé (statuts incompatibles micro + jeanbrun/locavantages actifs).
+              const df: any = ir.dispositifsFiscaux;
+              const dispositifExigeReel = !!df && (
+                (df.statuts || []).some((s: any) => s.statut === "incompatible")
+                || (df.jeanbrun && df.jeanbrun.parBien && df.jeanbrun.parBien.length > 0)
+                || (df.reductions || []).some((r: any) => String(r.id).startsWith("locavantages"))
+              );
+              const microDisponible = ir.foncierBrut <= SEUIL_MICRO_FONCIER && !dispositifExigeReel;
+              const motifIndispo = ir.foncierBrut > SEUIL_MICRO_FONCIER
+                ? `indisponible : revenus bruts > ${euro(SEUIL_MICRO_FONCIER)}`
+                : "indisponible : dispositif exigeant le régime réel";
               const diff = microVal - reelVal;
               return (
                 <div className="space-y-2">
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     <div style={{
-                      background: isMicro ? BRAND.cream : SURFACE.app,
-                      border: `1.5px solid ${isMicro ? BRAND.gold : SURFACE.border}`,
-                      borderRadius: 10, padding: "10px", textAlign: "center",
+                      background: microDisponible && isMicro ? BRAND.cream : SURFACE.app,
+                      border: `1.5px solid ${microDisponible && isMicro ? BRAND.gold : SURFACE.border}`,
+                      borderRadius: 10, padding: "10px", textAlign: "center", opacity: microDisponible ? 1 : 0.5,
                     }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: isMicro ? BRAND.goldText : BRAND.muted, textTransform: "uppercase", letterSpacing: "0.5px" }}>Micro-foncier</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: microDisponible && isMicro ? BRAND.goldText : BRAND.muted, textTransform: "uppercase", letterSpacing: "0.5px" }}>Micro-foncier</div>
                       <div style={{ fontSize: 20, fontWeight: 900, color: BRAND.navy, marginTop: 4 }}>{euro(microVal)}</div>
-                      <div style={{ fontSize: 10, color: BRAND.muted }}>imposable</div>
+                      <div style={{ fontSize: 10, color: BRAND.muted }}>{microDisponible ? "imposable" : motifIndispo}</div>
                     </div>
                     <div style={{
                       background: !isMicro ? BRAND.cream : SURFACE.app,
@@ -366,9 +381,10 @@ const TabIR = React.memo(function TabIR(props: any) {
                       <div style={{ fontSize: 10, fontWeight: 700, color: !isMicro ? BRAND.goldText : BRAND.muted, textTransform: "uppercase", letterSpacing: "0.5px" }}>Régime réel</div>
                       <div style={{ fontSize: 20, fontWeight: 900, color: BRAND.navy, marginTop: 4 }}>{euro(reelVal)}</div>
                       <div style={{ fontSize: 10, color: BRAND.muted }}>imposable</div>
+                      {jeanbrunRetenu > 0 && <div style={{ fontSize: 10, color: BRAND.muted, marginTop: 2 }}>dont amortissement Jeanbrun − {euro(jeanbrunRetenu)}</div>}
                     </div>
                   </div>
-                  {Math.abs(diff) > 10 && (
+                  {microDisponible && Math.abs(diff) > 10 && (
                     <div style={{ fontSize: 11, fontWeight: 700, textAlign: "center", color: diff > 0 ? BRAND.success : BRAND.danger }}>
                       {diff > 0
                         ? `💡 Le réel ferait économiser ${euro(diff)} de base imposable`

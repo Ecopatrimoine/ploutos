@@ -131,6 +131,11 @@ export const DISPOSITIFS_PAR_NATURE: Record<string, string[]> = {
   "SCI IR":       ["pinel", "pinelPlus", "denormandie", "locavantages", "jeanbrunRelanceLogement"],
 };
 
+// Seuil légal du régime micro-foncier (art. 32 CGI) : revenus fonciers BRUTS
+// annuels. Au-delà, le micro-foncier est inaccessible (régime réel obligatoire).
+// Source unique consommée par le warning ET la comparaison micro/réel de TabIR.
+export const SEUIL_MICRO_FONCIER = 15000;
+
 export const CHILD_LINKS = [
   { value: "common_child", label: "Enfant commun" },
   { value: "person1_only", label: "Enfant de personne 1 uniquement" },
