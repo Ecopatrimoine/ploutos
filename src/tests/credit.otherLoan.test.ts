@@ -68,3 +68,43 @@ describe("endettement — intégration resolveOtherLoan", () => {
     expect(res.numerateurAnnuel).toBeCloseTo(auto * 12, 4);
   });
 });
+
+describe("resolveOtherLoan — déduction CRD / durée (1e-D)", () => {
+  it("CRD déduit : M exact, 5%, 24 mois -> CRD ~10000 (aller-retour)", () => {
+    const M = resolveOtherLoan(ol({ capitalRemaining: "10000", rate: "5", durationRemaining: "24" })).monthlyPayment;
+    const r = resolveOtherLoan(ol({ monthlyPayment: String(M), rate: "5", durationRemaining: "24" }));
+    expect(r.autoField).toBe("capitalRemaining");
+    expect(r.capitalRemaining).toBeCloseTo(10000, 2);
+  });
+
+  it("durée déduite : CRD 10000, M exact, 5% -> 24 mois (ceil tolérant)", () => {
+    const M = resolveOtherLoan(ol({ capitalRemaining: "10000", rate: "5", durationRemaining: "24" })).monthlyPayment;
+    const r = resolveOtherLoan(ol({ capitalRemaining: "10000", monthlyPayment: String(M), rate: "5" }));
+    expect(r.autoField).toBe("durationRemaining");
+    expect(r.durationRemaining).toBe(24);
+  });
+
+  it("garde-fou : mensualité <= intérêts du 1er mois -> pas de déduction de durée", () => {
+    // CRD 10000, taux 5% -> intérêts ~41,67 €/mois ; M 40 < intérêts
+    const r = resolveOtherLoan(ol({ capitalRemaining: "10000", monthlyPayment: "40", rate: "5" }));
+    expect(r.autoField).toBeNull();
+    expect(r.durationRemaining).toBe(0);
+  });
+
+  it("taux 0 : CRD = M*n ; durée = ceil(CRD/M)", () => {
+    const crd = resolveOtherLoan(ol({ monthlyPayment: "500", durationRemaining: "24" }));
+    expect(crd.autoField).toBe("capitalRemaining");
+    expect(crd.capitalRemaining).toBeCloseTo(12000, 6);
+    const dur = resolveOtherLoan(ol({ capitalRemaining: "12000", monthlyPayment: "500" }));
+    expect(dur.autoField).toBe("durationRemaining");
+    expect(dur.durationRemaining).toBe(24);
+  });
+
+  it("3 champs saisis -> autoField null, valeurs intactes (aucune vérif de cohérence)", () => {
+    const r = resolveOtherLoan(ol({ monthlyPayment: "450", capitalRemaining: "10000", durationRemaining: "24", rate: "5" }));
+    expect(r.autoField).toBeNull();
+    expect(r.monthlyPayment).toBe(450);
+    expect(r.capitalRemaining).toBe(10000);
+    expect(r.durationRemaining).toBe(24);
+  });
+});
