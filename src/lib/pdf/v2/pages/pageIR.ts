@@ -56,6 +56,12 @@ export type IRPageData = {
   // Pagination
   pagePosition: string;     // "2 / 8"
   cabinetLibellePied: string;
+  // ── Dispositifs fiscaux immobiliers (Lot E) — OPTIONNELS : absents ⇒ section masquée,
+  //    sortie byte-identique à l'existant (dossier sans dispositif). ──
+  reductionsDispositifs?: { label: string; montant: number }[]; // montant = imputé
+  jeanbrun?: { retenu: number; ecretement: number } | null;
+  ecretementNiches?: number;
+  statutsNonOk?: { bienNom: string; dispositifLabel: string; motif: string }[];
 };
 
 export function pageIR(t: Tokens, d: IRPageData): string {
@@ -81,12 +87,28 @@ export function pageIR(t: Tokens, d: IRPageData): string {
   // Échelle commune : 100 % = revenus bruts.
   const echelle = d.revenusBruts || 1;
   const pctCascade = (v: number) => Math.min(100, Math.round((v / echelle) * 100));
+  // Format 2 décimales (réductions/amortissements exacts) : round -> sans décimale, sinon 2.
+  const euro2 = (v: number) => new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(v) + " €";
+  const reductionsDispositifs = d.reductionsDispositifs ?? [];
+  const jeanbrun = d.jeanbrun ?? null;
+  const ecretementNiches = d.ecretementNiches ?? 0;
+  const statutsNonOk = d.statutsNonOk ?? [];
   const items: CascadeItem[] = [
     { label: "Revenus bruts",         pct: 100,                                  valeur: euro(d.revenusBruts),                type: "revenu" },
     { label: "− Abattement 10 %",     pct: pctCascade(d.abattement10pct),        valeur: `− ${euro(d.abattement10pct)}`,      type: "deduction" },
     { label: "Revenu net imposable",  pct: pctCascade(d.revenuNetImposable),     valeur: euro(d.revenuNetImposable),          type: "netImposable" },
+    // dont amortissement Jeanbrun (déjà reflété dans le revenu net imposable — informatif).
+    ...(jeanbrun ? [{ label: "dont amortissement Jeanbrun Relance logement" + (jeanbrun.ecretement > 0 ? ` — plafond foyer atteint (${euro2(jeanbrun.ecretement)} écrêtés)` : ""), pct: pctCascade(jeanbrun.retenu), valeur: `− ${euro2(jeanbrun.retenu)}`, type: "deduction" as const }] : []),
+    // Réductions d'impôt (une par dispositif) avant l'impôt net.
+    ...reductionsDispositifs.map((r) => ({ label: `Réduction ${r.label}`, pct: pctCascade(r.montant), valeur: `− ${euro2(r.montant)}`, type: "deduction" as const })),
+    ...(ecretementNiches > 0 ? [{ label: "Plafonnement global des niches (10 000 €)", pct: pctCascade(ecretementNiches), valeur: `− ${euro2(ecretementNiches)} non imputés`, type: "deduction" as const }] : []),
     { label: "Impôt sur le revenu",   pct: pctCascade(d.impotNetDu),             valeur: euro(d.impotNetDu),                  type: "impot" },
   ];
+  // Notes de bas de section (statuts non-ok, une ligne chacun ; mention 150 VB si amortissement actif).
+  const notes: string[] = [];
+  for (const s of statutsNonOk) notes.push(`${s.dispositifLabel} — ${s.bienNom} : ${s.motif}`);
+  if (jeanbrun) notes.push("Les amortissements déduits minoreront le prix d'acquisition pour le calcul de la plus-value en cas de cession (art. 150 VB CGI).");
+  const notesHtml = notes.length > 0 ? "\n      " + notes.map((nn) => `<div class="foot">${nn}</div>`).join("\n      ") : "";
 
   // ─── Barème IR par tranche (PUR AFFICHAGE de d.bracketFill, calculé sur le QUOTIENT) ──
   // Option A « par part » : hauteur = revenu logé par tranche pour une part ; montant = impôt
@@ -134,7 +156,7 @@ export function pageIR(t: Tokens, d: IRPageData): string {
       kind: "insecable",
       html: `<div style="margin-top:24px">
       ${sousTitreSection(t, "De vos revenus à l'impôt")}
-      ${cascadeRevenus(t, items)}
+      ${cascadeRevenus(t, items)}${notesHtml}
     </div>`,
     },
     // Barème par tranche (par part) — inséré après la cascade, avant « Notre lecture ».

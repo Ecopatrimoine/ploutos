@@ -5,6 +5,8 @@
 // l'adapter ne fait que mapper + formatter pour l'affichage.
 
 import type { IRPageData } from "../pages/pageIR";
+import { DISPOSITIFS_FISCAUX } from "../../../../constants";
+import { referentiels } from "../../../../data/prevoyance";
 
 export type BuildIRDataParams = {
   ir: any;
@@ -74,6 +76,25 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
     <p style="margin:0;font-style:italic;color:#6B6353"><strong>Leviers à étudier :</strong> ${leviers.join(" ; ")}.</p>
   `.trim();
 
+  // ── Dispositifs fiscaux (Lot E) : mappe dispositifsFiscaux + jeanbrunRetenu déjà
+  //    exposés par le moteur (aucun recalcul). Labels via DISPOSITIFS_FISCAUX (jamais les ids). ──
+  const df = ir.dispositifsFiscaux || {};
+  const dispoLabel = (id: string) => DISPOSITIFS_FISCAUX.find((x) => x.value === String(id).split("_")[0])?.label ?? String(id).split("_")[0];
+  const reductionsDispositifs = (df.reductions || [])
+    .filter((r: any) => r.id !== "forfait_scolaire" && r.impute > 0)
+    .map((r: any) => ({ label: dispoLabel(r.id), montant: r.impute }));
+  const jeanbrunRetenu = Number(ir.jeanbrunRetenu) || 0;
+  const jeanbrun = jeanbrunRetenu > 0 ? { retenu: jeanbrunRetenu, ecretement: Number(df.jeanbrun?.ecretement) || 0 } : null;
+  // Écrêtement niches (art. 200-0 A) reconstruit depuis le détail : cumul des réductions
+  // plafonnables (hors forfait scolaire) au-delà du plafond global. Pas de re-résolution.
+  const totalPlafonnable = (df.reductions || []).filter((r: any) => r.id !== "forfait_scolaire").reduce((s: number, r: any) => s + (Number(r.montant) || 0), 0);
+  const ecretementNiches = Math.max(0, totalPlafonnable - (Number(referentiels.pass.plafondGlobalNiches) || 0));
+  const statutsNonOk = (df.statuts || []).map((s: any) => ({
+    bienNom: (data.properties || []).find((pp: any) => pp.id === s.idBien)?.name || "Bien immobilier",
+    dispositifLabel: DISPOSITIFS_FISCAUX.find((x) => x.value === s.dispositif)?.label ?? s.dispositif,
+    motif: s.motif,
+  }));
+
   return {
     clientName,
     dateStr,
@@ -97,6 +118,10 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
     notreLecture: p.notreLecture || notreLectureCalculee,
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Fiscalité — confidentiel`,
+    reductionsDispositifs,
+    jeanbrun,
+    ecretementNiches,
+    statutsNonOk,
   };
 }
 
