@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -8,13 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Settings, FileText, Database } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
-import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
+import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, EMPTY_CHARGES_COURANTES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
 import { computeBeneficeImposable } from "../../lib/calculs/ir";
+import { computeBudget } from "../../lib/calculs/budget";
 import { BlocMadelinSynthese } from "../prevoyance/BlocMadelinSynthese";
+import { ChargesModal } from "../ChargesModal";
 
 
 // ── TabRevenus ─────────────────────────────────────────────────────────────────────
@@ -45,9 +47,29 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
       .filter((p: any) => isPERType(p.type) && p.ownership === (which === 1 ? "person1" : "person2"))
       .reduce((s: number, p: any) => s + n(p.annualContribution || ""), 0);
 
+  // ── Budget du foyer (Lot C) : source UNIQUE = computeBudget. AUCUN recalcul
+  // maison ici. useMemo local sur [data, ir] (ir est deja memoise par le parent). ──
+  const budget = useMemo(() => computeBudget(data, ir), [data, ir]);
+
+  // Etat local de la modale de detail des charges courantes (UI pure).
+  const [chargesModalOpen, setChargesModalOpen] = useState(false);
+
+  // Encart charges courantes : nombre de postes renseignes (barriere douce,
+  // "0" compris) pour le badge "total detaille (N postes)".
+  const ccDetail = data.chargesCourantesDetail || EMPTY_CHARGES_COURANTES_DETAIL;
+  const ccPostesRenseignes = [ccDetail.loyerRP, ccDetail.energie, ccDetail.assurancesPerso, ccDetail.scolarite, ccDetail.transport, ccDetail.autres]
+    .filter((v) => String(v ?? "").trim() !== "").length;
+
   return (
 <TabsContent value="revenus" className="space-y-4">
-  {/* Grille 2 colonnes : une par personne */}
+  {/* 1. Bandeau budget : 3 KPI (source UNIQUE computeBudget) */}
+  <div className="grid gap-4 md:grid-cols-3">
+    <MetricCard label="Revenus du foyer /mois"  value={euro(budget.revenusMensuels)}   accent="navy" />
+    <MetricCard label="Charges du foyer /mois"   value={euro(budget.chargesMensuelles)} accent="gold" />
+    <MetricCard label="Capacité d'épargne /mois" value={euro(budget.capaciteEpargne)}   accent={budget.capaciteEpargne >= 0 ? "green" : "red"} hint={budget.hasChargesCourantes ? undefined : "hors charges courantes non renseignées"} />
+  </div>
+
+  {/* 2. Cartes personnes — grille 2 colonnes : une par personne (contenu inchange) */}
   <div className="grid gap-4 md:grid-cols-2">
   {([1, 2] as const).map((which) => {
     const groupe = which === 1 ? data.person1PcsGroupe : data.person2PcsGroupe;
@@ -295,10 +317,12 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
 
   </div>{/* fin grid 2 colonnes */}
 
-  {/* ── Pensions nominatives ── */}
-  {(!isRetraite(data.person1PcsGroupe) || !isRetraite(data.person2PcsGroupe)) && (
-    <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-      <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Autres revenus</div>
+  {/* 3. Autres revenus (fusion : pensions nominatives + rentes PER, un seul titre) */}
+  <div className="border p-4 space-y-4" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+    <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Autres revenus</div>
+
+    {/* Pensions nominatives (conditions d'affichage inchangees) */}
+    {(!isRetraite(data.person1PcsGroupe) || !isRetraite(data.person2PcsGroupe)) && (
       <div className="grid gap-3 md:grid-cols-2">
         {!isRetraite(data.person1PcsGroupe) && (
           <MoneyField
@@ -317,74 +341,107 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
           />
         )}
       </div>
-    </div>
-  )}
-
-  {/* ── Rentes PER ── */}
-  <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-    <div className="flex items-center justify-between">
-      <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Rentes PER — Phase de rente</div>
-      <Button variant="outline" className="h-7 rounded-xl px-3 text-xs"
-        onClick={() => setData(prev => ({ ...prev, perRentes: [...(prev.perRentes || []), { owner: "person1", annualAmount: "", ageAtFirst: "" }] }))}>
-        <Plus className="mr-1 h-3 w-3" />Ajouter une rente
-      </Button>
-    </div>
-    {(!data.perRentes || data.perRentes.length === 0) && (
-      <div className="text-xs text-slate-400 italic">Aucune rente PER. Les rentes PER sont imposées selon le régime des rentes viagères à titre onéreux (RVTO, art. 158-6 CGI) : seule une fraction est imposable au barème selon l'âge au 1er versement.</div>
     )}
-    {(data.perRentes || []).map((rente, ri) => {
-      const montant = n(rente.annualAmount || "");
-      const age = Math.max(0, n(rente.ageAtFirst || "0"));
-      const fraction = fractionRVTO(age);
-      const imposable = montant * fraction;
-      const ps = imposable * 0.172;
-      return (
-        <div key={ri} className="rounded-xl border p-3 space-y-2" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-          {/* Ligne 1 : titulaire + montant + âge */}
-          <div className="grid gap-2 grid-cols-[1fr_1.2fr_1fr_auto]">
-            <Field label="Titulaire">
-              <Select value={rente.owner} onValueChange={(v) => setData(prev => ({ ...prev, perRentes: prev.perRentes.map((r, i) => i === ri ? { ...r, owner: v } : r) }))}>
-                <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="person1">{person1}</SelectItem>
-                  <SelectItem value="person2">{person2 || "Personne 2"}</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <MoneyField label="Rente annuelle brute (€)" tooltip="Montant annuel brut de la rente PER perçue. La fraction imposable est calculée automatiquement selon l'âge au 1er versement." value={rente.annualAmount} onChange={(e) => setData(prev => ({ ...prev, perRentes: prev.perRentes.map((r, i) => i === ri ? { ...r, annualAmount: e.target.value } : r) }))} compact />
-            <Field label="Âge au 1er versement" tooltip="Âge au moment du 1er versement de rente. Détermine la fraction imposable : <50 ans = 70%, 50-59 = 50%, 60-69 = 40%, ≥70 = 30%.">
-              <Input type="number" min="18" max="100" placeholder="ex: 65" value={rente.ageAtFirst} onChange={(e) => setData(prev => ({ ...prev, perRentes: prev.perRentes.map((r, i) => i === ri ? { ...r, ageAtFirst: e.target.value } : r) }))} className="rounded-xl h-8 text-sm" />
-            </Field>
-            <div className="flex items-end pb-0.5">
-              <Button variant="outline" className="h-8 w-8 rounded-xl p-0" onClick={() => setData(prev => ({ ...prev, perRentes: prev.perRentes.filter((_, i) => i !== ri) }))}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+
+    {/* Rentes PER — Phase de rente (sous-bloc, contenu inchange) */}
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Rentes PER — Phase de rente</div>
+        <Button variant="outline" className="h-7 rounded-xl px-3 text-xs"
+          onClick={() => setData(prev => ({ ...prev, perRentes: [...(prev.perRentes || []), { owner: "person1", annualAmount: "", ageAtFirst: "" }] }))}>
+          <Plus className="mr-1 h-3 w-3" />Ajouter une rente
+        </Button>
+      </div>
+      {(!data.perRentes || data.perRentes.length === 0) && (
+        <div className="text-xs text-slate-400 italic">Aucune rente PER. Les rentes PER sont imposées selon le régime des rentes viagères à titre onéreux (RVTO, art. 158-6 CGI) : seule une fraction est imposable au barème selon l'âge au 1er versement.</div>
+      )}
+      {(data.perRentes || []).map((rente, ri) => {
+        const montant = n(rente.annualAmount || "");
+        const age = Math.max(0, n(rente.ageAtFirst || "0"));
+        const fraction = fractionRVTO(age);
+        const imposable = montant * fraction;
+        const ps = imposable * 0.172;
+        return (
+          <div key={ri} className="rounded-xl border p-3 space-y-2" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+            {/* Ligne 1 : titulaire + montant + âge */}
+            <div className="grid gap-2 grid-cols-[1fr_1.2fr_1fr_auto]">
+              <Field label="Titulaire">
+                <Select value={rente.owner} onValueChange={(v) => setData(prev => ({ ...prev, perRentes: prev.perRentes.map((r, i) => i === ri ? { ...r, owner: v } : r) }))}>
+                  <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="person1">{person1}</SelectItem>
+                    <SelectItem value="person2">{person2 || "Personne 2"}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <MoneyField label="Rente annuelle brute (€)" tooltip="Montant annuel brut de la rente PER perçue. La fraction imposable est calculée automatiquement selon l'âge au 1er versement." value={rente.annualAmount} onChange={(e) => setData(prev => ({ ...prev, perRentes: prev.perRentes.map((r, i) => i === ri ? { ...r, annualAmount: e.target.value } : r) }))} compact />
+              <Field label="Âge au 1er versement" tooltip="Âge au moment du 1er versement de rente. Détermine la fraction imposable : <50 ans = 70%, 50-59 = 50%, 60-69 = 40%, ≥70 = 30%.">
+                <Input type="number" min="18" max="100" placeholder="ex: 65" value={rente.ageAtFirst} onChange={(e) => setData(prev => ({ ...prev, perRentes: prev.perRentes.map((r, i) => i === ri ? { ...r, ageAtFirst: e.target.value } : r) }))} className="rounded-xl h-8 text-sm" />
+              </Field>
+              <div className="flex items-end pb-0.5">
+                <Button variant="outline" className="h-8 w-8 rounded-xl p-0" onClick={() => setData(prev => ({ ...prev, perRentes: prev.perRentes.filter((_, i) => i !== ri) }))}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
+            {/* Ligne 2 : simulation fiscale */}
+            {montant > 0 && age > 0 && (
+              <div className="rounded-xl px-3 py-2 text-xs grid grid-cols-2 gap-x-4 gap-y-1"
+                style={{ background: "rgba(81,106,199,0.06)", border: "1px solid rgba(81,106,199,0.15)" }}>
+                <span className="font-semibold col-span-2" style={{ color: BRAND.sky }}>RVTO — Fraction imposable {Math.round(fraction * 100)}% (âge {age} ans)</span>
+                <span className="text-slate-500">Fraction imposable au barème :</span>
+                <span className="font-medium text-right">{euro(imposable)}</span>
+                <span className="text-slate-500">IR estimé ({Math.round(ir.marginalRate * 100)}% TMI) :</span>
+                <span className="font-medium text-right">{euro(imposable * ir.marginalRate)}</span>
+                <span className="text-slate-500">PS 17,2% sur fraction :</span>
+                <span className="font-medium text-right">{euro(ps)}</span>
+                <span className="font-semibold text-slate-600">Total estimé :</span>
+                <span className="font-semibold text-right" style={{ color: BRAND.sky }}>{euro(imposable * ir.marginalRate + ps)}</span>
+              </div>
+            )}
           </div>
-          {/* Ligne 2 : simulation fiscale */}
-          {montant > 0 && age > 0 && (
-            <div className="rounded-xl px-3 py-2 text-xs grid grid-cols-2 gap-x-4 gap-y-1"
-              style={{ background: "rgba(81,106,199,0.06)", border: "1px solid rgba(81,106,199,0.15)" }}>
-              <span className="font-semibold col-span-2" style={{ color: BRAND.sky }}>RVTO — Fraction imposable {Math.round(fraction * 100)}% (âge {age} ans)</span>
-              <span className="text-slate-500">Fraction imposable au barème :</span>
-              <span className="font-medium text-right">{euro(imposable)}</span>
-              <span className="text-slate-500">IR estimé ({Math.round(ir.marginalRate * 100)}% TMI) :</span>
-              <span className="font-medium text-right">{euro(imposable * ir.marginalRate)}</span>
-              <span className="text-slate-500">PS 17,2% sur fraction :</span>
-              <span className="font-medium text-right">{euro(ps)}</span>
-              <span className="font-semibold text-slate-600">Total estimé :</span>
-              <span className="font-semibold text-right" style={{ color: BRAND.sky }}>{euro(imposable * ir.marginalRate + ps)}</span>
-            </div>
-          )}
-        </div>
-      );
-    })}
+        );
+      })}
+    </div>
   </div>
 
-  {/* ── Charges déductibles ── */}
+  {/* 4. Charges du foyer : charges courantes (Lot B) + charges deductibles */}
   <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-    <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Charges déductibles du revenu global</div>
-    {/* Versements PER déplacés dans l'onglet Placements */}
+    <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Charges du foyer</div>
+
+    {/* Encart charges courantes : detail (barriere douce) ou global libre */}
+    <div className="rounded-xl p-3 space-y-2" style={{ background: "rgba(81,106,199,0.06)", border: "1px solid rgba(81,106,199,0.15)" }}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-xs font-semibold" style={{ color: BRAND.navy }}>Charges courantes (train de vie)</div>
+        <button
+          onClick={() => setChargesModalOpen(true)}
+          className="flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-colors"
+          style={{ background: ccPostesRenseignes > 0 ? BRAND.navy : "rgba(81,106,199,0.1)", color: ccPostesRenseignes > 0 ? "#fff" : BRAND.sky, border: ccPostesRenseignes > 0 ? "none" : "1px solid rgba(81,106,199,0.2)", whiteSpace: "nowrap" }}
+          title="Détailler les charges courantes par poste"
+        >
+          <FileText className="h-3 w-3" />
+          {ccPostesRenseignes > 0 ? "Détail ✓" : "Détailler"}
+        </button>
+      </div>
+      {ccPostesRenseignes > 0 ? (
+        <div className="flex items-center justify-between">
+          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(38,66,139,0.1)", color: BRAND.sky }}>
+            total détaillé ({ccPostesRenseignes} poste{ccPostesRenseignes > 1 ? "s" : ""})
+          </span>
+          <span className="text-sm font-bold" style={{ color: BRAND.navy }}>{euro(budget.detail.chargesCourantes)}/mois</span>
+        </div>
+      ) : (
+        <MoneyField
+          label="Montant global (€/mois)"
+          tooltip="Charges courantes mensuelles du foyer (loyer, énergie, assurances, scolarité, transport…). Cliquez sur « Détailler » pour ventiler par poste — sinon ce montant global reste libre."
+          value={data.chargesCourantes || ""}
+          onChange={(e) => setField("chargesCourantes", e.target.value)}
+          compact
+        />
+      )}
+    </div>
+
+    {/* Charges deductibles du revenu global (libelles inchanges) */}
     <MoneyField label="Pensions alimentaires déductibles" tooltip="Pensions alimentaires versées à un enfant majeur ou à un ex-conjoint, déductibles sous conditions." value={data.pensionDeductible} onChange={(e) => setField("pensionDeductible", e.target.value)} />
     <MoneyField label="Autres charges déductibles" tooltip="Autres déductions du revenu global : épargne retraite PERP, déduction épargne handicap, etc. Les cotisations Madelin ont leur poste dédié ci-dessous." value={data.otherDeductible} onChange={(e) => setField("otherDeductible", e.target.value)} />
     <MoneyField
@@ -393,10 +450,53 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
       value={data.csgDeductibleFoncier || ""}
       onChange={(e) => setField("csgDeductibleFoncier", e.target.value)}
     />
-    {/* Madelin prévoyance (Lot B4) — synthèse par personne TNS (auto-masquée sinon) */}
+  </div>
+
+  {/* 5. Madelin prevoyance — 2 blocs en colonnes (P1 | P2). Bloc inchange, seul le conteneur change (dette "2 blocs empiles" soldee). */}
+  <div className="grid gap-4 md:grid-cols-2">
     <BlocMadelinSynthese data={data} which={1} benefice={beneficeMadelin(1)} plafondPER={ir.plafondPER1 ?? 0} versementsPER={versementsPERMadelin(1)} setField={setField} />
     <BlocMadelinSynthese data={data} which={2} benefice={beneficeMadelin(2)} plafondPER={ir.plafondPER2 ?? 0} versementsPER={versementsPERMadelin(2)} setField={setField} />
   </div>
+
+  {/* 6. Budget du foyer — detail du calcul (lecture seule, source computeBudget) */}
+  <div className="border p-4 space-y-2" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+    <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Budget du foyer — détail du calcul</div>
+    <div className="text-xs" style={{ color: BRAND.muted }}>Montants mensuels.</div>
+    {(() => {
+      const d = budget.detail;
+      const ligne = (label: string, valeur: number, opts: { total?: boolean; couleur?: string } = {}) => (
+        <div key={label} className="flex items-center justify-between py-1" style={opts.total ? { borderTop: `1px solid ${SURFACE.border}`, marginTop: 2, paddingTop: 5 } : undefined}>
+          <span className="text-xs" style={{ color: opts.total ? BRAND.navy : BRAND.muted, fontWeight: opts.total ? 700 : 400 }}>{label}</span>
+          <span className="text-xs" style={{ color: opts.couleur || BRAND.navy, fontWeight: opts.total ? 700 : 500 }}>{euro(valeur)}</span>
+        </div>
+      );
+      return (
+        <div className="space-y-0.5">
+          {ligne("Salaires + pensions", d.salairesPensions)}
+          {ligne("Bénéfice TNS", d.beneficeTns)}
+          {ligne("Rentes PER", d.rentesPer)}
+          {ligne("Loyers bruts (100 %)", d.loyersBruts)}
+          {ligne("Retraits AV / PER", d.retraitsAvPer)}
+          {ligne("Revenus du foyer", budget.revenusMensuels, { total: true })}
+          {ligne("Charges courantes", d.chargesCourantes)}
+          {ligne("Charges foncières", d.chargesFoncieres)}
+          {ligne("Crédits + assurances", d.creditsAssurances)}
+          {ligne("Impôts calculés (IR tout compris)", d.impots)}
+          {ligne("Pension versée", d.pensionVersee)}
+          {ligne("Charges du foyer", budget.chargesMensuelles, { total: true })}
+          {ligne("Capacité d'épargne", budget.capaciteEpargne, { total: true, couleur: budget.capaciteEpargne >= 0 ? BRAND.success : BRAND.danger })}
+        </div>
+      );
+    })()}
+    {!budget.hasChargesCourantes && (
+      <div className="text-xs" style={{ color: BRAND.muted, fontStyle: "italic" }}>
+        Capacité d'épargne calculée hors charges courantes non renseignées.
+      </div>
+    )}
+  </div>
+
+  {/* Modale de detail des charges courantes (Lot B) */}
+  <ChargesModal open={chargesModalOpen} onClose={() => setChargesModalOpen(false)} data={data} setField={setField} />
 </TabsContent>
 
   );
