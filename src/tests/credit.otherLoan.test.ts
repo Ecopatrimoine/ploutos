@@ -13,37 +13,38 @@ describe("resolveOtherLoan — mensualité auto (barrière douce)", () => {
   it("nominal : CRD 10000, 5%, 24 mois -> 438,71 €/mois, isAuto=true", () => {
     const r = resolveOtherLoan(ol({ capitalRemaining: "10000", rate: "5", durationRemaining: "24" }));
     expect(r.monthlyPayment).toBeCloseTo(438.71, 2);
-    expect(r.isAuto).toBe(true);
+    expect(r.autoField).toBe('monthlyPayment');
   });
 
   it("taux 0 -> linéaire (CRD 12000, 24 mois -> 500)", () => {
     const r = resolveOtherLoan(ol({ capitalRemaining: "12000", rate: "0", durationRemaining: "24" }));
     expect(r.monthlyPayment).toBeCloseTo(500, 6);
-    expect(r.isAuto).toBe(true);
+    expect(r.autoField).toBe('monthlyPayment');
   });
 
   it("taux VIDE -> linéaire aussi (CRD 12000, 24 mois -> 500)", () => {
     const r = resolveOtherLoan(ol({ capitalRemaining: "12000", durationRemaining: "24" }));
     expect(r.monthlyPayment).toBeCloseTo(500, 6);
-    expect(r.isAuto).toBe(true);
+    expect(r.autoField).toBe('monthlyPayment');
   });
 
   it("mensualité SAISIE -> override respecté, isAuto=false (pas de recalcul)", () => {
     const r = resolveOtherLoan(ol({ monthlyPayment: "300", capitalRemaining: "10000", rate: "5", durationRemaining: "24" }));
     expect(r.monthlyPayment).toBe(300);
-    expect(r.isAuto).toBe(false);
+    expect(r.autoField).toBeNull();
   });
 
   it("mensualité '0' (chaîne) -> traitée comme SAISIE, PAS d'auto-calcul", () => {
     const r = resolveOtherLoan(ol({ monthlyPayment: "0", capitalRemaining: "10000", rate: "5", durationRemaining: "24" }));
     expect(r.monthlyPayment).toBe(0);
-    expect(r.isAuto).toBe(false);
+    expect(r.autoField).toBeNull();
   });
 
-  it("données insuffisantes -> 0, isAuto=false", () => {
-    expect(resolveOtherLoan(ol({ rate: "5" }))).toEqual({ monthlyPayment: 0, isAuto: false });
-    expect(resolveOtherLoan(ol({ capitalRemaining: "10000" }))).toEqual({ monthlyPayment: 0, isAuto: false }); // durée manquante
-    expect(resolveOtherLoan(ol({ durationRemaining: "24" }))).toEqual({ monthlyPayment: 0, isAuto: false });   // CRD manquant
+  it("0 ou 1 champ renseigné -> aucune déduction (autoField=null)", () => {
+    for (const l of [ol({ rate: "5" }), ol({ capitalRemaining: "10000" }), ol({ durationRemaining: "24" }), ol({ monthlyPayment: "300" })]) {
+      const r = resolveOtherLoan(l);
+      expect(r.autoField).toBeNull();
+    }
   });
 });
 

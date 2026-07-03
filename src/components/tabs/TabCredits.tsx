@@ -76,7 +76,7 @@ const TabCredits = React.memo(function TabCredits(props: any) {
           <Field label="Objet"><Input placeholder="ex: Véhicule" value={loan.purpose} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, purpose: e.target.value } : l) }))} className="rounded-xl h-8 text-sm" /></Field>
         </div>
         {/* Mensualité auto-calculée (barrière douce) : badge lecture seule seulement si NON saisie. */}
-        {(() => { const auto = resolveOtherLoan(loan); return auto.isAuto ? (
+        {(() => { const auto = resolveOtherLoan(loan); return auto.autoField === 'monthlyPayment' ? (
           <div className="text-xs" style={{ color: BRAND.sky }}>Mensualité calculée : <strong>{euro(auto.monthlyPayment)}</strong>/mois</div>
         ) : null; })()}
         <div className="rounded-xl border p-2.5 space-y-2" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>

@@ -153,21 +153,52 @@ export function resolveLoanValuesMulti(property: import('../../types/patrimoine'
 
 // ── Autres crédits (conso, personnel, LOA…) ─────────────────────────────────
 /**
- * Résout la mensualité d'un OtherLoan. Barrière douce : une mensualité SAISIE
- * (champ NON VIDE, y compris la chaîne "0") est un override — jamais recalculée.
- * Sinon, auto-calcul depuis le CAPITAL RESTANT DÛ amorti sur les MOIS RESTANTS
- * (aucune dépendance à Date.now() : tout est basé sur les valeurs restantes).
+ * Résout un OtherLoan en DÉDUISANT le champ manquant (barrière douce).
+ * Grandeurs liées : monthlyPayment (M) / capitalRemaining (CRD) / durationRemaining (n mois).
+ *  - 3 renseignés  -> valeurs telles quelles, autoField=null (on respecte la saisie, aucune vérif).
+ *  - 2 renseignés  -> déduit le 3e (t = taux/100/12 ; taux vide traité comme 0).
+ *  - 0/1 renseigné -> valeurs telles quelles (manquants à 0), autoField=null.
+ * Un champ renseigné (y compris "0") n'est JAMAIS écrasé. AUCUNE dépendance à Date.now().
+ * Le taux est toujours une ENTRÉE, jamais déduit.
  */
-export function resolveOtherLoan(loan: OtherLoan): { monthlyPayment: number; isAuto: boolean } {
+export function resolveOtherLoan(loan: OtherLoan): {
+  monthlyPayment: number;
+  capitalRemaining: number;
+  durationRemaining: number;
+  autoField: 'monthlyPayment' | 'capitalRemaining' | 'durationRemaining' | null;
+} {
   // "Renseigné" = chaîne non vide (distinct de truthy) : "0" est une saisie, cf. doctrine ucRatio.
-  if (String(loan.monthlyPayment ?? "").trim() !== "") {
-    return { monthlyPayment: n(loan.monthlyPayment), isAuto: false };
+  const isSet = (v: unknown) => String(v ?? "").trim() !== "";
+  const M = n(loan.monthlyPayment);
+  const C = n(loan.capitalRemaining);
+  const N = n(loan.durationRemaining); // durée RESTANTE en mois
+  const t = n(loan.rate) / 100 / 12;   // taux vide -> 0
+  const hasM = isSet(loan.monthlyPayment), hasC = isSet(loan.capitalRemaining), hasN = isSet(loan.durationRemaining);
+  const nul = { monthlyPayment: M, capitalRemaining: C, durationRemaining: N, autoField: null };
+
+  // Déduction UNIQUEMENT si exactement 2 des 3 grandeurs sont renseignées.
+  if ((Number(hasM) + Number(hasC) + Number(hasN)) !== 2) return nul;
+
+  if (!hasM) { // déduire la mensualité depuis CRD + durée (comportement historique)
+    if (N <= 0) return nul;
+    const val = t <= 0 ? C / N : C * t / (1 - Math.pow(1 + t, -N));
+    return Number.isFinite(val) && val > 0
+      ? { monthlyPayment: val, capitalRemaining: C, durationRemaining: N, autoField: 'monthlyPayment' } : nul;
   }
-  const crd = n(loan.capitalRemaining);
-  const nMois = n(loan.durationRemaining); // durée RESTANTE en mois
-  if (crd <= 0 || nMois <= 0) return { monthlyPayment: 0, isAuto: false };
-  const rate = n(loan.rate);
-  if (rate <= 0) return { monthlyPayment: crd / nMois, isAuto: true }; // taux 0 → linéaire
-  const t = rate / 100 / 12;
-  return { monthlyPayment: crd * t / (1 - Math.pow(1 + t, -nMois)), isAuto: true };
+  if (!hasC) { // déduire le CRD depuis mensualité + durée
+    if (N <= 0) return nul;
+    const val = t <= 0 ? M * N : M * (1 - Math.pow(1 + t, -N)) / t;
+    return Number.isFinite(val) && val > 0
+      ? { monthlyPayment: M, capitalRemaining: val, durationRemaining: N, autoField: 'capitalRemaining' } : nul;
+  }
+  // !hasN : déduire la durée (en mois, arrondie au supérieur) depuis mensualité + CRD
+  if (M <= 0) return nul;
+  if (t <= 0) {
+    const val = Math.ceil(C / M);
+    return val > 0 ? { monthlyPayment: M, capitalRemaining: C, durationRemaining: val, autoField: 'durationRemaining' } : nul;
+  }
+  if (M <= C * t) return nul; // garde-fou : mensualité <= intérêts du 1er mois -> pas de solution finie
+  const val = Math.ceil(-Math.log(1 - C * t / M) / Math.log(1 + t));
+  return Number.isFinite(val) && val > 0
+    ? { monthlyPayment: M, capitalRemaining: C, durationRemaining: val, autoField: 'durationRemaining' } : nul;
 }
