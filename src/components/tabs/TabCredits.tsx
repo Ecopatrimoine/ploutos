@@ -76,9 +76,14 @@ const TabCredits = React.memo(function TabCredits(props: any) {
           <Field label="Objet"><Input placeholder="ex: Véhicule" value={loan.purpose} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, purpose: e.target.value } : l) }))} className="rounded-xl h-8 text-sm" /></Field>
         </div>
         {/* Mensualité auto-calculée (barrière douce) : badge lecture seule seulement si NON saisie. */}
-        {(() => { const auto = resolveOtherLoan(loan); return auto.autoField === 'monthlyPayment' ? (
-          <div className="text-xs" style={{ color: BRAND.sky }}>Mensualité calculée : <strong>{euro(auto.monthlyPayment)}</strong>/mois</div>
-        ) : null; })()}
+        {/* Badge lecture seule du champ DÉDUIT (un seul à la fois selon autoField). */}
+        {(() => {
+          const auto = resolveOtherLoan(loan);
+          if (auto.autoField === 'monthlyPayment') return <div className="text-xs" style={{ color: BRAND.sky }}>Mensualité calculée : <strong>{euro(auto.monthlyPayment)}</strong>/mois</div>;
+          if (auto.autoField === 'capitalRemaining') return <div className="text-xs" style={{ color: BRAND.sky }}>Capital restant dû calculé : <strong>{euro(auto.capitalRemaining)}</strong></div>;
+          if (auto.autoField === 'durationRemaining') return <div className="text-xs" style={{ color: BRAND.sky }}>Durée restante calculée : <strong>{auto.durationRemaining} mois</strong></div>;
+          return null;
+        })()}
         <div className="rounded-xl border p-2.5 space-y-2" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
           <div className="flex items-center gap-2">
             <button role="switch" aria-checked={loan.hasInsurance}
