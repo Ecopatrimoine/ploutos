@@ -118,6 +118,44 @@ export function pageBilanEndettement(t: Tokens, d: BilanEndettementPageData): st
     </div>
   `;
 
+  // ─── Encart « Budget et capacite d'epargne » (Lot D) ─────────────────────
+  // Base budget : loyers a 100 % (tresorerie percue), DISTINCTE des 70 %
+  // bancaires de l'encart « Methode de calcul » ci-dessus — d'ou deux chiffres
+  // de revenus differents sur la meme page. Source : computeBudget (adapter),
+  // affiche ici sans recalcul. Teinte du solde via tokens t.succes / t.danger.
+  const bg = d.budget;
+  const encartBudget = bg ? `
+    <div style="margin-top:14px;border:0.5px solid ${t.bordureClaire};border-radius:8px;padding:11px 14px;background:${t.fondTableauAlt}">
+      <div class="lt" style="font-size:9px;letter-spacing:.04em;text-transform:uppercase;color:${t.eyebrowOr};font-weight:700;margin-bottom:7px">Budget et capacité d'épargne — mensuel</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div>
+          <div class="lt" style="font-size:9px;letter-spacing:.04em;text-transform:uppercase;color:${t.eyebrowOr};font-weight:700;margin-bottom:5px">Revenus (approche budget)</div>
+          ${ligneCalc("Salaires + pensions",               euro(bg.salairesPensions))}
+          ${ligneCalc("Bénéfice TNS",                      euro(bg.beneficeTns))}
+          ${ligneCalc("Rentes PER",                        euro(bg.rentesPer))}
+          ${ligneCalc("Loyers à 100 % (approche budget)",  euro(bg.loyersBruts))}
+          ${ligneCalc("Retraits AV / PER",                 euro(bg.retraitsAvPer))}
+          ${ligneCalc("Revenus du foyer",                  euro(bg.revenusMensuels), { gras: true, topSeparator: true })}
+        </div>
+        <div>
+          <div class="lt" style="font-size:9px;letter-spacing:.04em;text-transform:uppercase;color:${t.eyebrowOr};font-weight:700;margin-bottom:5px">Charges (mensuelles)</div>
+          ${ligneCalc("Charges courantes",                 euro(bg.chargesCourantes))}
+          ${ligneCalc("Charges foncières",                 euro(bg.chargesFoncieres))}
+          ${ligneCalc("Crédits + assurances",              euro(bg.creditsAssurances))}
+          ${ligneCalc("Impôts calculés (IR tout compris)", euro(bg.impots))}
+          ${ligneCalc("Pension versée",                    euro(bg.pensionVersee))}
+          ${ligneCalc("Charges du foyer",                  euro(bg.chargesMensuelles), { gras: true, topSeparator: true })}
+        </div>
+      </div>
+      <div style="border-top:1px solid ${t.bordureMoyenne};padding-top:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:baseline">
+        <span class="lt" style="font-size:10.5px;color:${t.texteFaible}">Capacité d'épargne (revenus − charges)</span>
+        <span class="lt" style="font-size:13px;font-weight:700;color:${bg.capaciteEpargne >= 0 ? t.succes : t.danger}">${euro(bg.capaciteEpargne)}/mois</span>
+      </div>
+      ${!bg.hasChargesCourantes ? `<div class="lt" style="font-size:9.5px;font-style:italic;color:${t.texteFaible};margin-top:6px">Réserve : capacité calculée hors charges courantes non renseignées.</div>` : ""}
+      <div class="lt" style="font-size:9.5px;font-style:italic;color:${t.texteFaible};margin-top:4px">Loyers comptés à 100 % (trésorerie perçue) — vs 70 % en méthode bancaire ci-dessus : les deux bases coexistent volontairement.</div>
+    </div>
+  ` : "";
+
   // ─── Cascade répartition : échelle = actif brut (immobilier + placements
   //     + AV/PER). Les crédits s'affichent en or pâle bordé. Le total à 100 %.
   const echelle = d.actifBrut || 1;
@@ -156,6 +194,8 @@ export function pageBilanEndettement(t: Tokens, d: BilanEndettementPageData): st
     },
     // Encart « Méthode de calcul » (transparence pédagogique) — insécable.
     { kind: "insecable", html: encartCalcul },
+    // Encart « Budget et capacité d'épargne » (Lot D) — inséré AVANT la cascade.
+    ...(encartBudget ? [{ kind: "insecable" as const, html: encartBudget }] : []),
     // Section « Répartition du patrimoine net » (sous-titre + cascade).
     {
       kind: "insecable",
