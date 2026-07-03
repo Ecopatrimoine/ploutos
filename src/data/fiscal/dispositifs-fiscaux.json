@@ -1,0 +1,84 @@
+{
+  "_source": "Sourcing dispositifs fiscaux immobiliers v3, verifie 03/07/2026 (dossier projet). Valeurs par bloc ci-dessous, chacune horodatee.",
+  "reductionsIR": {
+    "pinel": {
+      "article": "199 novovicies",
+      "debutInvestissement": "2014-01-01",
+      "finInvestissement": "2024-12-31",
+      "plafondBase": 300000,
+      "plafondNiches": true,
+      "millesimes": [
+        { "de": 2014, "a": 2022, "taux": { "6": 0.12, "9": 0.18 }, "prorogations": { "6": [0.06, 0.03], "9": [0.03] } },
+        { "de": 2023, "a": 2023, "taux": { "6": 0.105, "9": 0.15 }, "prorogations": { "6": [0.045, 0.025], "9": [0.025] } },
+        { "de": 2024, "a": 2024, "taux": { "6": 0.09, "9": 0.12 }, "prorogations": { "6": [0.03, 0.02], "9": [0.02] } }
+      ],
+      "scpi": { "basePct": 1.0, "plafondM2": false },
+      "_comment": "Fraction annuelle = base x taux / engagement ; complement de prorogation impute PAR TIERS sur 3 ans (base x tauxProrogation / 3) ; fraction non imputee PERDUE (pas de report). Plafond 5500 EUR/m2 NON modelise (surface non portee) : cf tooltip UI. Detention SCPI : basePct 1.0, pas de mention m2. Sourcing v3 verifie 03/07/2026."
+    },
+    "pinelPlus": {
+      "article": "199 novovicies (Pinel+ / QPV ou qualite superieure)",
+      "debutInvestissement": "2023-01-01",
+      "finInvestissement": "2024-12-31",
+      "plafondBase": 300000,
+      "plafondNiches": true,
+      "millesimes": [
+        { "de": 2023, "a": 2024, "taux": { "6": 0.12, "9": 0.18 }, "prorogations": { "6": [0.06, 0.03], "9": [0.03] } }
+      ],
+      "scpi": { "basePct": 1.0, "plafondM2": false },
+      "_comment": "Pinel+ (zone QPV ou criteres de qualite superieure) : taux PLEINS maintenus 2023-2024 (12%/18% pour 6/9 ans), prorogations pleines. Meme logique de fraction et de prorogation que le Pinel. Sourcing v3 verifie 03/07/2026."
+    },
+    "denormandie": {
+      "article": "199 novovicies I.V bis (Denormandie)",
+      "debutInvestissement": "2019-01-01",
+      "finInvestissement": "2027-12-31",
+      "plafondBase": 300000,
+      "plafondNiches": true,
+      "millesimes": [
+        { "de": 2019, "a": 2027, "taux": { "6": 0.12, "9": 0.18 }, "prorogations": { "6": [0.06, 0.03], "9": [0.03] } }
+      ],
+      "scpi": { "basePct": 1.0, "plafondM2": false },
+      "_comment": "Denormandie (ancien a rehabiliter, zones eligibles) : taux PLEINS de type Pinel d'origine (12%/18%), fenetre d'investissement 2019 -> 2027-12-31, prorogations pleines. Sourcing v3 verifie 03/07/2026."
+    },
+    "censiBouvard": {
+      "article": "199 sexvicies",
+      "debutInvestissement": "2013-01-01",
+      "finInvestissement": "2022-12-31",
+      "taux": 0.11,
+      "dureeAns": 9,
+      "plafondBase": 300000,
+      "plafondNiches": true,
+      "detentionDirecteUniquement": true,
+      "_comment": "Censi-Bouvard : 11% du prix de revient (plafond 300000 EUR) reparti lineairement sur 9 ans. Report 6 ans de la fraction non imputee NON MODELISE (decision David 03/07/2026, conservateur) : cf tooltip UI. LMNP en DETENTION DIRECTE uniquement (SCPI et societes exclues). Dispositif clos aux investissements depuis le 31/12/2022. Sourcing v3 verifie 03/07/2026."
+    },
+    "locavantages": {
+      "article": "199 tricies",
+      "debutConvention": "2022-01-01",
+      "finConvention": "2027-12-31",
+      "dureeConventionAnsMin": 6,
+      "plafondNiches": true,
+      "tauxLoyers": {
+        "loc1": { "sans": 0.15, "avec": 0.20 },
+        "loc2": { "sans": 0.35, "avec": 0.40 },
+        "loc3": { "avec": 0.65 }
+      },
+      "_comment": "Loc'Avantages (ex-Cosse) : reduction = loyers bruts annuels x taux, selon le niveau de loyer (loc1/loc2/loc3) et l'intermediation locative (IML). loc3 => IML OBLIGATOIRE (aucun taux 'sans'). Convention de 6 ans minimum RECONDUCTIBLE : pas de coupure automatique en sortie (duree non bornee cote resolveur, cf _comment). Sourcing v3 verifie 03/07/2026."
+    }
+  },
+  "deductionsFoncieres": {
+    "jeanbrunRelanceLogement": {
+      "article": "31 CGI i/j (art. 47 LF 2026)",
+      "debutAcquisition": "2026-02-21",
+      "finAcquisition": "2028-12-31",
+      "assiettePct": 0.80,
+      "taux": {
+        "neuf": { "intermediaire": 0.035, "social": 0.045, "tresSocial": 0.055 },
+        "ancien": { "intermediaire": 0.030, "social": 0.035, "tresSocial": 0.040 }
+      },
+      "plafondsFoyer": { "intermediaire": 8000, "social": 10000, "tresSocial": 12000 },
+      "engagementAns": 9,
+      "forceRegimeReel": true,
+      "exclusions": ["demembrement"],
+      "_comment": "Jeanbrun 'Relance logement' (art. 47 LF 2026, 31 CGI i/j) : amortissement DEDUCTIBLE du revenu FONCIER = base x 0.80 (assiette) x taux/an (neuf/ancien x niveau de loyer). Plafond COMMUN i+j par foyer (8000/10000/12000 EUR selon niveau dominant). Cumul des amortissements <= assiette (garanti : 9 x taux max 0.055 = 0.495 < 1). HORS plafonnement global des niches 200-0 A (art. 47 ne modifie pas cet article). Regime reel FORCE. Demembrement exclu. Sourcing v3 verifie 03/07/2026."
+    }
+  }
+}
