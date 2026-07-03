@@ -19,6 +19,16 @@ import {
 import { compilerPageContrat, type Bloc } from "../engine/contrat";
 import type { Tokens } from "../tokens";
 
+// Section budget (valeurs MENSUELLES) — miroir plat de computeBudget pour le
+// rendu PDF (Lot D). Base budget : loyers a 100 % (distincte des 70 % bancaires).
+export type BilanBudgetSection = {
+  salairesPensions: number; beneficeTns: number; rentesPer: number;
+  loyersBruts: number; retraitsAvPer: number; revenusMensuels: number;
+  chargesCourantes: number; chargesFoncieres: number; creditsAssurances: number;
+  impots: number; pensionVersee: number; chargesMensuelles: number;
+  capaciteEpargne: number; hasChargesCourantes: boolean;
+};
+
 export type BilanEndettementPageData = {
   // En-tête
   clientName: string;       // "Dubreuil"
@@ -48,6 +58,9 @@ export type BilanEndettementPageData = {
   creditImmobilier: number;       // 185 000  (montant positif, affiché négatif dans la cascade)
   autresCredits: number;          // 26 400
   // (patrimoineNet utilisé pour la ligne totale)
+  // ─── Budget & capacite d'epargne (Lot D) — mensuel, source computeBudget ─────
+  // Optionnel : les payloads/tests anterieurs a Lot D peuvent l'omettre.
+  budget?: BilanBudgetSection;
   // Notre lecture
   notreLecture: string;
   // Pied
