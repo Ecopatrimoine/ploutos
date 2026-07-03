@@ -6,7 +6,7 @@
 
 import type { BilanEndettementPageData } from "../pages/pageBilanEndettement";
 import { isAV, isPERType } from "../../../calculs/utils";
-import { resolveLoanValuesMulti } from "../../../calculs/credit";
+import { resolveLoanValuesMulti, resolveOtherLoan } from "../../../calculs/credit";
 import { resolveBeneficeTns } from "../../../calculs/ir";
 import { computeTauxEndettement } from "../../../calculs/endettement";
 import { SEMANTIC_DANGER } from "../tokens";
@@ -62,7 +62,7 @@ export function buildBilanEndettementData(p: BuildBilanEndettementDataParams): B
     annualInsuranceImmo += r.insurancePremiumAnnual || 0;
     creditImmobilier += r.capital || 0;
   }
-  const monthlyCreditAutre = otherLoans.reduce((s, l) => s + num(l.monthlyPayment), 0);
+  const monthlyCreditAutre = otherLoans.reduce((s, l) => s + resolveOtherLoan(l as any).monthlyPayment, 0);
   // Assurance des autres credits : annuelle, comptee seulement si hasInsurance (cf endettement.ts).
   const assuranceCreditAutre = otherLoans.reduce((s, l) => s + (l.hasInsurance ? num(l.insurancePremium) : 0), 0);
   const chargesCreditAnnuelles = Math.round((monthlyCreditImmo + monthlyCreditAutre) * 12);
