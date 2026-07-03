@@ -2,6 +2,9 @@
 import type { Property, OtherLoan } from '../../types/patrimoine';
 import { n } from './utils';
 
+// "Renseigné" = chaîne non vide (distinct de truthy ; "0" est une saisie, cf. doctrine ucRatio).
+const isSet = (v: unknown) => String(v ?? "").trim() !== "";
+
 // ── Helpers calcul crédit immobilier ─────────────────────────────────
 export function calcMonthlyPayment(capital: number, rateAnnual: number, durationYears: number): number {
   if (capital <= 0 || durationYears <= 0) return 0;
@@ -17,6 +20,22 @@ export function calcCapitalRemaining(capital: number, rateAnnual: number, durati
   const n = durationYears * 12;
   const k = Math.floor(yearsElapsed * 12);
 return Math.max(0, capital * (Math.pow(1 + tm, n) - Math.pow(1 + tm, k)) / (Math.pow(1 + tm, n) - 1));
+}
+// Inverse de calcCapitalRemaining : retrouve le capital emprunté INITIAL à partir
+// du CRD après k mois. C = CRD × ((1+t)^n − 1) / ((1+t)^n − (1+t)^k) — équivaut à
+// CRD × (1−(1+t)^-n)/(1−(1+t)^-(n−k)). Taux 0 → C = CRD / (1 − écoulé/durée).
+// k = mois écoulés (même arrondi que calcCapitalRemaining) → aller-retour exact.
+export function calcInitialCapitalFromCRD(crd: number, rateAnnual: number, durationYears: number, yearsElapsed: number): number {
+  if (crd <= 0 || durationYears <= 0) return 0;
+  if (rateAnnual <= 0) {
+    const frac = 1 - yearsElapsed / durationYears;
+    return frac > 0 ? crd / frac : 0;
+  }
+  const tm = rateAnnual / 100 / 12;
+  const nMonths = durationYears * 12;
+  const k = Math.floor(yearsElapsed * 12);
+  const denom = Math.pow(1 + tm, nMonths) - Math.pow(1 + tm, k);
+  return denom > 0 ? crd * (Math.pow(1 + tm, nMonths) - 1) / denom : 0;
 }
 export function calcAnnualInterests(capital: number, rateAnnual: number, durationYears: number, yearsElapsed: number): number {
   if (capital <= 0 || rateAnnual <= 0) return 0;
@@ -81,12 +100,19 @@ import type { Loan } from '../../types/patrimoine';
 /**
  * Résout un crédit individuel (Loan) — auto-calcul si champs vides, override sinon
  */
-export function resolveOneLoan(loan: Loan): { capital: number; interestAnnual: number; ifiDeduction: number; monthlyPayment: number; insurancePremiumAnnual: number } {
-  const C = n(loan.amount);
+export function resolveOneLoan(loan: Loan): { capital: number; interestAnnual: number; ifiDeduction: number; monthlyPayment: number; insurancePremiumAnnual: number; amountResolved: number; amountAuto: boolean } {
   const rate = n(loan.rate);
   const dur = n(loan.duration);
   const elapsed = yearsElapsedSince(loan.startDate);
   const ltype = loan.type || "amortissable";
+  // Capital initial déduit : amount VIDE mais CRD + taux + durée + date renseignés
+  // (barrière douce : un seul champ manquant parmi les 5 liés → on le déduit).
+  let C = n(loan.amount);
+  let amountAuto = false;
+  if (!isSet(loan.amount) && isSet(loan.capitalRemaining) && isSet(loan.rate) && isSet(loan.duration) && isSet(loan.startDate)) {
+    const deduced = calcInitialCapitalFromCRD(n(loan.capitalRemaining), rate, dur, elapsed);
+    if (deduced > 0) { C = deduced; amountAuto = true; }
+  }
 
   let capital = n(loan.capitalRemaining);       // 0 = auto-calculé
   let interestAnnual = n(loan.interestAnnual);  // 0 = auto-calculé
@@ -117,7 +143,7 @@ export function resolveOneLoan(loan: Loan): { capital: number; interestAnnual: n
     ? (n(loan.insurancePremium) > 0 ? n(loan.insurancePremium) : C * 0.003)
     : 0;
 
-  return { capital, interestAnnual, ifiDeduction, monthlyPayment, insurancePremiumAnnual };
+  return { capital, interestAnnual, ifiDeduction, monthlyPayment, insurancePremiumAnnual, amountResolved: C, amountAuto };
 }
 
 /**
@@ -167,8 +193,6 @@ export function resolveOtherLoan(loan: OtherLoan): {
   durationRemaining: number;
   autoField: 'monthlyPayment' | 'capitalRemaining' | 'durationRemaining' | null;
 } {
-  // "Renseigné" = chaîne non vide (distinct de truthy) : "0" est une saisie, cf. doctrine ucRatio.
-  const isSet = (v: unknown) => String(v ?? "").trim() !== "";
   const M = n(loan.monthlyPayment);
   const C = n(loan.capitalRemaining);
   const N = n(loan.durationRemaining); // durée RESTANTE en mois
