@@ -9,6 +9,7 @@ import { isAV, isPERType } from "../../../calculs/utils";
 import { resolveLoanValuesMulti, resolveOtherLoan } from "../../../calculs/credit";
 import { resolveBeneficeTns } from "../../../calculs/ir";
 import { computeTauxEndettement } from "../../../calculs/endettement";
+import { computeBudget } from "../../../calculs/budget";
 import { SEMANTIC_DANGER } from "../tokens";
 
 const isAvOrPer = (type: any): boolean => isAV(type) || isPERType(type);
@@ -85,6 +86,27 @@ export function buildBilanEndettementData(p: BuildBilanEndettementDataParams): B
   const totalCharges = chargesCreditAnnuelles + assuranceCreditAnnuelle;
   const totalRevenus = salairesNetsAnnuels + Math.round(loyersBrutsAnnuels * quotitLoyers) + autresRevenusRetenus;
 
+  // ─── Budget & capacite d'epargne (Lot D) : SOURCE UNIQUE computeBudget, AUCUN
+  // recalcul local. `ir` vient du payload (App.tsx useMemo) deja passe par
+  // concatPack. Base budget : loyers a 100 % (distincte des 70 % bancaires). ──
+  const b = computeBudget(data as any, p.ir || {});
+  const budget = {
+    salairesPensions: b.detail.salairesPensions,
+    beneficeTns: b.detail.beneficeTns,
+    rentesPer: b.detail.rentesPer,
+    loyersBruts: b.detail.loyersBruts,
+    retraitsAvPer: b.detail.retraitsAvPer,
+    revenusMensuels: b.revenusMensuels,
+    chargesCourantes: b.detail.chargesCourantes,
+    chargesFoncieres: b.detail.chargesFoncieres,
+    creditsAssurances: b.detail.creditsAssurances,
+    impots: b.detail.impots,
+    pensionVersee: b.detail.pensionVersee,
+    chargesMensuelles: b.chargesMensuelles,
+    capaciteEpargne: b.capaciteEpargne,
+    hasChargesCourantes: b.hasChargesCourantes,
+  };
+
   return {
     clientName,
     dateStr,
@@ -106,6 +128,7 @@ export function buildBilanEndettementData(p: BuildBilanEndettementDataParams): B
     assuranceVieEtPER: avEtPER,
     creditImmobilier,
     autresCredits,
+    budget,
     notreLecture: p.notreLecture || (() => {
       const seuilHCSF = 35;
       const sousSeuil = tauxEndettementPct < seuilHCSF;

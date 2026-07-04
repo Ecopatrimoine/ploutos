@@ -8,15 +8,21 @@ import { resolveBeneficeTns } from "./ir";
 import { resolveLoanValuesMulti, resolveOtherLoan } from "./credit";
 import { n } from "./utils";
 
-export function computeTauxEndettement(data: PatrimonialData): {
-  numerateurAnnuel: number;
-  denominateurAnnuel: number;
-  tauxPct: number;
+// ─── Charges de credit annuelles = numerateur du taux d'endettement ──────────
+// Extrait en helper PUR (Lot budget) pour une source UNIQUE reutilisee a
+// l'identique par computeTauxEndettement ET computeBudget. Le total est
+// STRICTEMENT egal a l'ancien calcul inline : (mensualites immo + autres) x 12
+// + assurances immo + autres — aucun test endettement ne change.
+export function computeChargesCreditAnnuelles(data: PatrimonialData): {
+  mensualiteImmoMensuelle: number;
+  assuranceImmoAnnuelle: number;
+  mensualiteAutresMensuelle: number;
+  assuranceAutresAnnuelle: number;
+  total: number;
 } {
   const properties = Array.isArray(data.properties) ? data.properties : [];
   const otherLoans = Array.isArray(data.otherLoans) ? data.otherLoans : [];
 
-  // ─── Numerateur : charges de credit annuelles ───────────────────────────
   let monthlyImmo = 0;
   let assuranceImmoAnnuelle = 0;
   for (const p of properties) {
@@ -33,8 +39,27 @@ export function computeTauxEndettement(data: PatrimonialData): {
     (s, l) => s + (l.hasInsurance ? n(l.insurancePremium) : 0),
     0,
   );
-  const numerateurAnnuel =
+  const total =
     (monthlyImmo + monthlyAutres) * 12 + assuranceImmoAnnuelle + assuranceAutresAnnuelle;
+
+  return {
+    mensualiteImmoMensuelle: monthlyImmo,
+    assuranceImmoAnnuelle,
+    mensualiteAutresMensuelle: monthlyAutres,
+    assuranceAutresAnnuelle,
+    total,
+  };
+}
+
+export function computeTauxEndettement(data: PatrimonialData): {
+  numerateurAnnuel: number;
+  denominateurAnnuel: number;
+  tauxPct: number;
+} {
+  const properties = Array.isArray(data.properties) ? data.properties : [];
+
+  // ─── Numerateur : charges de credit annuelles (helper partage) ──────────
+  const numerateurAnnuel = computeChargesCreditAnnuelles(data).total;
 
   // ─── Denominateur : revenus annuels retenus ─────────────────────────────
   const salaires = n(data.salary1) + n(data.salary2);
