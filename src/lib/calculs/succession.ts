@@ -623,7 +623,9 @@ export function computeSuccession(successionData: SuccessionData, data: Patrimon
         name: `${h.firstName} ${h.lastName}`.trim() || "Légataire",
         relation: effectiveRelation,
         share: h.shareGlobal || "0",
-        priorDonations: h.priorDonations || "0",
+        // Conserver la valeur SAISIE (y compris "0" = override manuel) ; defaut ""
+        // sinon -> MODE AUTO (Lot C0, neutre registre vide cf. rapport Lot B).
+        priorDonations: h.priorDonations || "",
         childLink: matchedChild ? (matchedChild.parentLink || "common_child") : (h.relation === "enfant" ? "common_child" : null),
         childId: matchedChild?.id, // ref stable pour le rappel fiscal (Lot B)
       };
@@ -645,7 +647,7 @@ export function computeSuccession(successionData: SuccessionData, data: Patrimon
       const effectiveRelation = matchedChild && !childMatchesDeceased(matchedChild.parentLink || "common_child", successionData.deceasedPerson)
         ? "enfant_conjoint"
         : relation;
-      heirs.push({ name, relation: effectiveRelation, share: "0", priorDonations: "0", childLink: matchedChild?.parentLink || (relation === "enfant" ? "common_child" : null), childId: matchedChild?.id });
+      heirs.push({ name, relation: effectiveRelation, share: "0", priorDonations: "", childLink: matchedChild?.parentLink || (relation === "enfant" ? "common_child" : null), childId: matchedChild?.id }); // priorDonations "" -> MODE AUTO (Lot C0)
     };
     (successionData.legsPrecisItems || []).forEach(item => {
       // Nouvelle structure : legataires[]

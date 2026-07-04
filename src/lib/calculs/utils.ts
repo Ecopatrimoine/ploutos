@@ -309,7 +309,10 @@ export function buildCollectedHeirs(data: PatrimonialData, deceasedPerson: "pers
       name: `${child.firstName || `Enfant ${i + 1}`} ${child.lastName || ""}`.trim(),
       relation: "enfant",
       share: "0",
-      priorDonations: "0",
+      // Defaut "" (et non "0") : "0" synthetise par le code n'est PAS un override
+      // utilisateur. "" -> MODE AUTO (rappel registre) ; manuel-"0" et auto-registre-vide
+      // sont identiques au centime (preuve rapport Lot B). (Lot C0)
+      priorDonations: "",
       childLink: child.parentLink || "common_child",
       childId: child.id, // ref stable pour le rappel fiscal (Lot B) — undefined si non migre
     });
