@@ -136,17 +136,6 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
         })}
       </div>
 
-      {/* Modal edition d'une donation passee (pivot E2) */}
-      <DonationPasseeModal
-        open={editingDon !== null && !!(data.donations || [])[editingDon]}
-        donation={editingDon !== null ? (data.donations || [])[editingDon] : null}
-        data={data}
-        person1={person1}
-        person2={person2 || "Personne 2"}
-        upd={(patch: any) => { if (editingDon !== null) setField("donations", (data.donations || []).map((d: any, j: number) => j === editingDon ? { ...d, ...patch } : d)); }}
-        onClose={() => setEditingDon(null)}
-      />
-
       {/* ── TESTAMENT ── */}
       <div className="flex flex-wrap items-center gap-2">
         <Button className="h-9 rounded-xl px-3 text-sm"
@@ -1056,6 +1045,20 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
       </div>
     </div>
   )}
+
+  {/* Modal edition d'une donation passee (pivot E2) — rendu TOP-LEVEL, hors de la
+      Card (patron LoanModal/heir) : depuis la CardContent, un ancetre (Card
+      relative/overflow, TabsContent) cassait le position:fixed -> centrage sur
+      l'espace complet du document + decalage au scroll. Ici : fixed viewport OK. */}
+  <DonationPasseeModal
+    open={editingDon !== null && !!(data.donations || [])[editingDon]}
+    donation={editingDon !== null ? (data.donations || [])[editingDon] : null}
+    data={data}
+    person1={person1}
+    person2={person2 || "Personne 2"}
+    upd={(patch: any) => { if (editingDon !== null) setField("donations", (data.donations || []).map((d: any, j: number) => j === editingDon ? { ...d, ...patch } : d)); }}
+    onClose={() => setEditingDon(null)}
+  />
 
   {/* ── Modal Héritier ── */}
   {selectedHeir !== null && visibleHeirs[selectedHeir] && (() => {
