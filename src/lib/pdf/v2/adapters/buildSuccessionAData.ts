@@ -37,11 +37,22 @@ export function buildSuccessionAData(p: BuildSuccessionADataParams): SuccessionA
     const droits = num(h.successionDuties ?? 0);
     const droitsExonere = droits === 0 && (h.relation === "conjoint" || h.relation === "pacs_partner") && isCouple;
     const net = Math.max(0, partRecue - droits);
+    // Rappel fiscal des donations < 15 ans (Lot D) — SOURCE UNIQUE h.rappelApplique
+    // (moteur). Detail affiche en mode auto uniquement (abattement residuel).
+    const ra = h.rappelApplique || null;
+    const rappelAuto = !!ra && ra.mode === "auto" && num(ra.abattementConsomme) > 0;
     return {
       nom: h.name || "Héritier",
       lien: relationLabel(h.relation),
       partRecue,
       abattement: abattement > 0 ? abattement : undefined,
+      rappel: rappelAuto ? {
+        plein: abattement,
+        consomme: num(ra.abattementConsomme),
+        residuel: Math.max(0, abattement - num(ra.abattementConsomme)),
+        reprise: num(ra.baseTaxeeAnterieure) > 0 ? num(ra.baseTaxeeAnterieure) : undefined,
+      } : undefined,
+      aVerifier: (!!ra && ra.aVerifier) || undefined,
       droits,
       droitsExonere: droitsExonere || undefined,
       net,
