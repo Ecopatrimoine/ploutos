@@ -1,6 +1,10 @@
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
 export type Child = {
+  // Identifiant stable, posé à la migration (ensureAssetIds). Optionnel : les
+  // payloads antérieurs n'en ont pas avant migration au chargement (patron
+  // exact Placement/Property, refonte v1.27.0).
+  id?: string;
   firstName: string;
   lastName: string;
   birthDate: string;

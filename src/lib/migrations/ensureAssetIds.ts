@@ -1,7 +1,7 @@
 // ─── Migration : identifiants stables des placements / biens ────────────────
 //
 // Fonction PURE et NON DESTRUCTIVE. Elle :
-//   a. pose un id stable (newId) sur chaque placement / property qui n'en a pas ;
+//   a. pose un id stable (newId) sur chaque placement / property / enfant qui n'en a pas ;
 //   b. convertit les 4 références « par index » en références « par id », en
 //      résolvant contre l'ORDRE des tableaux du MÊME payload, en sémantique
 //      LECTURE (liste complète, index tel quel — on fige ce que l'écran affiche
@@ -105,7 +105,14 @@ export function ensureAssetIds(
     return np;
   });
 
-  const data: PatrimonialData = { ...srcData, placements, properties };
+  // a-bis. id stable sur chaque enfant (Lot 0 donations-famille) — meme patron,
+  //        non destructif, idempotent. Aucune reference index->id a convertir ici
+  //        (les lecteurs enfants existants restent par index, hors perimetre).
+  const childrenData = (srcData.childrenData ?? []).map((c) =>
+    c.id ? { ...c } : { ...c, id: makeId() },
+  );
+
+  const data: PatrimonialData = { ...srcData, placements, properties, childrenData };
 
   // b3. successionData.legsPrecisItems.propertyIndex -> assetId
   let successionData: SuccessionData | null = bundle.successionData ?? null;
