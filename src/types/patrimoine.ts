@@ -241,6 +241,9 @@ export type PatrimonialData = {
   person1Handicap: boolean;  // personne 1 handicapée → abattement revenu 2 627 € + plafond QF +1 785 €
   person2Handicap: boolean;  // personne 2 handicapée → idem
   childrenData: Child[];
+  // Registre des donations passees (Lot A1) — optionnel/retro-compat, migre par
+  // normalizeClientData -> []. Consomme par le rappel fiscal (Lot B, moteur succession).
+  donations?: DonationPassee[];
   salary1: string;
   salary2: string;
   // Retraites / pensions — nominatives par personne (remplace le champ global pensions)
@@ -810,6 +813,24 @@ export type DonationItem = {
   donorPersonKey?: string; // "person1"|"person2" — pour quote-part indivision
   donationDate: string;   // date de la donation (pour calcul délai 15 ans)
   heirs: DonationHeir[];
+};
+
+// ─── Registre des donations PASSEES (Lot A1 donations-famille) ────────────────
+// Donations DEJA consenties par le foyer (distinctes des DonationItem, qui sont
+// des SIMULATIONS prospectives dans les hypotheses). Servent au rappel fiscal
+// des 15 ans (art. 784 CGI) — cf. lib/calculs/rappelFiscal.ts.
+export type DonationPassee = {
+  id: string;
+  donorPersonKey: "person1" | "person2";
+  beneficiaireType: "child" | "conjoint" | "autre";
+  beneficiaireChildId?: string;   // si beneficiaireType === "child" : ref Child.id (Lot 0)
+  beneficiaireNom?: string;
+  beneficiaireRelation?: string;  // pour "autre" : petit-enfant, neveuNiece... (vocab DONATION_RELATIONS)
+  date: string;                   // ISO — date de la donation (fenetre 15 ans)
+  montant: string;
+  // "simple" = donation rapportable ; les 3 autres sont HORS rappel (art. 790 G
+  // don familial de sommes d'argent, 790 A bis, present d'usage art. 852 CC).
+  type: "simple" | "don_familial_790G" | "don_790A_bis" | "present_usage";
 };
 
 export type Hypothesis = {

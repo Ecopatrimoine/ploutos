@@ -119,6 +119,8 @@ function normalizeClientData(p: {
   // reçoivent chargesCourantes:"" et un détail vide (tous postes présents via spread).
   d.chargesCourantes = d.chargesCourantes ?? "";
   d.chargesCourantesDetail = { ...EMPTY_CHARGES_COURANTES_DETAIL, ...(d.chargesCourantesDetail || {}) };
+  // Registre des donations passees (Lot A1) — non destructif : dossiers existants -> [].
+  d.donations = Array.isArray(d.donations) ? d.donations : [];
   d.childrenData = (d.childrenData || []).map((c: any) => ({ schoolLevel: "", ...c }));
   d.properties = (d.properties || []).map((prop: any) => {
     const base = { loanInsuranceGuarantees: "dc", loanInsuranceCoverage: "banque", ...prop };
