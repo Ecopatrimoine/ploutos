@@ -710,6 +710,9 @@ export type Heir = {
   share: string;
   priorDonations: string;
   childLink: string | null;
+  // Ref stable vers l'enfant source (Child.id, Lot 0) — pour le rappel fiscal
+  // (match donation<->heritier par id, JAMAIS par nom). Optionnel/retro-compat.
+  childId?: string;
 };
 
 export type TestamentHeir = {

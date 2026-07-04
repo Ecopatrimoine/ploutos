@@ -311,6 +311,7 @@ export function buildCollectedHeirs(data: PatrimonialData, deceasedPerson: "pers
       share: "0",
       priorDonations: "0",
       childLink: child.parentLink || "common_child",
+      childId: child.id, // ref stable pour le rappel fiscal (Lot B) — undefined si non migre
     });
   });
   return heirs;
