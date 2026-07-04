@@ -65,6 +65,7 @@ import type { Loan } from "./types/patrimoine";
 import { computeIR } from "./lib/calculs/ir";
 import { computeIFI } from "./lib/calculs/ifi";
 import { computeSuccession } from "./lib/calculs/succession";
+import { stripStaleLegalHeirs } from "./lib/calculs/normalizeStaleHeirs";
 import { applyDonationsToData } from "./lib/calculs/donation";
 import { buildHypothesisDifferenceLines } from "./lib/hypotheses";
 import { runSelfChecks } from "./lib/selfChecks";
@@ -750,7 +751,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     activeDonations.length > 0 ? applyDonationsToData(activeDonations, data) : data,
     [activeDonations, data]
   );
-  const succession = useMemo(() => computeSuccession(successionData, successionData_effective), [
+  const succession = useMemo(() => computeSuccession(stripStaleLegalHeirs(successionData), successionData_effective), [
     successionData,
     successionData_effective,
     activeDonations,
@@ -796,13 +797,13 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       return {
         ir: computeIR(baseSnapshot.data, baseSnapshot.irOptions),
         ifi: computeIFI(baseSnapshot.data),
-        succession: computeSuccession(baseSnapshot.successionData, baseSnapshot.data),
+        succession: computeSuccession(stripStaleLegalHeirs(baseSnapshot.successionData), baseSnapshot.data),
       };
     }
     return {
       ir: computeIR(data, irOptions),
       ifi: computeIFI(data),
-      succession: computeSuccession(successionData, data),
+      succession: computeSuccession(stripStaleLegalHeirs(successionData), data),
     };
   }, [baseSnapshot, data, irOptions, successionData]);
 
@@ -815,7 +816,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
         hypothesis,
         ir: computeIR(hypothesis.data, hypothesis.irOptions),
         ifi: computeIFI(hypothesis.data),
-        succession: computeSuccession(hypothesis.successionData, hypothesis.data),
+        succession: computeSuccession(stripStaleLegalHeirs(hypothesis.successionData), hypothesis.data),
         differences: buildHypothesisDifferenceLines(baseSnapshot.data, baseSnapshot.irOptions, hypothesis.data, hypothesis.irOptions),
       };
     }),
