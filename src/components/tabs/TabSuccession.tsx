@@ -1,5 +1,5 @@
 import React from "react";
-import { computeDonation, applyDonationsToData, mapMembreToDonationRelation } from "../../lib/calculs/donation";
+import { computeDonation, applyDonationsToData, mapMembreToDonationRelation, getDonationTaxProfile } from "../../lib/calculs/donation";
 import { membresFamille } from "../../lib/prevoyance/membres-famille";
 import { euro as euroFmt } from "../../lib/calculs/utils";
 import { resolvePlacementRef, resolvePropertyRef } from "../../lib/calculs/refs";
@@ -113,9 +113,15 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
           const whichDefunt: 1 | 2 = don.donorPersonKey === "person2" ? 2 : 1;
           const membres = membresFamille(data, whichDefunt);
           const upd = (patch: any) => setField("donations", (data.donations || []).map((d: any, j: number) => j === i ? { ...d, ...patch } : d));
-          const pick = (m: any) => m.source === "enfant"
-            ? upd({ beneficiaireType: "child", beneficiaireChildId: m.childId, beneficiaireNom: m.name, beneficiaireRelation: "enfant" })
-            : upd({ beneficiaireType: "conjoint", beneficiaireChildId: undefined, beneficiaireNom: m.name, beneficiaireRelation: mapMembreToDonationRelation(m.relation) });
+          // E1 : relation TOUJOURS mappee depuis membresFamille(donateur) — un enfant
+          // person2_only donne par P1 -> "tiers" (et non "enfant" en dur). childId de
+          // la puce cliquee (id stable) pour le match du rappel.
+          const pick = (m: any) => upd({
+            beneficiaireType: m.source === "enfant" ? "child" : "conjoint",
+            beneficiaireChildId: m.source === "enfant" ? m.childId : undefined,
+            beneficiaireNom: m.name,
+            beneficiaireRelation: mapMembreToDonationRelation(m.relation),
+          });
           return (
             <div key={don.id} className="rounded-xl border p-3 space-y-2" style={{ borderColor: SURFACE.border }}>
               <div className="grid gap-2 md:grid-cols-[0.8fr_2fr_auto] items-end">
@@ -129,11 +135,20 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                   <div className="text-xs text-slate-500 mb-1">Bénéficiaire</div>
                   <div className="flex flex-wrap items-center gap-1">
                     {membres.map((m: any, mi: number) => {
-                      const active = m.source === "enfant" ? (don.beneficiaireType === "child" && don.beneficiaireChildId === m.childId) : don.beneficiaireType === "conjoint";
+                      const active = m.source === "enfant"
+                        ? (don.beneficiaireType === "child" && !!m.childId && don.beneficiaireChildId === m.childId)
+                        : don.beneficiaireType === "conjoint";
                       return <button key={mi} onClick={() => pick(m)} className="text-xs rounded-full px-2 py-0.5 transition-colors" style={{ background: active ? BRAND.navy : "rgba(81,106,199,0.1)", color: active ? "#fff" : BRAND.sky, border: active ? "none" : "1px solid rgba(81,106,199,0.2)" }}>{m.name}</button>;
                     })}
                     <button onClick={() => upd({ beneficiaireType: "autre", beneficiaireChildId: undefined })} className="text-xs rounded-full px-2 py-0.5 transition-colors" style={{ background: don.beneficiaireType === "autre" ? BRAND.gold : "rgba(227,175,100,0.12)", color: don.beneficiaireType === "autre" ? "#fff" : BRAND.gold, border: "1px solid rgba(227,175,100,0.3)" }}>Autre…</button>
                   </div>
+                  {/* Info de controle (E1) : relation deduite vis-a-vis du DONATEUR + abattement donation */}
+                  {(don.beneficiaireType === "child" || don.beneficiaireType === "conjoint") && (() => {
+                    const rel = don.beneficiaireRelation || "enfant";
+                    const prof = getDonationTaxProfile(rel);
+                    const relLabel = rel === "enfant" ? "Enfant" : rel === "conjoint" ? "Conjoint / partenaire" : rel === "tiers" ? "Tiers (enfant du conjoint / non-parent)" : rel;
+                    return <div className="text-xs mt-1" style={{ color: BRAND.muted }}>{don.beneficiaireNom} — <strong>{relLabel}</strong> · abatt. donation {euro(prof.allowance)}{prof.allowance === 0 ? " · taxe 60 %" : ""}</div>;
+                  })()}
                   {don.beneficiaireType === "autre" && (
                     <div className="grid gap-2 grid-cols-2 mt-1.5">
                       <Input value={don.beneficiaireNom || ""} onChange={(e) => upd({ beneficiaireNom: e.target.value })} placeholder="Nom du bénéficiaire" className="rounded-xl h-8 text-sm" />

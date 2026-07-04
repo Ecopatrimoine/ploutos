@@ -613,7 +613,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     });
   }, []);
 
-  const addChild = useCallback(() => setData((prev) => ({ ...prev, childrenData: [...prev.childrenData, { firstName: "", lastName: "", birthDate: "", parentLink: prev.coupleStatus === "single" ? "person1_only" : "common_child", custody: "full", rattached: true, handicap: false, schoolLevel: "" }] })), []);
+  const addChild = useCallback(() => setData((prev) => ({ ...prev, childrenData: [...prev.childrenData, { id: newId(), firstName: "", lastName: "", birthDate: "", parentLink: prev.coupleStatus === "single" ? "person1_only" : "common_child", custody: "full", rattached: true, handicap: false, schoolLevel: "" }] })), []);
   const updateChild = useCallback((index: number, key: keyof Child, value: string | boolean) =>
     setData((prev) => ({ ...prev, childrenData: prev.childrenData.map((c, i) => i === index ? { ...c, [key]: value } : c) })), []);
   const removeChild = useCallback((index: number) =>
