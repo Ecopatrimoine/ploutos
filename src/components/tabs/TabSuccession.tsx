@@ -1065,7 +1065,16 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
     const heir = visibleHeirs[selectedHeir];
     const clr = getHeirColor(selectedHeir);
     const baseRecue = heir.grossReceived + heir.nueValue; // valeur fiscale démembrée, pas la valeur PP
-    const abattementAffiche = Math.min(heir.allowance, Math.max(0, baseRecue));
+    // F3 (affichage seul) : afficher l'abattement RESIDUEL reellement applique par
+    // le moteur (allowance - abattementConsomme). rappelApplique.abattementConsomme
+    // couvre AUTO (donations rappelees) ET MANUEL (priorDonations saisi). Le plein
+    // etait trompeur quand une donation entamait l'abattement.
+    const abattementConsomme = Math.max(0, heir.rappelApplique?.abattementConsomme || 0);
+    const abattementResiduel = Math.max(0, heir.allowance - abattementConsomme);
+    const abattementAffiche = Math.min(abattementResiduel, Math.max(0, baseRecue));
+    const abattementDetail = abattementConsomme > 0
+      ? `${euro(heir.allowance)} − ${euro(abattementConsomme)} = ${euro(abattementResiduel)}`
+      : null;
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(16,27,59,0.45)", backdropFilter: "blur(4px)" }} onClick={() => setSelectedHeir(null)}>
         <div className="rounded-3xl w-full max-w-lg max-h-[88vh] overflow-hidden flex flex-col" style={{ background: SURFACE.card, border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 24px 64px rgba(16,27,59,0.35)" }} onClick={e => e.stopPropagation()}>
@@ -1179,7 +1188,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                   ...(heir.nueRawValue > 0 ? [{ label: "Valeur taxable NP", value: euro(heir.nueValue), hint: "Valeur économique NP × coefficient Duvergier", separator: false }] : []),
                   // Sous-total si les deux sont présents
                   ...(heir.grossReceived > 0 && heir.nueRawValue > 0 ? [{ label: "Total base brute", value: euro(baseRecue), hint: null, separator: true }] : []),
-                  { label: "Abattement légal", value: "−" + euro(abattementAffiche), color: BRAND.success, hint: null },
+                  { label: "Abattement légal", value: "−" + euro(abattementAffiche), color: BRAND.success, hint: abattementDetail },
                   { label: "Base taxable", value: euro(heir.successionTaxable), bold: true, hint: null },
                   { label: "Droits de succession", value: "−" + euro(heir.successionDuties), color: BRAND.danger, bold: true, hint: null },
                 ] as any[]).map((row, i) => (
