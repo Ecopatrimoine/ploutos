@@ -119,6 +119,49 @@ export function computeNotaryFees(value: number): {
   };
 }
 
+// ─── Profil fiscal DONATION (distinct de getSuccessionTaxProfile) ─────────────
+// Abattements de DONATION verifies le 04/07/2026 (impots.gouv.fr « Donations :
+// les abattements » / service-public.fr F14203 / Legifrance CGI) :
+//   - enfant / ascendant   100 000 € (CGI art. 779 I)
+//   - conjoint / PACS        80 724 € (CGI art. 790 E et 790 F) — EN SUCCESSION le
+//                            conjoint est EXONERE (0), mais EN DONATION l'abattement
+//                            est 80 724 € : c'est le bug corrige ici (avant, computeDonation
+//                            appelait getSuccessionTaxProfile('conjoint') -> 0).
+//   - petit-enfant           31 865 € (CGI art. 790 B)
+//   - arriere-petit-enfant    5 310 € (CGI art. 790 D)
+//   - frere / soeur          15 932 € (CGI art. 779 IV)
+//   - neveu / niece           7 967 € (CGI art. 779 V)
+//   - tiers / autre               0 € (aucun abattement de droit commun en donation)
+//   - handicap            + 159 325 € cumulable avec tout abattement (CGI art. 779 II)
+// Bareme : on REUTILISE le bareme ligne directe EXISTANT (getSuccessionTaxProfile
+// ('enfant').brackets) pour les liens en ligne directe et conjoint/PACS ; frere-soeur,
+// neveu et tiers gardent leur bareme (identique au bareme donation art. 777).
+// SIMPLIFICATION ASSUMEE : le bareme conjoint/PACS de donation (art. 777 tableau II,
+// tranche 15 932-31 865 a 15 %) est approxime par le bareme ligne directe existant.
+export function getDonationTaxProfile(relation: string, handicap = false) {
+  const HANDICAP_BONUS = 159325; // CGI art. 779 II — cumulable
+  const bonus = handicap ? HANDICAP_BONUS : 0;
+  const ligneDirecte = getSuccessionTaxProfile("enfant").brackets;
+  switch (relation) {
+    case "enfant":
+    case "parent":
+      return { allowance: 100000 + bonus, brackets: ligneDirecte };
+    case "conjoint":
+    case "pacs_partner":
+      return { allowance: 80724 + bonus, brackets: ligneDirecte };
+    case "petit-enfant":
+      return { allowance: 31865 + bonus, brackets: ligneDirecte };
+    case "arriere-petit-enfant":
+      return { allowance: 5310 + bonus, brackets: ligneDirecte };
+    case "frereSoeur":
+      return { allowance: 15932 + bonus, brackets: getSuccessionTaxProfile("frereSoeur").brackets };
+    case "neveuNiece":
+      return { allowance: 7967 + bonus, brackets: getSuccessionTaxProfile("neveuNiece").brackets };
+    default: // tiers, autre, enfant_conjoint : aucun abattement de droit commun, 60 %
+      return { allowance: 0 + bonus, brackets: getSuccessionTaxProfile("autre").brackets };
+  }
+}
+
 // ─── Calcul principal ─────────────────────────────────────────────────────────
 export function computeDonation(
   donation: DonationItem,
@@ -146,7 +189,9 @@ export function computeDonation(
     const heirShare = Math.min(100, Math.max(0, n(heir.sharePercent))) / 100;
     const grossReceived = donatedValue * heirShare;
 
-    const profile = getSuccessionTaxProfile(heir.relation);
+    // Droits de DONATION : profil dedie (abattements donation, fix conjoint). Le
+    // rappel fiscal (computeRappelFiscal, scenario deces) garde le profil SUCCESSION.
+    const profile = getDonationTaxProfile(heir.relation);
     const priorDon = n(heir.priorDonations);
     const residualAllowance = Math.max(0, profile.allowance - priorDon);
     const taxable = Math.max(0, grossReceived - residualAllowance);
