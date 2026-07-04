@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CardAccentTop } from "../CardAccentTop";
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload } from "lucide-react";
-import { BRAND, SURFACE, labelPlacement } from "../../constants";
+import { BRAND, SURFACE, labelPlacement, DONATION_RELATIONS } from "../../constants";
 import type { DonationItem, DonationHeir, Hypothesis, DifferenceLine } from "../../types/patrimoine";
 import { n, euro, deepClone, getDemembrementPercentages } from "../../lib/calculs/utils";
 import { Field, DifferenceBadge } from "../shared";
@@ -14,17 +14,11 @@ import { computeIR } from "../../lib/calculs/ir";
 import { computeIFI } from "../../lib/calculs/ifi";
 import { computeSuccession } from "../../lib/calculs/succession";
 import { buildHypothesisDifferenceLines } from "../../lib/hypotheses";
-import { computeDonation, computeNotaryFees } from "../../lib/calculs/donation";
+import { computeDonation, computeNotaryFees, mapMembreToDonationRelation } from "../../lib/calculs/donation";
+import { membresFamille } from "../../lib/prevoyance/membres-famille";
 
-const DONATION_RELATIONS = [
-  { value: "enfant",        label: "Enfant (abatt. 100 000 €)" },
-  { value: "parent",        label: "Parent (abatt. 100 000 €)" },
-  { value: "petit-enfant",  label: "Petit-enfant (abatt. 1 594 €)" },
-  { value: "frereSoeur",    label: "Frère / Sœur (abatt. 15 932 €)" },
-  { value: "neveuNiece",    label: "Neveu / Nièce (abatt. 7 967 €)" },
-  { value: "conjoint",      label: "Conjoint / Partenaire (abatt. 80 724 €)" },
-  { value: "tiers",         label: "Tiers (abatt. 1 594 €)" },
-];
+// DONATION_RELATIONS centralise dans constants (Lot C) — valeurs donation 2026
+// corrigees (petit-enfant 31 865, tiers 0) alignees sur getDonationTaxProfile.
 
 // ── TabHypotheses ─────────────────────────────────────────────────────────────
 const TabHypotheses = React.memo(function TabHypotheses(props: any) {
@@ -436,6 +430,17 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
       }],
     }));
 
+  // Picker famille (Lot C2) : pre-remplit {name, relation} depuis membresFamille
+  // (part manuelle). Texte libre conserve (petits-enfants non modelises).
+  const addHeirFromMembre = (m: any) =>
+    setDon(d => ({
+      ...d, heirs: [...d.heirs, {
+        id: Date.now().toString(),
+        name: m.name, relation: mapMembreToDonationRelation(m.relation),
+        sharePercent: "0", priorDonations: "0",
+      }],
+    }));
+
   const removeHeir = (hid: string) =>
     setDon(d => ({ ...d, heirs: d.heirs.filter(h => h.id !== hid) }));
 
@@ -565,6 +570,24 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
                 cursor: "pointer", color: colorNavy, fontWeight: 600,
               }}>+ Donataire</button>
             </div>
+            {/* Picker famille (Lot C2) : puces membresFamille selon le donateur */}
+            {(() => {
+              const whichDonor: 1 | 2 = (don as any).donorPersonKey === "person2" ? 2 : 1;
+              const membres = membresFamille(data as any, whichDonor);
+              if (!membres.length) return null;
+              return (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "8px", alignItems: "center" }}>
+                  <span style={{ fontSize: "11px", color: "#888" }}>Depuis la famille :</span>
+                  {membres.map((m: any, mi: number) => (
+                    <button key={mi} onClick={() => addHeirFromMembre(m)} style={{
+                      fontSize: "12px", padding: "3px 10px", borderRadius: "999px",
+                      border: `1px solid ${colorSky}`, background: "transparent",
+                      cursor: "pointer", color: colorNavy, fontWeight: 600,
+                    }}>+ {m.name}</button>
+                  ))}
+                </div>
+              );
+            })()}
             {don.heirs.map((heir) => (
               <div key={heir.id} style={{
                 display: "grid", gridTemplateColumns: "2fr 2fr 1fr 1.5fr auto",
