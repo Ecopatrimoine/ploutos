@@ -125,22 +125,26 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
 
         {/* Salarié / fonctionnaire */}
         {!isIndep && !isRetr && (
-          <MoneyField
-            label={`Salaire net imposable`}
-            tooltip="Salaire net avant impôt. Pour les salariés, l'abattement de 10% (ou frais réels) sera appliqué dans l'onglet IR."
-            value={salaryVal}
-            onChange={(e) => setField(salaryKey, e.target.value)}
-          />
+          <div className="max-w-[240px]">
+            <MoneyField
+              label={`Salaire net imposable`}
+              tooltip="Salaire net avant impôt. Pour les salariés, l'abattement de 10% (ou frais réels) sera appliqué dans l'onglet IR."
+              value={salaryVal}
+              onChange={(e) => setField(salaryKey, e.target.value)}
+            />
+          </div>
         )}
 
         {/* Retraité */}
         {isRetr && (
-          <MoneyField
-            label="Pensions de retraite"
-            tooltip="Total des pensions perçues. Abattement de 10% appliqué automatiquement (plafonné à 4 123 €)."
-            value={data.pensions}
-            onChange={(e) => setField("pensions", e.target.value)}
-          />
+          <div className="max-w-[240px]">
+            <MoneyField
+              label="Pensions de retraite"
+              tooltip="Total des pensions perçues. Abattement de 10% appliqué automatiquement (plafonné à 4 123 €)."
+              value={data.pensions}
+              onChange={(e) => setField("pensions", e.target.value)}
+            />
+          </div>
         )}
 
         {/* Agriculteur — BA avec toggle Micro / Réel */}
@@ -173,12 +177,14 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
               {/* Champ selon régime */}
               {micro ? (
                 <>
-                  <MoneyField
-                    label="Recettes HT (année N)"
-                    tooltip={`Recettes brutes HT de l'exploitation agricole. Abattement forfaitaire de 87% (min. 305 €). Seuil micro-BA : ${SEUIL_MICRO_BA.toLocaleString("fr-FR")} € (moyenne triennale 2024-2025).`}
-                    value={caVal}
-                    onChange={(e) => setField(caKey, e.target.value)}
-                  />
+                  <div className="max-w-[240px]">
+                    <MoneyField
+                      label="Recettes HT (année N)"
+                      tooltip={`Recettes brutes HT de l'exploitation agricole. Abattement forfaitaire de 87% (min. 305 €). Seuil micro-BA : ${SEUIL_MICRO_BA.toLocaleString("fr-FR")} € (moyenne triennale 2024-2025).`}
+                      value={caVal}
+                      onChange={(e) => setField(caKey, e.target.value)}
+                    />
+                  </div>
                   {depasseBA && (
                     <div className="flex items-start gap-1.5 rounded-xl px-2.5 py-2 text-xs" style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
                       <span className="shrink-0">⚠️</span>
@@ -192,12 +198,14 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
                   )}
                 </>
               ) : (
-                <MoneyField
-                  label="Bénéfice agricole net (BA)"
-                  tooltip="Bénéfice net de l'exploitation après déduction des charges réelles. Imposable au barème progressif de l'IR."
-                  value={caVal}
-                  onChange={(e) => setField(caKey, e.target.value)}
-                />
+                <div className="max-w-[240px]">
+                  <MoneyField
+                    label="Bénéfice agricole net (BA)"
+                    tooltip="Bénéfice net de l'exploitation après déduction des charges réelles. Imposable au barème progressif de l'IR."
+                    value={caVal}
+                    onChange={(e) => setField(caKey, e.target.value)}
+                  />
+                </div>
               )}
             </>
           );
@@ -246,17 +254,19 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
               const depasseSeuil = micro && caNum > 0 && caNum > seuilMicro;
               return (
                 <>
-                  <MoneyField
-                    label={`Chiffre d'affaires HT${isBNC ? " (recettes)" : ""}`}
-                    tooltip={isBNC
-                      ? "Recettes brutes HT de l'activité libérale. L'abattement de 34% sera appliqué en régime micro pour obtenir la base imposable."
-                      : bicTypeVal === "vente"
-                        ? "CA HT annuel. Abattement forfaitaire de 71% en micro pour activités de vente/commerce."
-                        : "CA HT annuel. Abattement forfaitaire de 50% en micro pour prestations de services BIC."
-                    }
-                    value={caVal}
-                    onChange={(e) => setField(caKey, e.target.value)}
-                  />
+                  <div className="max-w-[240px]">
+                    <MoneyField
+                      label={`Chiffre d'affaires HT${isBNC ? " (recettes)" : ""}`}
+                      tooltip={isBNC
+                        ? "Recettes brutes HT de l'activité libérale. L'abattement de 34% sera appliqué en régime micro pour obtenir la base imposable."
+                        : bicTypeVal === "vente"
+                          ? "CA HT annuel. Abattement forfaitaire de 71% en micro pour activités de vente/commerce."
+                          : "CA HT annuel. Abattement forfaitaire de 50% en micro pour prestations de services BIC."
+                      }
+                      value={caVal}
+                      onChange={(e) => setField(caKey, e.target.value)}
+                    />
+                  </div>
                   {depasseSeuil && (
                     <div className="flex items-start gap-1.5 rounded-xl px-2.5 py-2 text-xs" style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
                       <span className="shrink-0">⚠️</span>
@@ -273,7 +283,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
               const hasDetail = sumChargesDetail(detail) > 0;
               return (
                 <div className="flex items-end gap-1.5">
-                  <div className="flex-1">
+                  <div style={{ width: 200 }}>
                     <MoneyField
                       label="Charges professionnelles déductibles"
                       tooltip="Total des charges réelles déductibles. Cliquez sur le bouton détail pour ventiler par nature. Bénéfice imposable = CA − Charges."
@@ -321,9 +331,9 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
   <div className="border p-4 space-y-4" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
     <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Autres revenus</div>
 
-    {/* Pensions nominatives (conditions d'affichage inchangees) */}
+    {/* Pensions nominatives (conditions d'affichage inchangees) — champs bornes */}
     {(!isRetraite(data.person1PcsGroupe) || !isRetraite(data.person2PcsGroupe)) && (
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2 max-w-[520px]">
         {!isRetraite(data.person1PcsGroupe) && (
           <MoneyField
             label={`Pensions / retraites — ${person1}`}
@@ -409,47 +419,52 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
   <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
     <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Charges du foyer</div>
 
-    {/* Encart charges courantes : detail (barriere douce) ou global libre */}
-    <div className="rounded-xl p-3 space-y-2" style={{ background: "rgba(81,106,199,0.06)", border: "1px solid rgba(81,106,199,0.15)" }}>
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-xs font-semibold" style={{ color: BRAND.navy }}>Charges courantes (train de vie)</div>
-        <button
-          onClick={() => setChargesModalOpen(true)}
-          className="flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-colors"
-          style={{ background: ccPostesRenseignes > 0 ? BRAND.navy : "rgba(81,106,199,0.1)", color: ccPostesRenseignes > 0 ? "#fff" : BRAND.sky, border: ccPostesRenseignes > 0 ? "none" : "1px solid rgba(81,106,199,0.2)", whiteSpace: "nowrap" }}
-          title="Détailler les charges courantes par poste"
-        >
-          <FileText className="h-3 w-3" />
-          {ccPostesRenseignes > 0 ? "Détail ✓" : "Détailler"}
-        </button>
-      </div>
+    {/* Encart charges courantes : UNE ligne (label + montant/detail + bouton Detailler) */}
+    <div className="rounded-xl px-3 py-2 flex items-center gap-3 flex-wrap" style={{ background: "rgba(81,106,199,0.06)", border: "1px solid rgba(81,106,199,0.15)" }}>
+      <div className="text-xs font-semibold shrink-0" style={{ color: BRAND.navy }} title="Charges courantes mensuelles du foyer (loyer, énergie, assurances, scolarité, transport…).">Charges courantes (train de vie)</div>
       {ccPostesRenseignes > 0 ? (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
           <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(38,66,139,0.1)", color: BRAND.sky }}>
             total détaillé ({ccPostesRenseignes} poste{ccPostesRenseignes > 1 ? "s" : ""})
           </span>
           <span className="text-sm font-bold" style={{ color: BRAND.navy }}>{euro(budget.detail.chargesCourantes)}/mois</span>
         </div>
       ) : (
-        <MoneyField
-          label="Montant global (€/mois)"
-          tooltip="Charges courantes mensuelles du foyer (loyer, énergie, assurances, scolarité, transport…). Cliquez sur « Détailler » pour ventiler par poste — sinon ce montant global reste libre."
-          value={data.chargesCourantes || ""}
-          onChange={(e) => setField("chargesCourantes", e.target.value)}
-          compact
-        />
+        <div className="relative" style={{ width: 150 }}>
+          <Input
+            value={data.chargesCourantes || ""}
+            onChange={(e) => setField("chargesCourantes", e.target.value)}
+            placeholder="Montant global"
+            className="rounded-xl h-8 text-sm text-right pr-11"
+            style={{ fontWeight: 700 }}
+            inputMode="decimal"
+          />
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">€/mois</span>
+        </div>
       )}
+      <button
+        onClick={() => setChargesModalOpen(true)}
+        className="ml-auto shrink-0 flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-colors"
+        style={{ background: ccPostesRenseignes > 0 ? BRAND.navy : "rgba(81,106,199,0.1)", color: ccPostesRenseignes > 0 ? "#fff" : BRAND.sky, border: ccPostesRenseignes > 0 ? "none" : "1px solid rgba(81,106,199,0.2)", whiteSpace: "nowrap" }}
+        title="Détailler les charges courantes par poste"
+      >
+        <FileText className="h-3 w-3" />
+        {ccPostesRenseignes > 0 ? "Détail ✓" : "Détailler"}
+      </button>
     </div>
 
-    {/* Charges deductibles du revenu global (libelles inchanges) */}
-    <MoneyField label="Pensions alimentaires déductibles" tooltip="Pensions alimentaires versées à un enfant majeur ou à un ex-conjoint, déductibles sous conditions." value={data.pensionDeductible} onChange={(e) => setField("pensionDeductible", e.target.value)} />
-    <MoneyField label="Autres charges déductibles" tooltip="Autres déductions du revenu global : épargne retraite PERP, déduction épargne handicap, etc. Les cotisations Madelin ont leur poste dédié ci-dessous." value={data.otherDeductible} onChange={(e) => setField("otherDeductible", e.target.value)} />
-    <MoneyField
-      label="CSG déductible — revenus fonciers N-1 (ligne 6DE)"
-      tooltip="CSG déductible sur les revenus fonciers de l'année précédente. Correspond à 6,8% des revenus fonciers nets N-1. Montant indiqué sur votre avis d'imposition à la ligne 6DE — à reporter directement ici."
-      value={data.csgDeductibleFoncier || ""}
-      onChange={(e) => setField("csgDeductibleFoncier", e.target.value)}
-    />
+    {/* Charges deductibles du revenu global — 3 cartes compactes (libelles inchanges) */}
+    <div className="grid gap-3 md:grid-cols-3">
+      <MoneyField label="Pensions alimentaires déductibles" tooltip="Pensions alimentaires versées à un enfant majeur ou à un ex-conjoint, déductibles sous conditions." value={data.pensionDeductible} onChange={(e) => setField("pensionDeductible", e.target.value)} compact />
+      <MoneyField label="Autres charges déductibles" tooltip="Autres déductions du revenu global : épargne retraite PERP, déduction épargne handicap, etc. Les cotisations Madelin ont leur poste dédié ci-dessous." value={data.otherDeductible} onChange={(e) => setField("otherDeductible", e.target.value)} compact />
+      <MoneyField
+        label="CSG déductible — revenus fonciers N-1 (ligne 6DE)"
+        tooltip="CSG déductible sur les revenus fonciers de l'année précédente. Correspond à 6,8% des revenus fonciers nets N-1. Montant indiqué sur votre avis d'imposition à la ligne 6DE — à reporter directement ici."
+        value={data.csgDeductibleFoncier || ""}
+        onChange={(e) => setField("csgDeductibleFoncier", e.target.value)}
+        compact
+      />
+    </div>
   </div>
 
   {/* 5. Madelin prevoyance — 2 blocs en colonnes (P1 | P2). Bloc inchange, seul le conteneur change (dette "2 blocs empiles" soldee). */}
