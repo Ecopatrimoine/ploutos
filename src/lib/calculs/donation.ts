@@ -162,6 +162,24 @@ export function getDonationTaxProfile(relation: string, handicap = false) {
   }
 }
 
+// ─── Mapping vocabulaire membresFamille -> relation DONATION (Lot C) ──────────
+// membresFamille (lib/prevoyance/membres-famille) produit un vocabulaire oriente
+// SUCCESSION/990 I : conjoint | pacs_partner | autre | enfant | enfant_conjoint.
+// Le picker donation attend le vocabulaire DONATION_RELATIONS (enfant, conjoint,
+// petit-enfant, frereSoeur, neveuNiece, parent, tiers). Table :
+//   enfant          -> enfant
+//   conjoint / pacs -> conjoint  (abattement donation 80 724, art. 790 E/F)
+//   enfant_conjoint -> tiers     (beau-fils non adopte = tiers fiscal, 0 / 60 %)
+//   autre / defaut  -> tiers
+export function mapMembreToDonationRelation(relationMembre: string): string {
+  switch (relationMembre) {
+    case "enfant": return "enfant";
+    case "conjoint":
+    case "pacs_partner": return "conjoint";
+    default: return "tiers"; // enfant_conjoint, autre, inconnu
+  }
+}
+
 // ─── Calcul principal ─────────────────────────────────────────────────────────
 export function computeDonation(
   donation: DonationItem,

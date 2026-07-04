@@ -1,5 +1,6 @@
 import React from "react";
-import { computeDonation, applyDonationsToData } from "../../lib/calculs/donation";
+import { computeDonation, applyDonationsToData, mapMembreToDonationRelation } from "../../lib/calculs/donation";
+import { membresFamille } from "../../lib/prevoyance/membres-famille";
 import { euro as euroFmt } from "../../lib/calculs/utils";
 import { resolvePlacementRef, resolvePropertyRef } from "../../lib/calculs/refs";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Settings, FileText, Database } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
-import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, labelPlacement, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
+import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, labelPlacement, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, DONATION_RELATIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
@@ -95,6 +96,74 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
             ? <div>Démembrement : <strong>US {Math.round(succession.demembrementPct.usufruct * 100)} % / NP {Math.round(succession.demembrementPct.nuePropriete * 100)} %</strong> ({succession.usufruitierAge} ans)</div>
             : <div style={{ color: BRAND.warning }}>Date de naissance du conjoint à renseigner pour le démembrement.</div>}
         </div>
+      </div>
+
+      {/* ── Registre : donations anterieures (rappel fiscal 15 ans, art. 784) ── */}
+      <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Donations antérieures — rappel fiscal (art. 784 CGI)</div>
+          <Button variant="outline" className="h-7 rounded-xl px-3 text-xs" onClick={() => setField("donations", [...(data.donations || []), { id: `don_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, donorPersonKey: "person1", beneficiaireType: "autre", beneficiaireNom: "", beneficiaireRelation: "enfant", date: new Date().toISOString().slice(0, 10), montant: "", type: "simple" }])}>
+            <Plus className="mr-1 h-3 w-3" />Donation
+          </Button>
+        </div>
+        {(!data.donations || data.donations.length === 0) && (
+          <div className="text-xs text-slate-400 italic">Aucune donation enregistrée. Les donations simples de moins de 15 ans consenties par le foyer réduisent l'abattement des héritiers (rappel fiscal, art. 784 CGI).</div>
+        )}
+        {(data.donations || []).map((don: any, i: number) => {
+          const whichDefunt: 1 | 2 = don.donorPersonKey === "person2" ? 2 : 1;
+          const membres = membresFamille(data, whichDefunt);
+          const upd = (patch: any) => setField("donations", (data.donations || []).map((d: any, j: number) => j === i ? { ...d, ...patch } : d));
+          const pick = (m: any) => m.source === "enfant"
+            ? upd({ beneficiaireType: "child", beneficiaireChildId: m.childId, beneficiaireNom: m.name, beneficiaireRelation: "enfant" })
+            : upd({ beneficiaireType: "conjoint", beneficiaireChildId: undefined, beneficiaireNom: m.name, beneficiaireRelation: mapMembreToDonationRelation(m.relation) });
+          return (
+            <div key={don.id} className="rounded-xl border p-3 space-y-2" style={{ borderColor: SURFACE.border }}>
+              <div className="grid gap-2 md:grid-cols-[0.8fr_2fr_auto] items-end">
+                <Field label="Donateur">
+                  <Select value={don.donorPersonKey} onValueChange={(v: string) => upd({ donorPersonKey: v })}>
+                    <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="person1">{person1}</SelectItem><SelectItem value="person2">{person2 || "Personne 2"}</SelectItem></SelectContent>
+                  </Select>
+                </Field>
+                <div>
+                  <div className="text-xs text-slate-500 mb-1">Bénéficiaire</div>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {membres.map((m: any, mi: number) => {
+                      const active = m.source === "enfant" ? (don.beneficiaireType === "child" && don.beneficiaireChildId === m.childId) : don.beneficiaireType === "conjoint";
+                      return <button key={mi} onClick={() => pick(m)} className="text-xs rounded-full px-2 py-0.5 transition-colors" style={{ background: active ? BRAND.navy : "rgba(81,106,199,0.1)", color: active ? "#fff" : BRAND.sky, border: active ? "none" : "1px solid rgba(81,106,199,0.2)" }}>{m.name}</button>;
+                    })}
+                    <button onClick={() => upd({ beneficiaireType: "autre", beneficiaireChildId: undefined })} className="text-xs rounded-full px-2 py-0.5 transition-colors" style={{ background: don.beneficiaireType === "autre" ? BRAND.gold : "rgba(227,175,100,0.12)", color: don.beneficiaireType === "autre" ? "#fff" : BRAND.gold, border: "1px solid rgba(227,175,100,0.3)" }}>Autre…</button>
+                  </div>
+                  {don.beneficiaireType === "autre" && (
+                    <div className="grid gap-2 grid-cols-2 mt-1.5">
+                      <Input value={don.beneficiaireNom || ""} onChange={(e) => upd({ beneficiaireNom: e.target.value })} placeholder="Nom du bénéficiaire" className="rounded-xl h-8 text-sm" />
+                      <Select value={don.beneficiaireRelation || "enfant"} onValueChange={(v: string) => upd({ beneficiaireRelation: v })}>
+                        <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                        <SelectContent>{DONATION_RELATIONS.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+                <Button variant="outline" className="h-8 w-8 rounded-xl p-0" onClick={() => setField("donations", (data.donations || []).filter((_: any, j: number) => j !== i))}><Trash2 className="h-3.5 w-3.5" /></Button>
+              </div>
+              <div className="grid gap-2 md:grid-cols-3">
+                <Field label="Date"><DateFr value={don.date} onChange={(iso: string | null) => upd({ date: iso || "" })} className="rounded-xl h-8 text-sm" /></Field>
+                <MoneyField label="Montant (€)" value={don.montant} onChange={(e: any) => upd({ montant: e.target.value })} compact />
+                <Field label="Type" tooltip="Donation simple : rapportable (rappel des 15 ans). Don familial 790 G / 790 A bis / présent d'usage : HORS rappel (ignorés du calcul).">
+                  <Select value={don.type} onValueChange={(v: string) => upd({ type: v })}>
+                    <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="simple">Donation simple (rappelable 15 ans)</SelectItem>
+                      <SelectItem value="don_familial_790G">Don familial 790 G (hors rappel)</SelectItem>
+                      <SelectItem value="don_790A_bis">Don 790 A bis (hors rappel)</SelectItem>
+                      <SelectItem value="present_usage">Présent d'usage (hors rappel)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* ── TESTAMENT ── */}
@@ -1140,6 +1209,34 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                 ))}
               </div>
             )}
+
+            {/* ── Rappel fiscal des donations (Lot C) ── */}
+            {heir.rappelApplique && (heir.rappelApplique.mode !== "aucun" || heir.rappelApplique.aVerifier) && (() => {
+              const ra = heir.rappelApplique;
+              // Dates derivees du registre (affichage seul ; le calcul vient du moteur).
+              const donsHeir = (data.donations || []).filter((d: any) => d.type === "simple" && (
+                (d.beneficiaireType === "child" && d.beneficiaireChildId === heir.childId) ||
+                (d.beneficiaireType === "conjoint" && (heir.relation === "conjoint" || heir.relation === "pacs_partner"))
+              ));
+              const annees = donsHeir.map((d: any) => String(d.date || "").slice(0, 4)).filter(Boolean).join(", ");
+              return (
+                <div style={{ marginBottom: "16px", borderRadius: "10px", padding: "10px 12px", background: ra.aVerifier ? BRAND.warningBg : "rgba(81,106,199,0.06)", border: `1px solid ${ra.aVerifier ? BRAND.warningBorder : "rgba(81,106,199,0.18)"}` }}>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: BRAND.sky, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    Rappel fiscal des donations
+                    {ra.mode === "manuel" && <span style={{ fontSize: 10, background: "rgba(0,0,0,0.06)", color: BRAND.muted, borderRadius: 5, padding: "1px 6px", fontWeight: 600 }}>manuel</span>}
+                  </div>
+                  {ra.mode === "auto" && (
+                    <div style={{ fontSize: "12px", color: BRAND.navy, lineHeight: 1.5 }}>
+                      Abattement {euro(heir.allowance)} − {euro(ra.abattementConsomme)} donnés{annees ? ` (${annees})` : ""} = <strong>{euro(Math.max(0, heir.allowance - ra.abattementConsomme))} disponible</strong>.
+                      {ra.baseTaxeeAnterieure > 0 && <span> Reprise de progressivité sur {euro(ra.baseTaxeeAnterieure)} déjà taxés (art. 784 CGI).</span>}
+                    </div>
+                  )}
+                  {ra.aVerifier && (
+                    <div style={{ fontSize: "12px", color: BRAND.warning, marginTop: ra.mode === "auto" ? "4px" : 0 }}>⚠️ Une donation a été ignorée (date ou montant manquant) — à vérifier.</div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* BracketFillChart pour cet héritier */}
             {heir.bracketFill && heir.bracketFill.length > 0 && (
