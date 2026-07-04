@@ -1,12 +1,13 @@
 // Calcul succession — droits, AV/PER, legs, démembrement
 import type { PatrimonialData, SuccessionData, TaxBracket, FilledBracket,
   Heir, SuccessionPropertyLine, SuccessionPlacementLine, SuccessionAvLine,
-  SuccessionResult, PieDatum, ContratTransmissionDeces,
+  SuccessionResult, PieDatum, ContratTransmissionDeces, DonationPassee,
   CapitalDecesCaisseRelation, CapitalDecesCaisseSurcharge, CodeCaisse } from '../../types/patrimoine';
 import { n, getDemembrementPercentages, computeTaxFromBrackets, isAV, isPERType,
   childMatchesDeceased, getAgeFromBirthDate, isSpouseHeirEligible, getAvailableSpouseOptions,
   getQuotiteDisponible, buildCollectedHeirs, euro } from './utils';
 import { resolveLoanValuesMulti } from './credit';
+import { computeRappelParHeritier } from './rappelFiscal';
 import { resolvePlacementRef, resolvePropertyRef } from './refs';
 import { buildEntreePerso } from '../prevoyance/mapping';
 import { resolveCapitauxDeces } from '../prevoyance/capitaux-deces';
@@ -584,6 +585,20 @@ export function computeAvTax(relation: string, amountBefore70Capital: number, am
   };
 }
 
+// Droits avec REPRISE DE PROGRESSIVITE (rappel fiscal des donations < 15 ans,
+// art. 784 CGI) : la base deja taxee anterieurement remonte le point de depart
+// dans le bareme -> droits = T(base + taxable) - T(base). REFACTOR A RESULTAT
+// IDENTIQUE : quand base = 0 (mode manuel OU registre de donations vide),
+// computeTaxFromBrackets(0) = 0 (aucune tranche remplie car from >= 0), donc
+// droits = T(taxable), STRICTEMENT egal au calcul direct historique.
+function droitsAvecReprise(base: number, taxable: number, brackets: TaxBracket[]): number {
+  if (taxable <= 0) return 0;
+  const b = Math.max(0, base);
+  const tTotal = computeTaxFromBrackets(b + taxable, brackets).tax;
+  const tBase = computeTaxFromBrackets(b, brackets).tax;
+  return Math.max(0, tTotal - tBase);
+}
+
 export function computeSuccession(successionData: SuccessionData, data: PatrimonialData) {
   // Testament actif = supplante la dévolution légale
   const testamentMode = successionData.useTestament && (
@@ -608,8 +623,11 @@ export function computeSuccession(successionData: SuccessionData, data: Patrimon
         name: `${h.firstName} ${h.lastName}`.trim() || "Légataire",
         relation: effectiveRelation,
         share: h.shareGlobal || "0",
-        priorDonations: h.priorDonations || "0",
+        // Conserver la valeur SAISIE (y compris "0" = override manuel) ; defaut ""
+        // sinon -> MODE AUTO (Lot C0, neutre registre vide cf. rapport Lot B).
+        priorDonations: h.priorDonations || "",
         childLink: matchedChild ? (matchedChild.parentLink || "common_child") : (h.relation === "enfant" ? "common_child" : null),
+        childId: matchedChild?.id, // ref stable pour le rappel fiscal (Lot B)
       };
     });
   };
@@ -629,7 +647,7 @@ export function computeSuccession(successionData: SuccessionData, data: Patrimon
       const effectiveRelation = matchedChild && !childMatchesDeceased(matchedChild.parentLink || "common_child", successionData.deceasedPerson)
         ? "enfant_conjoint"
         : relation;
-      heirs.push({ name, relation: effectiveRelation, share: "0", priorDonations: "0", childLink: matchedChild?.parentLink || (relation === "enfant" ? "common_child" : null) });
+      heirs.push({ name, relation: effectiveRelation, share: "0", priorDonations: "", childLink: matchedChild?.parentLink || (relation === "enfant" ? "common_child" : null), childId: matchedChild?.id }); // priorDonations "" -> MODE AUTO (Lot C0)
     };
     (successionData.legsPrecisItems || []).forEach(item => {
       // Nouvelle structure : legataires[]
@@ -656,6 +674,9 @@ export function computeSuccession(successionData: SuccessionData, data: Patrimon
         : buildCollectedHeirs(data, successionData.deceasedPerson);
 
   const deceasedKey = successionData.deceasedPerson;
+  // Rappel fiscal (Lot B) : date du deces simule = date du jour (coherent moteur).
+  // Non lue en mode manuel ni si le registre est vide -> non-regression garantie.
+  const dateDuJour = new Date().toISOString().slice(0, 10);
   const survivorKey = deceasedKey === "person1" ? "person2" : "person1";
   const spouseEligible = isSpouseHeirEligible(data);
   const spouseOptions = getAvailableSpouseOptions(data, deceasedKey);
@@ -1135,12 +1156,46 @@ export function computeSuccession(successionData: SuccessionData, data: Patrimon
     );
     const profile = getSuccessionTaxProfile(heir.relation, heirIsHandicap);
     // FIX #2 : base = grossReceived + nueValue uniquement (pas usufructTaxValue)
-    const residualAllowance = Math.max(0, profile.allowance - Math.max(0, n(heir.priorDonations)));
-const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowance);
+    const partTaxableBrute = grossReceived + nueValue;
+
+    // ── Rappel fiscal des donations (art. 784 CGI) — Lot B ──────────────────
+    // MANUEL (barriere douce) : heir.priorDonations RENSEIGNE (y compris "0") ->
+    //   override historique : residualAllowance = allowance - priorDonations,
+    //   AUCUNE reprise de progressivite. Comportement preserve a l'identique.
+    // AUTO : sinon -> rappel depuis le registre data.donations pour ce defunt/heritier.
+    const priorDonationsSaisi = String(heir.priorDonations ?? "").trim() !== "";
+    let residualAllowance: number;
+    let baseReprise: number;
+    let rappelApplique: { abattementConsomme: number; baseTaxeeAnterieure: number; mode: "manuel" | "auto" | "aucun"; aVerifier: boolean };
+    if (priorDonationsSaisi) {
+      const priorDon = Math.max(0, n(heir.priorDonations));
+      residualAllowance = Math.max(0, profile.allowance - priorDon);
+      baseReprise = 0;
+      rappelApplique = { abattementConsomme: Math.min(priorDon, profile.allowance), baseTaxeeAnterieure: 0, mode: "manuel", aVerifier: false };
+    } else {
+      // Match donation<->heritier par ID (jamais par nom) : childId pour un enfant,
+      // type "conjoint" pour le conjoint/partenaire. Les donations "autre" du
+      // registre (petits-enfants NON modelises en v1) ne matchent AUCUN heritier.
+      const match = (don: DonationPassee): boolean => {
+        if (don.beneficiaireType === "child") return !!heir.childId && don.beneficiaireChildId === heir.childId;
+        if (don.beneficiaireType === "conjoint") return heir.relation === "conjoint" || heir.relation === "pacs_partner";
+        return false;
+      };
+      const rappel = computeRappelParHeritier(data.donations ?? [], deceasedKey, match, dateDuJour);
+      residualAllowance = Math.max(0, profile.allowance - rappel.abattementConsomme);
+      baseReprise = rappel.baseTaxeeAnterieure;
+      rappelApplique = { abattementConsomme: rappel.abattementConsomme, baseTaxeeAnterieure: rappel.baseTaxeeAnterieure, mode: rappel.donationsRetenues.length > 0 ? "auto" : "aucun", aVerifier: rappel.aVerifier };
+    }
+
+    const successionTaxable = Math.max(0, partTaxableBrute - residualAllowance);
     const successionCalc = profile.brackets.length > 0
       ? computeTaxFromBrackets(successionTaxable, profile.brackets)
       : { tax: 0, fill: [] as FilledBracket[] };
-    const successionDuties = successionCalc.tax;
+    // Droits AVEC reprise de progressivite. baseReprise = 0 (manuel / registre vide)
+    // => droitsAvecReprise(0, taxable) = T(taxable) = successionCalc.tax (IDENTIQUE).
+    const successionDuties = profile.brackets.length > 0
+      ? droitsAvecReprise(baseReprise, successionTaxable, profile.brackets)
+      : 0;
 
     const duties = successionDuties + avDuties;
 
@@ -1179,6 +1234,7 @@ const successionTaxable = Math.max(0, grossReceived + nueValue - residualAllowan
       bracketFill: successionCalc.fill,
       graphTitle: profile.graphTitle,
       allowance: profile.allowance,
+      rappelApplique, // { abattementConsomme, baseTaxeeAnterieure, mode, aVerifier } — UI/PDF Lots C/D
       indicatorPct, visualMax,
       currentBracketLabel: currentBracket?.label || "—",
       effectiveReceived: grossReceived + nueRawValue + usufructRawValue + avReceived,

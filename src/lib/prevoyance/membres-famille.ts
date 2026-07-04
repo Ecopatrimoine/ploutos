@@ -19,6 +19,7 @@ export type MembreFamille = {
   name: string;        // "Prénom Nom" (fallback "Conjoint"/"Enfant" si vide)
   relation: string;    // valeur RELATIONS, fiscalement correcte vis-à-vis du défunt
   source: "conjoint" | "enfant"; // groupage UI uniquement, JAMAIS le calcul
+  childId?: string;    // si source === "enfant" : Child.id stable (Lot C, picker donation)
 };
 
 // Relation fiscale du CONJOINT selon le statut du couple. Le conjoint d'un contrat
@@ -88,6 +89,7 @@ export function membresFamille(data: PatrimonialData, whichDefunt: 1 | 2): Membr
       name: nomComplet(c.firstName, c.lastName) || "Enfant",
       relation: relationEnfant(c.parentLink, whichDefunt),
       source: "enfant",
+      childId: c.id, // ref stable pour le picker donation (Lot C) — undefined si non migre
     });
   }
 

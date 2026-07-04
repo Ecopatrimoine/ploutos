@@ -32,6 +32,9 @@ export type HeritierSuccession = {
   droitsExonere?: boolean;  // true → affiche "exonéré" en vert au lieu d'un montant
   net: number;          // 352 625
   composition?: string; // ex: "US fiscal 941 164 € (1 972 950 € × 50%)"
+  // Rappel fiscal des donations < 15 ans (Lot D) — mode auto uniquement.
+  rappel?: { plein: number; consomme: number; residuel: number; reprise?: number };
+  aVerifier?: boolean;  // une donation ignoree (date/montant manquant)
 };
 
 export type SuccessionAPageData = {
@@ -92,9 +95,12 @@ export function pageSuccessionA(t: Tokens, d: SuccessionAPageData): string {
     { value: h.lien, color: t.texteFaible },
     { value: euro(h.partRecue), align: "right" },
     {
-      value: h.abattement && h.abattement > 0 ? euro(h.abattement) : "—",
+      // Rappel auto (Lot D) : abattement RESIDUEL + detail "plein − consomme".
+      value: h.rappel
+        ? `${euro(h.rappel.residuel)}<div style="font-size:8.5px;color:${t.texteFaibleClair};margin-top:1px;line-height:1.25">${euro(h.rappel.plein)} − ${euro(h.rappel.consomme)} (donations &lt; 15 ans)${h.rappel.reprise ? " · reprise progr." : ""}</div>`
+        : (h.abattement && h.abattement > 0 ? euro(h.abattement) : "—"),
       align: "right",
-      color: h.abattement && h.abattement > 0 ? undefined : t.texteFaibleClair,
+      color: (h.rappel || (h.abattement && h.abattement > 0)) ? undefined : t.texteFaibleClair,
     },
     h.droitsExonere
       ? { value: "exonéré", align: "right", color: t.succes, bold: true }
@@ -105,8 +111,10 @@ export function pageSuccessionA(t: Tokens, d: SuccessionAPageData): string {
   const { enteteHtml, lignesHtml } = construireTableEcoulable(t, { cols, rows });
 
   // foot-note CGI (légende sous la table) — réutilisée dans la queue.
+  const rappelActif = d.heritiers.some((h) => h.rappel);
+  const aVerifierActif = d.heritiers.some((h) => h.aVerifier);
   const footNoteHTML = `<div class="foot" style="margin-top:6px">
-        Part reçue = pleine propriété + nue-propriété fiscale + usufruit valorisé selon le coefficient Duvergier (CGI art. 669). Le conjoint marié ou partenaire de PACS est exonéré de droits (CGI art. 796-0 bis).
+        Part reçue = pleine propriété + nue-propriété fiscale + usufruit valorisé selon le coefficient Duvergier (CGI art. 669). Le conjoint marié ou partenaire de PACS est exonéré de droits (CGI art. 796-0 bis).${rappelActif ? "<br>Donations antérieures de moins de 15 ans réintégrées (rappel fiscal, CGI art. 784)." : ""}${aVerifierActif ? "<br>Une donation n'a pas été prise en compte (données incomplètes)." : ""}
       </div>`;
 
   // ─── Déclaration des blocs (contrat de page) ──

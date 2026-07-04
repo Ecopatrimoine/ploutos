@@ -1,5 +1,6 @@
 import React from "react";
-import { computeDonation, applyDonationsToData } from "../../lib/calculs/donation";
+import { computeDonation, applyDonationsToData, mapMembreToDonationRelation, getDonationTaxProfile } from "../../lib/calculs/donation";
+import { membresFamille } from "../../lib/prevoyance/membres-famille";
 import { euro as euroFmt } from "../../lib/calculs/utils";
 import { resolvePlacementRef, resolvePropertyRef } from "../../lib/calculs/refs";
 import { Input } from "@/components/ui/input";
@@ -13,12 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Settings, FileText, Database } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
-import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, labelPlacement, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
+import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, labelPlacement, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, DONATION_RELATIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
 import { BlocCapitauxDeces } from "../succession/BlocCapitauxDeces";
+import { DonationPasseeModal } from "../succession/DonationPasseeModal";
 import { patchPrevoyancePair } from "../../lib/prevoyance/utils";
 
 // ── Couleurs héritiers ────────────────────────────────────────────────────────
@@ -40,6 +42,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
   const { data, setField, successionData, setSuccessionData, succession, activeDonations, syncCollectedHeirs, getFamilyMembers, importFamilyToTestament, addTestamentHeir, updateTestamentHeir, removeTestamentHeir, addLegsPrecisItem, addLegsPrecisItemFree, addLegsPrecisItemResidual, updateLegsPrecisItem, removeLegsPrecisItem, addLegataire, updateLegataire, removeLegataire, addContrepartieLegataire, updateContrepartieLegataire, removeContrepartieLegataire, addContrepartie, updateContrepartie, removeContrepartie, addContrepartieGlobal, updateContrepartieGlobal, removeContrepartieGlobal, addContrepartieWithBalance, removeContrepartieWithBalance, legsPickerOpen, setLegsPickerOpen, addFamilyMemberToLegsGlobal, addFamilyMemberToLegsPrecis, loanModalPropertyId, setLoanModalPropertyId, addLoan, updateLoan, removeLoan, effectiveSpouseOption, spouseOptions, person1, person2 } = props;
 
   const [selectedHeir, setSelectedHeir] = React.useState<number | null>(null);
+  const [editingDon, setEditingDon] = React.useState<number | null>(null); // registre donations (pivot E2)
   const [showActifModal, setShowActifModal] = React.useState(false);
   const [showAvModal, setShowAvModal] = React.useState(false);
 
@@ -95,6 +98,42 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
             ? <div>Démembrement : <strong>US {Math.round(succession.demembrementPct.usufruct * 100)} % / NP {Math.round(succession.demembrementPct.nuePropriete * 100)} %</strong> ({succession.usufruitierAge} ans)</div>
             : <div style={{ color: BRAND.warning }}>Date de naissance du conjoint à renseigner pour le démembrement.</div>}
         </div>
+      </div>
+
+      {/* ── Registre : donations anterieures (rappel fiscal 15 ans, art. 784) ── */}
+      <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Donations antérieures — rappel fiscal (art. 784 CGI)</div>
+          <Button variant="outline" className="h-7 rounded-xl px-3 text-xs" onClick={() => {
+            const nouvelle = { id: `don_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, donorPersonKey: "person1", beneficiaireType: "autre", beneficiaireNom: "", beneficiaireRelation: "enfant", date: new Date().toISOString().slice(0, 10), montant: "", type: "simple" };
+            const idx = (data.donations || []).length;
+            setField("donations", [...(data.donations || []), nouvelle]);
+            setEditingDon(idx); // ouvre le modal sur la donation creee
+          }}>
+            <Plus className="mr-1 h-3 w-3" />Donation
+          </Button>
+        </div>
+        {(!data.donations || data.donations.length === 0) && (
+          <div className="text-xs text-slate-400 italic">Aucune donation enregistrée. Les donations simples de moins de 15 ans consenties par le foyer réduisent l'abattement des héritiers (rappel fiscal, art. 784 CGI).</div>
+        )}
+        {(data.donations || []).map((don: any, i: number) => {
+          const donateurNom = don.donorPersonKey === "person2" ? (person2 || "Personne 2") : person1;
+          const benef = don.beneficiaireNom || (don.beneficiaireType === "autre" ? "—" : "Bénéficiaire");
+          const typeLabel = don.type === "simple" ? "simple" : don.type === "don_familial_790G" ? "790 G" : don.type === "don_790A_bis" ? "790 A bis" : "présent d'usage";
+          const horsRappel = don.type !== "simple";
+          return (
+            <div key={don.id} className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2" style={{ borderColor: SURFACE.border }}>
+              <div className="text-sm min-w-0" style={{ color: BRAND.navy }}>
+                <span className="font-medium">{donateurNom}</span> → {benef}
+                <span className="text-xs ml-2" style={{ color: BRAND.muted }}>{don.montant ? euro(don.montant) : "—"} · {String(don.date || "").slice(0, 10) || "date ?"} · <span style={{ color: horsRappel ? BRAND.muted : BRAND.sky }}>{typeLabel}{horsRappel ? " (hors rappel)" : ""}</span></span>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button variant="outline" className="h-7 rounded-xl px-2 text-xs" onClick={() => setEditingDon(i)}>Modifier</Button>
+                <Button variant="outline" className="h-7 w-7 rounded-xl p-0" onClick={() => setField("donations", (data.donations || []).filter((_: any, j: number) => j !== i))}><Trash2 className="h-3.5 w-3.5" /></Button>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* ── TESTAMENT ── */}
@@ -1007,12 +1046,35 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
     </div>
   )}
 
+  {/* Modal edition d'une donation passee (pivot E2) — rendu TOP-LEVEL, hors de la
+      Card (patron LoanModal/heir) : depuis la CardContent, un ancetre (Card
+      relative/overflow, TabsContent) cassait le position:fixed -> centrage sur
+      l'espace complet du document + decalage au scroll. Ici : fixed viewport OK. */}
+  <DonationPasseeModal
+    open={editingDon !== null && !!(data.donations || [])[editingDon]}
+    donation={editingDon !== null ? (data.donations || [])[editingDon] : null}
+    data={data}
+    person1={person1}
+    person2={person2 || "Personne 2"}
+    upd={(patch: any) => { if (editingDon !== null) setField("donations", (data.donations || []).map((d: any, j: number) => j === editingDon ? { ...d, ...patch } : d)); }}
+    onClose={() => setEditingDon(null)}
+  />
+
   {/* ── Modal Héritier ── */}
   {selectedHeir !== null && visibleHeirs[selectedHeir] && (() => {
     const heir = visibleHeirs[selectedHeir];
     const clr = getHeirColor(selectedHeir);
     const baseRecue = heir.grossReceived + heir.nueValue; // valeur fiscale démembrée, pas la valeur PP
-    const abattementAffiche = Math.min(heir.allowance, Math.max(0, baseRecue));
+    // F3 (affichage seul) : afficher l'abattement RESIDUEL reellement applique par
+    // le moteur (allowance - abattementConsomme). rappelApplique.abattementConsomme
+    // couvre AUTO (donations rappelees) ET MANUEL (priorDonations saisi). Le plein
+    // etait trompeur quand une donation entamait l'abattement.
+    const abattementConsomme = Math.max(0, heir.rappelApplique?.abattementConsomme || 0);
+    const abattementResiduel = Math.max(0, heir.allowance - abattementConsomme);
+    const abattementAffiche = Math.min(abattementResiduel, Math.max(0, baseRecue));
+    const abattementDetail = abattementConsomme > 0
+      ? `${euro(heir.allowance)} − ${euro(abattementConsomme)} = ${euro(abattementResiduel)}`
+      : null;
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(16,27,59,0.45)", backdropFilter: "blur(4px)" }} onClick={() => setSelectedHeir(null)}>
         <div className="rounded-3xl w-full max-w-lg max-h-[88vh] overflow-hidden flex flex-col" style={{ background: SURFACE.card, border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 24px 64px rgba(16,27,59,0.35)" }} onClick={e => e.stopPropagation()}>
@@ -1126,7 +1188,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                   ...(heir.nueRawValue > 0 ? [{ label: "Valeur taxable NP", value: euro(heir.nueValue), hint: "Valeur économique NP × coefficient Duvergier", separator: false }] : []),
                   // Sous-total si les deux sont présents
                   ...(heir.grossReceived > 0 && heir.nueRawValue > 0 ? [{ label: "Total base brute", value: euro(baseRecue), hint: null, separator: true }] : []),
-                  { label: "Abattement légal", value: "−" + euro(abattementAffiche), color: BRAND.success, hint: null },
+                  { label: "Abattement légal", value: "−" + euro(abattementAffiche), color: BRAND.success, hint: abattementDetail },
                   { label: "Base taxable", value: euro(heir.successionTaxable), bold: true, hint: null },
                   { label: "Droits de succession", value: "−" + euro(heir.successionDuties), color: BRAND.danger, bold: true, hint: null },
                 ] as any[]).map((row, i) => (
@@ -1140,6 +1202,34 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                 ))}
               </div>
             )}
+
+            {/* ── Rappel fiscal des donations (Lot C) ── */}
+            {heir.rappelApplique && (heir.rappelApplique.mode !== "aucun" || heir.rappelApplique.aVerifier) && (() => {
+              const ra = heir.rappelApplique;
+              // Dates derivees du registre (affichage seul ; le calcul vient du moteur).
+              const donsHeir = (data.donations || []).filter((d: any) => d.type === "simple" && (
+                (d.beneficiaireType === "child" && d.beneficiaireChildId === heir.childId) ||
+                (d.beneficiaireType === "conjoint" && (heir.relation === "conjoint" || heir.relation === "pacs_partner"))
+              ));
+              const annees = donsHeir.map((d: any) => String(d.date || "").slice(0, 4)).filter(Boolean).join(", ");
+              return (
+                <div style={{ marginBottom: "16px", borderRadius: "10px", padding: "10px 12px", background: ra.aVerifier ? BRAND.warningBg : "rgba(81,106,199,0.06)", border: `1px solid ${ra.aVerifier ? BRAND.warningBorder : "rgba(81,106,199,0.18)"}` }}>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: BRAND.sky, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    Rappel fiscal des donations
+                    {ra.mode === "manuel" && <span style={{ fontSize: 10, background: "rgba(0,0,0,0.06)", color: BRAND.muted, borderRadius: 5, padding: "1px 6px", fontWeight: 600 }}>manuel</span>}
+                  </div>
+                  {ra.mode === "auto" && (
+                    <div style={{ fontSize: "12px", color: BRAND.navy, lineHeight: 1.5 }}>
+                      Abattement {euro(heir.allowance)} − {euro(ra.abattementConsomme)} donnés{annees ? ` (${annees})` : ""} = <strong>{euro(Math.max(0, heir.allowance - ra.abattementConsomme))} disponible</strong>.
+                      {ra.baseTaxeeAnterieure > 0 && <span> Reprise de progressivité sur {euro(ra.baseTaxeeAnterieure)} déjà taxés (art. 784 CGI).</span>}
+                    </div>
+                  )}
+                  {ra.aVerifier && (
+                    <div style={{ fontSize: "12px", color: BRAND.warning, marginTop: ra.mode === "auto" ? "4px" : 0 }}>⚠️ Une donation a été ignorée (date ou montant manquant) — à vérifier.</div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* BracketFillChart pour cet héritier */}
             {heir.bracketFill && heir.bracketFill.length > 0 && (

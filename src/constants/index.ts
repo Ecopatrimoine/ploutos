@@ -339,6 +339,18 @@ export const BENEFICIARY_RELATION_OPTIONS = [
   { value: "autre", label: "Autre / tiers" },
 ] as const;
 
+// Relations DONATION (vocab getDonationTaxProfile) — abattements 2026 affiches.
+// Partage TabSuccession (registre) + TabHypotheses (DonationModal). (Lot C)
+export const DONATION_RELATIONS = [
+  { value: "enfant",        label: "Enfant (abatt. 100 000 €)" },
+  { value: "parent",        label: "Parent (abatt. 100 000 €)" },
+  { value: "petit-enfant",  label: "Petit-enfant (abatt. 31 865 €)" },
+  { value: "frereSoeur",    label: "Frère / Sœur (abatt. 15 932 €)" },
+  { value: "neveuNiece",    label: "Neveu / Nièce (abatt. 7 967 €)" },
+  { value: "conjoint",      label: "Conjoint / Partenaire (abatt. 80 724 €)" },
+  { value: "tiers",         label: "Tiers (abatt. 0 €)" },
+] as const;
+
 export const CHART_COLORS = [BRAND.gold, BRAND.sky, BRAND.blue, "#6B8DD6", "#A0B4E8", "#D4A96A", "#8CA2F0", "#C8956E"];
 export const RECEIVED_COLORS = [BRAND.sky, BRAND.blue, BRAND.gold, "#6B8DD6", "#D4A96A", "#A0B4E8", "#C8956E", "#7D95E8"];
 export const LEGUE_COLORS = [BRAND.gold, "#D4A96A", BRAND.blue, "#6B8DD6", BRAND.sky, "#C8956E", "#A0B4E8", "#8CA2F0"];
