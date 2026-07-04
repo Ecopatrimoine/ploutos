@@ -20,6 +20,7 @@ import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, comput
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
 import { BlocCapitauxDeces } from "../succession/BlocCapitauxDeces";
+import { DonationPasseeModal } from "../succession/DonationPasseeModal";
 import { patchPrevoyancePair } from "../../lib/prevoyance/utils";
 
 // ── Couleurs héritiers ────────────────────────────────────────────────────────
@@ -41,6 +42,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
   const { data, setField, successionData, setSuccessionData, succession, activeDonations, syncCollectedHeirs, getFamilyMembers, importFamilyToTestament, addTestamentHeir, updateTestamentHeir, removeTestamentHeir, addLegsPrecisItem, addLegsPrecisItemFree, addLegsPrecisItemResidual, updateLegsPrecisItem, removeLegsPrecisItem, addLegataire, updateLegataire, removeLegataire, addContrepartieLegataire, updateContrepartieLegataire, removeContrepartieLegataire, addContrepartie, updateContrepartie, removeContrepartie, addContrepartieGlobal, updateContrepartieGlobal, removeContrepartieGlobal, addContrepartieWithBalance, removeContrepartieWithBalance, legsPickerOpen, setLegsPickerOpen, addFamilyMemberToLegsGlobal, addFamilyMemberToLegsPrecis, loanModalPropertyId, setLoanModalPropertyId, addLoan, updateLoan, removeLoan, effectiveSpouseOption, spouseOptions, person1, person2 } = props;
 
   const [selectedHeir, setSelectedHeir] = React.useState<number | null>(null);
+  const [editingDon, setEditingDon] = React.useState<number | null>(null); // registre donations (pivot E2)
   const [showActifModal, setShowActifModal] = React.useState(false);
   const [showAvModal, setShowAvModal] = React.useState(false);
 
@@ -102,7 +104,12 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
       <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
         <div className="flex items-center justify-between">
           <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Donations antérieures — rappel fiscal (art. 784 CGI)</div>
-          <Button variant="outline" className="h-7 rounded-xl px-3 text-xs" onClick={() => setField("donations", [...(data.donations || []), { id: `don_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, donorPersonKey: "person1", beneficiaireType: "autre", beneficiaireNom: "", beneficiaireRelation: "enfant", date: new Date().toISOString().slice(0, 10), montant: "", type: "simple" }])}>
+          <Button variant="outline" className="h-7 rounded-xl px-3 text-xs" onClick={() => {
+            const nouvelle = { id: `don_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, donorPersonKey: "person1", beneficiaireType: "autre", beneficiaireNom: "", beneficiaireRelation: "enfant", date: new Date().toISOString().slice(0, 10), montant: "", type: "simple" };
+            const idx = (data.donations || []).length;
+            setField("donations", [...(data.donations || []), nouvelle]);
+            setEditingDon(idx); // ouvre le modal sur la donation creee
+          }}>
             <Plus className="mr-1 h-3 w-3" />Donation
           </Button>
         </div>
@@ -110,76 +117,35 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
           <div className="text-xs text-slate-400 italic">Aucune donation enregistrée. Les donations simples de moins de 15 ans consenties par le foyer réduisent l'abattement des héritiers (rappel fiscal, art. 784 CGI).</div>
         )}
         {(data.donations || []).map((don: any, i: number) => {
-          const whichDefunt: 1 | 2 = don.donorPersonKey === "person2" ? 2 : 1;
-          const membres = membresFamille(data, whichDefunt);
-          const upd = (patch: any) => setField("donations", (data.donations || []).map((d: any, j: number) => j === i ? { ...d, ...patch } : d));
-          // E1 : relation TOUJOURS mappee depuis membresFamille(donateur) — un enfant
-          // person2_only donne par P1 -> "tiers" (et non "enfant" en dur). childId de
-          // la puce cliquee (id stable) pour le match du rappel.
-          const pick = (m: any) => upd({
-            beneficiaireType: m.source === "enfant" ? "child" : "conjoint",
-            beneficiaireChildId: m.source === "enfant" ? m.childId : undefined,
-            beneficiaireNom: m.name,
-            beneficiaireRelation: mapMembreToDonationRelation(m.relation),
-          });
+          const donateurNom = don.donorPersonKey === "person2" ? (person2 || "Personne 2") : person1;
+          const benef = don.beneficiaireNom || (don.beneficiaireType === "autre" ? "—" : "Bénéficiaire");
+          const typeLabel = don.type === "simple" ? "simple" : don.type === "don_familial_790G" ? "790 G" : don.type === "don_790A_bis" ? "790 A bis" : "présent d'usage";
+          const horsRappel = don.type !== "simple";
           return (
-            <div key={don.id} className="rounded-xl border p-3 space-y-2" style={{ borderColor: SURFACE.border }}>
-              <div className="grid gap-2 md:grid-cols-[0.8fr_2fr_auto] items-end">
-                <Field label="Donateur">
-                  <Select value={don.donorPersonKey} onValueChange={(v: string) => upd({ donorPersonKey: v })}>
-                    <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="person1">{person1}</SelectItem><SelectItem value="person2">{person2 || "Personne 2"}</SelectItem></SelectContent>
-                  </Select>
-                </Field>
-                <div>
-                  <div className="text-xs text-slate-500 mb-1">Bénéficiaire</div>
-                  <div className="flex flex-wrap items-center gap-1">
-                    {membres.map((m: any, mi: number) => {
-                      const active = m.source === "enfant"
-                        ? (don.beneficiaireType === "child" && !!m.childId && don.beneficiaireChildId === m.childId)
-                        : don.beneficiaireType === "conjoint";
-                      return <button key={mi} onClick={() => pick(m)} className="text-xs rounded-full px-2 py-0.5 transition-colors" style={{ background: active ? BRAND.navy : "rgba(81,106,199,0.1)", color: active ? "#fff" : BRAND.sky, border: active ? "none" : "1px solid rgba(81,106,199,0.2)" }}>{m.name}</button>;
-                    })}
-                    <button onClick={() => upd({ beneficiaireType: "autre", beneficiaireChildId: undefined })} className="text-xs rounded-full px-2 py-0.5 transition-colors" style={{ background: don.beneficiaireType === "autre" ? BRAND.gold : "rgba(227,175,100,0.12)", color: don.beneficiaireType === "autre" ? "#fff" : BRAND.gold, border: "1px solid rgba(227,175,100,0.3)" }}>Autre…</button>
-                  </div>
-                  {/* Info de controle (E1) : relation deduite vis-a-vis du DONATEUR + abattement donation */}
-                  {(don.beneficiaireType === "child" || don.beneficiaireType === "conjoint") && (() => {
-                    const rel = don.beneficiaireRelation || "enfant";
-                    const prof = getDonationTaxProfile(rel);
-                    const relLabel = rel === "enfant" ? "Enfant" : rel === "conjoint" ? "Conjoint / partenaire" : rel === "tiers" ? "Tiers (enfant du conjoint / non-parent)" : rel;
-                    return <div className="text-xs mt-1" style={{ color: BRAND.muted }}>{don.beneficiaireNom} — <strong>{relLabel}</strong> · abatt. donation {euro(prof.allowance)}{prof.allowance === 0 ? " · taxe 60 %" : ""}</div>;
-                  })()}
-                  {don.beneficiaireType === "autre" && (
-                    <div className="grid gap-2 grid-cols-2 mt-1.5">
-                      <Input value={don.beneficiaireNom || ""} onChange={(e) => upd({ beneficiaireNom: e.target.value })} placeholder="Nom du bénéficiaire" className="rounded-xl h-8 text-sm" />
-                      <Select value={don.beneficiaireRelation || "enfant"} onValueChange={(v: string) => upd({ beneficiaireRelation: v })}>
-                        <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
-                        <SelectContent>{DONATION_RELATIONS.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </div>
-                <Button variant="outline" className="h-8 w-8 rounded-xl p-0" onClick={() => setField("donations", (data.donations || []).filter((_: any, j: number) => j !== i))}><Trash2 className="h-3.5 w-3.5" /></Button>
+            <div key={don.id} className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2" style={{ borderColor: SURFACE.border }}>
+              <div className="text-sm min-w-0" style={{ color: BRAND.navy }}>
+                <span className="font-medium">{donateurNom}</span> → {benef}
+                <span className="text-xs ml-2" style={{ color: BRAND.muted }}>{don.montant ? euro(don.montant) : "—"} · {String(don.date || "").slice(0, 10) || "date ?"} · <span style={{ color: horsRappel ? BRAND.muted : BRAND.sky }}>{typeLabel}{horsRappel ? " (hors rappel)" : ""}</span></span>
               </div>
-              <div className="grid gap-2 md:grid-cols-3">
-                <Field label="Date"><DateFr value={don.date} onChange={(iso: string | null) => upd({ date: iso || "" })} className="rounded-xl h-8 text-sm" /></Field>
-                <MoneyField label="Montant (€)" value={don.montant} onChange={(e: any) => upd({ montant: e.target.value })} compact />
-                <Field label="Type" tooltip="Donation simple : rapportable (rappel des 15 ans). Don familial 790 G / 790 A bis / présent d'usage : HORS rappel (ignorés du calcul).">
-                  <Select value={don.type} onValueChange={(v: string) => upd({ type: v })}>
-                    <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="simple">Donation simple (rappelable 15 ans)</SelectItem>
-                      <SelectItem value="don_familial_790G">Don familial 790 G (hors rappel)</SelectItem>
-                      <SelectItem value="don_790A_bis">Don 790 A bis (hors rappel)</SelectItem>
-                      <SelectItem value="present_usage">Présent d'usage (hors rappel)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button variant="outline" className="h-7 rounded-xl px-2 text-xs" onClick={() => setEditingDon(i)}>Modifier</Button>
+                <Button variant="outline" className="h-7 w-7 rounded-xl p-0" onClick={() => setField("donations", (data.donations || []).filter((_: any, j: number) => j !== i))}><Trash2 className="h-3.5 w-3.5" /></Button>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Modal edition d'une donation passee (pivot E2) */}
+      <DonationPasseeModal
+        open={editingDon !== null && !!(data.donations || [])[editingDon]}
+        donation={editingDon !== null ? (data.donations || [])[editingDon] : null}
+        data={data}
+        person1={person1}
+        person2={person2 || "Personne 2"}
+        upd={(patch: any) => { if (editingDon !== null) setField("donations", (data.donations || []).map((d: any, j: number) => j === editingDon ? { ...d, ...patch } : d)); }}
+        onClose={() => setEditingDon(null)}
+      />
 
       {/* ── TESTAMENT ── */}
       <div className="flex flex-wrap items-center gap-2">
