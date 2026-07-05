@@ -751,6 +751,8 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       perRentesImposable: perRentes1 + perRentes2, perRentesPS: perRentesPS1 + perRentesPS2,
       isConcubin: true, ir1: bareme1, ir2: bareme2,
       rev1, rev2, parts1, parts2, plafondPER, plafondPER1, plafondPER2,
+      plafondPER1Base163: plafond1.composante163, plafondPER1Sup154: plafond1.composante154,
+      plafondPER2Base163: plafond2.composante163, plafondPER2Sup154: plafond2.composante154,
       perDeductionCalc: perDeduction1 + perDeduction2, perP1Deductible, perP2Deductible,
       deficitFoncierImpute: foncier1.impute + foncier2.impute,
       deficitFoncierReportable: foncier1.reportable + foncier2.reportable,
@@ -849,7 +851,10 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     revenuNetGlobal, finalIR, totalPFU, forfaitScolaireReduction, bareme, quotient, parts,
     quotientFamilialCapAdjustment, qfBenefit, qfCap, marginalRate, averageRate,
     bracketFill, currentBracketLabel: currentBracket.label, indicatorPct, visualMax,
-    avRachatImpot, perCapitalImposable, perInteretsPFU, perRentesImposable, perRentesPS, isConcubin: false, plafondPER, plafondPER1, plafondPER2, perDeductionCalc, perP1Deductible, perP2Deductible, deficitFoncierImpute, deficitFoncierReportable,
+    avRachatImpot, perCapitalImposable, perInteretsPFU, perRentesImposable, perRentesPS, isConcubin: false, plafondPER, plafondPER1, plafondPER2,
+    plafondPER1Base163: plafond1.composante163, plafondPER1Sup154: plafond1.composante154,
+    plafondPER2Base163: plafond2.composante163, plafondPER2Sup154: plafond2.composante154,
+    perDeductionCalc, perP1Deductible, perP2Deductible, deficitFoncierImpute, deficitFoncierReportable,
     // Exposition (Lot FIX-FONCIER) : la card comparaison lit ces champs au lieu de recalculer.
     jeanbrunRetenu, foncierChargesTotal: foncierCharges + jeanbrunRetenu,
     dispositifsFiscaux: {
