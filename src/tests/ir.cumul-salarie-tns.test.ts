@@ -356,3 +356,39 @@ describe("cumul salarie+TNS — plafond PER exact (Lot E2)", () => {
     expect(r.plafondPER1Base163 + r.plafondPER1Sup154).toBeCloseTo(r.plafondPER1, 2);
   });
 });
+
+// ─── Lot E3 : cap du fallback manuel perDeduction (champ foyer data.perDeduction) ─
+// Fallback actif SEULEMENT sans placement PER deductible (condition inchangee) ;
+// desormais cappe a plafondPER1 + plafondPER2. Celibataire => plafondPER2 = plancher
+// 4806 (personne 2 fictive, revenu 0) ; le cap foyer = plafondPER1 + 4806.
+describe("cumul salarie+TNS — cap fallback manuel perDeduction (Lot E3)", () => {
+  // Celibataire salarie 60000 => plafondPER1 = 6000 ; plafondPER2 = 4806 => cap foyer 10806.
+  it("F1 : saisie manuelle SOUS le cap => deduction identique (invariant)", () => {
+    // perDeduction 5000 < cap 10806 => min(5000, 10806) = 5000 (inchange vs pre-E3).
+    // RNG = 60000 - 6000 (abatt 10%) - 5000 = 49000 ; IR = 1977.69 + (49000-29579)*0.30 = 7803.99.
+    const r = computeIR(mk({ salary1: "60000", perDeduction: "5000" }) as any, STD_OPTIONS);
+    expect(r.perDeductionCalc).toBeCloseTo(5000, 2);
+    expect(r.finalIR).toBeCloseTo(7803.99, 2);
+  });
+
+  it("F2 : saisie manuelle AU-DESSUS du cap => cappee (IR remonte)", () => {
+    // perDeduction 20000 > cap 10806 => min(20000, 10806) = 10806.
+    // NB : cap = plafondPER1 6000 + plafondPER2 4806 (plancher P2 fictive) = 10806
+    //      (l'illustration "6000" du plan ignorait le plancher plafondPER2).
+    // AVANT E3 : 20000 non cappe (RNG 34000, IR 3303.99). APRES : RNG = 60000 - 6000 - 10806
+    //      = 43194 ; IR = 1977.69 + (43194-29579)*0.30 = 6062.19.
+    const r = computeIR(mk({ salary1: "60000", perDeduction: "20000" }) as any, STD_OPTIONS);
+    expect(r.perDeductionCalc).toBeCloseTo(10806, 2);
+    expect(r.finalIR).toBeCloseTo(6062.19, 2);
+  });
+
+  it("F3 : fallback inactif si un placement PER porte deja une deduction (condition inchangee)", () => {
+    // perP1Deductible = 3000 (> 0) => la saisie manuelle 20000 est IGNOREE.
+    // perDeductionCalc = min(3000, 6000) = 3000 (le manuel n'entre pas).
+    const r = computeIR(mk({
+      salary1: "60000", perDeduction: "20000",
+      placements: [{ type: "PER bancaire", ownership: "person1", annualContribution: "3000" }],
+    }) as any, STD_OPTIONS);
+    expect(r.perDeductionCalc).toBeCloseTo(3000, 2);
+  });
+});
