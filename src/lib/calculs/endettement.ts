@@ -4,7 +4,7 @@
 // Cablage ecran/PDF = Lot 3.
 
 import type { PatrimonialData } from "../../types/patrimoine";
-import { resolveBeneficeTns } from "./ir";
+import { resolveBeneficeTns, resolveSalaireRetenu } from "./ir";
 import { resolveLoanValuesMulti, resolveOtherLoan } from "./credit";
 import { n } from "./utils";
 
@@ -62,7 +62,10 @@ export function computeTauxEndettement(data: PatrimonialData): {
   const numerateurAnnuel = computeChargesCreditAnnuelles(data).total;
 
   // ─── Denominateur : revenus annuels retenus ─────────────────────────────
-  const salaires = n(data.salary1) + n(data.salary2);
+  // Salaire retenu ALIGNE sur l'opt-in cumul (resolveSalaireRetenu, meme predicat
+  // que computeIR) : un salaire dormant d'un TNS sans activite secondaire 'salariat'
+  // est ignore, exactement comme dans le calcul IR.
+  const salaires = resolveSalaireRetenu(data, 1) + resolveSalaireRetenu(data, 2);
   // Pensions : regle SAFE alignee sur computeIR (ir.ts:82) — pensions1+2 si
   // l'un est renseigne, sinon fallback sur le champ global. JAMAIS la somme
   // des trois (evite le double-compte global + nominatifs).
