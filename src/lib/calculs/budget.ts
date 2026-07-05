@@ -86,6 +86,15 @@ export function computeBudget(data: PatrimonialData, ir: IrLike): BudgetResult {
     0,
   ) / M;
 
+  // Agregat ADDITIF volontaire (cumul salarie+TNS, v1.31.0) :
+  // - salaire via resolveSalaireRetenu (l.63, dans salairesPensions) : respecte
+  //   l'opt-in activiteSecondaire (aligne sur les gardes C/D de computeIR depuis
+  //   le Lot C2 du chantier cumul).
+  // - benefice via resolveBeneficeTns (l.72) : garde A en amont (PCS TNS OU activite
+  //   secondaire TNS).
+  // Ne PAS rajouter de garde isIndep ici en croyant corriger un double-compte :
+  // salaire et benefice sont des champs distincts (data.salaryX vs data.caX), la
+  // coherence avec l'IR est assuree par les deux helpers partages.
   const revenusMensuels =
     salairesPensions + beneficeTns + rentesPer + loyersBruts + retraitsAvPer;
 
