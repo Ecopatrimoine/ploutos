@@ -13,7 +13,7 @@
 
 import React from "react";
 import { Input } from "@/components/ui/input";
-import { Field } from "../shared";
+import { Field, HelpTooltip } from "../shared";
 import { BRAND, SURFACE } from "../../constants";
 import type { PatrimonialData, PayloadTravailPair } from "../../types/patrimoine";
 import { createEmptyTravail } from "../../lib/prevoyance/utils";
@@ -31,6 +31,11 @@ type Props = {
   which: 1 | 2;
   benefice: number;
   plafondPER: number;
+  // Décomposition du plafond PER (Lot E2) : 163 quatervicies (base 10%) + 154 bis
+  // (majoration 15% réel). Optionnels/rétro-compat (défaut 0 / micro).
+  plafondPER163?: number;
+  plafondPER154?: number;
+  perAuReel?: boolean;
   versementsPER: number;
   setField: (field: string, value: unknown) => void;
 };
@@ -47,7 +52,7 @@ function Ligne({ label, value }: { label: string; value: string }) {
 }
 
 export const BlocMadelinSynthese = React.memo(function BlocMadelinSynthese({
-  data, which, benefice, plafondPER, versementsPER, setField,
+  data, which, benefice, plafondPER, plafondPER163 = 0, plafondPER154 = 0, perAuReel = false, versementsPER, setField,
 }: Props) {
   // Masqué si la personne n'est pas TNS (cohérent avec la protection du calcul B2).
   if (!estEligibleMadelin(data, which)) return null;
@@ -129,7 +134,36 @@ export const BlocMadelinSynthese = React.memo(function BlocMadelinSynthese({
             <div className="text-xs font-bold" style={{ color: BRAND.navy }}>Retraite (PER)</div>
             <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(81,106,199,0.1)", color: BRAND.sky }}>pour info</span>
           </div>
-          <Ligne label="Disponible (plafond)" value={eur(plafondPER)} />
+          <div className="flex items-center justify-between text-xs">
+            <span className="flex items-center" style={{ color: BRAND.muted }}>
+              Disponible (plafond)
+              <HelpTooltip text="Les deux enveloppes se coordonnent : les cotisations déduites du bénéfice professionnel réduisent le plafond personnel (hors fraction 15 %). Repères de contrôle : le plafond personnel (163 quatervicies) se calcule légalement sur les revenus N-1 ; la majoration professionnelle (154 bis) sur le bénéfice de l'année N. Ploutos estime les deux sur l'année courante — reportez-vous à l'avis d'imposition pour le plafond exact (reports des 3 années non modélisés). La majoration TNS (154 bis) reste personnelle : elle n'est ni mutualisable ni reportable." />
+            </span>
+            <span className="font-medium">{eur(plafondPER)}</span>
+          </div>
+          {/* Décomposition 163 quatervicies / 154 bis (en retrait discret) */}
+          <div className="pl-3 space-y-0.5" style={{ color: BRAND.muted }}>
+            <div className="flex items-center justify-between text-[11px]">
+              <span>dont revenu global — art. 163 quatervicies (versements personnels)</span>
+              <span>{eur(plafondPER163)}</span>
+            </div>
+            {perAuReel ? (
+              <div className="flex items-center justify-between text-[11px]">
+                <span>dont majoration TNS au réel — art. 154 bis (versements professionnels)</span>
+                <span>{eur(plafondPER154)}</span>
+              </div>
+            ) : (
+              <div className="text-[11px] italic">
+                Régime micro : pas de déduction professionnelle (art. 154 bis) — versements côté personnel uniquement
+              </div>
+            )}
+          </div>
+          {/* Mutualisation epoux/PACS (E4) — sur la part revenu global uniquement */}
+          {(data.coupleStatus === "married" || data.coupleStatus === "pacs") && (
+            <div className="pl-3 text-[11px] italic" style={{ color: BRAND.muted }}>
+              Mutualisation époux/PACS appliquée sur la part revenu global (demande expresse — case 6QR)
+            </div>
+          )}
           <Ligne label="Consommé (versements)" value={eur(versementsPER)} />
           <Ligne label="Restant" value={eur(perRestant)} />
         </div>

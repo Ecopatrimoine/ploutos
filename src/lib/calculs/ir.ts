@@ -55,19 +55,63 @@ export function computeBeneficeImposable(
 // Réutilisable (ex. taux d'endettement). Décide isIndep/isBNC/isBA via PCS/CSP
 // EXACTEMENT comme computeIR, puis applique computeBeneficeImposable. 0 si non-TNS.
 // Refactor PUR : logique déplacée, non réécrite.
+// Detection "produit un benefice TNS" : PCS/CSP independant OU activite secondaire
+// TNS (bic/bnc/ba). Base commune (UNE seule semantique de regime dans le fichier)
+// a resolveBeneficeTns et resolveBeneficeAuReel.
+function estTnsAvecBenefice(g: string, cat: string, sec: string): boolean {
+  const secTns = sec === "bic" || sec === "bnc" || sec === "ba";
+  return g === "1" || g === "2" || isProfessionLiberale(cat) || secTns;
+}
+
 export function resolveBeneficeTns(data: PatrimonialData, personne: 1 | 2): number {
   const g = personne === 1 ? data.person1PcsGroupe : data.person2PcsGroupe;
   const cat = personne === 1 ? data.person1Csp : data.person2Csp;
-  const isIndep = g === "1" || g === "2" || isProfessionLiberale(cat);
+  // Lot A cumul salarie + TNS : une activite secondaire TNS (bic/bnc/ba) declaree
+  // sur une personne salariee au sens PCS suffit a produire un benefice imposable.
+  // Champ absent => secTns=false => detection PCS/CSP historique strictement inchangee.
+  const sec = personne === 1 ? (data.activiteSecondaire1 ?? "") : (data.activiteSecondaire2 ?? "");
+  const isIndep = estTnsAvecBenefice(g, cat, sec);
   if (!isIndep) return 0;
-  const isBA = g === "1";
-  const isBNC = isProfessionLiberale(cat);
+  const isBA = g === "1" || sec === "ba";
+  const isBNC = isProfessionLiberale(cat) || sec === "bnc";
   const ca = personne === 1 ? n(data.ca1) : n(data.ca2);
   const bicType = personne === 1 ? data.bicType1 : data.bicType2;
   const microRegime = personne === 1 ? data.microRegime1 : data.microRegime2;
   const chargesReelles = personne === 1 ? n(data.chargesReelles1) : n(data.chargesReelles2);
   const baRevenue = personne === 1 ? n(data.baRevenue1) : n(data.baRevenue2);
   return computeBeneficeImposable(ca, bicType, isBNC, isBA, microRegime, chargesReelles, baRevenue);
+}
+
+// ─── Salaire retenu d'une personne (predicat unique des gardes C/D) ───────────
+// UNIQUE definition du masquage salaire, partagee par computeIR (gardes C/D) ET
+// les moteurs budget/endettement : le salaire est masque si la personne est TNS
+// au sens PCS SANS activite secondaire 'salariat'. Champ activiteSecondaire
+// absent => sec === "" => salaireMasque === isIndep => comportement historique
+// SOIT/SOIT strictement preserve.
+function salaireMasqueTns(data: PatrimonialData, personne: 1 | 2): boolean {
+  const g = personne === 1 ? data.person1PcsGroupe : data.person2PcsGroupe;
+  const cat = personne === 1 ? data.person1Csp : data.person2Csp;
+  const isIndep = g === "1" || g === "2" || isProfessionLiberale(cat);
+  const sec = personne === 1 ? (data.activiteSecondaire1 ?? "") : (data.activiteSecondaire2 ?? "");
+  return isIndep && sec !== "salariat";
+}
+
+export function resolveSalaireRetenu(data: PatrimonialData, personne: 1 | 2): number {
+  return salaireMasqueTns(data, personne) ? 0 : n(personne === 1 ? data.salary1 : data.salary2);
+}
+
+// ─── Regime du benefice TNS d'une personne (reel vs micro) ────────────────────
+// true SSI la personne produit un benefice TNS (meme detection que
+// resolveBeneficeTns via estTnsAvecBenefice) ET microRegime === false. Sert la
+// majoration 154 bis, RESERVEE au reel (micro exclu). BA/BIC/BNC : le regime est
+// porte par microRegimeX, comme dans resolveBeneficeTns. false pour un pur salarie.
+export function resolveBeneficeAuReel(data: PatrimonialData, personne: 1 | 2): boolean {
+  const g = personne === 1 ? data.person1PcsGroupe : data.person2PcsGroupe;
+  const cat = personne === 1 ? data.person1Csp : data.person2Csp;
+  const sec = personne === 1 ? (data.activiteSecondaire1 ?? "") : (data.activiteSecondaire2 ?? "");
+  if (!estTnsAvecBenefice(g, cat, sec)) return false;
+  const microRegime = personne === 1 ? data.microRegime1 : data.microRegime2;
+  return !microRegime;
 }
 
 // ─── Socle générique de réductions d'impôt ────────────────────────────────────
@@ -178,9 +222,14 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   const benefice1 = resolveBeneficeTns(data, 1);
   const benefice2 = resolveBeneficeTns(data, 2);
 
-  // Salaires (uniquement pour les non-indépendants)
-  const salary1 = isIndep1 ? 0 : n(data.salary1);
-  const salary2 = isIndep2 ? 0 : n(data.salary2);
+  // Salaires. Lot A/C2 cumul : masquage centralise dans salaireMasqueTns /
+  // resolveSalaireRetenu (predicat UNIQUE, partage avec budget/endettement).
+  // Refactor iso : meme comportement qu'avant (gardes C/D). isIndep1/isIndep2
+  // restent INCHANGES (consommes par le plafond PER, garde E hors perimetre).
+  const salaireMasque1 = salaireMasqueTns(data, 1);
+  const salaireMasque2 = salaireMasqueTns(data, 2);
+  const salary1 = resolveSalaireRetenu(data, 1);
+  const salary2 = resolveSalaireRetenu(data, 2);
   // Retraites / pensions nominatives par personne (rétrocompatibilité si champ global)
   const pensionP1 = n(data.pensions1 || "");
   const pensionP2 = n(data.pensions2 || "");
@@ -199,10 +248,10 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
 
   // Frais déductibles : uniquement pour les salariés (les indépendants déduisent via charges réelles)
   // Abattement 10% salaires — plafonné 14 555 €, plancher 509 € par personne (revenus 2025)
-  const retained1 = isIndep1 ? 0 : (irOptions.expenseMode1 === "actual"
+  const retained1 = salaireMasque1 ? 0 : (irOptions.expenseMode1 === "actual"
     ? kmAllowance1 + mealExpenses1 + otherExpenses1
     : salary1 > 0 ? Math.max(509, Math.min(salary1 * 0.1, 14555)) : 0);
-  const retained2 = isIndep2 ? 0 : (irOptions.expenseMode2 === "actual"
+  const retained2 = salaireMasque2 ? 0 : (irOptions.expenseMode2 === "actual"
     ? kmAllowance2 + mealExpenses2 + otherExpenses2
     : salary2 > 0 ? Math.max(509, Math.min(salary2 * 0.1, 14555)) : 0);
   // Abattement 10% pensions — plancher 454 € par pensionné, plafond 4 439 € par foyer (revenus 2025)
@@ -348,23 +397,34 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   function isPER(type: string) { return ["PER bancaire", "PER assurantiel", "Madelin"].includes(type); }
   const PASS_2026 = referentiels.pass.pass.annuel; // PASS source unique (pass-2026.json)
 
-  // Helper plafond PER par revenu/statut
-  function calcPlafondPER(revenu: number, isIndep: boolean): number {
-    if (isIndep) {
-      // TNS : max(bénéfice × 10%, PASS × 10%) + 15% × fraction entre 1 et 8 PASS
-      const base = Math.max(revenu * 0.10, PASS_2026 * 0.10);
-      const fractionSup = Math.max(0, Math.min(revenu, 8 * PASS_2026) - PASS_2026);
-      return Math.min(base + fractionSup * 0.15, PASS_2026 * (0.10 * 8 + 0.15 * 7));
-    } else {
-      // Salarié : 10% revenus N-1, min 4 771 €, max 37 680 € (= 10% × 8 PASS 2026)
-      return Math.min(Math.max(revenu * 0.10, PASS_2026 * 0.10), PASS_2026 * 0.10 * 8);
-    }
+  // Plafond PER individuel (art. 163 quatervicies CGI + majoration art. 154 bis).
+  //  - base10 (163 quatervicies) : 10% de TOUS les revenus pro (salaire net
+  //    imposable + benefice TNS), retenus dans la limite de 8 PASS, plancher
+  //    10% PASS (= 4 806 EUR pour PASS 48 060).
+  //  - sup15 (154 bis) : 15% de la fraction du benefice entre 1 et 8 PASS,
+  //    RESERVEE au regime REEL (micro exclu : abattement forfaitaire repute
+  //    couvrir toutes charges, RM n.20415 12/04/1999).
+  //  - cap global : PASS x (0,10x8 + 0,15x7) = 88 911 EUR.
+  // Approximation moteur : N ~ N-1 (une seule annee, cf. tooltip d'interaction ;
+  // reports des 3 annees anterieures non modelises).
+  // Renvoie la decomposition : composante163 + composante154 === total au centime.
+  function calcPlafondPER(salaireBase: number, benefice: number, beneficeAuReel: boolean) {
+    const base10 = Math.max(0.10 * Math.min(salaireBase + benefice, 8 * PASS_2026), 0.10 * PASS_2026);
+    const sup15 = beneficeAuReel
+      ? 0.15 * Math.min(Math.max(benefice - PASS_2026, 0), 7 * PASS_2026)
+      : 0;
+    const total = Math.min(base10 + sup15, PASS_2026 * (0.10 * 8 + 0.15 * 7));
+    const composante163 = Math.min(base10, total);
+    const composante154 = total - composante163;
+    return { total, composante163, composante154 };
   }
 
-  const revP1 = isIndep1 ? benefice1 : salary1;
-  const revP2 = isIndep2 ? benefice2 : (salary2 + pensionForP2); // pensions nominatives P2
-  const plafondPER1 = calcPlafondPER(revP1, isIndep1);
-  const plafondPER2 = calcPlafondPER(revP2, isIndep2);
+  // Assiette cumul (garde E levee) : salaire net imposable retenu + benefice TNS
+  // de la personne. salaireBase2 inclut pensionForP2 (convention existante conservee).
+  const plafond1 = calcPlafondPER(salary1, benefice1, resolveBeneficeAuReel(data, 1));
+  const plafond2 = calcPlafondPER(salary2 + pensionForP2, benefice2, resolveBeneficeAuReel(data, 2));
+  const plafondPER1 = plafond1.total;
+  const plafondPER2 = plafond2.total;
 
   // Versements PER par personne (ownership = person1 ou person2 ou child_X)
   const perP1Deductible = data.placements
@@ -374,9 +434,32 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     .filter(p => isPER(p.type) && p.ownership === "person2" && p.perDeductible !== false)
     .reduce((sum, p) => sum + n(p.annualContribution || ""), 0);
 
-  // Total déductible = min(versements, plafond) par personne
-  const perDeductionCalc = Math.min(perP1Deductible, plafondPER1) + Math.min(perP2Deductible, plafondPER2)
-    + (perP1Deductible === 0 && perP2Deductible === 0 ? n(data.perDeduction) : 0); // fallback saisie manuelle
+  // Déduction PER par personne, avec MUTUALISATION epoux/PACS (E4). Sur demande
+  // expresse (BOFiP BOI-IR-BASE-20-50-30), plafonds et cotisations 163 quatervicies
+  // sont additionnes en un POOL foyer ; la majoration 154 bis reste PERSONNELLE (ni
+  // mutualisable ni reportable). Chaque conjoint absorbe d'abord ses versements sur SA
+  // propre fraction 154 bis, le reliquat puise dans le pool 163 commun.
+  let perDeductionVersements: number;
+  if (isCouple) {
+    const usableSup1 = Math.min(perP1Deductible, plafond1.composante154);
+    const usableSup2 = Math.min(perP2Deductible, plafond2.composante154);
+    const rem1 = perP1Deductible - usableSup1;
+    const rem2 = perP2Deductible - usableSup2;
+    const pool163 = plafond1.composante163 + plafond2.composante163;
+    perDeductionVersements = usableSup1 + usableSup2 + Math.min(rem1 + rem2, pool163);
+  } else {
+    // Celibataire (concubins traites en amont, chemin separe) : min par personne, INCHANGE.
+    perDeductionVersements = Math.min(perP1Deductible, plafondPER1) + Math.min(perP2Deductible, plafondPER2);
+  }
+  // Fallback saisie manuelle (E3/E3b) : actif seulement sans placement PER deductible
+  // (condition INCHANGEE), cappe au plafond du foyer. On ne somme le plafond de la
+  // personne 2 que si elle EXISTE (isCouple, ir.ts:354, meme predicat que decote / AV) :
+  // le plancher 10% PASS est un droit par membre REEL, la personne 2 fictive exclue.
+  const capFoyerManuel = plafondPER1 + (isCouple ? plafondPER2 : 0);
+  const perDeductionCalc = perDeductionVersements
+    + (perP1Deductible === 0 && perP2Deductible === 0 ? Math.min(n(data.perDeduction), capFoyerManuel) : 0);
+  // Excedent foyer PER apres mutualisation (versements non deductibles) — warning UI.
+  const perExcedentFoyer = Math.max(0, perP1Deductible + perP2Deductible - perDeductionVersements);
 
   // Plafond global (pour affichage — somme des deux)
   const plafondPER = plafondPER1 + plafondPER2;
@@ -618,10 +701,16 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     const hAbatt2 = data.person2Handicap ? getHandicapAbattement(n(data.salary2) + n(data.ca2) + n(data.baRevenue2)) : 0;
 
     // ── Revenus nets par personne ──
-    const rev1 = Math.max(0, (isIndep1 ? benefice1 : salary1) + pensionP1 - retained1
+    // Lot B cumul salarie + TNS : on SOMME salaire + benefice (au lieu du ternaire
+    // exclusif isIndep ? benefice : salary). salary1/salary2 sont deja passes par la
+    // garde C (salaireMasque) et retained1/retained2 par la garde D du Lot A (memes
+    // variables de portee fonction) : concubin pur salarie => benefice=0 (inchange) ;
+    // concubin pur TNS champ absent => salary=0 via garde C (inchange) ; cumulant =>
+    // les deux s'additionnent, abattement 10% sur le SEUL salaire.
+    const rev1 = Math.max(0, salary1 + benefice1 + pensionP1 - retained1
       + foncier1.taxable + taxablePlac1 + perCapital1 + perRentes1
       - perDeduction1 - csgFoncierP1 - autresNonVentilable / 2 - hAbatt1 - madelinDed1);
-    const rev2 = Math.max(0, (isIndep2 ? benefice2 : salary2) + pensionP2 - retained2
+    const rev2 = Math.max(0, salary2 + benefice2 + pensionP2 - retained2
       + foncier2.taxable + taxablePlac2 + perCapital2 + perRentes2
       - perDeduction2 - csgFoncierP2 - autresNonVentilable / 2 - hAbatt2 - madelinDed2);
 
@@ -685,7 +774,11 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       perRentesImposable: perRentes1 + perRentes2, perRentesPS: perRentesPS1 + perRentesPS2,
       isConcubin: true, ir1: bareme1, ir2: bareme2,
       rev1, rev2, parts1, parts2, plafondPER, plafondPER1, plafondPER2,
+      plafondPER1Base163: plafond1.composante163, plafondPER1Sup154: plafond1.composante154,
+      plafondPER2Base163: plafond2.composante163, plafondPER2Sup154: plafond2.composante154,
       perDeductionCalc: perDeduction1 + perDeduction2, perP1Deductible, perP2Deductible,
+      // Concubins : foyers separes, AUCUNE mutualisation => excedent = somme des excedents individuels.
+      perExcedentFoyer: Math.max(0, perP1Deductible + perP2Deductible - (perDeduction1 + perDeduction2)),
       deficitFoncierImpute: foncier1.impute + foncier2.impute,
       deficitFoncierReportable: foncier1.reportable + foncier2.reportable,
       // ── Détail par personne (audit IR concubins #3 : affichage TabIR) ──
@@ -783,7 +876,10 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     revenuNetGlobal, finalIR, totalPFU, forfaitScolaireReduction, bareme, quotient, parts,
     quotientFamilialCapAdjustment, qfBenefit, qfCap, marginalRate, averageRate,
     bracketFill, currentBracketLabel: currentBracket.label, indicatorPct, visualMax,
-    avRachatImpot, perCapitalImposable, perInteretsPFU, perRentesImposable, perRentesPS, isConcubin: false, plafondPER, plafondPER1, plafondPER2, perDeductionCalc, perP1Deductible, perP2Deductible, deficitFoncierImpute, deficitFoncierReportable,
+    avRachatImpot, perCapitalImposable, perInteretsPFU, perRentesImposable, perRentesPS, isConcubin: false, plafondPER, plafondPER1, plafondPER2,
+    plafondPER1Base163: plafond1.composante163, plafondPER1Sup154: plafond1.composante154,
+    plafondPER2Base163: plafond2.composante163, plafondPER2Sup154: plafond2.composante154,
+    perDeductionCalc, perP1Deductible, perP2Deductible, perExcedentFoyer, deficitFoncierImpute, deficitFoncierReportable,
     // Exposition (Lot FIX-FONCIER) : la card comparaison lit ces champs au lieu de recalculer.
     jeanbrunRetenu, foncierChargesTotal: foncierCharges + jeanbrunRetenu,
     dispositifsFiscaux: {

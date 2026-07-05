@@ -129,5 +129,11 @@ export function buildContexteRegle(
     contratsTransmissionDeces: which
       ? data.prevoyance?.[which]?.contratsTransmissionDeces ?? []
       : [],
+    // Cumul salarie + TNS (Lot D) : passthrough read-only du flag + prenom
+    // (aucun calcul), consomme par le constat de barriere douce.
+    activiteSecondaireP1: data.activiteSecondaire1 ?? "",
+    activiteSecondaireP2: data.activiteSecondaire2 ?? "",
+    prenomP1: data.person1FirstName ?? "",
+    prenomP2: data.person2FirstName ?? "",
   };
 }

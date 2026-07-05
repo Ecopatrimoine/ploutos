@@ -4,7 +4,7 @@
 // Cablage ecran/PDF = Lot 3.
 
 import type { PatrimonialData } from "../../types/patrimoine";
-import { resolveBeneficeTns } from "./ir";
+import { resolveBeneficeTns, resolveSalaireRetenu } from "./ir";
 import { resolveLoanValuesMulti, resolveOtherLoan } from "./credit";
 import { n } from "./utils";
 
@@ -62,7 +62,10 @@ export function computeTauxEndettement(data: PatrimonialData): {
   const numerateurAnnuel = computeChargesCreditAnnuelles(data).total;
 
   // ─── Denominateur : revenus annuels retenus ─────────────────────────────
-  const salaires = n(data.salary1) + n(data.salary2);
+  // Salaire retenu ALIGNE sur l'opt-in cumul (resolveSalaireRetenu, meme predicat
+  // que computeIR) : un salaire dormant d'un TNS sans activite secondaire 'salariat'
+  // est ignore, exactement comme dans le calcul IR.
+  const salaires = resolveSalaireRetenu(data, 1) + resolveSalaireRetenu(data, 2);
   // Pensions : regle SAFE alignee sur computeIR (ir.ts:82) — pensions1+2 si
   // l'un est renseigne, sinon fallback sur le champ global. JAMAIS la somme
   // des trois (evite le double-compte global + nominatifs).
@@ -73,6 +76,14 @@ export function computeTauxEndettement(data: PatrimonialData): {
   const loyers = properties.reduce((s, p) => s + n(p.rentGrossAnnual), 0) * 0.70;
   // CA TNS retenu au NET (benefice imposable via resolveBeneficeTns), PAS le CA brut.
   const beneficeTns = resolveBeneficeTns(data, 1) + resolveBeneficeTns(data, 2);
+  // Agregat ADDITIF volontaire (cumul salarie+TNS, v1.31.0) :
+  // - salaire via resolveSalaireRetenu (l.68) : respecte l'opt-in activiteSecondaire
+  //   (aligne sur les gardes C/D de computeIR depuis le Lot C2 du chantier cumul).
+  // - benefice via resolveBeneficeTns (l.78) : garde A en amont (PCS TNS OU activite
+  //   secondaire TNS).
+  // Ne PAS rajouter de garde isIndep ici en croyant corriger un double-compte :
+  // salaire et benefice sont des champs distincts (data.salaryX vs data.caX), la
+  // coherence avec l'IR est assuree par les deux helpers partages.
   const denominateurAnnuel = salaires + pensions + loyers + beneficeTns;
 
   const tauxPct = denominateurAnnuel > 0

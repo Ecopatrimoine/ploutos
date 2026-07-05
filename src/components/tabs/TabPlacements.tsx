@@ -168,12 +168,12 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
               <>
                 <MoneyField
                   label="Versement annuel (€)"
-                  tooltip="Versements annuels sur ce PER. Activez le switch 'Déductible IR' pour que ce montant réduise votre revenu imposable."
+                  tooltip="Versements annuels sur ce PER. Activez le switch 'Déductible IR' pour que ce montant réduise votre revenu imposable, dans la limite du plafond (art. 163 quatervicies CGI)."
                   value={placement.annualContribution || ""}
                   onChange={(e) => updatePlacementStr(placement.id, "annualContribution", e.target.value)}
                   compact
                 />
-                <Field label="Déductible IR" tooltip="ON = versement déduit du revenu imposable (dans la limite du plafond). OFF = versement non déductible (plafond épuisé, abondement employeur, etc.)">
+                <Field label="Déductible IR" tooltip="ON = versement déduit du revenu imposable (dans la limite du plafond — art. 163 quatervicies CGI). OFF = versement non déductible (plafond épuisé, abondement employeur, etc.)">
                   <div className="flex items-center gap-2 h-8">
                     <button
                       role="switch"
@@ -212,7 +212,28 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
               </div>
             );
             if (!deductible || versement === 0 || plafond === 0) return null;
-            const depasse = totalDeduit > plafond;
+            const depassePerso = totalDeduit > plafond;
+            // Couple marie/PACS (E4) : la mutualisation des plafonds peut absorber
+            // l'excedent personnel. Le message "depasse" ne s'affiche que si l'excedent
+            // subsiste au niveau du foyer (ir.perExcedentFoyer > 0).
+            const isCouple = data.coupleStatus === "married" || data.coupleStatus === "pacs";
+            const excedentFoyer = n((ir as any).perExcedentFoyer);
+            if (isCouple && depassePerso && excedentFoyer === 0) {
+              const restantFoyer = Math.max(0, (n((ir as any).plafondPER1) + n((ir as any).plafondPER2)) - n((ir as any).perDeductionCalc));
+              return (
+                <div className="rounded-xl px-3 py-2 text-xs" style={{ background: BRAND.successBg, color: BRAND.success, border: `1px solid ${BRAND.successBorder}` }}>
+                  ✓ Plafond personnel dépassé, absorbé par le plafond du conjoint (mutualisation) — restant foyer : <strong>{euro(restantFoyer)}</strong>
+                </div>
+              );
+            }
+            if (isCouple && depassePerso && excedentFoyer > 0) {
+              return (
+                <div className="rounded-xl px-3 py-2 text-xs" style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
+                  ⚠️ <strong>Plafond du foyer dépassé (mutualisation)</strong> — excédent non déductible : {euro(excedentFoyer)}.
+                </div>
+              );
+            }
+            const depasse = depassePerso;
             return (
               <div className="rounded-xl px-3 py-2 text-xs" style={{
                 background: depasse ? BRAND.dangerBg : BRAND.successBg,

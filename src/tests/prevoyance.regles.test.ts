@@ -695,3 +695,30 @@ describe("règles CNBF (LPA/AON + invalidité ≥ 20 ans) — LOT 3", () => {
     expect(regleCnbfInvalidite20ans(ctx, "p2")?.id).toBe("cnbf_invalidite_20ans_p2");
   });
 });
+
+// ────────────────────────────────────────────────────────────────────
+// Barriere douce cumul salarie + TNS (Lot D)
+// ────────────────────────────────────────────────────────────────────
+
+describe("regleCumulSalarieTns — constat de barriere douce", () => {
+  // Chaine complete data -> buildContexteRegle -> orchestrateur (teste le
+  // passthrough prenom/flag ET l'emission du constat).
+  const projection = projeterArretMaladie(entreeSalarie, "cat2", referentiels);
+
+  it("activiteSecondaire renseignee -> constat 'info' emis avec le bon prenom", () => {
+    const data = minimalPatrimonialData({ person1FirstName: "Claire", activiteSecondaire1: "bnc" });
+    const ctx = buildContexteRegle(data, entreeSalarie, projection, "p1");
+    const constats = evaluerToutesLesRegles(ctx, "p1");
+    const c = constats.find((x) => x.id === "cumul_salarie_tns_p1");
+    expect(c).toBeDefined();
+    expect(c?.severite).toBe("info");
+    expect(c?.titre).toBe("Cumul salarié + indépendant détecté (Claire)");
+  });
+
+  it("champ activiteSecondaire absent -> aucun constat cumul", () => {
+    const data = minimalPatrimonialData({ person1FirstName: "Claire" }); // pas d'activiteSecondaire
+    const ctx = buildContexteRegle(data, entreeSalarie, projection, "p1");
+    const constats = evaluerToutesLesRegles(ctx, "p1");
+    expect(constats.find((x) => x.id === "cumul_salarie_tns_p1")).toBeUndefined();
+  });
+});

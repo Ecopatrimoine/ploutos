@@ -13,7 +13,7 @@ import type { Child, Property, Placement, PatrimonialData, IrOptions, Succession
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
-import { computeBeneficeImposable } from "../../lib/calculs/ir";
+import { computeBeneficeImposable, resolveBeneficeTns, resolveBeneficeAuReel } from "../../lib/calculs/ir";
 import { computeBudget } from "../../lib/calculs/budget";
 import { BlocMadelinSynthese } from "../prevoyance/BlocMadelinSynthese";
 import { ChargesModal } from "../ChargesModal";
@@ -109,6 +109,211 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
       }
     }
 
+    // ── Seconde activite (Lot C cumul salarie + TNS) — champ opt-in type ──
+    const sec = (which === 1 ? data.activiteSecondaire1 : data.activiteSecondaire2) ?? "";
+    const secKey = which === 1 ? "activiteSecondaire1" : "activiteSecondaire2";
+    const secTns = sec === "bic" || sec === "bnc" || sec === "ba";
+    const secBa = sec === "ba";
+    const secBnc = sec === "bnc";
+    // Salaire principal inchange ; le bloc secondaire n'apparait jamais pour un
+    // retraite (cumul emploi-retraite = hors perimetre, item Roadmap a creer).
+    const montreSalaireSecondaire = isIndep && sec === "salariat";
+    const montreTnsSecondaire = !isIndep && !isRetr && secTns;
+
+    // Bloc TNS BIC/BNC EXTRAIT (reutilise en principal ET en secondaire). Nature
+    // (isBNCeff) et apercu parametres ; passer les memes noeuds qu'avant => rendu du
+    // cas principal strictement identique. Aucune duplication de JSX.
+    const renderBicBncBlock = (isBNCeff: boolean, apercuOverride?: React.ReactNode) => {
+      const seuilMicro = isBNCeff ? 77700 : (bicTypeVal === "vente" ? 188700 : 77700);
+      const depasseSeuil = micro && caNum > 0 && caNum > seuilMicro;
+      const apercuNode = apercuOverride !== undefined
+        ? apercuOverride
+        : (caNum > 0 && abattementInfo ? (
+            <div className="rounded-xl px-3 py-2 text-xs" style={{ background: "rgba(81,106,199,0.08)", color: BRAND.sky, border: "1px solid rgba(81,106,199,0.15)" }}>
+              💡 {abattementInfo}
+            </div>
+          ) : null);
+      return (
+        <>
+          {/* Toggle Micro / Réel — switch */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-400">Régime fiscal</span>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <span className="text-xs font-medium" style={{ color: micro ? BRAND.sky : BRAND.gold }}>
+                {micro ? "Micro" : "Réel"}
+              </span>
+              <button
+                role="switch" aria-checked={micro}
+                onClick={() => setField(microKey, !micro)}
+                className="relative inline-flex items-center rounded-full transition-colors focus:outline-none"
+                style={{ width: 34, height: 19, background: micro ? BRAND.gold : SURFACE.border, flexShrink: 0 }}
+              >
+                <span
+                  className="absolute rounded-full bg-white shadow transition-all"
+                  style={{ width: 15, height: 15, top: 2, left: micro ? 17 : 2 }}
+                />
+              </button>
+            </label>
+          </div>
+
+          {/* Type BIC uniquement */}
+          {!isBNCeff && (
+            <Field label="Nature de l'activité BIC">
+              <Select value={bicTypeVal} onValueChange={(v) => setField(bicTypeKey, v)}>
+                <SelectTrigger className="rounded-xl h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="services">Prestations de services (abatt. 50%)</SelectItem>
+                  <SelectItem value="vente">Achat-revente / commerce (abatt. 71%)</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+
+          {/* CA */}
+          <div className="max-w-[240px]">
+            <MoneyField
+              label={`Chiffre d'affaires HT${isBNCeff ? " (recettes)" : ""}`}
+              tooltip={isBNCeff
+                ? "Recettes brutes HT de l'activité libérale. L'abattement de 34% sera appliqué en régime micro pour obtenir la base imposable."
+                : bicTypeVal === "vente"
+                  ? "CA HT annuel. Abattement forfaitaire de 71% en micro pour activités de vente/commerce."
+                  : "CA HT annuel. Abattement forfaitaire de 50% en micro pour prestations de services BIC."
+              }
+              value={caVal}
+              onChange={(e) => setField(caKey, e.target.value)}
+            />
+          </div>
+          {depasseSeuil && (
+            <div className="flex items-start gap-1.5 rounded-xl px-2.5 py-2 text-xs" style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
+              <span className="shrink-0">⚠️</span>
+              <span>CA {caNum.toLocaleString("fr-FR")} € &gt; seuil micro {seuilMicro.toLocaleString("fr-FR")} €. Régime réel obligatoire si dépassement 2 ans consécutifs.</span>
+            </div>
+          )}
+
+          {/* Charges réelles (régime réel uniquement) */}
+          {!micro && (() => {
+            const detail: ChargesDetail = (which === 1 ? data.chargesDetail1 : data.chargesDetail2) as ChargesDetail || EMPTY_CHARGES_DETAIL;
+            const hasDetail = sumChargesDetail(detail) > 0;
+            return (
+              <div className="flex items-end gap-1.5">
+                <div style={{ width: 200 }}>
+                  <MoneyField
+                    label="Charges professionnelles déductibles"
+                    tooltip="Total des charges réelles déductibles. Cliquez sur le bouton détail pour ventiler par nature. Bénéfice imposable = CA − Charges."
+                    value={chargesVal}
+                    onChange={(e) => setField(chargesKey, e.target.value)}
+                  />
+                </div>
+                <button
+                  onClick={() => setChargesDialogOpen(which)}
+                  className="mb-0.5 flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-colors"
+                  style={{
+                    background: hasDetail ? BRAND.navy : "rgba(81,106,199,0.1)",
+                    color: hasDetail ? "#fff" : BRAND.sky,
+                    border: hasDetail ? "none" : "1px solid rgba(81,106,199,0.2)",
+                    whiteSpace: "nowrap",
+                  }}
+                  title="Détailler les charges par nature"
+                >
+                  <FileText className="h-3 w-3" />
+                  {hasDetail ? "Détail ✓" : "Détailler"}
+                </button>
+              </div>
+            );
+          })()}
+
+          {/* Aperçu bénéfice imposable (principal) / estimation (secondaire) */}
+          {apercuNode}
+        </>
+      );
+    };
+
+    // Bloc BA EXTRAIT (idem : reutilise en principal ET en secondaire).
+    const renderBaBlock = (apercuOverride?: React.ReactNode) => {
+      const caNumBa = n(caVal);
+      const depasseBA = micro && caNumBa > 0 && caNumBa > SEUIL_MICRO_BA;
+      const apercuBA = micro && caNumBa > 0
+        ? `Abattement 87% → base imposable : ${Math.max(0, caNumBa - Math.max(305, caNumBa * 0.87)).toLocaleString("fr-FR")} €`
+        : "";
+      const apercuNode = apercuOverride !== undefined
+        ? apercuOverride
+        : (apercuBA ? (
+            <div className="rounded-xl px-3 py-2 text-xs" style={{ background: "rgba(81,106,199,0.08)", color: BRAND.sky, border: "1px solid rgba(81,106,199,0.15)" }}>
+              💡 {apercuBA}
+            </div>
+          ) : null);
+      return (
+        <>
+          {/* Switch Micro / Réel */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-400">Régime fiscal</span>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <span className="text-xs font-medium" style={{ color: micro ? BRAND.sky : BRAND.gold }}>
+                {micro ? "Micro-BA" : "Réel"}
+              </span>
+              <button
+                role="switch" aria-checked={micro}
+                onClick={() => setField(microKey, !micro)}
+                className="relative inline-flex items-center rounded-full transition-colors focus:outline-none"
+                style={{ width: 34, height: 19, background: micro ? BRAND.gold : SURFACE.border, flexShrink: 0 }}
+              >
+                <span className="absolute rounded-full bg-white shadow transition-all"
+                  style={{ width: 15, height: 15, top: 2, left: micro ? 17 : 2 }} />
+              </button>
+            </label>
+          </div>
+          {/* Champ selon régime */}
+          {micro ? (
+            <>
+              <div className="max-w-[240px]">
+                <MoneyField
+                  label="Recettes HT (année N)"
+                  tooltip={`Recettes brutes HT de l'exploitation agricole. Abattement forfaitaire de 87% (min. 305 €). Seuil micro-BA : ${SEUIL_MICRO_BA.toLocaleString("fr-FR")} € (moyenne triennale 2024-2025).`}
+                  value={caVal}
+                  onChange={(e) => setField(caKey, e.target.value)}
+                />
+              </div>
+              {depasseBA && (
+                <div className="flex items-start gap-1.5 rounded-xl px-2.5 py-2 text-xs" style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
+                  <span className="shrink-0">⚠️</span>
+                  <span>Recettes {caNumBa.toLocaleString("fr-FR")} € &gt; seuil micro-BA {SEUIL_MICRO_BA.toLocaleString("fr-FR")} €. Passage au réel obligatoire si dépassement 2 ans consécutifs.</span>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="max-w-[240px]">
+              <MoneyField
+                label="Bénéfice agricole net (BA)"
+                tooltip="Bénéfice net de l'exploitation après déduction des charges réelles. Imposable au barème progressif de l'IR."
+                value={caVal}
+                onChange={(e) => setField(caKey, e.target.value)}
+              />
+            </div>
+          )}
+          {apercuNode}
+        </>
+      );
+    };
+
+    // Estimation du benefice imposable pour le bloc TNS secondaire — source unique
+    // resolveBeneficeTns (lit deja activiteSecondaire via la garde A du Lot A ;
+    // pas de recalcul local). Rien si CA vide/0.
+    const estimationSecondaire: React.ReactNode = (() => {
+      if (!montreTnsSecondaire) return null;
+      const caEff = n(caVal);
+      if (caEff <= 0) return null;
+      const benef = resolveBeneficeTns(data, which);
+      const fmt = benef.toLocaleString("fr-FR", { maximumFractionDigits: 0 });
+      const texte = micro
+        ? `Abattement micro ${secBa ? 87 : secBnc ? 34 : (bicTypeVal === "vente" ? 71 : 50)} % — bénéfice imposable estimé : ${fmt} €`
+        : `Bénéfice imposable estimé : ${fmt} €`;
+      return (
+        <div className="rounded-xl px-3 py-2 text-xs" style={{ background: "rgba(81,106,199,0.08)", color: BRAND.sky, border: "1px solid rgba(81,106,199,0.15)" }}>
+          💡 {texte}
+        </div>
+      );
+    })();
+
     if (isSansAct) return null; // pas de revenus pro
 
     return (
@@ -147,179 +352,63 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
           </div>
         )}
 
-        {/* Agriculteur — BA avec toggle Micro / Réel */}
-        {isBA && (() => {
-          const caNum = n(caVal);
-          const depasseBA = micro && caNum > 0 && caNum > SEUIL_MICRO_BA;
-          const apercuBA = micro && caNum > 0
-            ? `Abattement 87% → base imposable : ${Math.max(0, caNum - Math.max(305, caNum * 0.87)).toLocaleString("fr-FR")} €`
-            : "";
-          return (
-            <>
-              {/* Switch Micro / Réel */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-400">Régime fiscal</span>
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <span className="text-xs font-medium" style={{ color: micro ? BRAND.sky : BRAND.gold }}>
-                    {micro ? "Micro-BA" : "Réel"}
-                  </span>
-                  <button
-                    role="switch" aria-checked={micro}
-                    onClick={() => setField(microKey, !micro)}
-                    className="relative inline-flex items-center rounded-full transition-colors focus:outline-none"
-                    style={{ width: 34, height: 19, background: micro ? BRAND.gold : SURFACE.border, flexShrink: 0 }}
-                  >
-                    <span className="absolute rounded-full bg-white shadow transition-all"
-                      style={{ width: 15, height: 15, top: 2, left: micro ? 17 : 2 }} />
-                  </button>
-                </label>
-              </div>
-              {/* Champ selon régime */}
-              {micro ? (
-                <>
-                  <div className="max-w-[240px]">
-                    <MoneyField
-                      label="Recettes HT (année N)"
-                      tooltip={`Recettes brutes HT de l'exploitation agricole. Abattement forfaitaire de 87% (min. 305 €). Seuil micro-BA : ${SEUIL_MICRO_BA.toLocaleString("fr-FR")} € (moyenne triennale 2024-2025).`}
-                      value={caVal}
-                      onChange={(e) => setField(caKey, e.target.value)}
-                    />
-                  </div>
-                  {depasseBA && (
-                    <div className="flex items-start gap-1.5 rounded-xl px-2.5 py-2 text-xs" style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
-                      <span className="shrink-0">⚠️</span>
-                      <span>Recettes {caNum.toLocaleString("fr-FR")} € &gt; seuil micro-BA {SEUIL_MICRO_BA.toLocaleString("fr-FR")} €. Passage au réel obligatoire si dépassement 2 ans consécutifs.</span>
-                    </div>
+        {/* Agriculteur — BA avec toggle Micro / Réel (Lot C : bloc extrait, reutilise en secondaire) */}
+        {isBA && renderBaBlock()}
+
+        {/* Indépendant BIC / BNC (Lot C : bloc extrait, reutilise en secondaire) */}
+        {isIndep && !isBA && renderBicBncBlock(isBNC)}
+
+        {/* Seconde activite (Lot C cumul salarie + TNS) — selecteur + bloc secondaire.
+            Absent pour les retraites (cumul emploi-retraite hors perimetre). */}
+        {!isRetr && (
+          <div className="pt-3 mt-1" style={{ borderTop: `1px solid ${SURFACE.border}` }}>
+            <Field label="Seconde activité" tooltip="Déclare une seconde source de revenu sur la même personne (cumul salarié + indépendant). Les champs correspondants apparaissent ci-dessous ; le calcul IR additionne les deux revenus.">
+              <Select value={sec || "none"} onValueChange={(v) => setField(secKey, v === "none" ? "" : v)}>
+                <SelectTrigger className="rounded-xl h-9 text-sm max-w-[280px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {isIndep ? (
+                    <>
+                      <SelectItem value="none">Aucune</SelectItem>
+                      <SelectItem value="salariat">Salariat</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="none">Aucune</SelectItem>
+                      <SelectItem value="bic">Indépendant — BIC</SelectItem>
+                      <SelectItem value="bnc">Indépendant — BNC (libéral)</SelectItem>
+                      <SelectItem value="ba">Exploitant agricole — BA</SelectItem>
+                    </>
                   )}
-                  {apercuBA && (
-                    <div className="rounded-xl px-3 py-2 text-xs" style={{ background: "rgba(81,106,199,0.08)", color: BRAND.sky, border: "1px solid rgba(81,106,199,0.15)" }}>
-                      💡 {apercuBA}
-                    </div>
-                  )}
-                </>
-              ) : (
+                </SelectContent>
+              </Select>
+            </Field>
+
+            {/* Bloc secondaire — Salariat (personne TNS principale) */}
+            {montreSalaireSecondaire && (
+              <div className="mt-3 rounded-xl p-3 space-y-3" style={{ background: "rgba(81,106,199,0.04)", border: `1px solid ${SURFACE.border}` }}>
+                <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: BRAND.sky }}>Activité secondaire — Salariat</div>
                 <div className="max-w-[240px]">
                   <MoneyField
-                    label="Bénéfice agricole net (BA)"
-                    tooltip="Bénéfice net de l'exploitation après déduction des charges réelles. Imposable au barème progressif de l'IR."
-                    value={caVal}
-                    onChange={(e) => setField(caKey, e.target.value)}
+                    label="Salaire net imposable"
+                    tooltip="Salaire net avant impôt de l'activité salariée secondaire. L'abattement de 10% (ou frais réels) est appliqué dans l'onglet IR."
+                    value={salaryVal}
+                    onChange={(e) => setField(salaryKey, e.target.value)}
                   />
                 </div>
-              )}
-            </>
-          );
-        })()}
-
-        {/* Indépendant BIC / BNC */}
-        {isIndep && !isBA && (
-          <>
-            {/* Toggle Micro / Réel — switch */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400">Régime fiscal</span>
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <span className="text-xs font-medium" style={{ color: micro ? BRAND.sky : BRAND.gold }}>
-                  {micro ? "Micro" : "Réel"}
-                </span>
-                <button
-                  role="switch" aria-checked={micro}
-                  onClick={() => setField(microKey, !micro)}
-                  className="relative inline-flex items-center rounded-full transition-colors focus:outline-none"
-                  style={{ width: 34, height: 19, background: micro ? BRAND.gold : SURFACE.border, flexShrink: 0 }}
-                >
-                  <span
-                    className="absolute rounded-full bg-white shadow transition-all"
-                    style={{ width: 15, height: 15, top: 2, left: micro ? 17 : 2 }}
-                  />
-                </button>
-              </label>
-            </div>
-
-            {/* Type BIC uniquement */}
-            {!isBNC && (
-              <Field label="Nature de l'activité BIC">
-                <Select value={bicTypeVal} onValueChange={(v) => setField(bicTypeKey, v)}>
-                  <SelectTrigger className="rounded-xl h-9 text-sm"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="services">Prestations de services (abatt. 50%)</SelectItem>
-                    <SelectItem value="vente">Achat-revente / commerce (abatt. 71%)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-            )}
-
-            {/* CA */}
-            {(() => {
-              const seuilMicro = isBNC ? 77700 : (bicTypeVal === "vente" ? 188700 : 77700);
-              const depasseSeuil = micro && caNum > 0 && caNum > seuilMicro;
-              return (
-                <>
-                  <div className="max-w-[240px]">
-                    <MoneyField
-                      label={`Chiffre d'affaires HT${isBNC ? " (recettes)" : ""}`}
-                      tooltip={isBNC
-                        ? "Recettes brutes HT de l'activité libérale. L'abattement de 34% sera appliqué en régime micro pour obtenir la base imposable."
-                        : bicTypeVal === "vente"
-                          ? "CA HT annuel. Abattement forfaitaire de 71% en micro pour activités de vente/commerce."
-                          : "CA HT annuel. Abattement forfaitaire de 50% en micro pour prestations de services BIC."
-                      }
-                      value={caVal}
-                      onChange={(e) => setField(caKey, e.target.value)}
-                    />
-                  </div>
-                  {depasseSeuil && (
-                    <div className="flex items-start gap-1.5 rounded-xl px-2.5 py-2 text-xs" style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
-                      <span className="shrink-0">⚠️</span>
-                      <span>CA {caNum.toLocaleString("fr-FR")} € &gt; seuil micro {seuilMicro.toLocaleString("fr-FR")} €. Régime réel obligatoire si dépassement 2 ans consécutifs.</span>
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-
-            {/* Charges réelles (régime réel uniquement) */}
-            {!micro && (() => {
-              const detail: ChargesDetail = (which === 1 ? data.chargesDetail1 : data.chargesDetail2) as ChargesDetail || EMPTY_CHARGES_DETAIL;
-              const hasDetail = sumChargesDetail(detail) > 0;
-              return (
-                <div className="flex items-end gap-1.5">
-                  <div style={{ width: 200 }}>
-                    <MoneyField
-                      label="Charges professionnelles déductibles"
-                      tooltip="Total des charges réelles déductibles. Cliquez sur le bouton détail pour ventiler par nature. Bénéfice imposable = CA − Charges."
-                      value={chargesVal}
-                      onChange={(e) => setField(chargesKey, e.target.value)}
-                    />
-                  </div>
-                  <button
-                    onClick={() => setChargesDialogOpen(which)}
-                    className="mb-0.5 flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-colors"
-                    style={{
-                      background: hasDetail ? BRAND.navy : "rgba(81,106,199,0.1)",
-                      color: hasDetail ? "#fff" : BRAND.sky,
-                      border: hasDetail ? "none" : "1px solid rgba(81,106,199,0.2)",
-                      whiteSpace: "nowrap",
-                    }}
-                    title="Détailler les charges par nature"
-                  >
-                    <FileText className="h-3 w-3" />
-                    {hasDetail ? "Détail ✓" : "Détailler"}
-                  </button>
-                </div>
-              );
-            })()}
-
-            {/* Aperçu bénéfice imposable */}
-            {caNum > 0 && abattementInfo && (
-              <div className="rounded-xl px-3 py-2 text-xs" style={{
-                background: "rgba(81,106,199,0.08)",
-                color: BRAND.sky,
-                border: "1px solid rgba(81,106,199,0.15)",
-              }}>
-                💡 {abattementInfo}
               </div>
             )}
-          </>
+
+            {/* Bloc secondaire — TNS (personne salariee principale) : bloc BIC/BNC/BA
+                reutilise, nature pilotee par sec ; estimation via resolveBeneficeTns. */}
+            {montreTnsSecondaire && (
+              <div className="mt-3 rounded-xl p-3 space-y-3" style={{ background: "rgba(227,175,100,0.06)", border: `1px solid ${SURFACE.border}` }}>
+                <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: BRAND.gold }}>
+                  Activité secondaire — {secBa ? "BA" : secBnc ? "BNC" : "BIC"}
+                </div>
+                {secBa ? renderBaBlock(estimationSecondaire) : renderBicBncBlock(secBnc, estimationSecondaire)}
+              </div>
+            )}
+          </div>
         )}
       </div>
     );
@@ -469,8 +558,8 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
 
   {/* 5. Madelin prevoyance — 2 blocs en colonnes (P1 | P2). Bloc inchange, seul le conteneur change (dette "2 blocs empiles" soldee). */}
   <div className="grid gap-4 md:grid-cols-2">
-    <BlocMadelinSynthese data={data} which={1} benefice={beneficeMadelin(1)} plafondPER={ir.plafondPER1 ?? 0} versementsPER={versementsPERMadelin(1)} setField={setField} />
-    <BlocMadelinSynthese data={data} which={2} benefice={beneficeMadelin(2)} plafondPER={ir.plafondPER2 ?? 0} versementsPER={versementsPERMadelin(2)} setField={setField} />
+    <BlocMadelinSynthese data={data} which={1} benefice={beneficeMadelin(1)} plafondPER={ir.plafondPER1 ?? 0} plafondPER163={ir.plafondPER1Base163 ?? 0} plafondPER154={ir.plafondPER1Sup154 ?? 0} perAuReel={resolveBeneficeAuReel(data, 1)} versementsPER={versementsPERMadelin(1)} setField={setField} />
+    <BlocMadelinSynthese data={data} which={2} benefice={beneficeMadelin(2)} plafondPER={ir.plafondPER2 ?? 0} plafondPER163={ir.plafondPER2Base163 ?? 0} plafondPER154={ir.plafondPER2Sup154 ?? 0} perAuReel={resolveBeneficeAuReel(data, 2)} versementsPER={versementsPERMadelin(2)} setField={setField} />
   </div>
 
   {/* 6. Budget du foyer — detail du calcul (lecture seule, source computeBudget) */}
