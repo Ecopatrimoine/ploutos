@@ -372,14 +372,13 @@ describe("cumul salarie+TNS — cap fallback manuel perDeduction (Lot E3)", () =
   });
 
   it("F2 : saisie manuelle AU-DESSUS du cap => cappee (IR remonte)", () => {
-    // perDeduction 20000 > cap 10806 => min(20000, 10806) = 10806.
-    // NB : cap = plafondPER1 6000 + plafondPER2 4806 (plancher P2 fictive) = 10806
-    //      (l'illustration "6000" du plan ignorait le plancher plafondPER2).
-    // AVANT E3 : 20000 non cappe (RNG 34000, IR 3303.99). APRES : RNG = 60000 - 6000 - 10806
-    //      = 43194 ; IR = 1977.69 + (43194-29579)*0.30 = 6062.19.
+    // Recalibrage E3b : celibataire => la personne 2 fictive est EXCLUE du cap =>
+    // cap = plafondPER1 = 6000 (avant E3b : 10806, incluant le plancher P2 fictif).
+    // perDeduction 20000 > 6000 => min(20000, 6000) = 6000.
+    // RNG = 60000 - 6000 (abatt) - 6000 = 48000 ; IR = 1977.69 + (48000-29579)*0.30 = 7503.99.
     const r = computeIR(mk({ salary1: "60000", perDeduction: "20000" }) as any, STD_OPTIONS);
-    expect(r.perDeductionCalc).toBeCloseTo(10806, 2);
-    expect(r.finalIR).toBeCloseTo(6062.19, 2);
+    expect(r.perDeductionCalc).toBeCloseTo(6000, 2);
+    expect(r.finalIR).toBeCloseTo(7503.99, 2);
   });
 
   it("F3 : fallback inactif si un placement PER porte deja une deduction (condition inchangee)", () => {
@@ -390,5 +389,26 @@ describe("cumul salarie+TNS — cap fallback manuel perDeduction (Lot E3)", () =
       placements: [{ type: "PER bancaire", ownership: "person1", annualContribution: "3000" }],
     }) as any, STD_OPTIONS);
     expect(r.perDeductionCalc).toBeCloseTo(3000, 2);
+  });
+
+  it("F4 : celibataire => plancher P2 fictif exclu du cap (6000, pas 10806)", () => {
+    // E3b : isCouple = false (coupleStatus 'single') => cap = plafondPER1 = 6000 SEUL.
+    // perDeduction 20000 => min(20000, 6000) = 6000 ; RNG 48000 => IR 7503.99.
+    const r = computeIR(mk({ salary1: "60000", perDeduction: "20000" }) as any, STD_OPTIONS);
+    expect(r.perDeductionCalc).toBeCloseTo(6000, 2);
+    expect(r.perDeductionCalc).not.toBeCloseTo(10806, 2); // preuve : plancher P2 fictif exclu
+    expect(r.finalIR).toBeCloseTo(7503.99, 2);
+  });
+
+  it("F5 : couple (personne 2 reelle) => le cap somme bien les DEUX plafonds", () => {
+    // Couverture de la branche isCouple=true (sinon non testee). Marie, P1 salarie
+    // 60000 + P2 salarie 60000 => cap = plafondPER1 6000 + plafondPER2 6000 = 12000 ;
+    // perDeduction 20000 => min(20000, 12000) = 12000.
+    const r = computeIR(mk({
+      coupleStatus: "married", person2FirstName: "P2",
+      person2PcsGroupe: "4", person2Csp: "47", salary2: "60000",
+      salary1: "60000", perDeduction: "20000",
+    }) as any, STD_OPTIONS);
+    expect(r.perDeductionCalc).toBeCloseTo(12000, 2);
   });
 });

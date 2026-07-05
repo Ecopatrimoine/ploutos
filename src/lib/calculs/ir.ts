@@ -435,12 +435,17 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     .reduce((sum, p) => sum + n(p.annualContribution || ""), 0);
 
   // Total déductible = min(versements, plafond) par personne
+  // Cap du fallback manuel (E3/E3b). Actif seulement sans placement PER deductible
+  // (condition perP1Deductible === 0 && perP2Deductible === 0, INCHANGEE).
+  //  (a) On ne somme le plafond de la personne 2 que si elle EXISTE (isCouple, ir.ts:354
+  //      — meme predicat que l'abattement AV et la decote) : le plancher 10% PASS est un
+  //      droit PAR MEMBRE REEL du foyer, la personne 2 fictive (celibataire) en est exclue.
+  //  (b) Pour un couple, la somme plafondPER1 + plafondPER2 approxime la mutualisation
+  //      163 quatervicies I-2-a (legalement sur demande expresse) : approximation assumee
+  //      pour une saisie de niveau foyer, non nominative.
+  const capFoyerManuel = plafondPER1 + (isCouple ? plafondPER2 : 0);
   const perDeductionCalc = Math.min(perP1Deductible, plafondPER1) + Math.min(perP2Deductible, plafondPER2)
-    // Fallback saisie manuelle (champ foyer data.perDeduction, actif seulement sans
-    // placement PER deductible) : desormais cappe a la SOMME des plafonds individuels
-    // (niveau foyer). Corrige une sur-deduction silencieuse (E3). Condition
-    // d'activation (perP1Deductible === 0 && perP2Deductible === 0) INCHANGEE.
-    + (perP1Deductible === 0 && perP2Deductible === 0 ? Math.min(n(data.perDeduction), plafondPER1 + plafondPER2) : 0);
+    + (perP1Deductible === 0 && perP2Deductible === 0 ? Math.min(n(data.perDeduction), capFoyerManuel) : 0);
 
   // Plafond global (pour affichage — somme des deux)
   const plafondPER = plafondPER1 + plafondPER2;
