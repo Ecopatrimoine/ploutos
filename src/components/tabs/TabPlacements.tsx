@@ -168,12 +168,12 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
               <>
                 <MoneyField
                   label="Versement annuel (€)"
-                  tooltip="Versements annuels sur ce PER. Activez le switch 'Déductible IR' pour que ce montant réduise votre revenu imposable."
+                  tooltip="Versements annuels sur ce PER. Activez le switch 'Déductible IR' pour que ce montant réduise votre revenu imposable, dans la limite du plafond (art. 163 quatervicies CGI)."
                   value={placement.annualContribution || ""}
                   onChange={(e) => updatePlacementStr(placement.id, "annualContribution", e.target.value)}
                   compact
                 />
-                <Field label="Déductible IR" tooltip="ON = versement déduit du revenu imposable (dans la limite du plafond). OFF = versement non déductible (plafond épuisé, abondement employeur, etc.)">
+                <Field label="Déductible IR" tooltip="ON = versement déduit du revenu imposable (dans la limite du plafond — art. 163 quatervicies CGI). OFF = versement non déductible (plafond épuisé, abondement employeur, etc.)">
                   <div className="flex items-center gap-2 h-8">
                     <button
                       role="switch"

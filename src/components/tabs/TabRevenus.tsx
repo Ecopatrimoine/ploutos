@@ -13,7 +13,7 @@ import type { Child, Property, Placement, PatrimonialData, IrOptions, Succession
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
-import { computeBeneficeImposable, resolveBeneficeTns } from "../../lib/calculs/ir";
+import { computeBeneficeImposable, resolveBeneficeTns, resolveBeneficeAuReel } from "../../lib/calculs/ir";
 import { computeBudget } from "../../lib/calculs/budget";
 import { BlocMadelinSynthese } from "../prevoyance/BlocMadelinSynthese";
 import { ChargesModal } from "../ChargesModal";
@@ -558,8 +558,8 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
 
   {/* 5. Madelin prevoyance — 2 blocs en colonnes (P1 | P2). Bloc inchange, seul le conteneur change (dette "2 blocs empiles" soldee). */}
   <div className="grid gap-4 md:grid-cols-2">
-    <BlocMadelinSynthese data={data} which={1} benefice={beneficeMadelin(1)} plafondPER={ir.plafondPER1 ?? 0} versementsPER={versementsPERMadelin(1)} setField={setField} />
-    <BlocMadelinSynthese data={data} which={2} benefice={beneficeMadelin(2)} plafondPER={ir.plafondPER2 ?? 0} versementsPER={versementsPERMadelin(2)} setField={setField} />
+    <BlocMadelinSynthese data={data} which={1} benefice={beneficeMadelin(1)} plafondPER={ir.plafondPER1 ?? 0} plafondPER163={ir.plafondPER1Base163 ?? 0} plafondPER154={ir.plafondPER1Sup154 ?? 0} perAuReel={resolveBeneficeAuReel(data, 1)} versementsPER={versementsPERMadelin(1)} setField={setField} />
+    <BlocMadelinSynthese data={data} which={2} benefice={beneficeMadelin(2)} plafondPER={ir.plafondPER2 ?? 0} plafondPER163={ir.plafondPER2Base163 ?? 0} plafondPER154={ir.plafondPER2Sup154 ?? 0} perAuReel={resolveBeneficeAuReel(data, 2)} versementsPER={versementsPERMadelin(2)} setField={setField} />
   </div>
 
   {/* 6. Budget du foyer — detail du calcul (lecture seule, source computeBudget) */}
