@@ -18,7 +18,7 @@
 
 import type { PatrimonialData } from "../../types/patrimoine";
 import { n } from "./utils";
-import { resolveBeneficeTns } from "./ir";
+import { resolveBeneficeTns, resolveSalaireRetenu } from "./ir";
 import { computeChargesCreditAnnuelles } from "./endettement";
 
 // `ir` = objet retourne par computeIR (branche foyer commun OU concubins). On ne
@@ -57,7 +57,10 @@ export function computeBudget(data: PatrimonialData, ir: IrLike): BudgetResult {
   const placements = Array.isArray(data.placements) ? data.placements : [];
 
   // ─── REVENUS (base budget : loyers a 100 %, distincte de l'endettement) ──
-  const salaires = n(data.salary1) + n(data.salary2);
+  // Salaire retenu ALIGNE sur l'opt-in cumul (resolveSalaireRetenu, meme predicat
+  // que computeIR / endettement) : un salaire dormant d'un TNS sans activite
+  // secondaire 'salariat' est ignore, coherent avec le calcul IR.
+  const salaires = resolveSalaireRetenu(data, 1) + resolveSalaireRetenu(data, 2);
   // Pensions : MEME regle de fallback que computeIR / computeTauxEndettement —
   // pensions1+2 si l'un est renseigne, sinon le champ global. Jamais la somme
   // des trois (evite le double-compte global + nominatifs).
