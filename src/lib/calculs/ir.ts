@@ -631,10 +631,16 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     const hAbatt2 = data.person2Handicap ? getHandicapAbattement(n(data.salary2) + n(data.ca2) + n(data.baRevenue2)) : 0;
 
     // ── Revenus nets par personne ──
-    const rev1 = Math.max(0, (isIndep1 ? benefice1 : salary1) + pensionP1 - retained1
+    // Lot B cumul salarie + TNS : on SOMME salaire + benefice (au lieu du ternaire
+    // exclusif isIndep ? benefice : salary). salary1/salary2 sont deja passes par la
+    // garde C (salaireMasque) et retained1/retained2 par la garde D du Lot A (memes
+    // variables de portee fonction) : concubin pur salarie => benefice=0 (inchange) ;
+    // concubin pur TNS champ absent => salary=0 via garde C (inchange) ; cumulant =>
+    // les deux s'additionnent, abattement 10% sur le SEUL salaire.
+    const rev1 = Math.max(0, salary1 + benefice1 + pensionP1 - retained1
       + foncier1.taxable + taxablePlac1 + perCapital1 + perRentes1
       - perDeduction1 - csgFoncierP1 - autresNonVentilable / 2 - hAbatt1 - madelinDed1);
-    const rev2 = Math.max(0, (isIndep2 ? benefice2 : salary2) + pensionP2 - retained2
+    const rev2 = Math.max(0, salary2 + benefice2 + pensionP2 - retained2
       + foncier2.taxable + taxablePlac2 + perCapital2 + perRentes2
       - perDeduction2 - csgFoncierP2 - autresNonVentilable / 2 - hAbatt2 - madelinDed2);
 
