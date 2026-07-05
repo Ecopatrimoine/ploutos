@@ -170,3 +170,77 @@ describe("cumul salarie+TNS — appelants de resolveBeneficeTns (garde A)", () =
     expect(b.detail.beneficeTns).toBeCloseTo(1100, 2);
   });
 });
+
+// ─── Chemin CONCUBINS (garde F, Lot B) ────────────────────────────────────────
+// 2 foyers fiscaux de 1 part chacun (aucun enfant). Chaque concubin est un
+// celibataire fiscal : decote 897 - 0,4525*bareme si bareme < 1982. La garde F
+// somme desormais salary + benefice (au lieu du ternaire exclusif). Champs
+// exposes : ir1/ir2 (bareme apres decote par foyer), rev1/rev2 (revenu net par
+// foyer), finalIR (somme des deux). salary/retained proviennent des gardes C/D
+// (memes variables de portee fonction, verifie par lecture).
+describe("cumul salarie+TNS — chemin concubins (garde F)", () => {
+  const concubins = (over: Record<string, unknown>) =>
+    mk({ coupleStatus: "cohab", person2FirstName: "P2", ...over });
+
+  it("IB1 invariant : P1 salarie pur + P2 TNS pur (salary2 residuel, champ absent) == meme dossier a salary2=0", () => {
+    // P1 (groupe 3, cat 37) salaire 40000 : isIndep1=false => salary1=40000, benefice1=0,
+    //   retained1 = max(509, min(4000,14555)) = 4000. rev1 = 40000 + 0 - 4000 = 36000.
+    //   bareme = 17979*0.11(1977.69) + (36000-29579)*0.30(1926.30) = 3903.99 ; decote 0 => ir1 = 3903.99.
+    // P2 (groupe 3, cat 31 = BNC) ca2 20000 micro, salary2 residuel 25000, activiteSecondaire2 ABSENT :
+    //   isIndep2=true => salaireMasque2=true => salary2=0 (garde C), retained2=0 (garde D) ;
+    //   benefice2 = 20000 - max(305, 6800) = 13200. rev2 = 0 + 13200 - 0 = 13200.
+    //   bareme = (13200-11600)*0.11 = 176 ; decote = 897 - 0.4525*176 = 817.36 => ir2 = max(0, 176-817.36) = 0.
+    // finalIR = 3903.99 + 0 = 3903.99. Le salaire residuel de P2 est ignore (garde C) => identique a salary2=0.
+    const residuel = concubins({ salary1: "40000", person2PcsGroupe: "3", person2Csp: "31", ca2: "20000", microRegime2: true, salary2: "25000" });
+    const zero = concubins({ salary1: "40000", person2PcsGroupe: "3", person2Csp: "31", ca2: "20000", microRegime2: true, salary2: "0" });
+    const rR = computeIR(residuel as any, STD_OPTIONS);
+    const rZ = computeIR(zero as any, STD_OPTIONS);
+    expect(rR.ir1).toBeCloseTo(3903.99, 2);
+    expect(rR.ir2).toBe(0);
+    expect(rR.finalIR).toBeCloseTo(3903.99, 2);
+    // Invariance : le salaire residuel de P2 (TNS pur, champ absent) n'a aucun effet.
+    expect(rR.ir1).toBe(rZ.ir1);
+    expect(rR.ir2).toBe(rZ.ir2);
+    expect(rR.finalIR).toBe(rZ.finalIR);
+  });
+
+  it("CB1 cumul : P1 = C1 (salarie 40000 + BNC micro 20000), P2 salarie 30000", () => {
+    // P1 : isIndep1=false => salary1=40000 retenu ; benefice1 = 13200 ; retained1 = 4000.
+    //   rev1 = 40000 + 13200 - 4000 = 49200 (= RNG de C1 en individuel, 1 part).
+    //   ir1 = 1977.69 + (49200-29579)*0.30(5886.30) = 7863.99 (== C1 finalIR).
+    // P2 (groupe 4) salaire 30000 : retained2 = 3000 ; rev2 = 30000 - 3000 = 27000.
+    //   bareme = (27000-11600)*0.11 = 1694 ; decote = 897 - 0.4525*1694 = 130.465 => ir2 = 1563.535.
+    // finalIR = 7863.99 + 1563.535 = 9427.525.
+    const d = concubins({ salary1: "40000", activiteSecondaire1: "bnc", ca1: "20000", microRegime1: true, person2PcsGroupe: "4", person2Csp: "47", salary2: "30000" });
+    const r = computeIR(d as any, STD_OPTIONS);
+    expect(r.rev1).toBe(49200);
+    expect(r.rev2).toBe(27000);
+    expect(r.ir1).toBeCloseTo(7863.99, 2);
+    expect(r.ir2).toBeCloseTo(1563.535, 2);
+    expect(r.finalIR).toBeCloseTo(9427.525, 2);
+  });
+
+  it("CB2 cumul inverse : P1 = C2 (TNS BIC 50000 micro + salariat 30000), P2 salarie 30000", () => {
+    // P1 : isIndep1=true, sec1='salariat' => salaireMasque1=false => salary1=30000 retenu ;
+    //   benefice1 = 25000 ; retained1 = 3000. rev1 = 30000 + 25000 - 3000 = 52000 (= RNG de C2).
+    //   ir1 = 1977.69 + (52000-29579)*0.30(6726.30) = 8703.99.
+    // P2 (groupe 4) salaire 30000 : rev2 = 27000 ; ir2 = 1563.535 (idem CB1).
+    // finalIR = 8703.99 + 1563.535 = 10267.525.
+    const d = concubins({ person1PcsGroupe: "2", person1Csp: "21", ca1: "50000", microRegime1: true, activiteSecondaire1: "salariat", salary1: "30000", person2PcsGroupe: "4", person2Csp: "47", salary2: "30000" });
+    const r = computeIR(d as any, STD_OPTIONS);
+    expect(r.rev1).toBe(52000);
+    expect(r.ir1).toBeCloseTo(8703.99, 2);
+    expect(r.ir2).toBeCloseTo(1563.535, 2);
+    expect(r.finalIR).toBeCloseTo(10267.525, 2);
+  });
+
+  it("CB3 : sur CB1, l'abattement de P1 porte sur le SEUL salaire (4000), pas sur salaire+benefice", () => {
+    // retained1 = max(509, min(salary1*0.1=4000, 14555)) = 4000 (base = salaire 40000 SEUL).
+    // rev1 = 40000 + 13200 - 4000 = 49200. Si l'abattement portait sur salaire+benefice
+    //   (53200*0.1=5320), on aurait rev1 = 47880. rev1===49200 prouve l'abattement sur le seul salaire.
+    const d = concubins({ salary1: "40000", activiteSecondaire1: "bnc", ca1: "20000", microRegime1: true, person2PcsGroupe: "4", person2Csp: "47", salary2: "30000" });
+    const r = computeIR(d as any, STD_OPTIONS);
+    expect(r.rev1).toBe(49200);
+    expect(r.rev1).not.toBe(47880);
+  });
+});
