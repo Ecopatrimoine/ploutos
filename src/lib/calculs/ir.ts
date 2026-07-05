@@ -436,7 +436,11 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
 
   // Total déductible = min(versements, plafond) par personne
   const perDeductionCalc = Math.min(perP1Deductible, plafondPER1) + Math.min(perP2Deductible, plafondPER2)
-    + (perP1Deductible === 0 && perP2Deductible === 0 ? n(data.perDeduction) : 0); // fallback saisie manuelle
+    // Fallback saisie manuelle (champ foyer data.perDeduction, actif seulement sans
+    // placement PER deductible) : desormais cappe a la SOMME des plafonds individuels
+    // (niveau foyer). Corrige une sur-deduction silencieuse (E3). Condition
+    // d'activation (perP1Deductible === 0 && perP2Deductible === 0) INCHANGEE.
+    + (perP1Deductible === 0 && perP2Deductible === 0 ? Math.min(n(data.perDeduction), plafondPER1 + plafondPER2) : 0);
 
   // Plafond global (pour affichage — somme des deux)
   const plafondPER = plafondPER1 + plafondPER2;
