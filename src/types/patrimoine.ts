@@ -207,6 +207,13 @@ export type OtherLoan = {
   insurancePremium: string;
 };
 
+// Activite secondaire (Lot A cumul salarie + TNS) : declare qu'une personne a,
+// EN PLUS de son statut principal (PCS/CSP), une seconde source de revenu.
+// '' = aucune (comportement historique strict). 'salariat' = salaire en plus
+// d'une activite TNS principale ; 'bic'/'bnc'/'ba' = activite TNS en plus d'un
+// salaire principal. Optionnel/retro-compat : absent => aucun changement.
+export type ActiviteSecondaire = '' | 'salariat' | 'bic' | 'bnc' | 'ba';
+
 export type PatrimonialData = {
   person1FirstName: string;
   person1LastName: string;
@@ -246,6 +253,11 @@ export type PatrimonialData = {
   donations?: DonationPassee[];
   salary1: string;
   salary2: string;
+  // Activite secondaire par personne (Lot A cumul salarie + TNS). Optionnel /
+  // retro-compat : absent => comportement historique inchange (SOIT salarie SOIT
+  // TNS). Consomme par le moteur IR (resolveBeneficeTns + gardes salaire).
+  activiteSecondaire1?: ActiviteSecondaire;
+  activiteSecondaire2?: ActiviteSecondaire;
   // Retraites / pensions — nominatives par personne (remplace le champ global pensions)
   pensions1?: string;  // retraite / pension personne 1 — optionnel pour rétrocompatibilité
   pensions2?: string;  // retraite / pension personne 2 — optionnel pour rétrocompatibilité
