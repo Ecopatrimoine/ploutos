@@ -76,6 +76,14 @@ export function computeTauxEndettement(data: PatrimonialData): {
   const loyers = properties.reduce((s, p) => s + n(p.rentGrossAnnual), 0) * 0.70;
   // CA TNS retenu au NET (benefice imposable via resolveBeneficeTns), PAS le CA brut.
   const beneficeTns = resolveBeneficeTns(data, 1) + resolveBeneficeTns(data, 2);
+  // Agregat ADDITIF volontaire (cumul salarie+TNS, v1.31.0) :
+  // - salaire via resolveSalaireRetenu (l.68) : respecte l'opt-in activiteSecondaire
+  //   (aligne sur les gardes C/D de computeIR depuis le Lot C2 du chantier cumul).
+  // - benefice via resolveBeneficeTns (l.78) : garde A en amont (PCS TNS OU activite
+  //   secondaire TNS).
+  // Ne PAS rajouter de garde isIndep ici en croyant corriger un double-compte :
+  // salaire et benefice sont des champs distincts (data.salaryX vs data.caX), la
+  // coherence avec l'IR est assuree par les deux helpers partages.
   const denominateurAnnuel = salaires + pensions + loyers + beneficeTns;
 
   const tauxPct = denominateurAnnuel > 0
