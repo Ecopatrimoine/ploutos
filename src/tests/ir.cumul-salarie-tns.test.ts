@@ -153,6 +153,8 @@ describe("cumul salarie+TNS — garde E (plafond PER) intouchee", () => {
     // (Ancien code garde E : 4806, sur le seul benefice.)
     const r = computeIR(mk({ person1PcsGroupe: "2", person1Csp: "21", ca1: "50000", microRegime1: true, activiteSecondaire1: "salariat", salary1: "30000" }) as any, STD_OPTIONS);
     expect(r.plafondPER1).toBeCloseTo(5500, 2);
+    expect(r.plafondPER1Base163).toBeCloseTo(5500, 2); // 163 quatervicies : 10% x (30000 + 25000)
+    expect(r.plafondPER1Sup154).toBeCloseTo(0, 2);      // micro : pas de majoration 154 bis
   });
 });
 
@@ -289,5 +291,68 @@ describe("cumul salarie+TNS — alignement moteurs budget/endettement (Lot C2)",
     const c2 = mk({ person1PcsGroupe: "2", person1Csp: "21", ca1: "50000", microRegime1: true, activiteSecondaire1: "salariat", salary1: "30000" });
     expect(computeIR(c1 as any, STD_OPTIONS).finalIR).toBeCloseTo(7863.99, 2);
     expect(computeIR(c2 as any, STD_OPTIONS).finalIR).toBeCloseTo(8703.99, 2);
+  });
+});
+
+// ─── Lot E2 : plafond PER exact (163 quatervicies + 154 bis, cumul + micro) ────
+// PASS 2026 = 48060 ; plancher 4806 ; cap salarie 38448 ; cap global TNS 88911.
+describe("cumul salarie+TNS — plafond PER exact (Lot E2)", () => {
+  const plaf = (over: Record<string, unknown>) => computeIR(mk(over) as any, STD_OPTIONS);
+
+  // ── Dégénérescences : ISO à l'ancien code (aucun changement de comportement) ──
+  it("DEG pur salarie 400000 => 38448 (cap 8 PASS), Base163=38448 Sup154=0", () => {
+    // base10 = max(0.10 x min(400000, 8 PASS=384480)=38448, 4806) = 38448 ; benefice 0 => sup154 = 0.
+    const r = plaf({ person1PcsGroupe: "3", person1Csp: "37", salary1: "400000" });
+    expect(r.plafondPER1).toBeCloseTo(38448, 2);
+    expect(r.plafondPER1Base163).toBeCloseTo(38448, 2);
+    expect(r.plafondPER1Sup154).toBeCloseTo(0, 2);
+  });
+
+  it("DEG pur TNS reel aux bornes du cap global (300000 / 385000 / 500000)", () => {
+    // TNS BNC reel (cat 31, micro false, charges 0) => benefice = ca ; salaire masque (0).
+    // 300000 : base10=30000 ; sup154=0.15 x min(251940, 7 PASS=336420)=37791 => 67791.
+    const r30 = plaf({ person1PcsGroupe: "3", person1Csp: "31", microRegime1: false, ca1: "300000", chargesReelles1: "0" });
+    expect(r30.plafondPER1).toBeCloseTo(67791, 2);
+    expect(r30.plafondPER1Base163).toBeCloseTo(30000, 2);
+    expect(r30.plafondPER1Sup154).toBeCloseTo(37791, 2);
+    // 385000 : base10=38448 ; sup154 plafonnee => total capé à 88911.
+    const r385 = plaf({ person1PcsGroupe: "3", person1Csp: "31", microRegime1: false, ca1: "385000", chargesReelles1: "0" });
+    expect(r385.plafondPER1).toBeCloseTo(88911, 2);
+    // 500000 : reste capé à 88911.
+    const r500 = plaf({ person1PcsGroupe: "3", person1Csp: "31", microRegime1: false, ca1: "500000", chargesReelles1: "0" });
+    expect(r500.plafondPER1).toBeCloseTo(88911, 2);
+  });
+
+  it("DEG pur TNS micro benefice < 1 PASS => plancher 4806 (inchange)", () => {
+    // micro-BNC ca 30000 => benefice = 30000 - max(305, 10200) = 19800 (< 48060).
+    // base10 = max(1980, 4806) = 4806 ; micro => sup154 = 0.
+    const r = plaf({ person1PcsGroupe: "3", person1Csp: "31", microRegime1: true, ca1: "30000" });
+    expect(r.plafondPER1).toBeCloseTo(4806, 2);
+    expect(r.plafondPER1Sup154).toBeCloseTo(0, 2);
+  });
+
+  // ── SEUL changement de comportement : TNS micro benefice > 1 PASS ──
+  it("CORRECTION MICRO : pur TNS micro benefice > 1 PASS => pas de majoration 15%", () => {
+    // micro-BNC ca 77000 => benefice = 77000 - max(305, 26180) = 50820 (> 48060).
+    // NOUVEAU : base10 = max(0.10 x 50820 = 5082, 4806) = 5082 ; micro => sup154 = 0 => 5082.
+    // ANCIEN code aurait donne 5082 + 0.15 x (50820-48060=2760) = 5496 (majoration indue).
+    const r = plaf({ person1PcsGroupe: "3", person1Csp: "31", microRegime1: true, ca1: "77000" });
+    expect(r.plafondPER1).toBeCloseTo(5082, 2);
+    expect(r.plafondPER1Base163).toBeCloseTo(5082, 2);
+    expect(r.plafondPER1Sup154).toBeCloseTo(0, 2);
+  });
+
+  // ── Cumul salaire + activite secondaire au REEL : les deux composantes ──
+  it("CUMUL REEL : salarie 40000 + secondaire BNC reel (benefice 50000) => 9291 (9000 + 291)", () => {
+    // benefice = ca 60000 - charges 10000 = 50000 (reel) ; salaire principal 40000 retenu.
+    // base10 = max(0.10 x min(40000+50000=90000, 8 PASS)=9000, 4806) = 9000.
+    // sup154 = 0.15 x min(max(50000-48060, 0)=1940, 7 PASS) = 0.15 x 1940 = 291.
+    // total = 9000 + 291 = 9291.
+    const r = plaf({ person1PcsGroupe: "3", person1Csp: "37", salary1: "40000", activiteSecondaire1: "bnc", microRegime1: false, ca1: "60000", chargesReelles1: "10000" });
+    expect(r.plafondPER1).toBeCloseTo(9291, 2);
+    expect(r.plafondPER1Base163).toBeCloseTo(9000, 2);
+    expect(r.plafondPER1Sup154).toBeCloseTo(291, 2);
+    // Invariant de décomposition : Base163 + Sup154 === total.
+    expect(r.plafondPER1Base163 + r.plafondPER1Sup154).toBeCloseTo(r.plafondPER1, 2);
   });
 });
