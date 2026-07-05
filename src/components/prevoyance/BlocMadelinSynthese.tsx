@@ -137,7 +137,7 @@ export const BlocMadelinSynthese = React.memo(function BlocMadelinSynthese({
           <div className="flex items-center justify-between text-xs">
             <span className="flex items-center" style={{ color: BRAND.muted }}>
               Disponible (plafond)
-              <HelpTooltip text="Les deux enveloppes se coordonnent : les cotisations déduites du bénéfice professionnel réduisent le plafond personnel (hors fraction 15 %). Repères de contrôle : le plafond personnel (163 quatervicies) se calcule légalement sur les revenus N-1 ; la majoration professionnelle (154 bis) sur le bénéfice de l'année N. Ploutos estime les deux sur l'année courante — reportez-vous à l'avis d'imposition pour le plafond exact (reports des 3 années non modélisés)." />
+              <HelpTooltip text="Les deux enveloppes se coordonnent : les cotisations déduites du bénéfice professionnel réduisent le plafond personnel (hors fraction 15 %). Repères de contrôle : le plafond personnel (163 quatervicies) se calcule légalement sur les revenus N-1 ; la majoration professionnelle (154 bis) sur le bénéfice de l'année N. Ploutos estime les deux sur l'année courante — reportez-vous à l'avis d'imposition pour le plafond exact (reports des 3 années non modélisés). La majoration TNS (154 bis) reste personnelle : elle n'est ni mutualisable ni reportable." />
             </span>
             <span className="font-medium">{eur(plafondPER)}</span>
           </div>
@@ -158,6 +158,12 @@ export const BlocMadelinSynthese = React.memo(function BlocMadelinSynthese({
               </div>
             )}
           </div>
+          {/* Mutualisation epoux/PACS (E4) — sur la part revenu global uniquement */}
+          {(data.coupleStatus === "married" || data.coupleStatus === "pacs") && (
+            <div className="pl-3 text-[11px] italic" style={{ color: BRAND.muted }}>
+              Mutualisation époux/PACS appliquée sur la part revenu global (demande expresse — case 6QR)
+            </div>
+          )}
           <Ligne label="Consommé (versements)" value={eur(versementsPER)} />
           <Ligne label="Restant" value={eur(perRestant)} />
         </div>
