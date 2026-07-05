@@ -448,6 +448,35 @@ export const regleCollectiveTnsIgnoree: Regle = (ctx, cible) => {
   };
 };
 
+// ── Barriere douce cumul salarie + TNS (Lot D) ──
+// Informatif (pas d'arithmetique) : signale que le cumul est bien pris en compte
+// cote IR / budget / endettement mais que la prevoyance / les capitaux deces / la
+// projection restent modelises sur le STATUT PRINCIPAL uniquement. Declenchement =
+// flag activiteSecondaire renseigne pour la personne ciblee (aucun seuil de montant).
+export const regleCumulSalarieTns: Regle = (ctx, cible) => {
+  const sec = cible === "p1" ? ctx.activiteSecondaireP1 : ctx.activiteSecondaireP2;
+  if (sec !== "salariat" && sec !== "bic" && sec !== "bnc" && sec !== "ba") return null;
+  const prenomBrut = (cible === "p1" ? ctx.prenomP1 : ctx.prenomP2) ?? "";
+  const prenom = prenomBrut.trim() || (cible === "p1" ? "Personne 1" : "Personne 2");
+  return {
+    id: `cumul_salarie_tns_${cible}`,
+    severite: "info",
+    axe: "incapacite",
+    cible,
+    titre: `Cumul salarié + indépendant détecté (${prenom})`,
+    detail:
+      "Les revenus des deux activités sont intégrés au calcul de l'impôt, du budget " +
+      "et de l'endettement. En revanche, la prévoyance, les capitaux décès et la " +
+      "projection de revenus restent modélisés sur le statut principal uniquement : " +
+      "les droits liés à l'activité secondaire (régime obligatoire, garanties de " +
+      "branche ou Madelin selon le cas) ne sont pas pris en compte.",
+    action:
+      "Analyser séparément les droits de prévoyance de l'activité secondaire (régime " +
+      "obligatoire, garanties de branche ou Madelin selon le cas) pour évaluer le " +
+      "besoin de couverture non modélisé ici.",
+  };
+};
+
 // Constat de sur-couverture (SURCOUV §3). Distinct de
 // regleSurCouvertureBornee (H11, base d'UN contrat > 100 %) : ici on
 // constate le CUMUL des contrats individuels au regard du revenu de
@@ -668,6 +697,7 @@ const REGLES_INDIVIDUELLES: Regle[] = [
   regleSurCouvertureBornee,
   regleSurCouvertureContrat,
   regleCollectiveTnsIgnoree,
+  regleCumulSalarieTns,
   regleCarmfCarenceAffiliation,
   regleCarmfAnteriorite,
   regleCarmfCumulEmploiRetraite,

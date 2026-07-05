@@ -240,6 +240,13 @@ export type ContexteRegle = {
   // VOIE A R1). Optionnel : absent (anciens appels / contextes de test) → []
   // → comportement strictement identique à avant (seul deces_capital compte).
   contratsTransmissionDeces?: ContratTransmissionDeces[];
+  // Cumul salarie + TNS (Lot D) : flag activite secondaire + prenom par personne,
+  // pour le constat de barriere douce. Optionnels/retro-compat : absents (anciens
+  // appels / contextes de test) => aucun constat cumul emis.
+  activiteSecondaireP1?: string;
+  activiteSecondaireP2?: string;
+  prenomP1?: string;
+  prenomP2?: string;
 };
 
 export type Regle = (ctx: ContexteRegle, cible: "p1" | "p2") => Constat | null;
