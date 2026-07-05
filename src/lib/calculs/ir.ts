@@ -58,10 +58,15 @@ export function computeBeneficeImposable(
 export function resolveBeneficeTns(data: PatrimonialData, personne: 1 | 2): number {
   const g = personne === 1 ? data.person1PcsGroupe : data.person2PcsGroupe;
   const cat = personne === 1 ? data.person1Csp : data.person2Csp;
-  const isIndep = g === "1" || g === "2" || isProfessionLiberale(cat);
+  // Lot A cumul salarie + TNS : une activite secondaire TNS (bic/bnc/ba) declaree
+  // sur une personne salariee au sens PCS suffit a produire un benefice imposable.
+  // Champ absent => secTns=false => detection PCS/CSP historique strictement inchangee.
+  const sec = personne === 1 ? (data.activiteSecondaire1 ?? "") : (data.activiteSecondaire2 ?? "");
+  const secTns = sec === "bic" || sec === "bnc" || sec === "ba";
+  const isIndep = g === "1" || g === "2" || isProfessionLiberale(cat) || secTns;
   if (!isIndep) return 0;
-  const isBA = g === "1";
-  const isBNC = isProfessionLiberale(cat);
+  const isBA = g === "1" || sec === "ba";
+  const isBNC = isProfessionLiberale(cat) || sec === "bnc";
   const ca = personne === 1 ? n(data.ca1) : n(data.ca2);
   const bicType = personne === 1 ? data.bicType1 : data.bicType2;
   const microRegime = personne === 1 ? data.microRegime1 : data.microRegime2;
