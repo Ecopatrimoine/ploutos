@@ -244,3 +244,48 @@ describe("cumul salarie+TNS — chemin concubins (garde F)", () => {
     expect(r.rev1).not.toBe(47880);
   });
 });
+
+// ─── Lot C2 : alignement budget/endettement sur l'opt-in salaire ──────────────
+// resolveSalaireRetenu (predicat unique) est desormais consomme par computeIR ET
+// par computeTauxEndettement / computeBudget : un salaire dormant d'un TNS sans
+// opt-in est ignore partout ; avec opt-in 'salariat', il compte partout.
+describe("cumul salarie+TNS — alignement moteurs budget/endettement (Lot C2)", () => {
+  // TNS BIC (groupe 2) micro services, ca=50000 => benefice 25000 ; salary1=30000.
+  const tnsBase = { person1PcsGroupe: "2", person1Csp: "21", ca1: "50000", microRegime1: true, bicType1: "services", salary1: "30000" };
+
+  it("T1 : salaire dormant d'un TNS SANS opt-in -> ignore par budget ET endettement", () => {
+    // activiteSecondaire1 absent => resolveSalaireRetenu(1) = 0 (masque). benefice1 = 25000.
+    // endettement : denominateur = salaires(0) + pensions(0) + loyers(0) + benefice(25000) = 25000.
+    // budget : salairesPensions = 0 ; beneficeTns = 25000/12 = 2083,33.
+    const t1 = mk(tnsBase);
+    expect(computeTauxEndettement(t1 as any).denominateurAnnuel).toBe(25000);
+    const ir1 = computeIR(t1 as any, STD_OPTIONS);
+    const bud1 = computeBudget(t1 as any, ir1);
+    expect(bud1.detail.salairesPensions).toBe(0);
+    expect(bud1.detail.beneficeTns).toBeCloseTo(2083.33, 2);
+  });
+
+  it("T2 : meme dossier avec activiteSecondaire='salariat' -> le salaire compte partout (coherence IR/budget/endettement)", () => {
+    // opt-in => resolveSalaireRetenu(1) = 30000 ; benefice1 = 25000 inchange.
+    // IR : salaries = 55000 ; finalIR = 8703,99 (== C2 du Lot A).
+    // endettement : denominateur = 30000 + 25000 = 55000 (== IR salaries, pensions/loyers nuls).
+    // budget : salairesPensions = 30000/12 = 2500 ; beneficeTns = 2083,33.
+    const t2 = mk({ ...tnsBase, activiteSecondaire1: "salariat" });
+    const ir2 = computeIR(t2 as any, STD_OPTIONS);
+    expect(ir2.salaries).toBe(55000);
+    expect(ir2.finalIR).toBeCloseTo(8703.99, 2);
+    const end2 = computeTauxEndettement(t2 as any);
+    expect(end2.denominateurAnnuel).toBe(55000);
+    expect(end2.denominateurAnnuel).toBe(ir2.salaries); // coherence cross-moteur
+    const bud2 = computeBudget(t2 as any, ir2);
+    expect(bud2.detail.salairesPensions).toBeCloseTo(2500, 2);
+    expect(bud2.detail.beneficeTns).toBeCloseTo(2083.33, 2);
+  });
+
+  it("T3 : iso IR — C1 et C2 du Lot A inchanges au centime apres extraction de resolveSalaireRetenu", () => {
+    const c1 = mk({ salary1: "40000", activiteSecondaire1: "bnc", ca1: "20000", microRegime1: true });
+    const c2 = mk({ person1PcsGroupe: "2", person1Csp: "21", ca1: "50000", microRegime1: true, activiteSecondaire1: "salariat", salary1: "30000" });
+    expect(computeIR(c1 as any, STD_OPTIONS).finalIR).toBeCloseTo(7863.99, 2);
+    expect(computeIR(c2 as any, STD_OPTIONS).finalIR).toBeCloseTo(8703.99, 2);
+  });
+});
