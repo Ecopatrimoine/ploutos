@@ -434,18 +434,32 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     .filter(p => isPER(p.type) && p.ownership === "person2" && p.perDeductible !== false)
     .reduce((sum, p) => sum + n(p.annualContribution || ""), 0);
 
-  // Total déductible = min(versements, plafond) par personne
-  // Cap du fallback manuel (E3/E3b). Actif seulement sans placement PER deductible
-  // (condition perP1Deductible === 0 && perP2Deductible === 0, INCHANGEE).
-  //  (a) On ne somme le plafond de la personne 2 que si elle EXISTE (isCouple, ir.ts:354
-  //      — meme predicat que l'abattement AV et la decote) : le plancher 10% PASS est un
-  //      droit PAR MEMBRE REEL du foyer, la personne 2 fictive (celibataire) en est exclue.
-  //  (b) Pour un couple, la somme plafondPER1 + plafondPER2 approxime la mutualisation
-  //      163 quatervicies I-2-a (legalement sur demande expresse) : approximation assumee
-  //      pour une saisie de niveau foyer, non nominative.
+  // Déduction PER par personne, avec MUTUALISATION epoux/PACS (E4). Sur demande
+  // expresse (BOFiP BOI-IR-BASE-20-50-30), plafonds et cotisations 163 quatervicies
+  // sont additionnes en un POOL foyer ; la majoration 154 bis reste PERSONNELLE (ni
+  // mutualisable ni reportable). Chaque conjoint absorbe d'abord ses versements sur SA
+  // propre fraction 154 bis, le reliquat puise dans le pool 163 commun.
+  let perDeductionVersements: number;
+  if (isCouple) {
+    const usableSup1 = Math.min(perP1Deductible, plafond1.composante154);
+    const usableSup2 = Math.min(perP2Deductible, plafond2.composante154);
+    const rem1 = perP1Deductible - usableSup1;
+    const rem2 = perP2Deductible - usableSup2;
+    const pool163 = plafond1.composante163 + plafond2.composante163;
+    perDeductionVersements = usableSup1 + usableSup2 + Math.min(rem1 + rem2, pool163);
+  } else {
+    // Celibataire (concubins traites en amont, chemin separe) : min par personne, INCHANGE.
+    perDeductionVersements = Math.min(perP1Deductible, plafondPER1) + Math.min(perP2Deductible, plafondPER2);
+  }
+  // Fallback saisie manuelle (E3/E3b) : actif seulement sans placement PER deductible
+  // (condition INCHANGEE), cappe au plafond du foyer. On ne somme le plafond de la
+  // personne 2 que si elle EXISTE (isCouple, ir.ts:354, meme predicat que decote / AV) :
+  // le plancher 10% PASS est un droit par membre REEL, la personne 2 fictive exclue.
   const capFoyerManuel = plafondPER1 + (isCouple ? plafondPER2 : 0);
-  const perDeductionCalc = Math.min(perP1Deductible, plafondPER1) + Math.min(perP2Deductible, plafondPER2)
+  const perDeductionCalc = perDeductionVersements
     + (perP1Deductible === 0 && perP2Deductible === 0 ? Math.min(n(data.perDeduction), capFoyerManuel) : 0);
+  // Excedent foyer PER apres mutualisation (versements non deductibles) — warning UI.
+  const perExcedentFoyer = Math.max(0, perP1Deductible + perP2Deductible - perDeductionVersements);
 
   // Plafond global (pour affichage — somme des deux)
   const plafondPER = plafondPER1 + plafondPER2;
@@ -763,6 +777,8 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       plafondPER1Base163: plafond1.composante163, plafondPER1Sup154: plafond1.composante154,
       plafondPER2Base163: plafond2.composante163, plafondPER2Sup154: plafond2.composante154,
       perDeductionCalc: perDeduction1 + perDeduction2, perP1Deductible, perP2Deductible,
+      // Concubins : foyers separes, AUCUNE mutualisation => excedent = somme des excedents individuels.
+      perExcedentFoyer: Math.max(0, perP1Deductible + perP2Deductible - (perDeduction1 + perDeduction2)),
       deficitFoncierImpute: foncier1.impute + foncier2.impute,
       deficitFoncierReportable: foncier1.reportable + foncier2.reportable,
       // ── Détail par personne (audit IR concubins #3 : affichage TabIR) ──
@@ -863,7 +879,7 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     avRachatImpot, perCapitalImposable, perInteretsPFU, perRentesImposable, perRentesPS, isConcubin: false, plafondPER, plafondPER1, plafondPER2,
     plafondPER1Base163: plafond1.composante163, plafondPER1Sup154: plafond1.composante154,
     plafondPER2Base163: plafond2.composante163, plafondPER2Sup154: plafond2.composante154,
-    perDeductionCalc, perP1Deductible, perP2Deductible, deficitFoncierImpute, deficitFoncierReportable,
+    perDeductionCalc, perP1Deductible, perP2Deductible, perExcedentFoyer, deficitFoncierImpute, deficitFoncierReportable,
     // Exposition (Lot FIX-FONCIER) : la card comparaison lit ces champs au lieu de recalculer.
     jeanbrunRetenu, foncierChargesTotal: foncierCharges + jeanbrunRetenu,
     dispositifsFiscaux: {
