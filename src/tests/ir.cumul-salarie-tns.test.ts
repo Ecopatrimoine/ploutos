@@ -412,3 +412,67 @@ describe("cumul salarie+TNS — cap fallback manuel perDeduction (Lot E3)", () =
     expect(r.perDeductionCalc).toBeCloseTo(12000, 2);
   });
 });
+
+// ─── Lot E4 : mutualisation des plafonds PER (couples maries/PACS) ────────────
+// 163 quatervicies mutualisable (pool foyer) ; 154 bis PERSONNELLE (non mutualisable).
+const per = (owner: "person1" | "person2", montant: string) => ({ type: "PER bancaire", ownership: owner, annualContribution: montant });
+describe("cumul salarie+TNS — mutualisation PER couple (Lot E4)", () => {
+  const couple = (over: Record<string, unknown>) => mk({
+    coupleStatus: "married", person2FirstName: "P2", person2PcsGroupe: "4", person2Csp: "47",
+    salary1: "60000", salary2: "60000", ...over,
+  });
+
+  it("M1 : couple 2 salaries, excedent P1 absorbe par le headroom P2", () => {
+    // P1 versements 10000 > plafondPER1 6000 ; P2 versements 0.
+    // pool163 = 6000 + 6000 = 12000 ; Sup154 = 0 (salaries).
+    // deductible = min(10000, 12000) = 10000 (avant E4 : min(10000,6000)=6000).
+    // parts=2 ; salaries 120000 ; abatt 12000 ; RNG = 120000 - 12000 - 10000 = 98000 ;
+    // quotient 49000 ; bareme = 7803.99 x 2 = 15607.98 (decote couple 0).
+    const r = computeIR(couple({ placements: [per("person1", "10000")] }) as any, STD_OPTIONS);
+    expect(r.perDeductionCalc).toBeCloseTo(10000, 2);
+    expect(r.perExcedentFoyer).toBeCloseTo(0, 2);
+    expect(r.finalIR).toBeCloseTo(15607.98, 2);
+  });
+
+  it("M2 : invariant single => PAS de mutualisation (min par personne)", () => {
+    // Celibataire salarie 60000, versements PER 10000 => min(10000, 6000) = 6000
+    // (aucun pool foyer). Excedent perso 4000.
+    const r = computeIR(mk({ salary1: "60000", placements: [per("person1", "10000")] }) as any, STD_OPTIONS);
+    expect(r.perDeductionCalc).toBeCloseTo(6000, 2);
+    expect(r.perExcedentFoyer).toBeCloseTo(4000, 2);
+  });
+
+  it("M3 : invariant concubins => foyers separes, AUCUNE mutualisation", () => {
+    // Concubins, P1 salarie 60000 versements 10000 (> plafond 6000), P2 salarie 60000 versements 0.
+    // Chemin concubins : perDeduction1 = min(10000, 6000) = 6000 ; perDeduction2 = 0 => 6000
+    // (pas 10000 : l'excedent de P1 n'est PAS absorbe par P2).
+    const r = computeIR(mk({
+      coupleStatus: "cohab", person2FirstName: "P2", person2PcsGroupe: "4", person2Csp: "47",
+      salary1: "60000", salary2: "60000", placements: [per("person1", "10000")],
+    }) as any, STD_OPTIONS);
+    expect(r.perDeductionCalc).toBeCloseTo(6000, 2);
+    expect(r.perExcedentFoyer).toBeCloseTo(4000, 2);
+  });
+
+  it("M4 : frontiere 154 bis => la majoration TNS de P1 n'est PAS absorbable par P2", () => {
+    // P1 TNS BNC reel benefice 100000 (Base163_1=10000, Sup154_1=0.15x51940=7791), versements P1=0.
+    // P2 salarie 60000 (Base163_2=6000), versements P2=30000.
+    // pool163 = 10000 + 6000 = 16000 (Sup154_1 EXCLUE du pool).
+    // deductible = min(30000, 16000) = 16000 (et surtout PAS 16000 + 7791 = 23791).
+    const r = computeIR(couple({
+      person1PcsGroupe: "3", person1Csp: "31", salary1: "0", microRegime1: false, ca1: "100000", chargesReelles1: "0",
+      placements: [per("person2", "30000")],
+    }) as any, STD_OPTIONS);
+    expect(r.perDeductionCalc).toBeCloseTo(16000, 2);
+    expect(r.perDeductionCalc).not.toBeCloseTo(23791, 2); // Sup154 de P1 non mutualisable
+    expect(r.perExcedentFoyer).toBeCloseTo(14000, 2);
+  });
+
+  it("M5 : degenerescence => couple chacun sous son plafond === ancien calcul", () => {
+    // P1 versements 3000 (< 6000), P2 versements 4000 (< 6000) => 3000 + 4000 = 7000
+    // (identique a min(3000,6000) + min(4000,6000) de l'ancien code).
+    const r = computeIR(couple({ placements: [per("person1", "3000"), per("person2", "4000")] }) as any, STD_OPTIONS);
+    expect(r.perDeductionCalc).toBeCloseTo(7000, 2);
+    expect(r.perExcedentFoyer).toBeCloseTo(0, 2);
+  });
+});
