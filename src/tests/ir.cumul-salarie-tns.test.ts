@@ -144,13 +144,15 @@ describe("cumul salarie+TNS — cas nominaux (foyer commun, 1 part)", () => {
 
 // ─── Garde E (plafond PER) HORS perimetre Lot A : doit rester au statu quo ─────
 describe("cumul salarie+TNS — garde E (plafond PER) intouchee", () => {
-  it("C5 : sur C2, le plafond PER expose reste base sur le SEUL benefice (formule TNS)", () => {
-    // revP1 = isIndep1 ? benefice1 : salary1 = benefice1 = 25000 (garde E inchangee : ternaire isIndep1).
-    // calcPlafondPER(25000, true) : base = max(25000*0.10=2500, 48060*0.10=4806) = 4806 ;
-    //   fractionSup = max(0, min(25000, 8*48060) - 48060) = 0 => plafondPER1 = 4806.
-    // (Si la garde E avait ete modifiee pour inclure le salaire 30000, on obtiendrait 6541.)
+  it("C5 : plafond PER cumul (garde E levee) = 10% x (salaire + benefice), micro => pas de 15%", () => {
+    // MISE A JOUR DELIBEREE Lot E2 (4806 -> 5500) : la garde E est levee, l'assiette
+    // 163 quatervicies cumule desormais salaire + benefice.
+    // salaireBase = salary1 30000 ; benefice1 = 25000 (BIC micro services) ;
+    // micro => beneficeAuReel = false => sup15 = 0 (pas de majoration 154 bis).
+    // base10 = max(0.10 x min(30000+25000=55000, 8 PASS), 4806) = 5500 => plafondPER1 = 5500.
+    // (Ancien code garde E : 4806, sur le seul benefice.)
     const r = computeIR(mk({ person1PcsGroupe: "2", person1Csp: "21", ca1: "50000", microRegime1: true, activiteSecondaire1: "salariat", salary1: "30000" }) as any, STD_OPTIONS);
-    expect(r.plafondPER1).toBeCloseTo(4806, 2);
+    expect(r.plafondPER1).toBeCloseTo(5500, 2);
   });
 });
 
