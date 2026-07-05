@@ -183,9 +183,17 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   const benefice1 = resolveBeneficeTns(data, 1);
   const benefice2 = resolveBeneficeTns(data, 2);
 
-  // Salaires (uniquement pour les non-indépendants)
-  const salary1 = isIndep1 ? 0 : n(data.salary1);
-  const salary2 = isIndep2 ? 0 : n(data.salary2);
+  // Salaires. Lot A cumul salarie + TNS : le salaire n'est masque que pour un TNS
+  // (au sens PCS) SANS activite secondaire 'salariat'. Champ absent => sec==="" =>
+  // salaireMasque === isIndep => comportement historique (SOIT/SOIT) strictement
+  // preserve. isIndep1/isIndep2 restent INCHANGES (consommes par le plafond PER,
+  // garde E hors perimetre Lot A). Predicat partage avec les frais deductibles.
+  const sec1 = data.activiteSecondaire1 ?? "";
+  const sec2 = data.activiteSecondaire2 ?? "";
+  const salaireMasque1 = isIndep1 && sec1 !== "salariat";
+  const salaireMasque2 = isIndep2 && sec2 !== "salariat";
+  const salary1 = salaireMasque1 ? 0 : n(data.salary1);
+  const salary2 = salaireMasque2 ? 0 : n(data.salary2);
   // Retraites / pensions nominatives par personne (rétrocompatibilité si champ global)
   const pensionP1 = n(data.pensions1 || "");
   const pensionP2 = n(data.pensions2 || "");
@@ -204,10 +212,10 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
 
   // Frais déductibles : uniquement pour les salariés (les indépendants déduisent via charges réelles)
   // Abattement 10% salaires — plafonné 14 555 €, plancher 509 € par personne (revenus 2025)
-  const retained1 = isIndep1 ? 0 : (irOptions.expenseMode1 === "actual"
+  const retained1 = salaireMasque1 ? 0 : (irOptions.expenseMode1 === "actual"
     ? kmAllowance1 + mealExpenses1 + otherExpenses1
     : salary1 > 0 ? Math.max(509, Math.min(salary1 * 0.1, 14555)) : 0);
-  const retained2 = isIndep2 ? 0 : (irOptions.expenseMode2 === "actual"
+  const retained2 = salaireMasque2 ? 0 : (irOptions.expenseMode2 === "actual"
     ? kmAllowance2 + mealExpenses2 + otherExpenses2
     : salary2 > 0 ? Math.max(509, Math.min(salary2 * 0.1, 14555)) : 0);
   // Abattement 10% pensions — plancher 454 € par pensionné, plafond 4 439 € par foyer (revenus 2025)
