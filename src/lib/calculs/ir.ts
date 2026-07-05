@@ -75,6 +75,24 @@ export function resolveBeneficeTns(data: PatrimonialData, personne: 1 | 2): numb
   return computeBeneficeImposable(ca, bicType, isBNC, isBA, microRegime, chargesReelles, baRevenue);
 }
 
+// ─── Salaire retenu d'une personne (predicat unique des gardes C/D) ───────────
+// UNIQUE definition du masquage salaire, partagee par computeIR (gardes C/D) ET
+// les moteurs budget/endettement : le salaire est masque si la personne est TNS
+// au sens PCS SANS activite secondaire 'salariat'. Champ activiteSecondaire
+// absent => sec === "" => salaireMasque === isIndep => comportement historique
+// SOIT/SOIT strictement preserve.
+function salaireMasqueTns(data: PatrimonialData, personne: 1 | 2): boolean {
+  const g = personne === 1 ? data.person1PcsGroupe : data.person2PcsGroupe;
+  const cat = personne === 1 ? data.person1Csp : data.person2Csp;
+  const isIndep = g === "1" || g === "2" || isProfessionLiberale(cat);
+  const sec = personne === 1 ? (data.activiteSecondaire1 ?? "") : (data.activiteSecondaire2 ?? "");
+  return isIndep && sec !== "salariat";
+}
+
+export function resolveSalaireRetenu(data: PatrimonialData, personne: 1 | 2): number {
+  return salaireMasqueTns(data, personne) ? 0 : n(personne === 1 ? data.salary1 : data.salary2);
+}
+
 // ─── Socle générique de réductions d'impôt ────────────────────────────────────
 // Une réduction vient EN DIMINUTION de l'impôt dû après décote, dans l'ordre du
 // tableau, chacune à hauteur de l'impôt restant (jamais négatif) ; la fraction
@@ -183,17 +201,14 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   const benefice1 = resolveBeneficeTns(data, 1);
   const benefice2 = resolveBeneficeTns(data, 2);
 
-  // Salaires. Lot A cumul salarie + TNS : le salaire n'est masque que pour un TNS
-  // (au sens PCS) SANS activite secondaire 'salariat'. Champ absent => sec==="" =>
-  // salaireMasque === isIndep => comportement historique (SOIT/SOIT) strictement
-  // preserve. isIndep1/isIndep2 restent INCHANGES (consommes par le plafond PER,
-  // garde E hors perimetre Lot A). Predicat partage avec les frais deductibles.
-  const sec1 = data.activiteSecondaire1 ?? "";
-  const sec2 = data.activiteSecondaire2 ?? "";
-  const salaireMasque1 = isIndep1 && sec1 !== "salariat";
-  const salaireMasque2 = isIndep2 && sec2 !== "salariat";
-  const salary1 = salaireMasque1 ? 0 : n(data.salary1);
-  const salary2 = salaireMasque2 ? 0 : n(data.salary2);
+  // Salaires. Lot A/C2 cumul : masquage centralise dans salaireMasqueTns /
+  // resolveSalaireRetenu (predicat UNIQUE, partage avec budget/endettement).
+  // Refactor iso : meme comportement qu'avant (gardes C/D). isIndep1/isIndep2
+  // restent INCHANGES (consommes par le plafond PER, garde E hors perimetre).
+  const salaireMasque1 = salaireMasqueTns(data, 1);
+  const salaireMasque2 = salaireMasqueTns(data, 2);
+  const salary1 = resolveSalaireRetenu(data, 1);
+  const salary2 = resolveSalaireRetenu(data, 2);
   // Retraites / pensions nominatives par personne (rétrocompatibilité si champ global)
   const pensionP1 = n(data.pensions1 || "");
   const pensionP2 = n(data.pensions2 || "");
