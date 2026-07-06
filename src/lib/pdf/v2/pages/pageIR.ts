@@ -61,6 +61,8 @@ export type IRPageData = {
   reductionsDispositifs?: { label: string; montant: number }[]; // montant = imputé
   jeanbrun?: { retenu: number; ecretement: number } | null;
   ecretementNiches?: number;
+  ecretementCommun?: number;  // part écrêtée par l'enveloppe 10 000 €
+  ecretementMajore?: number;  // part écrêtée par l'enveloppe majorée 18 000 €
   statutsNonOk?: { bienNom: string; dispositifLabel: string; motif: string }[];
 };
 
@@ -92,6 +94,13 @@ export function pageIR(t: Tokens, d: IRPageData): string {
   const reductionsDispositifs = d.reductionsDispositifs ?? [];
   const jeanbrun = d.jeanbrun ?? null;
   const ecretementNiches = d.ecretementNiches ?? 0;
+  const ecretementCommun = d.ecretementCommun ?? 0;
+  const ecretementMajore = d.ecretementMajore ?? 0;
+  // Label écrêtement : détaille les deux enveloppes (art. 200-0 A) quand chacune contribue.
+  const partsEcretement: string[] = [];
+  if (ecretementCommun > 0) partsEcretement.push(`enveloppe 10 000 € : ${euro2(ecretementCommun)}`);
+  if (ecretementMajore > 0) partsEcretement.push(`enveloppe majorée 18 000 € : ${euro2(ecretementMajore)}`);
+  const labelEcretement = "Plafonnement des niches (art. 200-0 A)" + (partsEcretement.length ? ` — ${partsEcretement.join(" ; ")}` : "");
   const statutsNonOk = d.statutsNonOk ?? [];
   const items: CascadeItem[] = [
     { label: "Revenus bruts",         pct: 100,                                  valeur: euro(d.revenusBruts),                type: "revenu" },
@@ -101,7 +110,7 @@ export function pageIR(t: Tokens, d: IRPageData): string {
     ...(jeanbrun ? [{ label: "dont amortissement Jeanbrun Relance logement" + (jeanbrun.ecretement > 0 ? ` — plafond foyer atteint (${euro2(jeanbrun.ecretement)} écrêtés)` : ""), pct: pctCascade(jeanbrun.retenu), valeur: `− ${euro2(jeanbrun.retenu)}`, type: "deduction" as const }] : []),
     // Réductions d'impôt (une par dispositif) avant l'impôt net.
     ...reductionsDispositifs.map((r) => ({ label: `Réduction ${r.label}`, pct: pctCascade(r.montant), valeur: `− ${euro2(r.montant)}`, type: "deduction" as const })),
-    ...(ecretementNiches > 0 ? [{ label: "Plafonnement global des niches (10 000 €)", pct: pctCascade(ecretementNiches), valeur: `− ${euro2(ecretementNiches)} non imputés`, type: "deduction" as const }] : []),
+    ...(ecretementNiches > 0 ? [{ label: labelEcretement, pct: pctCascade(ecretementNiches), valeur: `− ${euro2(ecretementNiches)} non imputés`, type: "deduction" as const }] : []),
     { label: "Impôt sur le revenu",   pct: pctCascade(d.impotNetDu),             valeur: euro(d.impotNetDu),                  type: "impot" },
   ];
   // Notes de bas de section (statuts non-ok, une ligne chacun ; mention 150 VB si amortissement actif).

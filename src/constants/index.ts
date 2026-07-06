@@ -160,6 +160,19 @@ export const DISPOSITIFS_FINANCIERS_LABELS: Record<string, string> = {
   girardinIndustriel: "Girardin industriel",
 };
 
+// Libellés COURTS pour la restitution (trio IR + PDF) — autoportants (le préfixe
+// FIP est répété car, hors du bloc de saisie, « Corse » seul serait ambigu).
+export const DISPOSITIFS_FINANCIERS_LABELS_COURTS: Record<string, string> = {
+  irpme:              "IR-PME",
+  fcpi:               "FCPI",
+  fcpiJei:            "FCPI JEI",
+  fipMetropole:       "FIP Métropole",
+  fipCorse:           "FIP Corse",
+  fipOutreMer:        "FIP Outre-mer",
+  sofica:             "SOFICA",
+  girardinIndustriel: "Girardin industriel",
+};
+
 // Seuil légal du régime micro-foncier (art. 32 CGI) : revenus fonciers BRUTS
 // annuels. Au-delà, le micro-foncier est inaccessible (régime réel obligatoire).
 // Source unique consommée par le warning ET la comparaison micro/réel de TabIR.
