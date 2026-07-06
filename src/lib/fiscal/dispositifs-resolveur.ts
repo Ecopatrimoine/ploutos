@@ -13,12 +13,21 @@ import ref from "../../data/fiscal/dispositifs-fiscaux.json";
 const labelOf = (id: string) => DISPOSITIFS_FISCAUX.find((d) => d.value === id)?.label ?? id;
 const anneeDe = (dateISO: string) => Number(String(dateISO).slice(0, 4));
 
+// Categorie de plafonnement global (art. 200-0 A CGI) : 'commun' = enveloppe
+// 10 000 EUR ; 'majore' = enveloppe majoree 18 000 EUR (outre-mer / Sofica) ;
+// false = hors plafond. Type PARTAGE avec le socle ir.ts (ReductionIR).
+export type PlafondNiches = 'commun' | 'majore' | false;
+// Normalise la valeur brute du referentiel (JSON) : seules 'commun' / 'majore'
+// sont retenues, tout le reste (true/false/undefined) => false (hors plafond).
+const normPlafondNiches = (v: unknown): PlafondNiches =>
+  v === 'commun' || v === 'majore' ? v : false;
+
 // ── Réduction d'IR (Pinel/Pinel+/Denormandie/Censi/Loc'Avantages) ─────────────
 export interface ReductionDispositif {
   id: string;
   label: string;
   montant: number;            // fraction annuelle imputable cette année fiscale
-  plafondNiches: boolean;     // soumis au plafond global 200-0 A (Lot B)
+  plafondNiches: PlafondNiches; // categorie de plafond global 200-0 A (Lot B / double enveloppe)
   phase: "engagement" | "prorogation" | "locavantages";
   anneeFiscale: number;
 }
@@ -71,7 +80,7 @@ function resoudrePinelFamille(bien: Bien, anneeFiscale: number, cfg: any, dispo:
   const engEnd = annee + engN - 1;
   if (anneeFiscale < annee) return { statut: "eteint", motif: `annee fiscale ${anneeFiscale} anterieure a l'investissement (${annee})` };
   if (anneeFiscale <= engEnd) {
-    return { id: dispo, label: labelOf(dispo), montant: base * tauxEng / engN, plafondNiches: !!cfg.plafondNiches, phase: "engagement", anneeFiscale };
+    return { id: dispo, label: labelOf(dispo), montant: base * tauxEng / engN, plafondNiches: normPlafondNiches(cfg.plafondNiches), phase: "engagement", anneeFiscale };
   }
   // Phase de prorogation : seules les périodes DÉCLARÉES (dispositifProrogation) comptent.
   const P = Number(bien.dispositifProrogation || "0");
@@ -82,7 +91,7 @@ function resoudrePinelFamille(bien: Bien, anneeFiscale: number, cfg: any, dispo:
     const pStart = annee + engN + 3 * (k - 1);
     const pEnd = pStart + 2;
     if (anneeFiscale >= pStart && anneeFiscale <= pEnd) {
-      return { id: dispo, label: labelOf(dispo), montant: base * taux / 3, plafondNiches: !!cfg.plafondNiches, phase: "prorogation", anneeFiscale };
+      return { id: dispo, label: labelOf(dispo), montant: base * taux / 3, plafondNiches: normPlafondNiches(cfg.plafondNiches), phase: "prorogation", anneeFiscale };
     }
   }
   return { statut: "eteint", motif: `reduction terminee en ${engEnd} (aucune prorogation declaree couvrant ${anneeFiscale})` };
@@ -100,7 +109,7 @@ function resoudreCensi(bien: Bien, anneeFiscale: number, cfg: any, dispo: string
   const engEnd = annee + duree - 1;
   if (anneeFiscale < annee) return { statut: "eteint", motif: `annee fiscale ${anneeFiscale} anterieure a l'investissement (${annee})` };
   if (anneeFiscale <= engEnd) {
-    return { id: dispo, label: labelOf(dispo), montant: base * cfg.taux / duree, plafondNiches: !!cfg.plafondNiches, phase: "engagement", anneeFiscale };
+    return { id: dispo, label: labelOf(dispo), montant: base * cfg.taux / duree, plafondNiches: normPlafondNiches(cfg.plafondNiches), phase: "engagement", anneeFiscale };
   }
   return { statut: "eteint", motif: `reduction terminee en ${engEnd} (report 6 ans non modelise)` };
 }
@@ -120,7 +129,7 @@ function resoudreLocavantages(bien: Bien, anneeFiscale: number, cfg: any, dispo:
   if (!loyers) return { statut: "incomplet", motif: "loyers bruts annuels non renseignes" };
   if (anneeFiscale < annee) return { statut: "eteint", motif: `annee fiscale ${anneeFiscale} avant la prise d'effet (${annee})` };
   // Convention 6 ans min RECONDUCTIBLE : pas de coupure automatique en sortie (cf JSON _comment).
-  return { id: dispo, label: labelOf(dispo), montant: loyers * taux, plafondNiches: !!cfg.plafondNiches, phase: "locavantages", anneeFiscale };
+  return { id: dispo, label: labelOf(dispo), montant: loyers * taux, plafondNiches: normPlafondNiches(cfg.plafondNiches), phase: "locavantages", anneeFiscale };
 }
 
 // ── Déduction foncière Jeanbrun (amortissement, HORS plafond 200-0 A) ─────────
