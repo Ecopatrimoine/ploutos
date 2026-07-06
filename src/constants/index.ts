@@ -131,6 +131,35 @@ export const DISPOSITIFS_PAR_NATURE: Record<string, string[]> = {
   "SCI IR":       ["pinel", "pinelPlus", "denormandie", "locavantages", "jeanbrunRelanceLogement"],
 };
 
+// ── Défiscalisation financière (Lot 2) — matrice type de placement -> dispositifs
+// financiers éligibles. Miroir de DISPOSITIFS_PAR_NATURE. Les 4 sous-types dédiés
+// (FCPI/FIP/SOFICA/Girardin) portent TOUJOURS un bloc de défiscalisation ; "Actions
+// non cotées" propose l'IR-PME en OPTION (bloc dépliable). Le PEA (et tout autre
+// type absent) n'a AUCUN bloc : incompatibilité légale (art. 199 terdecies-0 A). Les
+// valeurs sont les ids du référentiel data/fiscal/dispositifs-financiers.json.
+export const DISPOSITIFS_FINANCIERS_PAR_TYPE: Record<string, string[]> = {
+  "FCPI":                ["fcpi", "fcpiJei"],
+  "FIP":                 ["fipMetropole", "fipCorse", "fipOutreMer"],
+  "SOFICA":              ["sofica"],
+  "Girardin industriel": ["girardinIndustriel"],
+  "Actions non cotées":  ["irpme"],
+};
+
+// Sous-types dont le bloc de défiscalisation est TOUJOURS visible (pas d'opt-in).
+export const SOUS_TYPES_DEFISC_DEDIES = ["FCPI", "FIP", "SOFICA", "Girardin industriel"];
+
+// Libellés d'affichage des dispositifs financiers (selects Nature / Type du bloc).
+export const DISPOSITIFS_FINANCIERS_LABELS: Record<string, string> = {
+  irpme:              "IR-PME (souscription directe)",
+  fcpi:               "FCPI classique",
+  fcpiJei:            "FCPI JEI",
+  fipMetropole:       "Métropole",
+  fipCorse:           "Corse",
+  fipOutreMer:        "Outre-mer",
+  sofica:             "SOFICA",
+  girardinIndustriel: "Girardin industriel",
+};
+
 // Seuil légal du régime micro-foncier (art. 32 CGI) : revenus fonciers BRUTS
 // annuels. Au-delà, le micro-foncier est inaccessible (régime réel obligatoire).
 // Source unique consommée par le warning ET la comparaison micro/réel de TabIR.
@@ -296,7 +325,7 @@ export const FAMILY_COLORS: Record<string, { solid: string; fill: string }> = {
 
 export const PLACEMENT_TYPES_BY_FAMILY: Record<string, string[]> = {
   cash: ["Compte courant", "Compte à terme", "PEL", "CEL", "Livret A", "LDDS", "LEP"],
-  market: ["PEA", "Compte-titres", "Actions non cotées", "OPCVM / ETF"],
+  market: ["PEA", "Compte-titres", "Actions non cotées", "OPCVM / ETF", "FCPI", "FIP", "SOFICA", "Girardin industriel"],
   wrapper: ["Assurance-vie fonds euros", "Assurance-vie unités de compte", "Contrat de capitalisation"],
   retirement: ["PER bancaire", "PER assurantiel", "Madelin"],
 };

@@ -1,7 +1,7 @@
 // Utilitaires — n(), euro(), calculs, helpers PCS et domaine
 import type { Child, Property, PatrimonialData, TaxBracket, FilledBracket,
   Beneficiary, Heir, TestamentHeir, ChargesDetail } from '../../types/patrimoine';
-import { PLACEMENT_TYPES_BY_FAMILY, AV_TYPES, BRAND, PCS_GROUPES, PCS_CATEGORIES, DISPOSITIFS_PAR_NATURE } from '../../constants';
+import { PLACEMENT_TYPES_BY_FAMILY, AV_TYPES, BRAND, PCS_GROUPES, PCS_CATEGORIES, DISPOSITIFS_PAR_NATURE, DISPOSITIFS_FINANCIERS_PAR_TYPE } from '../../constants';
 
 export function isIndependant(groupeCode: string): boolean {
   return groupeCode === "1" || groupeCode === "2";
@@ -415,6 +415,7 @@ export function placementFiscalSummary(type: string) {
   if (["Livret A", "LDDS", "LEP"].includes(type)) return { ir: "Exonéré", ifi: "Hors assiette", succession: "Actif successoral" };
   if (type === "Compte courant") return { ir: "Sans fiscalité propre", ifi: "Hors assiette", succession: "Actif successoral" };
   if (["Compte à terme", "PEL", "CEL"].includes(type)) return { ir: "Intérêts imposables", ifi: "Hors assiette", succession: "Actif successoral" };
+  if (["FCPI", "FIP", "SOFICA", "Girardin industriel"].includes(type)) return { ir: "Réduction d'IR", ifi: "Hors assiette", succession: "Actif successoral" };
   if (["Compte-titres", "Actions non cotées", "OPCVM / ETF", "PEA"].includes(type)) return { ir: "PFU ou barème", ifi: "Hors assiette", succession: "Actif successoral" };
   if (isAV(type)) return { ir: "Fiscalité de rachat", ifi: "Hors assiette", succession: "990 I / 757 B" };
   return { ir: "À qualifier", ifi: "Hors assiette", succession: "À qualifier" };
@@ -432,6 +433,35 @@ export function propertyNeedsLoan(type: string) { return ["Résidence principale
 export function dispositifsPourNature(type: string): string[] { return DISPOSITIFS_PAR_NATURE[type] ?? []; }
 // Alias booléen (rétrocompat) : la nature propose-t-elle au moins un dispositif ?
 export function propertyCanHaveDispositif(type: string) { return dispositifsPourNature(type).length > 0; }
+
+// ── Défiscalisation financière (Lot 2) : type de placement -> dispositifs éligibles.
+// Miroir de dispositifsPourNature. [] = aucun bloc (PEA & autres : incompatibilité légale).
+export function dispositifsFinanciersPourType(type: string): string[] { return DISPOSITIFS_FINANCIERS_PAR_TYPE[type] ?? []; }
+
+// Restitution lecture seule de la réduction d'un placement, DÉRIVÉE DU MOTEUR (jamais
+// saisissable). null si le placement n'a pas de bloc de défiscalisation. Sinon :
+//  - statut 'autre_annee' : l'investissement est d'un autre millésime que l'année simulée ;
+//  - statut 'active'      : réduction imputée cette année (montant = ce qui réduit l'IR) ;
+//  - statut 'aucune'      : bloc présent l'année simulée mais aucune réduction (ex. hors fenêtre).
+// alertes = alertes douces du moteur filtrées par placementId.
+export function reductionFinanciereCard(
+  ir: any,
+  placement: { id?: string; defiscalisation?: { dispositif?: string; dateInvestissement?: string } },
+  anneeSimulee: number,
+): null | { statut: "active" | "aucune" | "autre_annee"; montant: number; anneeInvestissement: number | null; alertes: { code: string; message: string }[] } {
+  const d = placement.defiscalisation;
+  if (!d || !d.dispositif) return null;
+  const pid = String(placement.id ?? "");
+  const df = ir?.dispositifsFiscaux ?? {};
+  const alertes = (df.alertesFinancieres ?? []).filter((a: any) => a.placementId === pid);
+  const anneeInv = d.dateInvestissement ? Number(String(d.dateInvestissement).slice(0, 4)) : null;
+  if (anneeInv && anneeInv !== anneeSimulee) {
+    return { statut: "autre_annee", montant: 0, anneeInvestissement: anneeInv, alertes };
+  }
+  const entry = (df.reductions ?? []).find((r: any) => r.id === `${d.dispositif}_${pid}`);
+  const montant = entry ? Number(entry.impute) || 0 : 0;
+  return { statut: entry ? "active" : "aucune", montant, anneeInvestissement: anneeInv, alertes };
+}
 export function placementNeedsTaxableIncome(type: string) { return !["Livret A", "LDDS", "LEP", "Compte courant"].includes(type) && !isAV(type); }
 export function placementNeedsDeathValue(type: string) { return !isAV(type); }
 export function isCashPlacement(type: string) { return PLACEMENT_TYPES_BY_FAMILY.cash.includes(type); }
