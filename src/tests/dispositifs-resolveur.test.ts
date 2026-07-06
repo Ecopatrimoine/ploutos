@@ -19,7 +19,7 @@ describe("resolveReductionDispositif — Pinel / Pinel+ / Denormandie", () => {
     if (estReduction(r)) {
       expect(r.montant).toBeCloseTo(4166.67, 2); // 37500 / 9
       expect(r.id).toBe("pinel");
-      expect(r.plafondNiches).toBe(true);
+      expect(r.plafondNiches).toBe("commun"); // double enveloppe : 'commun' (10 000 €), ex-`true`
       expect(r.phase).toBe("engagement");
     }
   });
