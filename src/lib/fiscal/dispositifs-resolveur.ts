@@ -19,7 +19,7 @@ const anneeDe = (dateISO: string) => Number(String(dateISO).slice(0, 4));
 export type PlafondNiches = 'commun' | 'majore' | false;
 // Normalise la valeur brute du referentiel (JSON) : seules 'commun' / 'majore'
 // sont retenues, tout le reste (true/false/undefined) => false (hors plafond).
-const normPlafondNiches = (v: unknown): PlafondNiches =>
+export const normPlafondNiches = (v: unknown): PlafondNiches =>
   v === 'commun' || v === 'majore' ? v : false;
 
 // ── Réduction d'IR (Pinel/Pinel+/Denormandie/Censi/Loc'Avantages) ─────────────
