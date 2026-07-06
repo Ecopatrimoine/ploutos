@@ -6,7 +6,7 @@ import { n, computeTaxFromBrackets, isAV, isPERType, fractionRVTO, getHandicapAb
 import { resolveLoanValuesMulti } from './credit';
 import { referentiels } from '../../data/prevoyance';
 import { sommeCotisationsMadelin, plafondMadelinPrevoyance, estEligibleMadelin } from '../prevoyance/madelin';
-import { resolveReductionDispositif, resolveDeductionsJeanbrun, estReduction, type JeanbrunResultat } from '../fiscal/dispositifs-resolveur';
+import { resolveReductionDispositif, resolveDeductionsJeanbrun, estReduction, type JeanbrunResultat, type PlafondNiches } from '../fiscal/dispositifs-resolveur';
 
 // ─── CALCUL IR ────────────────────────────────────────────────────────────────
 
@@ -114,69 +114,103 @@ export function resolveBeneficeAuReel(data: PatrimonialData, personne: 1 | 2): b
   return !microRegime;
 }
 
-// ─── Socle générique de réductions d'impôt ────────────────────────────────────
-// Une réduction vient EN DIMINUTION de l'impôt dû après décote, dans l'ordre du
-// tableau, chacune à hauteur de l'impôt restant (jamais négatif) ; la fraction
-// non imputée faute d'impôt est perdue (pas de report).
+// ─── Socle générique de réductions d'impôt (art. 197-I-5 + 200-0 A CGI) ───────
+// Une réduction vient EN DIMINUTION du BARÈME après décote UNIQUEMENT (art.
+// 197-I-5) — jamais des prélèvements sociaux, du PFU/PFL ni de l'impôt sur le
+// rachat d'AV. L'APPELANT ajoute ces impositions APRÈS imputation (cf. computeIR :
+// finalIR = impotFinal + PFU + PS foncier + rachat AV + PS rentes PER). Chaque
+// réduction est imputée dans l'ordre du tableau, à hauteur du barème restant
+// (jamais négatif) ; la fraction non imputée faute de barème est perdue (pas de report).
 //
-// Plafonnement global des niches — art. 200-0 A CGI : le CUMUL des réductions
-// marquées plafondNiches:true partage une enveloppe commune = `plafondNiches` et
-// est écrêté à ce plafond AVANT imputation ; l'excédent est perdu et tracé
-// (ecretementNiches). Les entrées plafondNiches:false ne consomment jamais
-// l'enveloppe et ne sont jamais écrêtées. Liste vide OU aucune entrée plafonnable
-// = no-op strict (impôt inchangé au centime). Point d'entrée UNIQUE des deux
-// chemins de computeIR (foyer commun ET concubins) — aucune duplication.
+// Plafonnement global des niches — art. 200-0 A CGI, DOUBLE ENVELOPPE :
+//   • 'commun'  : cumul des réductions communes, plafond 10 000 € ;
+//   • 'majore'  : cumul (communs RETENUS + majorées : outre-mer / Sofica),
+//                 plafond GLOBAL 18 000 € ;
+//   • false     : hors plafond (ne consomme aucune enveloppe, jamais écrêté).
+// Chaque réduction consomme l'enveloppe à hauteur de montant×fractionPlafond
+// (défaut 1) ; l'excédent est écrêté dans l'ordre du tableau (calcul en espace
+// « fraction » puis reconversion en brut ÷ fractionPlafond) et tracé
+// (ecretementNiches). Liste vide OU aucune entrée plafonnable = no-op strict.
+// Point d'entrée UNIQUE des deux chemins de computeIR (foyer commun ET
+// concubins) — aucune duplication.
 export interface ReductionIR {
   id: string;
   label: string;
   montant: number;
-  plafondNiches: boolean; // true = soumis au plafond global des niches (art. 200-0 A)
+  // 'commun' = enveloppe 10 000 € ; 'majore' = enveloppe majorée 18 000 €
+  // (art. 200-0 A) ; false = hors plafond global.
+  plafondNiches: PlafondNiches;
+  // Part du montant qui consomme l'enveloppe (défaut 1). Seule montant×fractionPlafond
+  // est décomptée du plafond ; l'écrêtement calculé sur cette fraction est reconverti
+  // en brut (÷ fractionPlafond). Prévu pour les futurs dispositifs financiers.
+  fractionPlafond?: number;
 }
 
 export interface ResultatReductionsIR {
-  impotFinal: number;                       // impôt après imputation des réductions
-  totalImpute: number;                      // somme réellement imputée sur l'impôt
-  totalPlafonnableAvantEcretement: number;  // cumul brut des montants plafondNiches:true
-  ecretementNiches: number;                 // part perdue par le plafond global (art. 200-0 A)
-  perduFauteImpot: number;                  // part perdue faute d'impôt restant (distincte de l'écrêtement)
+  impotFinal: number;                       // BARÈME après imputation des réductions (>= 0) ; l'appelant y ajoute PFU/PS/AV
+  totalImpute: number;                      // somme réellement imputée sur le barème
+  totalPlafonnableAvantEcretement: number;  // cumul brut des montants plafonnables ('commun' + 'majore')
+  ecretementNiches: number;                 // part BRUTE perdue par le plafond global (art. 200-0 A)
+  perduFauteImpot: number;                  // part perdue faute de barème restant (distincte de l'écrêtement)
   detail: { id: string; montant: number; impute: number }[];
 }
 
 export function appliquerReductionsIR(
-  impotApresDecote: number,
+  baremeApresDecote: number,
   reductions: ReductionIR[],
-  plafondNiches: number,
+  plafondCommun: number,
+  plafondMajore: number,
 ): ResultatReductionsIR {
-  const cap = Math.max(0, plafondNiches);
-  // ── Étape 1 : écrêtement du CUMUL des réductions plafonnables (art. 200-0 A) ──
-  // Enveloppe commune `cap` répartie dans l'ordre du tableau ; les entrées hors
-  // plafond (plafondNiches:false) gardent leur montant plein.
+  const capCommun = Math.max(0, plafondCommun);
+  const capMajore = Math.max(0, plafondMajore);
+  const fracOf = (r: ReductionIR) => (r.fractionPlafond && r.fractionPlafond > 0 ? r.fractionPlafond : 1);
+
+  // ── Étape 1 : écrêtement DOUBLE ENVELOPPE (art. 200-0 A) ──
+  // Consommation en espace « fraction » = montant×fractionPlafond. Enveloppe commune
+  // (10 000 €) : cumul des 'commun'. Enveloppe majorée (18 000 €) : GLOBALE = communs
+  // RETENUS + 'majore'. Répartition dans l'ordre du tableau ; reconversion brut ÷ frac.
+  const sommeCommunRetenueFrac = Math.min(
+    reductions.reduce((s, r) => (r.plafondNiches === 'commun' ? s + Math.max(0, r.montant) * fracOf(r) : s), 0),
+    capCommun,
+  );
+  let capRestantCommun = capCommun;
+  let capRestantMajore = Math.max(0, capMajore - sommeCommunRetenueFrac);
   let totalPlafonnableAvantEcretement = 0;
-  let capRestant = cap;
   const effectifs = reductions.map((r) => {
     const montant = Math.max(0, r.montant);
-    if (!r.plafondNiches) return montant; // hors plafond : jamais écrêté
+    if (r.plafondNiches === false) return montant; // hors plafond : jamais écrêté
     totalPlafonnableAvantEcretement += montant;
-    const alloue = Math.min(montant, capRestant);
-    capRestant -= alloue;
-    return alloue;
+    const f = fracOf(r);
+    const consFrac = montant * f;
+    if (r.plafondNiches === 'commun') {
+      const alloue = Math.min(consFrac, capRestantCommun);
+      capRestantCommun -= alloue;
+      return alloue / f; // reconversion brut
+    }
+    const alloue = Math.min(consFrac, capRestantMajore); // 'majore'
+    capRestantMajore -= alloue;
+    return alloue / f;
   });
-  const ecretementNiches = Math.max(0, totalPlafonnableAvantEcretement - cap);
+  const ecretementNiches = reductions.reduce(
+    (s, r, i) => (r.plafondNiches === false ? s : s + (Math.max(0, r.montant) - effectifs[i])),
+    0,
+  );
 
-  // ── Étape 2 : imputation bornée par l'impôt restant (Lot A, inchangée) ──
-  let impotRestant = Math.max(0, impotApresDecote);
+  // ── Étape 2 : imputation bornée par le BARÈME restant (art. 197-I-5) ──
+  // MOD1 : l'assiette est le barème seul ; PFU/PS/rachat AV sont ajoutés par l'appelant.
+  let baremeRestant = Math.max(0, baremeApresDecote);
   let totalImpute = 0;
   let perduFauteImpot = 0;
   const detail: { id: string; montant: number; impute: number }[] = [];
   reductions.forEach((r, i) => {
-    const impute = Math.min(effectifs[i], impotRestant);
-    impotRestant -= impute;
+    const impute = Math.min(effectifs[i], baremeRestant);
+    baremeRestant -= impute;
     totalImpute += impute;
     perduFauteImpot += effectifs[i] - impute;
     detail.push({ id: r.id, montant: r.montant, impute });
   });
   return {
-    impotFinal: impotRestant, totalImpute,
+    impotFinal: baremeRestant, totalImpute,
     totalPlafonnableAvantEcretement, ecretementNiches, perduFauteImpot, detail,
   };
 }
@@ -186,7 +220,7 @@ export function appliquerReductionsIR(
 // (à ajouter au socle), soit un statut non-ok (remonté pour affichage, jamais
 // silencieux), soit rien. Barrière douce micro-foncier (art. 32 CGI) : Jeanbrun
 // (déduction, gérée à part) et Loc'Avantages sont INCOMPATIBLES avec le micro.
-type EvalDispositifReduction = { kind: "reduction"; idBien: string; id: string; label: string; montant: number; plafondNiches: boolean };
+type EvalDispositifReduction = { kind: "reduction"; idBien: string; id: string; label: string; montant: number; plafondNiches: PlafondNiches };
 type EvalDispositifStatut = { kind: "statut"; idBien: string; dispositif: string; statut: string; motif: string };
 type EvalDispositif = EvalDispositifReduction | EvalDispositifStatut | null;
 
@@ -533,15 +567,17 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
 
   // Socle générique de réductions d'impôt (cf. appliquerReductionsIR). Le forfait
   // scolaire (art. 199 quater B CGI) est une entrée de cette liste ; les deux
-  // chemins (concubins / foyer commun) la consomment via la MÊME fonction, avec le
-  // MÊME plafond global des niches (art. 200-0 A CGI, référentiel millésimé — jamais
-  // 10 000 en dur). Le forfait scolaire est plafondNiches:false : avantage lié à la
-  // situation personnelle, EXCLU du plafond (BOFiP BOI-IR-LIQ-20-20-10). Le
-  // plafonnement reste DORMANT jusqu'au Lot D (aucune entrée plafonnable n'existe encore).
+  // chemins (concubins / foyer commun) la consomment via la MÊME fonction, avec la
+  // MÊME double enveloppe de plafonnement (art. 200-0 A CGI, référentiel millésimé —
+  // jamais 10 000/18 000 en dur). Le forfait scolaire est plafondNiches:false :
+  // avantage lié à la situation personnelle, EXCLU du plafond (BOFiP BOI-IR-LIQ-20-20-10).
+  // Le plafonnement est ACTIF depuis les dispositifs immobiliers (catégorie 'commun') ;
+  // l'enveloppe 'majore' (18 000 €) est prête pour les dispositifs outre-mer / Sofica.
   const reductionsIR: ReductionIR[] = [
     { id: "forfait_scolaire", label: "Frais de scolarité", montant: forfaitScolaireReduction, plafondNiches: false },
   ];
   const plafondGlobalNiches = referentiels.pass.plafondGlobalNiches;
+  const plafondMajoreNiches = referentiels.pass.plafondMajoreNiches;
 
   const isConcubin = data.coupleStatus === "cohab";
 
@@ -740,11 +776,13 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       if (s1 > 0) liste1.push({ id: `${e.id}_${e.idBien}`, label: e.label, montant: e.montant * s1, plafondNiches: e.plafondNiches });
       if (s2 > 0) liste2.push({ id: `${e.id}_${e.idBien}`, label: e.label, montant: e.montant * s2, plafondNiches: e.plafondNiches });
     }
-    const T1 = bareme1 + foncierPS1 + perRentesPS1 + (pfuBase1 + perInteretsPFU1) * 0.314 + avRachatImpot;
-    const T2 = bareme2 + foncierPS2 + perRentesPS2 + (pfuBase2 + perInteretsPFU2) * 0.314;
-    const socle1 = appliquerReductionsIR(T1, liste1, plafondGlobalNiches);
-    const socle2 = appliquerReductionsIR(T2, liste2, plafondGlobalNiches);
-    const finalIR = socle1.impotFinal + socle2.impotFinal;
+    // MOD1 (197-I-5) : chaque foyer impute ses réductions sur SON barème seul ; PS
+    // foncier + PFU + PS rentes PER + rachat AV sont ajoutés APRÈS imputation.
+    const extra1 = foncierPS1 + perRentesPS1 + (pfuBase1 + perInteretsPFU1) * 0.314 + avRachatImpot;
+    const extra2 = foncierPS2 + perRentesPS2 + (pfuBase2 + perInteretsPFU2) * 0.314;
+    const socle1 = appliquerReductionsIR(bareme1, liste1, plafondGlobalNiches, plafondMajoreNiches);
+    const socle2 = appliquerReductionsIR(bareme2, liste2, plafondGlobalNiches, plafondMajoreNiches);
+    const finalIR = socle1.impotFinal + extra1 + socle2.impotFinal + extra2;
     const averageRate = revenuNetGlobal > 0 ? finalIR / revenuNetGlobal : 0;
     const brackets: TaxBracket[] = [
       { from: 0, to: 11600, rate: 0 }, { from: 11600, to: 29579, rate: 0.11 },
@@ -857,12 +895,16 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   for (const e of evalsDispositifs) {
     if (e.kind === "reduction") reductionsIR.push({ id: `${e.id}_${e.idBien}`, label: e.label, montant: e.montant, plafondNiches: e.plafondNiches });
   }
+  // MOD1 (197-I-5) : les réductions s'imputent sur le BARÈME seul ; PFU, PS foncier,
+  // rachat AV et PS rentes PER sont ajoutés APRÈS imputation (finalIR all-inclusive,
+  // contrat de sortie inchangé pour les consommateurs de finalIR).
   const socleReductions = appliquerReductionsIR(
-    bareme + totalPFU + foncierSocialLevy + avRachatImpot + perRentesPS,
+    bareme,
     reductionsIR,
     plafondGlobalNiches,
+    plafondMajoreNiches,
   );
-  const finalIR = socleReductions.impotFinal;
+  const finalIR = socleReductions.impotFinal + totalPFU + foncierSocialLevy + avRachatImpot + perRentesPS;
 
   const marginalRate = quotient <= 11600 ? 0 : quotient <= 29579 ? 0.11 : quotient <= 84577 ? 0.3 : quotient <= 181917 ? 0.41 : 0.45;
   const averageRate = revenuNetGlobal > 0 ? finalIR / revenuNetGlobal : 0;
