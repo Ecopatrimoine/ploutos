@@ -7,6 +7,10 @@ import { resolveLoanValuesMulti } from './credit';
 import { referentiels } from '../../data/prevoyance';
 import { sommeCotisationsMadelin, plafondMadelinPrevoyance, estEligibleMadelin } from '../prevoyance/madelin';
 import { resolveReductionDispositif, resolveDeductionsJeanbrun, estReduction, type JeanbrunResultat, type PlafondNiches } from '../fiscal/dispositifs-resolveur';
+import { resolveReductionFinanciere } from '../fiscal/dispositifs-financiers-resolveur';
+
+// Alerte douce de défiscalisation financière remontée pour l'UI (Lot 2).
+type AlerteFinanciereExposee = { placementId: string; dispositif: string; code: string; message: string };
 
 // ─── CALCUL IR ────────────────────────────────────────────────────────────────
 
@@ -776,6 +780,24 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       if (s1 > 0) liste1.push({ id: `${e.id}_${e.idBien}`, label: e.label, montant: e.montant * s1, plafondNiches: e.plafondNiches });
       if (s2 > 0) liste2.push({ id: `${e.id}_${e.idBien}`, label: e.label, montant: e.montant * s2, plafondNiches: e.plafondNiches });
     }
+    // ── Défiscalisation financière (Lot 1) PAR concubin : attribution par ownerShare,
+    // RNG = revenu net du concubin (rev1/rev2) pour la SOFICA. Alertes captées une
+    // seule fois par placement (indépendantes du RNG). Full ownership => exact ; part
+    // commune/indivision => quote-part (approx. documentée, comme l'immobilier). ──
+    const alertesFinancieres: AlerteFinanciereExposee[] = [];
+    for (const placement of data.placements) {
+      if (isOwnedByNonRattached(placement.ownership)) continue;
+      if (!placement.defiscalisation) continue;
+      const pid = String(placement.id ?? "");
+      const sf1 = ownerShare(placement.ownership, "person1");
+      const sf2 = ownerShare(placement.ownership, "person2");
+      const resF1 = sf1 > 0 ? resolveReductionFinanciere(placement.defiscalisation, anneeFiscale, { couple: false, rng: rev1 }) : null;
+      const resF2 = sf2 > 0 ? resolveReductionFinanciere(placement.defiscalisation, anneeFiscale, { couple: false, rng: rev2 }) : null;
+      if (resF1 && resF1.montant > 0) liste1.push({ id: `${resF1.id}_${pid}`, label: resF1.label, montant: resF1.montant * sf1, plafondNiches: resF1.plafondNiches, fractionPlafond: resF1.fractionPlafond });
+      if (resF2 && resF2.montant > 0) liste2.push({ id: `${resF2.id}_${pid}`, label: resF2.label, montant: resF2.montant * sf2, plafondNiches: resF2.plafondNiches, fractionPlafond: resF2.fractionPlafond });
+      const resAlert = resF1 ?? resF2;
+      if (resAlert) for (const a of resAlert.alertes) alertesFinancieres.push({ placementId: pid, dispositif: resAlert.id, code: a.code, message: a.message });
+    }
     // MOD1 (197-I-5) : chaque foyer impute ses réductions sur SON barème seul ; PS
     // foncier + PFU + PS rentes PER + rachat AV sont ajoutés APRÈS imputation.
     const extra1 = foncierPS1 + perRentesPS1 + (pfuBase1 + perInteretsPFU1) * 0.314 + avRachatImpot;
@@ -846,6 +868,9 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
           ecretement: (jeanbrun1?.ecretement ?? 0) + (jeanbrun2?.ecretement ?? 0),
         } : null,
         statuts: statutsDispositifs,
+        // Écrêtement niches réel (art. 200-0 A) = somme des deux foyers concubins.
+        ecretementNiches: socle1.ecretementNiches + socle2.ecretementNiches,
+        alertesFinancieres,
       },
     };
   }
@@ -895,6 +920,19 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   for (const e of evalsDispositifs) {
     if (e.kind === "reduction") reductionsIR.push({ id: `${e.id}_${e.idBien}`, label: e.label, montant: e.montant, plafondNiches: e.plafondNiches });
   }
+  // ── Défiscalisation financière (Lot 1) : IR-PME / FCPI / FIP / SOFICA / Girardin.
+  // Une réduction n'est générée que si l'investissement a lieu l'année simulée ET
+  // dans une fenêtre active ; base plafonnée selon la situation familiale ; SOFICA
+  // plafonnée par le RNG (fourni ici). Alertes douces remontées pour l'UI (Lot 2). ──
+  const alertesFinancieres: AlerteFinanciereExposee[] = [];
+  for (const placement of data.placements) {
+    if (isOwnedByNonRattached(placement.ownership)) continue;
+    const resF = resolveReductionFinanciere(placement.defiscalisation, anneeFiscale, { couple: isCouple, rng: revenuNetGlobal });
+    if (!resF) continue;
+    const pid = String(placement.id ?? "");
+    if (resF.montant > 0) reductionsIR.push({ id: `${resF.id}_${pid}`, label: resF.label, montant: resF.montant, plafondNiches: resF.plafondNiches, fractionPlafond: resF.fractionPlafond });
+    for (const a of resF.alertes) alertesFinancieres.push({ placementId: pid, dispositif: resF.id, code: a.code, message: a.message });
+  }
   // MOD1 (197-I-5) : les réductions s'imputent sur le BARÈME seul ; PFU, PS foncier,
   // rachat AV et PS rentes PER sont ajoutés APRÈS imputation (finalIR all-inclusive,
   // contrat de sortie inchangé pour les consommateurs de finalIR).
@@ -928,6 +966,9 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       reductions: socleReductions.detail,
       jeanbrun: jeanbrunFoyer ? { parBien: jeanbrunFoyer.parBien, plafond: jeanbrunFoyer.plafondFoyer, ecretement: jeanbrunFoyer.ecretement } : null,
       statuts: statutsDispositifs,
+      // Écrêtement niches réel (art. 200-0 A, double enveloppe) exposé pour le PDF.
+      ecretementNiches: socleReductions.ecretementNiches,
+      alertesFinancieres,
     },
   };
 }
