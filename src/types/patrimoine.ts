@@ -165,6 +165,27 @@ export type Placement = {
   perWithdrawalInterest: string; // dont intérêts (PFU 31,4%)
   perAnticiped: boolean;       // true = déblocage anticipé (cas exceptionnel)
   beneficiaries: Beneficiary[];
+  // ── Défiscalisation financière (Lot 1 — saisie au Lot 2) ────────────────────
+  // Bloc OPTIONNEL : présent ⇒ le placement ouvre droit à une réduction d'IR
+  // l'année où dateInvestissement tombe dans une fenêtre active du référentiel
+  // (src/data/fiscal/dispositifs-financiers.json). Montants en string (convention).
+  defiscalisation?: DefiscalisationPlacement;
+};
+
+// Dispositifs financiers de défiscalisation (réductions d'IR, art. 199 ...).
+export type DispositifFinancier =
+  | 'irpme' | 'fcpi' | 'fcpiJei' | 'fipMetropole' | 'fipCorse'
+  | 'fipOutreMer' | 'sofica' | 'girardinIndustriel';
+
+export type DefiscalisationPlacement = {
+  dispositif: DispositifFinancier;
+  montantSouscrit: string;            // versement (sauf girardin : réduction saisie directe)
+  dateInvestissement: string;         // ISO — l'année de cette date pilote l'ouverture du droit
+  dateSortiePrevue?: string;          // ISO — sert l'alerte « sortie avant fin d'engagement »
+  tauxSofica?: '30' | '36' | '48';    // SOFICA : taux selon engagements (défaut 48)
+  regimeGirardin?: 'pleinDroit' | 'agrement'; // Girardin : pilote la fractionPlafond
+  montantReductionGirardin?: string;  // Girardin : montant de réduction (attestation opérateur)
+  reductionJeiDejaConsommee?: string; // FCPI JEI : réduction déjà consommée (plafond propre 50 000 € 2024-2028)
 };
 
 // ── Détail des charges professionnelles par nature ─────────────────────────
