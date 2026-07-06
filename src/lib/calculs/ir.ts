@@ -154,7 +154,9 @@ export interface ResultatReductionsIR {
   impotFinal: number;                       // BARÈME après imputation des réductions (>= 0) ; l'appelant y ajoute PFU/PS/AV
   totalImpute: number;                      // somme réellement imputée sur le barème
   totalPlafonnableAvantEcretement: number;  // cumul brut des montants plafonnables ('commun' + 'majore')
-  ecretementNiches: number;                 // part BRUTE perdue par le plafond global (art. 200-0 A)
+  ecretementNiches: number;                 // part BRUTE perdue par le plafond global (art. 200-0 A) = commun + majoré
+  ecretementCommun: number;                 // part écrêtée par l'enveloppe commune (10 000 €)
+  ecretementMajore: number;                 // part écrêtée par l'enveloppe majorée (18 000 €, outre-mer / Sofica)
   perduFauteImpot: number;                  // part perdue faute de barème restant (distincte de l'écrêtement)
   detail: { id: string; montant: number; impute: number }[];
 }
@@ -195,10 +197,17 @@ export function appliquerReductionsIR(
     capRestantMajore -= alloue;
     return alloue / f;
   });
-  const ecretementNiches = reductions.reduce(
-    (s, r, i) => (r.plafondNiches === false ? s : s + (Math.max(0, r.montant) - effectifs[i])),
-    0,
-  );
+  // Écrêtement ventilé par enveloppe : une entrée 'commun' n'est écrêtée que par le
+  // plafond 10 000 ; une entrée 'majore' que par le plafond global 18 000.
+  let ecretementCommun = 0;
+  let ecretementMajore = 0;
+  reductions.forEach((r, i) => {
+    if (r.plafondNiches === false) return;
+    const perdu = Math.max(0, r.montant) - effectifs[i];
+    if (r.plafondNiches === 'commun') ecretementCommun += perdu;
+    else ecretementMajore += perdu;
+  });
+  const ecretementNiches = ecretementCommun + ecretementMajore;
 
   // ── Étape 2 : imputation bornée par le BARÈME restant (art. 197-I-5) ──
   // MOD1 : l'assiette est le barème seul ; PFU/PS/rachat AV sont ajoutés par l'appelant.
@@ -215,7 +224,7 @@ export function appliquerReductionsIR(
   });
   return {
     impotFinal: baremeRestant, totalImpute,
-    totalPlafonnableAvantEcretement, ecretementNiches, perduFauteImpot, detail,
+    totalPlafonnableAvantEcretement, ecretementNiches, ecretementCommun, ecretementMajore, perduFauteImpot, detail,
   };
 }
 
@@ -870,6 +879,8 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
         statuts: statutsDispositifs,
         // Écrêtement niches réel (art. 200-0 A) = somme des deux foyers concubins.
         ecretementNiches: socle1.ecretementNiches + socle2.ecretementNiches,
+        ecretementCommun: socle1.ecretementCommun + socle2.ecretementCommun,
+        ecretementMajore: socle1.ecretementMajore + socle2.ecretementMajore,
         alertesFinancieres,
       },
     };
@@ -966,8 +977,10 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       reductions: socleReductions.detail,
       jeanbrun: jeanbrunFoyer ? { parBien: jeanbrunFoyer.parBien, plafond: jeanbrunFoyer.plafondFoyer, ecretement: jeanbrunFoyer.ecretement } : null,
       statuts: statutsDispositifs,
-      // Écrêtement niches réel (art. 200-0 A, double enveloppe) exposé pour le PDF.
+      // Écrêtement niches réel (art. 200-0 A, double enveloppe) exposé pour le trio + PDF.
       ecretementNiches: socleReductions.ecretementNiches,
+      ecretementCommun: socleReductions.ecretementCommun,
+      ecretementMajore: socleReductions.ecretementMajore,
       alertesFinancieres,
     },
   };
