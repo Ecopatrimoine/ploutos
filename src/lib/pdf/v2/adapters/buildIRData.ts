@@ -6,6 +6,8 @@
 
 import type { IRPageData } from "../pages/pageIR";
 import { DISPOSITIFS_FISCAUX } from "../../../../constants";
+import { labelDispositifReduction, estReductionFinanciere } from "../../../calculs/utils";
+import { referentiels } from "../../../../data/prevoyance";
 
 export type BuildIRDataParams = {
   ir: any;
@@ -78,15 +80,22 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
   // ── Dispositifs fiscaux (Lot E) : mappe dispositifsFiscaux + jeanbrunRetenu déjà
   //    exposés par le moteur (aucun recalcul). Labels via DISPOSITIFS_FISCAUX (jamais les ids). ──
   const df = ir.dispositifsFiscaux || {};
-  const dispoLabel = (id: string) => DISPOSITIFS_FISCAUX.find((x) => x.value === String(id).split("_")[0])?.label ?? String(id).split("_")[0];
+  const millesime = referentiels.pass.millesime;
+  // Libellés via le résolveur partagé (immobilier + financier Lot 3) ; les réductions
+  // FINANCIÈRES portent la mention « (investissement AAAA) » (one-shot de l'année simulée).
   const reductionsDispositifs = (df.reductions || [])
     .filter((r: any) => r.id !== "forfait_scolaire" && r.impute > 0)
-    .map((r: any) => ({ label: dispoLabel(r.id), montant: r.impute }));
+    .map((r: any) => {
+      const label = labelDispositifReduction(r.id);
+      return { label: estReductionFinanciere(r.id) ? `${label} (investissement ${millesime})` : label, montant: r.impute };
+    });
   const jeanbrunRetenu = Number(ir.jeanbrunRetenu) || 0;
   const jeanbrun = jeanbrunRetenu > 0 ? { retenu: jeanbrunRetenu, ecretement: Number(df.jeanbrun?.ecretement) || 0 } : null;
   // Écrêtement niches (art. 200-0 A) : valeur RÉELLE exposée par le moteur (double
-  // enveloppe 10 000 / 18 000). Plus de reconstruction sur la seule enveloppe commune.
+  // enveloppe 10 000 / 18 000), ventilée par enveloppe pour la ligne PDF détaillée.
   const ecretementNiches = Number(df.ecretementNiches) || 0;
+  const ecretementCommun = Number(df.ecretementCommun) || 0;
+  const ecretementMajore = Number(df.ecretementMajore) || 0;
   const statutsNonOk = (df.statuts || []).map((s: any) => ({
     bienNom: (data.properties || []).find((pp: any) => pp.id === s.idBien)?.name || "Bien immobilier",
     dispositifLabel: DISPOSITIFS_FISCAUX.find((x) => x.value === s.dispositif)?.label ?? s.dispositif,
@@ -119,6 +128,8 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
     reductionsDispositifs,
     jeanbrun,
     ecretementNiches,
+    ecretementCommun,
+    ecretementMajore,
     statutsNonOk,
   };
 }
