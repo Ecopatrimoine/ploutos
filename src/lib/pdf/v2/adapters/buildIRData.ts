@@ -6,7 +6,6 @@
 
 import type { IRPageData } from "../pages/pageIR";
 import { DISPOSITIFS_FISCAUX } from "../../../../constants";
-import { referentiels } from "../../../../data/prevoyance";
 
 export type BuildIRDataParams = {
   ir: any;
@@ -85,10 +84,9 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
     .map((r: any) => ({ label: dispoLabel(r.id), montant: r.impute }));
   const jeanbrunRetenu = Number(ir.jeanbrunRetenu) || 0;
   const jeanbrun = jeanbrunRetenu > 0 ? { retenu: jeanbrunRetenu, ecretement: Number(df.jeanbrun?.ecretement) || 0 } : null;
-  // Écrêtement niches (art. 200-0 A) reconstruit depuis le détail : cumul des réductions
-  // plafonnables (hors forfait scolaire) au-delà du plafond global. Pas de re-résolution.
-  const totalPlafonnable = (df.reductions || []).filter((r: any) => r.id !== "forfait_scolaire").reduce((s: number, r: any) => s + (Number(r.montant) || 0), 0);
-  const ecretementNiches = Math.max(0, totalPlafonnable - (Number(referentiels.pass.plafondGlobalNiches) || 0));
+  // Écrêtement niches (art. 200-0 A) : valeur RÉELLE exposée par le moteur (double
+  // enveloppe 10 000 / 18 000). Plus de reconstruction sur la seule enveloppe commune.
+  const ecretementNiches = Number(df.ecretementNiches) || 0;
   const statutsNonOk = (df.statuts || []).map((s: any) => ({
     bienNom: (data.properties || []).find((pp: any) => pp.id === s.idBien)?.name || "Bien immobilier",
     dispositifLabel: DISPOSITIFS_FISCAUX.find((x) => x.value === s.dispositif)?.label ?? s.dispositif,
