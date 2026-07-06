@@ -1,7 +1,7 @@
 // Utilitaires — n(), euro(), calculs, helpers PCS et domaine
 import type { Child, Property, PatrimonialData, TaxBracket, FilledBracket,
   Beneficiary, Heir, TestamentHeir, ChargesDetail } from '../../types/patrimoine';
-import { PLACEMENT_TYPES_BY_FAMILY, AV_TYPES, BRAND, PCS_GROUPES, PCS_CATEGORIES, DISPOSITIFS_PAR_NATURE, DISPOSITIFS_FINANCIERS_PAR_TYPE } from '../../constants';
+import { PLACEMENT_TYPES_BY_FAMILY, AV_TYPES, BRAND, PCS_GROUPES, PCS_CATEGORIES, DISPOSITIFS_PAR_NATURE, DISPOSITIFS_FINANCIERS_PAR_TYPE, DISPOSITIFS_FISCAUX, DISPOSITIFS_FINANCIERS_LABELS_COURTS } from '../../constants';
 
 export function isIndependant(groupeCode: string): boolean {
   return groupeCode === "1" || groupeCode === "2";
@@ -437,6 +437,21 @@ export function propertyCanHaveDispositif(type: string) { return dispositifsPour
 // ── Défiscalisation financière (Lot 2) : type de placement -> dispositifs éligibles.
 // Miroir de dispositifsPourNature. [] = aucun bloc (PEA & autres : incompatibilité légale).
 export function dispositifsFinanciersPourType(type: string): string[] { return DISPOSITIFS_FINANCIERS_PAR_TYPE[type] ?? []; }
+
+// Libellé COURT d'une réduction (restitution trio + PDF) à partir de son id moteur
+// (`${dispositif}_${idBien|idPlacement}`). Résout d'abord les dispositifs FINANCIERS
+// (Lot 3), puis les dispositifs IMMOBILIERS, sinon renvoie la racine de l'id. Point
+// d'entrée UNIQUE partagé par TabIR et buildIRData (fini le fallback sur l'id brut).
+export function labelDispositifReduction(id: string): string {
+  const base = String(id).split("_")[0];
+  return DISPOSITIFS_FINANCIERS_LABELS_COURTS[base]
+    ?? (DISPOSITIFS_FISCAUX.find((d) => d.value === base)?.label as string | undefined)
+    ?? base;
+}
+// true si l'id de réduction correspond à un dispositif financier (Lot 3).
+export function estReductionFinanciere(id: string): boolean {
+  return DISPOSITIFS_FINANCIERS_LABELS_COURTS[String(id).split("_")[0]] !== undefined;
+}
 
 // Restitution lecture seule de la réduction d'un placement, DÉRIVÉE DU MOTEUR (jamais
 // saisissable). null si le placement n'a pas de bloc de défiscalisation. Sinon :
