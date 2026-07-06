@@ -9,11 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Settings } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
-import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, ALL_PLACEMENTS, labelPlacement, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
+import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, ALL_PLACEMENTS, labelPlacement, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA, SOUS_TYPES_DEFISC_DEDIES, DISPOSITIFS_FINANCIERS_LABELS } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
-import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, isUCorCapi, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
+import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, isUCorCapi, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName, dispositifsFinanciersPourType, reductionFinanciereCard } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { computeExpositionMarche } from "../../lib/calculs/exposition";
+import { referentiels } from "../../data/prevoyance";
 import { PlacementPickerModal } from "../PlacementPickerModal";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
 
@@ -35,6 +36,53 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
     addPlacement(type);
     closeAddModal();
   }, [addPlacement, closeAddModal]);
+
+  const anneeSimulee = referentiels.pass.millesime;
+
+  // ── Défiscalisation financière (Lot 2) : mutateurs du bloc `defiscalisation`. ──
+  // Convention : montants string, ?? jamais || (le « 0 » saisi est respecté). Le bloc
+  // n'existe QUE sur un type éligible ; il est retiré si le type devient inéligible.
+  const setDefisc = React.useCallback((id: string, patch: Record<string, any>) => setData((prev: PatrimonialData) => ({
+    ...prev,
+    placements: prev.placements.map((p) => {
+      if (p.id !== id) return p;
+      const eligibles = dispositifsFinanciersPourType(p.type);
+      const base = { dispositif: eligibles[0] ?? "", montantSouscrit: "", dateInvestissement: "" };
+      return { ...p, defiscalisation: { ...base, ...(p.defiscalisation ?? {}), ...patch } as any };
+    }),
+  })), [setData]);
+
+  const removeDefisc = React.useCallback((id: string) => setData((prev: PatrimonialData) => ({
+    ...prev,
+    placements: prev.placements.map((p) => {
+      if (p.id !== id) return p;
+      const { defiscalisation, ...rest } = p;
+      return rest as typeof p;
+    }),
+  })), [setData]);
+
+  // Changement de TYPE : réconcilie le bloc defisc (réinitialise le dispositif si le
+  // nouveau type ne le porte plus ; retire le bloc pour un type inéligible, PEA compris).
+  // Girardin : encours pré-rempli à 0 (apport à fonds perdus).
+  const changePlacementType = React.useCallback((id: string, v: string) => setData((prev: PatrimonialData) => ({
+    ...prev,
+    placements: prev.placements.map((p) => {
+      if (p.id !== id) return p;
+      const eligibles = dispositifsFinanciersPourType(v);
+      const dedicated = SOUS_TYPES_DEFISC_DEDIES.includes(v);
+      if (dedicated) {
+        const value = v === "Girardin industriel" && n(p.value) === 0 ? "0" : p.value;
+        const cur = p.defiscalisation;
+        if (cur) {
+          const dispositif = eligibles.includes(cur.dispositif) ? cur.dispositif : (eligibles[0] as any);
+          return { ...p, type: v, value, defiscalisation: { ...cur, dispositif } };
+        }
+        return { ...p, type: v, value };
+      }
+      const { defiscalisation, ...rest } = p; // type inéligible : on retire tout bloc résiduel
+      return { ...rest, type: v } as typeof p;
+    }),
+  })), [setData]);
 
   return (
 <TabsContent value="placements" className="space-y-4">
@@ -68,7 +116,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
             <div className="flex-1 grid gap-2 grid-cols-[1fr_1.8fr_0.9fr_1fr]">
               <Field label="Nom"><Input value={placement.name} onChange={(e) => updatePlacementStr(placement.id, "name", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
               <Field label="Type">
-                <Select value={placement.type} onValueChange={(v) => updatePlacementStr(placement.id, "type", v)}>
+                <Select value={placement.type} onValueChange={(v) => changePlacementType(placement.id, v)}>
                   <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>{ALL_PLACEMENTS.map((type) => <SelectItem key={type} value={type}>{labelPlacement(type)}</SelectItem>)}</SelectContent>
                 </Select>
@@ -196,6 +244,112 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
               </>
             )}
           </div>
+
+          {/* ── Défiscalisation financière (Lot 2) ── */}
+          {(() => {
+            const eligibles = dispositifsFinanciersPourType(placement.type);
+            if (eligibles.length === 0) return null; // PEA & autres : aucun bloc (incompatibilité légale)
+            const dedicated = SOUS_TYPES_DEFISC_DEDIES.includes(placement.type);
+            const d: any = placement.defiscalisation;
+
+            // « Actions non cotées » : opt-in fermé -> bouton d'activation IR-PME.
+            if (!dedicated && !d) {
+              return (
+                <button type="button" onClick={() => setDefisc(placement.id, { dispositif: eligibles[0] })}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-dashed px-3 py-1.5 text-xs font-semibold"
+                  style={{ borderColor: SURFACE.border, color: BRAND.sky }}>
+                  <Plus className="h-3.5 w-3.5" /> Dispositif de défiscalisation (IR-PME)
+                </button>
+              );
+            }
+
+            const dispositif: string = d?.dispositif && eligibles.includes(d.dispositif) ? d.dispositif : eligibles[0];
+            const set = (patch: Record<string, any>) => setDefisc(placement.id, patch);
+            const card = reductionFinanciereCard(ir, placement, anneeSimulee);
+
+            return (
+              <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Dispositif de défiscalisation</div>
+                  {!dedicated && <Button variant="outline" className="h-6 rounded-lg px-2 text-xs" onClick={() => removeDefisc(placement.id)}>Retirer</Button>}
+                </div>
+
+                <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(160px,1fr))]">
+                  {eligibles.length > 1 && (
+                    <Field label={placement.type === "FIP" ? "Type de FIP" : "Nature"}>
+                      <Select value={dispositif} onValueChange={(v) => set({ dispositif: v })}>
+                        <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                        <SelectContent>{eligibles.map((id) => <SelectItem key={id} value={id}>{DISPOSITIFS_FINANCIERS_LABELS[id] ?? id}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </Field>
+                  )}
+
+                  {dispositif === "girardinIndustriel" ? (
+                    <>
+                      <MoneyField label="Réduction d'impôt (attestation opérateur)" tooltip="Montant de réduction d'IR figurant sur l'attestation de l'opérateur Girardin. Saisie directe (le calcul dépend du montage)." value={d?.montantReductionGirardin ?? ""} onChange={(e) => set({ montantReductionGirardin: e.target.value })} compact />
+                      <Field label="Régime" tooltip="Plein droit : rétrocession 56 %, fraction consommant le plafond des niches 44 %. Avec agrément (> 250 000 €) : rétrocession 66 %, fraction 34 %.">
+                        <Select value={d?.regimeGirardin ?? "pleinDroit"} onValueChange={(v) => set({ regimeGirardin: v })}>
+                          <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pleinDroit">Plein droit</SelectItem>
+                            <SelectItem value="agrement">Avec agrément</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <MoneyField label="Apport versé (optionnel)" tooltip="Trésorerie réellement versée à l'opérateur (information de flux, sans effet sur la réduction)." value={d?.montantSouscrit ?? ""} onChange={(e) => set({ montantSouscrit: e.target.value })} compact />
+                    </>
+                  ) : (
+                    <MoneyField label="Montant souscrit (€)" tooltip="Versement au dispositif. La base de réduction est plafonnée selon la situation familiale (et, pour la SOFICA, à 25 % du revenu net global et 18 000 €)." value={d?.montantSouscrit ?? ""} onChange={(e) => set({ montantSouscrit: e.target.value })} compact />
+                  )}
+
+                  {dispositif === "sofica" && (
+                    <Field label="Taux" tooltip="Taux selon les engagements pris par la SOFICA (art. 199 unvicies). 48 % = engagements de dépenses les plus favorables (défaut).">
+                      <Select value={d?.tauxSofica ?? "48"} onValueChange={(v) => set({ tauxSofica: v })}>
+                        <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="30">30 %</SelectItem>
+                          <SelectItem value="36">36 %</SelectItem>
+                          <SelectItem value="48">48 %</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  )}
+
+                  <Field label="Date d'investissement"><DateFr value={d?.dateInvestissement ?? ""} onChange={(iso) => set({ dateInvestissement: iso || "" })} className="rounded-xl h-8 text-sm" /></Field>
+                  <Field label="Sortie prévue (optionnel)"><DateFr value={d?.dateSortiePrevue ?? ""} onChange={(iso) => set({ dateSortiePrevue: iso || "" })} className="rounded-xl h-8 text-sm" /></Field>
+
+                  {dispositif === "fcpiJei" && (
+                    <MoneyField label="Réduction JEI déjà consommée (€)" tooltip="Réductions FCPI JEI déjà imputées sur la période 2024-2028 (plafond propre 50 000 €). 0 par défaut." value={d?.reductionJeiDejaConsommee ?? ""} onChange={(e) => set({ reductionJeiDejaConsommee: e.target.value })} compact />
+                  )}
+                </div>
+
+                {dispositif === "girardinIndustriel" && (
+                  <div className="text-xs italic" style={{ color: BRAND.muted }}>Apport à fonds perdus : la contrepartie est fiscale, pas patrimoniale — encours retenu 0 €.</div>
+                )}
+
+                {/* Restitution lecture seule dérivée du moteur (jamais saisissable) */}
+                {card && (() => {
+                  if (card.statut === "autre_annee") {
+                    return <div className="rounded-lg px-3 py-2 text-xs" style={{ background: SURFACE.app, color: BRAND.muted }}>Aucune réduction pour {anneeSimulee} (investissement {card.anneeInvestissement}).</div>;
+                  }
+                  if (card.montant > 0) {
+                    return <div className="rounded-lg px-3 py-2 text-xs" style={{ background: BRAND.successBg, color: BRAND.success, border: `1px solid ${BRAND.successBorder}` }}>Réduction d'impôt {anneeSimulee} : <strong>{euro(card.montant)}</strong></div>;
+                  }
+                  if (card.anneeInvestissement == null) {
+                    return <div className="rounded-lg px-3 py-2 text-xs" style={{ background: SURFACE.app, color: BRAND.muted }}>Renseignez le montant et la date d'investissement pour estimer la réduction {anneeSimulee}.</div>;
+                  }
+                  return <div className="rounded-lg px-3 py-2 text-xs" style={{ background: SURFACE.app, color: BRAND.muted }}>Aucune réduction imputable pour {anneeSimulee} (voir l'alerte ci-dessous).</div>;
+                })()}
+
+                {/* Alertes douces du moteur (jamais bloquantes) */}
+                {card && card.alertes.map((a, i) => (
+                  <div key={i} className="rounded-lg px-3 py-1.5 text-xs" style={{ background: BRAND.warningBg, color: BRAND.warning, border: `1px solid ${BRAND.warningBorder}` }}>
+                    ⚠️ {a.message}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           {/* Warning plafond PER par personne */}
           {isPERType(placement.type) && (() => {
