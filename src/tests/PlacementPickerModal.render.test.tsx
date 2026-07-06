@@ -4,7 +4,7 @@
 // tuiles produits. On rend le VRAI TabPlacements (dossier vide) qui cable
 // l'ouverture/fermeture/selection, et on verifie :
 //   1. la modale s'ouvre au clic ;
-//   2. 4 familles (regions) + 17 produits (tuiles) rendus ;
+//   2. 4 familles (regions) + 21 produits (tuiles) rendus (dont 4 sous-types defisc Lot 2) ;
 //   3. les libelles AV monosupport/multisupport sont affiches (pas les valeurs internes) ;
 //   4. cliquer une tuile appelle addPlacement avec la VALEUR INTERNE puis ferme ;
 //   5. Echap ferme.
@@ -33,16 +33,20 @@ describe("PlacementPickerModal — modale d'ajout", () => {
     expect(screen.getByRole("dialog")).toBeTruthy();
   });
 
-  it("rend 4 familles (sections) et 17 produits (tuiles)", () => {
+  it("rend 4 familles (sections) et 21 produits (tuiles)", () => {
     renderTab();
     openModal();
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getAllByRole("region")).toHaveLength(4); // 4 familles
     const tiles = within(dialog).getAllByRole("button").filter((b) => b.getAttribute("aria-label") !== "Fermer");
-    expect(tiles).toHaveLength(17); // 7 + 4 + 3 + 3
+    expect(tiles).toHaveLength(21); // 7 + 8 (dont FCPI/FIP/SOFICA/Girardin, Lot 2) + 3 + 3
     // libelles de familles
     for (const label of ["Liquidités", "Marchés", "Épargne assurantielle", "Retraite"]) {
       expect(within(dialog).getByText(label)).toBeTruthy();
+    }
+    // les 4 sous-types de défiscalisation financière sont proposés
+    for (const t of ["FCPI", "FIP", "SOFICA", "Girardin industriel"]) {
+      expect(within(dialog).getByRole("button", { name: t })).toBeTruthy();
     }
   });
 
