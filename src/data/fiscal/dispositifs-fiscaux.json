@@ -6,7 +6,7 @@
       "debutInvestissement": "2014-01-01",
       "finInvestissement": "2024-12-31",
       "plafondBase": 300000,
-      "plafondNiches": true,
+      "plafondNiches": "commun",
       "millesimes": [
         { "de": 2014, "a": 2022, "taux": { "6": 0.12, "9": 0.18 }, "prorogations": { "6": [0.06, 0.03], "9": [0.03] } },
         { "de": 2023, "a": 2023, "taux": { "6": 0.105, "9": 0.15 }, "prorogations": { "6": [0.045, 0.025], "9": [0.025] } },
@@ -20,7 +20,7 @@
       "debutInvestissement": "2023-01-01",
       "finInvestissement": "2024-12-31",
       "plafondBase": 300000,
-      "plafondNiches": true,
+      "plafondNiches": "commun",
       "millesimes": [
         { "de": 2023, "a": 2024, "taux": { "6": 0.12, "9": 0.18 }, "prorogations": { "6": [0.06, 0.03], "9": [0.03] } }
       ],
@@ -32,7 +32,7 @@
       "debutInvestissement": "2019-01-01",
       "finInvestissement": "2027-12-31",
       "plafondBase": 300000,
-      "plafondNiches": true,
+      "plafondNiches": "commun",
       "millesimes": [
         { "de": 2019, "a": 2027, "taux": { "6": 0.12, "9": 0.18 }, "prorogations": { "6": [0.06, 0.03], "9": [0.03] } }
       ],
@@ -46,7 +46,7 @@
       "taux": 0.11,
       "dureeAns": 9,
       "plafondBase": 300000,
-      "plafondNiches": true,
+      "plafondNiches": "commun",
       "detentionDirecteUniquement": true,
       "_comment": "Censi-Bouvard : 11% du prix de revient (plafond 300000 EUR) reparti lineairement sur 9 ans. Report 6 ans de la fraction non imputee NON MODELISE (decision David 03/07/2026, conservateur) : cf tooltip UI. LMNP en DETENTION DIRECTE uniquement (SCPI et societes exclues). Dispositif clos aux investissements depuis le 31/12/2022. Sourcing v3 verifie 03/07/2026."
     },
@@ -55,7 +55,7 @@
       "debutConvention": "2022-01-01",
       "finConvention": "2027-12-31",
       "dureeConventionAnsMin": 6,
-      "plafondNiches": true,
+      "plafondNiches": "commun",
       "tauxLoyers": {
         "loc1": { "sans": 0.15, "avec": 0.20 },
         "loc2": { "sans": 0.35, "avec": 0.40 },
