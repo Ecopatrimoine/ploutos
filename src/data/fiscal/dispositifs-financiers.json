@@ -1,0 +1,98 @@
+{
+  "_source": "Sourcing dispositifs financiers de defiscalisation, valide David (Legifrance / BOFiP), 06/07/2026. Une entree par dispositif, horodatee par articleCGI + source. Fenetres millesimees [{du, au, taux}] : la date d'investissement doit tomber DANS une fenetre pour ouvrir droit a reduction.",
+  "irpme": {
+    "articleCGI": "199 terdecies-0 A",
+    "source": "CGI art. 199 terdecies-0 A ; BOFiP BOI-IR-RICI-90 ; verifie 06/07/2026.",
+    "plafondNiches": "commun",
+    "dureeEngagementAnnees": 5,
+    "plafondsVersement": { "seul": 50000, "couple": 100000 },
+    "fenetres": [
+      { "du": "2016-01-01", "au": "2099-12-31", "taux": 0.18 }
+    ],
+    "_comment": "IR-PME (souscription directe au capital de PME) : taux 18% permanent. Plafonds de VERSEMENT 50000 (seul) / 100000 (couple soumis a imposition commune). Base = min(versement, plafond). Fraction non imputee faute d'impot reportable 4 ans NON modelisee en v1 (conservateur). Enveloppe 'commun' (10000). Engagement de conservation 5 ans (31/12 N+5)."
+  },
+  "fcpi": {
+    "articleCGI": "199 terdecies-0 A VI",
+    "source": "CGI art. 199 terdecies-0 A VI ; LF 2025 (bornage 2025) ; verifie 06/07/2026.",
+    "plafondNiches": "commun",
+    "dureeEngagementAnnees": 5,
+    "plafondsVersement": { "seul": 12000, "couple": 24000 },
+    "fenetres": [
+      { "du": "2014-01-01", "au": "2025-09-27", "taux": 0.18 },
+      { "du": "2025-09-28", "au": "2026-02-20", "taux": 0.25 }
+    ],
+    "_comment": "FCPI : 18% jusqu'au 27/09/2025 ; 25% du 28/09/2025 au 20/02/2026 ; SUPPRIME a compter du 21/02/2026 (aucune fenetre au-dela = hors fenetre). Plafonds 12000/24000. Enveloppe 'commun'. Engagement 5 ans."
+  },
+  "fcpiJei": {
+    "articleCGI": "199 terdecies-0 A bis",
+    "source": "CGI art. 199 terdecies-0 A bis (FCPI Jeunes Entreprises Innovantes) ; verifie 06/07/2026.",
+    "plafondNiches": false,
+    "dureeEngagementAnnees": 5,
+    "plafondsVersement": { "seul": 75000, "couple": 150000 },
+    "plafondReductionPropre": 50000,
+    "fenetres": [
+      { "du": "2026-02-21", "au": "2028-12-31", "taux": 0.30 }
+    ],
+    "_comment": "FCPI JEI : reduction 30% a compter du 21/02/2026. Plafonds de VERSEMENT 75000/150000. HORS plafonnement global des niches (plafondNiches false) MAIS plafond PROPRE de REDUCTION 50000 EUR cumule sur 2024-2028 (reductionJeiDejaConsommee a deduire du reste disponible). Engagement 5 ans."
+  },
+  "fipMetropole": {
+    "articleCGI": "199 terdecies-0 A VI bis",
+    "source": "CGI art. 199 terdecies-0 A VI bis ; LF 2025 ; verifie 06/07/2026.",
+    "plafondNiches": "commun",
+    "dureeEngagementAnnees": 5,
+    "plafondsVersement": { "seul": 12000, "couple": 24000 },
+    "fenetres": [
+      { "du": "2014-01-01", "au": "2025-12-31", "taux": 0.18 }
+    ],
+    "_comment": "FIP Metropole : 18% jusqu'au 31/12/2025 ; SUPPRIME a compter du 01/01/2026 (hors fenetre au-dela). Plafonds 12000/24000. Enveloppe 'commun'. Engagement 5 ans."
+  },
+  "fipCorse": {
+    "articleCGI": "199 terdecies-0 A VI ter",
+    "source": "CGI art. 199 terdecies-0 A VI ter ; verifie 06/07/2026 (aucun terme de fenetre fourni au sourcing : fenetre large).",
+    "plafondNiches": "commun",
+    "dureeEngagementAnnees": 5,
+    "plafondsVersement": { "seul": 12000, "couple": 24000 },
+    "fenetres": [
+      { "du": "2021-01-01", "au": "2099-12-31", "taux": 0.30 }
+    ],
+    "_comment": "FIP Corse : 30%. Plafonds 12000/24000. Enveloppe 'commun'. Engagement 5 ans."
+  },
+  "fipOutreMer": {
+    "articleCGI": "199 terdecies-0 A VI ter A",
+    "source": "CGI art. 199 terdecies-0 A VI ter A ; verifie 06/07/2026 (aucun terme de fenetre fourni au sourcing : fenetre large).",
+    "plafondNiches": "commun",
+    "dureeEngagementAnnees": 5,
+    "plafondsVersement": { "seul": 12000, "couple": 24000 },
+    "fenetres": [
+      { "du": "2021-01-01", "au": "2099-12-31", "taux": 0.30 }
+    ],
+    "_comment": "FIP Outre-mer : 30%. Plafonds 12000/24000. Enveloppe 'commun'. Engagement 5 ans."
+  },
+  "sofica": {
+    "articleCGI": "199 unvicies",
+    "source": "CGI art. 199 unvicies ; BOFiP BOI-IR-RICI-180 ; verifie 06/07/2026.",
+    "plafondNiches": "majore",
+    "fractionPlafond": 1,
+    "dureeEngagementAnnees": 5,
+    "tauxParClef": { "30": 0.30, "36": 0.36, "48": 0.48 },
+    "tauxClefDefaut": "48",
+    "plafondBaseAbsolu": 18000,
+    "plafondBasePctRNG": 0.25,
+    "fenetres": [
+      { "du": "2020-01-01", "au": "2026-12-31" }
+    ],
+    "_comment": "SOFICA (199 unvicies) : base = min(versement, 25% du revenu net global, 18000 EUR). Taux 30 / 36 / 48% selon les engagements pris par la SOFICA (defaut 48%). Enveloppe 'majore' (18000), fractionPlafond 1. Fin de fenetre d'investissement 31/12/2026. Engagement 5 ans. La base dependant du RNG est calculee au point d'injection (ir.ts) qui fournit le RNG."
+  },
+  "girardinIndustriel": {
+    "articleCGI": "199 undecies B",
+    "source": "CGI art. 199 undecies B ; verifie 06/07/2026.",
+    "plafondNiches": "majore",
+    "dureeEngagementAnnees": 5,
+    "reductionSaisie": true,
+    "fractionParRegime": { "pleinDroit": 0.44, "agrement": 0.34 },
+    "fenetres": [
+      { "du": "2015-01-01", "au": "2029-12-31" }
+    ],
+    "_comment": "Girardin industriel (199 undecies B) : reduction SAISIE (attestation operateur), one-shot l'annee de realisation. Regime de plein droit -> fractionPlafond 0.44 (retrocession 56%) ; avec agrement -> 0.34 (retrocession 66%). Seule reduction x fractionPlafond consomme l'enveloppe 'majore'. Fenetre jusqu'au 31/12/2029. Portage 5 ans."
+  }
+}
