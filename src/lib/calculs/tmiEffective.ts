@@ -12,7 +12,15 @@ export type TmiCase = "normal" | "decote" | "plafonnement" | "cumul" | "frontier
 // (le taux réel), `corps` = suite du texte. Le PDF rend `<strong>leadFort</strong> corps`.
 export type TmiEncart = { titre: string; leadFort?: string; corps: string };
 
-export type TmiView = { tmiCase: TmiCase; encart?: TmiEncart; reconBaremeLignes: string[] };
+export type TmiView = {
+  tmiCase: TmiCase;
+  encart?: TmiEncart;
+  reconBaremeLignes: string[];
+  // Sous-texte court « cohérence card/tuile » (Lot C2) — même chaîne pour la card écran
+  // et la tuile PDF « TRANCHE MARG. » ; ABSENT en normal/forfaitaire. Le renderer ajoute
+  // éventuellement « — voir encadré ci-dessous » (écran) ; la tuile PDF l'utilise nu.
+  sousTexteCard?: string;
+};
 
 const formatEuro = (n: number): string =>
   new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Math.round(n)) + " €";
@@ -87,5 +95,11 @@ export function computeTmiView(ir: any, isCouple: boolean): TmiView {
     reconBaremeLignes.push(`= impôt barème net ${formatEuro(baremeVal)} (aucune décote ni plafonnement)`);
   }
 
-  return { tmiCase, encart, reconBaremeLignes };
+  // Sous-texte court (cohérence card écran / tuile PDF) — core sans suffixe renderer.
+  let sousTexteCard: string | undefined;
+  if (tmiCase === "decote" || tmiCase === "cumul") sousTexteCard = `taux marginal réel : ${pct2(mrEff)}`;
+  else if (tmiCase === "plafonnement") sousTexteCard = `taux marginal réel : ${effPctInt} %`;
+  else if (tmiCase === "frontiere") sousTexteCard = `à ${formatEuro(distSeuilFoyer)} de la tranche à ${Math.round((Number(nextBr?.rate) || 0) * 100)} %`;
+
+  return { tmiCase, encart, reconBaremeLignes, sousTexteCard };
 }
