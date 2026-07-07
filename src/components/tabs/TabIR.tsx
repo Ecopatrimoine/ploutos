@@ -201,7 +201,10 @@ const TabIR = React.memo(function TabIR(props: any) {
           value={`${Math.round(ir.marginalRate * 100)} %`}
           hint={ir.isConcubin
             ? "TMI du foyer sélectionné. Chaque concubin a son propre quotient et son propre TMI."
-            : "Taux Marginal d'Imposition : taux de la dernière tranche atteinte"}
+            : "Taux Marginal d'Imposition : tranche du barème sur le quotient"}
+          sousTexte={tmiView.sousTexteCard
+            ? (tmiView.tmiCase === "frontiere" ? tmiView.sousTexteCard : `${tmiView.sousTexteCard} — voir encadré ci-dessous`)
+            : undefined}
           accent="gold"
         />
         <MetricCard
