@@ -135,13 +135,13 @@ describe("TabImmobilier — section Location meublee", () => {
     expect(screen.getByText(/Censi-Bouvard : l'amortissement est exclu/)).toBeTruthy();
   });
 
-  // ── Lot 2 : bouton "Projete 10 ans" (visible au reel resolu seulement) ──
-  it("LMNP reel : bouton 'Projete 10 ans' present", () => {
+  // ── Lot 2 : bouton "Projection sur 10 ans" (visible au reel resolu seulement) ──
+  it("LMNP reel : bouton 'Projection sur 10 ans' present", () => {
     renderImmo(mkProp({ type: "LMNP", regimeMeuble: "reel", recettesAnnuelles: "20000" }));
-    expect(screen.getByText(/Projete 10 ans/)).toBeTruthy();
+    expect(screen.getByText(/Projection sur 10 ans/)).toBeTruthy();
   });
-  it("LMNP micro : pas de bouton 'Projete 10 ans'", () => {
+  it("LMNP micro : pas de bouton 'Projection sur 10 ans'", () => {
     renderImmo(mkProp({ type: "LMNP", rentGrossAnnual: "12000" }));
-    expect(screen.queryByText(/Projete 10 ans/)).toBeNull();
+    expect(screen.queryByText(/Projection sur 10 ans/)).toBeNull();
   });
 });

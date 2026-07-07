@@ -1,8 +1,9 @@
-// ─── ProjectionMeubleModal — projete 10 ans d'un bien meuble au reel (Lot 2) ──
+// ─── ProjectionMeubleModal — projection sur 10 ans d'un bien meuble reel (Lot 2) ──
 //
 // Modale patron ChargesModal/AmortissementModal (shadcn Dialog). LECTURE SEULE :
 // calcul a l'ouverture via computeProjectionMeuble (fonction pure, hors moteur).
-// Aucune persistance, aucun export. Centre sur l'accumulation ARD / deficit.
+// Aucune persistance, aucun export. Centre sur l'accumulation ARD / deficit ;
+// volet plus-value brute (art. 150 VB) en colonne + avertissement dedie.
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
@@ -20,6 +21,8 @@ export function ProjectionMeubleModal({ property, onClose }: Props) {
   const proj = computeProjectionMeuble(property, 10);
   const L = proj.lignes;
   const hasDeficits = L.some((l) => l.stockDeficits > 0 || l.deficitsImputes > 0);
+  const pv = proj.pvDisponible;
+  const censi = property.dispositifFiscal === "censiBouvard";
   const dernier = L[L.length - 1];
   const chartData = L.map((l) => ({ annee: `An ${l.annee}`, base: Math.round(l.baseImposable), ard: Math.round(l.stockArd) }));
 
@@ -27,27 +30,28 @@ export function ProjectionMeubleModal({ property, onClose }: Props) {
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-3xl rounded-2xl" style={{ background: SURFACE.card, maxHeight: "90vh", overflowY: "auto" }}>
         <DialogHeader>
-          <DialogTitle style={{ color: BRAND.navy }}>Projete 10 ans — {property.name || "bien meuble"} (BIC reel)</DialogTitle>
+          <DialogTitle style={{ color: BRAND.navy }}>Projection sur 10 ans — {property.name || "bien meublé"} (BIC réel)</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          {/* Bandeau hypotheses */}
+          {/* Bandeau hypothèses */}
           <div className="text-[11px] rounded-lg px-3 py-2" style={{ background: BRAND.cream, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}>
-            Recettes et charges constantes — amortissement {proj.manuel ? "au montant manuel constant" : "selon le plan par composants"} — interets d'emprunt non degressifs — simulation indicative, hors evolution legislative.
+            Recettes et charges constantes — amortissement {proj.manuel ? "au montant manuel constant" : "selon le plan par composants"} — intérêts d'emprunt non dégressifs — simulation indicative, hors évolution législative.
           </div>
 
-          {/* Tableau annee par annee */}
+          {/* Tableau année par année */}
           <div style={{ overflowX: "auto" }}>
             <table className="w-full text-sm" style={{ borderCollapse: "collapse", fontVariantNumeric: "tabular-nums" }}>
               <thead>
                 <tr style={{ color: BRAND.muted, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                  <th style={{ textAlign: "left", padding: "5px 8px" }}>Annee</th>
+                  <th style={{ textAlign: "left", padding: "5px 8px" }}>Année</th>
                   <th style={{ textAlign: "right", padding: "5px 8px" }}>Dotation</th>
-                  <th style={{ textAlign: "right", padding: "5px 8px" }}>Amort. utilise</th>
+                  <th style={{ textAlign: "right", padding: "5px 8px" }}>Amort. utilisé</th>
                   <th style={{ textAlign: "right", padding: "5px 8px", color: BRAND.sky }}>Stock ARD</th>
-                  {hasDeficits && <th style={{ textAlign: "right", padding: "5px 8px" }}>Def. imputes</th>}
-                  {hasDeficits && <th style={{ textAlign: "right", padding: "5px 8px" }}>Stock deficits</th>}
+                  {hasDeficits && <th style={{ textAlign: "right", padding: "5px 8px" }}>Déf. imputés</th>}
+                  {hasDeficits && <th style={{ textAlign: "right", padding: "5px 8px" }}>Stock déficits</th>}
                   <th style={{ textAlign: "right", padding: "5px 8px" }}>Base imposable</th>
-                  <th style={{ textAlign: "right", padding: "5px 8px" }}>PS estimes</th>
+                  <th style={{ textAlign: "right", padding: "5px 8px" }}>PS estimés</th>
+                  {pv && <th style={{ textAlign: "right", padding: "5px 8px", color: BRAND.goldText }}>PV brute si vente</th>}
                 </tr>
               </thead>
               <tbody>
@@ -63,6 +67,7 @@ export function ProjectionMeubleModal({ property, onClose }: Props) {
                       {hasDeficits && <td style={{ padding: "5px 8px", textAlign: "right", color: BRAND.warning }}>{l.stockDeficits > 0 ? euro(l.stockDeficits) : "—"}</td>}
                       <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 700, color: BRAND.navy }}>{euro(l.baseImposable)}</td>
                       <td style={{ padding: "5px 8px", textAlign: "right", color: l.psEstimes > 0 ? BRAND.danger : BRAND.muted }}>{euro(l.psEstimes)}</td>
+                      {pv && <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 700, color: l.moinsValue ? BRAND.success : BRAND.goldText }}>{l.moinsValue ? "MV" : euro(l.pvBrute)}</td>}
                     </tr>
                   );
                 })}
@@ -70,7 +75,7 @@ export function ProjectionMeubleModal({ property, onClose }: Props) {
             </table>
           </div>
 
-          {/* Mini graphe : barres base + courbe stock ARD */}
+          {/* Mini graphe : barres base + courbe stock ARD (reste centré sur l'ARD) */}
           <div style={{ width: "100%", height: 190 }}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -85,12 +90,20 @@ export function ProjectionMeubleModal({ property, onClose }: Props) {
             </ResponsiveContainer>
           </div>
 
-          {/* Annee de bascule */}
+          {/* Année de bascule */}
           <div className="text-xs rounded-lg px-3 py-2" style={{ background: proj.anneeBascule ? BRAND.warningBg : "rgba(38,66,139,0.06)", border: `1px solid ${proj.anneeBascule ? BRAND.warningBorder : "rgba(38,66,139,0.2)"}`, color: proj.anneeBascule ? BRAND.warning : BRAND.sky, fontWeight: 600 }}>
             {proj.anneeBascule
-              ? `Premiere annee imposable : an ${proj.anneeBascule}.`
+              ? `Première année imposable : an ${proj.anneeBascule}.`
               : `Aucune base imposable sur ${L.length} ans — stock ARD restant : ${euro(dernier.stockArd)}.`}
           </div>
+
+          {/* Avertissement plus-value (seulement si le volet est calculé) */}
+          {pv && (
+            <div className="text-[11px] rounded-lg px-3 py-2" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}>
+              <strong>Plus-value BRUTE avant abattements pour durée de détention (art. 150 VC)</strong> : l'impôt réel sera inférieur, voire nul selon la durée. Hypothèses : prix de cession = valeur estimée actuelle (sans revalorisation) ; forfait frais d'acquisition 7,5 % ; forfait travaux 15 % à compter de la 6ᵉ année de détention (l'an 1 de la projection = 1ʳᵉ année de détention) ; amortissements déduits réintégrés (LF 2025, art. 150 VB III), y compris mobilier par prudence. Résidences de services : réintégration non applicable.
+              {censi && <div style={{ marginTop: 6, fontStyle: "italic" }}>Bien en résidence de services probable (Censi-Bouvard) — la réintégration des amortissements ne s'applique pas (exception LF 2025) ; colonne donnée à titre conservateur.</div>}
+            </div>
+          )}
 
           <button type="button" onClick={onClose} className="w-full rounded-xl py-2 text-sm font-medium" style={{ background: "rgba(81,106,199,0.1)", color: BRAND.sky }}>Fermer</button>
         </div>

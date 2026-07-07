@@ -635,7 +635,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                 {regimeEffectif === "reel" && (
                   <div>
                     <button type="button" onClick={() => setProjModalPropertyId(property.id)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border transition-colors hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#26428B]" style={{ background: "rgba(38,66,139,0.08)", borderColor: "rgba(38,66,139,0.25)", color: BRAND.sky }}>
-                      📈 Projete 10 ans
+                      📈 Projection sur 10 ans
                     </button>
                   </div>
                 )}
