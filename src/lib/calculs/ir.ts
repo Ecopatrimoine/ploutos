@@ -125,7 +125,9 @@ export function resolveBeneficeAuReel(data: PatrimonialData, personne: 1 | 2): b
 // (arbitrage B) pour un bien existant sans champs saisis :
 //   - recettes : recettesAnnuelles saisi, sinon loyers existants (rentGrossAnnual) ;
 //   - regime   : regimeMeuble saisi, sinon micro si recettes <= seuil du sous-type,
-//                sinon reel (charges 0 + amortissement 0 tant que rien n'est saisi) ;
+//                sinon reel (charges 0 + amortissement 0 tant que rien n'est saisi).
+//                Micro applique SEULEMENT si eligible (art. 50-0 CGI) : micro choisi
+//                explicitement au-dessus du seuil => reel de plein droit ;
 //   - sous-type par defaut : longue_duree ;
 //   - amortissement (reel) : barriere douce isSet(amortissementAnnuelManuel)
 //     ("0" = 0 voulu), sinon auto si prixAcquisition saisi, sinon 0 (jamais de
@@ -140,8 +142,11 @@ function baseBicMeuble(p: Property): number {
     ? refMeuble.microBic.tourismeNonClasse.seuil
     : refMeuble.microBic.residuel.seuil;
   const regime: RegimeMeuble = p.regimeMeuble ?? (recettes <= seuilMicro ? "micro" : "reel");
-  if (regime === "micro") {
-    return computeMicroBicMeuble(recettes, sousType).base;
+  // Le micro n'est de droit que si eligible (recettes <= seuil, art. 50-0 CGI) ;
+  // un micro choisi au-dessus du seuil bascule en reel de plein droit.
+  const micro = computeMicroBicMeuble(recettes, sousType);
+  if (regime === "micro" && micro.eligible) {
+    return micro.base;
   }
   const charges = n(p.chargesReelles);
   const dotationAmort = isSet(p.amortissementAnnuelManuel)

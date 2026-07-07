@@ -144,6 +144,23 @@ describe("LMNP — regime reel : barriere douce sur amortissementAnnuelManuel", 
   });
 });
 
+// ─── Micro choisi explicitement AU-DESSUS du seuil -> reel de plein droit ─────
+// GO David 07/07/2026 (art. 50-0 CGI : le micro n'est de droit que si eligible).
+describe("LMNP — micro choisi au-dessus du seuil bascule en reel de plein droit", () => {
+  it("regimeMeuble micro + recettes 90000 (> 83600) -> reel, base 90000 (PAS micro 45000)", () => {
+    const ir = computeIR({ ...BASE_DATA, salary1: "40000", properties: [prop({ type: "LMNP", regimeMeuble: "micro", recettesAnnuelles: "90000" })] }, MICRO);
+    expect(ir.beneficeMeuble).toBeCloseTo(90000, 2); // reel (recettes - 0 - 0), pas 45000
+  });
+  it("tourisme non classe micro + recettes 16000 (> 15000) -> reel, base 16000 (PAS micro 11200)", () => {
+    const ir = computeIR({ ...BASE_DATA, salary1: "40000", properties: [prop({ type: "LMNP", sousType: "tourisme_non_classe", regimeMeuble: "micro", recettesAnnuelles: "16000" })] }, MICRO);
+    expect(ir.beneficeMeuble).toBeCloseTo(16000, 2);
+  });
+  it("micro eligible (recettes <= seuil) reste micro (non regresse)", () => {
+    const ir = computeIR({ ...BASE_DATA, salary1: "40000", properties: [prop({ type: "LMNP", regimeMeuble: "micro", recettesAnnuelles: "12000" })] }, MICRO);
+    expect(ir.beneficeMeuble).toBeCloseTo(6000, 2); // micro 50 % applique normalement
+  });
+});
+
 // ─── Helper de collecte (detection LMP, lot UI a venir) ───────────────────────
 describe("LMNP — collecteRevenusActiviteFoyer (base de comparaison LMP)", () => {
   it("somme salaires + pensions + benefice TNS, hors meuble", () => {
