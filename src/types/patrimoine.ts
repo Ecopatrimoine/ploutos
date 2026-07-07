@@ -143,6 +143,10 @@ export type Property = {
   // referentiel), duree en annees ; champ absent = valeur du referentiel.
   // Optionnel/vide = grille par defaut. Consomme par amortissementAuto (moteur).
   amortissementComposants?: Record<string, { part?: number; duree?: number }>;
+  // Situation de depart pour la projection 10 ans (Lot 2ter). Optionnels, zero
+  // migration : vides => an 1 = 1re annee de detention, stock ARD initial 0.
+  anneeAcquisition?: string;   // annee entiere (1950..millesime) ; convention string comme dispositifAnnee
+  stockArdAnterieur?: string;  // amortissements en report deja constates (euros >= 0)
 };
 
 export type ExternalShareholder = {

@@ -33,7 +33,8 @@ import { amortissementAuto } from "./locationMeublee";
 import refMeuble from "../../data/location-meublee.json";
 
 export type ProjectionAnnee = {
-  annee: number;
+  annee: number;            // rang dans la projection (1..N)
+  age: number;             // age / annee de detention du bien a cette annee (= anneesEcoulees + annee)
   dotation: number;         // amortissement theorique de l'annee (plan ou manuel)
   utilise: number;          // amortissement effectivement deduit (art. 39 C)
   stockArd: number;         // amortissement en report cumule (fin d'annee)
@@ -57,7 +58,11 @@ export type ProjectionMeubleResult = {
   chargesRetenues: number;
   pvDisponible: boolean;       // false si prixAcquisition absent (volet PV non calcule)
   prixCession: number;         // valeur estimee (constante), fallback prixAcquisition
+  anneesEcoulees: number;      // annees de detention deja ecoulees a l'ouverture (0 si non renseigne)
+  anneeAcquisition: number | null; // annee d'acquisition saisie (null si non renseignee)
 };
+
+const ANNEE_MIN_ACQUISITION = 1950;
 
 const PEREMPTION_DEFICIT = 10; // art. 156 I-1 ter : report des deficits meubles sur 10 ans
 
@@ -91,25 +96,44 @@ export function computeProjectionMeuble(bien: Property, annees = 10): Projection
       );
   const dureeMob = refMeuble.amortissement.dureeMobilier;
 
-  // Dotation de l'annee : chaque composant contribue tant que annee <= sa duree ;
-  // le mobilier sort a l'annee dureeMob+1. En manuel, montant constant.
-  const dotationAnnee = (annee: number): number => {
+  // Age du bien : anneesEcoulees deja passees depuis l'acquisition (annee simulee
+  // du moteur = millesime du referentiel, JAMAIS Date.now). Champ absent / annee
+  // hors bornes => 0 (comportement historique : an 1 = 1re annee de detention).
+  const anneeCourante = refMeuble.millesime;
+  const anneeAcqParsee = n(bien.anneeAcquisition);
+  const anneeAcquisition = anneeAcqParsee >= ANNEE_MIN_ACQUISITION && anneeAcqParsee <= anneeCourante ? anneeAcqParsee : null;
+  const anneesEcoulees = anneeAcquisition != null ? Math.max(0, anneeCourante - anneeAcquisition) : 0;
+  const stockArdInit = Math.max(0, n(bien.stockArdAnterieur));
+
+  // Dotation theorique du bien a un AGE donne (plan suppose applique depuis
+  // l'acquisition) : chaque composant dote tant que age <= sa duree ; le mobilier
+  // sort a l'age dureeMob+1. En manuel, montant constant.
+  const dotationAge = (age: number): number => {
     if (manuel) return manualAmount;
     if (!plan) return 0;
     let d = 0;
-    for (const c of plan.detail) if (annee <= c.duree) d += c.dotation;
-    if (annee <= dureeMob) d += plan.mobilier;
+    for (const c of plan.detail) if (age <= c.duree) d += c.dotation;
+    if (age <= dureeMob) d += plan.mobilier;
     return d;
   };
 
+  // Cumul deja DEDUIT avant l'ouverture (pour la PV) : ce qui a ete dote sur les
+  // annees anterieures (ages 1..anneesEcoulees) et n'est PLUS en stock ARD a ete
+  // deduit => max(dotations anterieures - stockArdAnterieur, 0). En manuel :
+  // dotations anterieures = montant manuel x anneesEcoulees.
+  let dotationsAnterieures = 0;
+  for (let age = 1; age <= anneesEcoulees; age++) dotationsAnterieures += dotationAge(age);
+  const cumulDeduitInitial = Math.max(0, dotationsAnterieures - stockArdInit);
+
   const lignes: ProjectionAnnee[] = [];
-  let stockArd = 0;
-  let cumulDeduit = 0; // cumul des amortissements DEDUITS (utilise), pour la reintegration PV
+  let stockArd = stockArdInit;          // seed : stock ARD anterieur
+  let cumulDeduit = cumulDeduitInitial; // seed : amortissements deja deduits (reintegration PV)
   const fileDeficits: { annee: number; montant: number }[] = []; // FIFO, plus anciens en tete
   let anneeBascule: number | null = null;
 
   for (let annee = 1; annee <= annees; annee++) {
-    const dotation = dotationAnnee(annee);
+    const age = anneesEcoulees + annee;
+    const dotation = dotationAge(age);
     const dispo = dotation + stockArd;
     const utilise = Math.min(dispo, Math.max(resultatAvantAmort, 0));
     stockArd = dispo - utilise;
@@ -143,7 +167,7 @@ export function computeProjectionMeuble(bien: Property, annees = 10): Projection
     // prix d'acquisition corrige = prix x (1 + forfait acquisition + forfait travaux
     // si detention > 5 ans) MOINS les amortissements DEDUITS reintegres (LF 2025).
     cumulDeduit += utilise;
-    const forfaitTravaux = annee > PV_SEUIL_TRAVAUX_ANS ? PV_FORFAIT_TRAVAUX : 0;
+    const forfaitTravaux = age > PV_SEUIL_TRAVAUX_ANS ? PV_FORFAIT_TRAVAUX : 0;
     const prixAcquisitionCorrige = pvDisponible
       ? prixAcquisition * (1 + PV_FORFAIT_ACQUISITION + forfaitTravaux) - cumulDeduit
       : 0;
@@ -151,8 +175,8 @@ export function computeProjectionMeuble(bien: Property, annees = 10): Projection
     const pvBrute = pvDisponible ? Math.max(0, pvNette) : 0;
     const moinsValue = pvDisponible ? pvNette < 0 : false;
 
-    lignes.push({ annee, dotation, utilise, stockArd, deficitsImputes, stockDeficits, baseImposable, psEstimes, cumulDeduit, prixAcquisitionCorrige, pvBrute, moinsValue });
+    lignes.push({ annee, age, dotation, utilise, stockArd, deficitsImputes, stockDeficits, baseImposable, psEstimes, cumulDeduit, prixAcquisitionCorrige, pvBrute, moinsValue });
   }
 
-  return { lignes, anneeBascule, manuel, recettes, chargesRetenues, pvDisponible, prixCession };
+  return { lignes, anneeBascule, manuel, recettes, chargesRetenues, pvDisponible, prixCession, anneesEcoulees, anneeAcquisition };
 }

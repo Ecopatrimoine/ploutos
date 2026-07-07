@@ -2,9 +2,11 @@
 // jamais dans computeIR). Golden values verifiees en Python le 07/07/2026.
 import { describe, it, expect } from "vitest";
 import { computeProjectionMeuble } from "../lib/calculs/projectionMeuble";
+import refMeuble from "../data/location-meublee.json";
 import type { Property } from "../types/patrimoine";
 
 const bien = (over: any): Property => ({ id: "b", name: "Meuble", type: "LMNP", regimeMeuble: "reel", ...over } as unknown as Property);
+const MILLESIME = refMeuble.millesime;
 
 describe("computeProjectionMeuble — T10 accumulation ARD (grille par defaut)", () => {
   // recettes 18000, charges retenues 8000, bien 300000 / terrain 0.15 / mobilier 10000.
@@ -116,5 +118,63 @@ describe("computeProjectionMeuble — volet PV : garde-fous", () => {
     const r = computeProjectionMeuble(bien({ recettesAnnuelles: "18000", chargesReelles: "8000", prixAcquisition: "250000", value: "" }));
     expect(r.pvDisponible).toBe(true);
     expect(r.prixCession).toBe(250000);
+  });
+});
+
+describe("computeProjectionMeuble — T13 annee d'acquisition + stock ARD anterieur", () => {
+  // Meme bien que T12, acquis il y a 5 ans, stock ARD anterieur 8000.
+  const r = computeProjectionMeuble(bien({
+    recettesAnnuelles: "18000", chargesReelles: "8000", prixAcquisition: "300000",
+    partTerrain: "0.15", valeurMobilier: "10000", value: "300000",
+    anneeAcquisition: String(MILLESIME - 5), stockArdAnterieur: "8000",
+  }));
+  const L = r.lignes;
+  it("anneesEcoulees 5 ; cumul deduit initial 45680.36 (53680.36 dotes - 8000 ARD)", () => {
+    expect(r.anneesEcoulees).toBe(5);
+    expect(L[0].age).toBe(6);
+    expect(L[0].cumulDeduit - L[0].utilise).toBeCloseTo(45680.36, 2); // = cumul initial
+  });
+  it("k1 (age 6) : dotation 10736.07, stock ARD 8736.07, cumul 55680.36, prixCorrige 311819.64, MV", () => {
+    expect(L[0].dotation).toBeCloseTo(10736.07, 2);
+    expect(L[0].stockArd).toBeCloseTo(8736.07, 2);
+    expect(L[0].cumulDeduit).toBeCloseTo(55680.36, 2);
+    expect(L[0].prixAcquisitionCorrige).toBeCloseTo(311819.64, 2);
+    expect(L[0].moinsValue).toBe(true); // forfait travaux deja actif (age 6 > 5)
+  });
+  it("k3 (age 8) : dotation 9307.50 (mobilier sorti), pvBrute 8180.36", () => {
+    expect(L[2].age).toBe(8);
+    expect(L[2].dotation).toBeCloseTo(9307.5, 2);
+    expect(L[2].pvBrute).toBeCloseTo(8180.36, 2);
+  });
+  it("k5 : stock ARD 7394.64, pvBrute 28180.36", () => {
+    expect(L[4].stockArd).toBeCloseTo(7394.64, 2);
+    expect(L[4].pvBrute).toBeCloseTo(28180.36, 2);
+  });
+  it("k10 (age 15) : stock ARD 3932.14, cumul 145680.36, pvBrute 78180.36", () => {
+    expect(L[9].age).toBe(15);
+    expect(L[9].stockArd).toBeCloseTo(3932.14, 2);
+    expect(L[9].cumulDeduit).toBeCloseTo(145680.36, 2);
+    expect(L[9].pvBrute).toBeCloseTo(78180.36, 2);
+  });
+});
+
+describe("computeProjectionMeuble — iso strict (champs vides) + garde-fous 2ter", () => {
+  it("anneeAcquisition = annee courante : anneesEcoulees 0, iso T12 (an 1 prixCorrige 312500)", () => {
+    const r = computeProjectionMeuble(bien({ recettesAnnuelles: "18000", chargesReelles: "8000", prixAcquisition: "300000", partTerrain: "0.15", valeurMobilier: "10000", value: "300000", anneeAcquisition: String(MILLESIME) }));
+    expect(r.anneesEcoulees).toBe(0);
+    expect(r.lignes[0].age).toBe(1);
+    expect(r.lignes[0].cumulDeduit).toBeCloseTo(10000, 2);
+    expect(r.lignes[0].prixAcquisitionCorrige).toBeCloseTo(312500, 2);
+  });
+  it("champs vides : anneesEcoulees 0, anneeAcquisition null (comportement historique)", () => {
+    const r = computeProjectionMeuble(bien({ recettesAnnuelles: "18000", chargesReelles: "8000", prixAcquisition: "300000", value: "300000" }));
+    expect(r.anneesEcoulees).toBe(0);
+    expect(r.anneeAcquisition).toBeNull();
+  });
+  it("amortissement manuel + annees ecoulees : cumul initial = manuel x n", () => {
+    const r = computeProjectionMeuble(bien({ recettesAnnuelles: "18000", chargesReelles: "8000", amortissementAnnuelManuel: "4000", anneeAcquisition: String(MILLESIME - 3), stockArdAnterieur: "0" }));
+    expect(r.anneesEcoulees).toBe(3);
+    // cumul initial (avant an 1) = 4000 x 3 = 12000
+    expect(r.lignes[0].cumulDeduit - r.lignes[0].utilise).toBeCloseTo(12000, 2);
   });
 });
