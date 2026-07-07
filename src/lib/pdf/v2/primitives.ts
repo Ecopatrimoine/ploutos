@@ -1017,6 +1017,10 @@ export function cadresSignatureDocReg(t: Tokens, opts: {
   hauteurCadre?: string;          // par défaut "72px"
   masquerMentionFait?: boolean;   // si vrai, supprime la ligne "Fait à X, le Y"
   mentionFaitHtml?: string;       // override HTML complet de la ligne sous les cadres (ex: déclaration adéquation)
+  /** Image de signature du conseiller (data URL ou URL). Si présente, affichée
+   *  dans le cadre CÔTÉ CABINET uniquement (le cadre client reste vide, signature
+   *  manuscrite). Absente ⇒ rendu STRICTEMENT identique à l'existant (retrocompat). */
+  signatureConseillerSrc?: string;
 }): string {
   const exempl = opts.exemplaires || "en deux exemplaires";
   const ville = opts.ville ? champMission(t, opts.ville) : champMission(t, "lieu");
@@ -1025,6 +1029,11 @@ export function cadresSignatureDocReg(t: Tokens, opts: {
   const mentionClient = opts.mentionClient || "« lu et approuvé », date & signature";
   const mentionCabinet = opts.mentionCabinet || opts.cabinetNom;
   const hauteur = opts.hauteurCadre || "72px";
+  // Signature conseiller (image) dans le cadre cabinet — dimensions bornees,
+  // alignees sur encartSignature (Profil). Absente ⇒ "" (rendu inchange).
+  const sigConseiller = opts.signatureConseillerSrc
+    ? `<img src="${opts.signatureConseillerSrc}" alt="Signature" style="position:absolute;top:50%;right:13px;transform:translateY(-50%);max-height:44px;max-width:130px;object-fit:contain" />`
+    : "";
   const mentionFait = opts.mentionFaitHtml
     ? `<div class="lt" style="font-size:9px;color:${t.texteFaible};margin-top:7px">${opts.mentionFaitHtml}</div>`
     : opts.masquerMentionFait
@@ -1038,7 +1047,7 @@ export function cadresSignatureDocReg(t: Tokens, opts: {
       </div>
       <div style="flex:1;border:0.5px solid ${t.bordureMoyenne};border-radius:9px;padding:11px 13px;height:${hauteur};position:relative;background:${t.fondTableauAlt}">
         <div style="font-family:'Lato',sans-serif;font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;color:${t.texteFaibleClair}">Le cabinet — ${opts.cabinetNomConseiller}</div>
-        <div class="lt" style="position:absolute;bottom:8px;left:13px;font-size:9px;color:${t.texteFaibleClair}">${mentionCabinet}</div>
+        <div class="lt" style="position:absolute;bottom:8px;left:13px;font-size:9px;color:${t.texteFaibleClair}">${mentionCabinet}</div>${sigConseiller}
       </div>
     </div>
     ${mentionFait}
