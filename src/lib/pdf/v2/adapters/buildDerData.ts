@@ -52,6 +52,7 @@ export function buildDerData(params: BuildDerDataParams): DerPageData {
     cabinetRcsVille:    cabinet.villeRcs || undefined,
     cabinetRcs:         cabinet.rcs || undefined,
     cabinetConseiller:  cabinet.conseillerNom || cabinet.conseiller || "—",
+    signatureConseillerSrc: cabinet.signatureSrc || undefined,
     // Statuts
     statutCif,
     cabinetAssociationCif: cabinet.associationCif || cabinet.assocCif || undefined,

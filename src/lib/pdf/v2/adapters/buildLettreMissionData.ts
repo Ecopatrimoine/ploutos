@@ -57,6 +57,7 @@ export function buildLettreMissionData(p: BuildLettreMissionDataParams): LettreM
     cabinetORIAS:      cabinet.orias || "—",
     cabinetStatuts,
     cabinetConseiller: cabinet.conseiller || cabinet.conseillerNom || "—",
+    signatureConseillerSrc: cabinet.signatureSrc || undefined,
     cabinetBaremeHonoraires: cabinet.baremeHonoraires || undefined,
     cabinetPartenaires:      cabinet.partenaires || undefined,
     cabinetNiveauConseil:    (cabinet.niveauConseil === "2" ? "2" : "1"),

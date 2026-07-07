@@ -166,6 +166,7 @@ export function buildFicheDDAData(p: BuildFicheDDADataParams): FicheDDAPageData 
     cabinetNom:        cabinet.cabinetName || "—",
     cabinetORIAS:      cabinet.orias || "—",
     cabinetConseiller: cabinet.conseiller || cabinet.conseillerNom || "—",
+    signatureConseillerSrc: cabinet.signatureSrc || undefined,
     cabinetCategorieIas,
     cabinetStatut:           cabinet.statutLibelle || "courtier / mandataire",
     cabinetModeRemuneration: cabinet.remunerationType || "commissions / honoraires",

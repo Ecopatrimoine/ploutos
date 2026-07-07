@@ -42,6 +42,7 @@ export type LettreMissionPageData = {
   cabinetORIAS: string;          // "25006907"
   cabinetStatuts: string;        // ex: "Courtier en assurance (COA)"
   cabinetConseiller: string;     // "David Perry"
+  signatureConseillerSrc?: string; // image data URL (Lot signature) — cadre cabinet
   cabinetBaremeHonoraires?: string;
   cabinetPartenaires?: string;   // M3 — liste partenaires assurance
   cabinetNiveauConseil?: "1" | "2"; // M2 — Niveau 1 (analyse besoins) ou 2 (perso)
@@ -257,6 +258,7 @@ export function pageLettreMission(t: Tokens, d: LettreMissionPageData): string {
       cabinetNom: d.cabinetNom,
       ville: d.villeSignature,
       date: d.dateLettre,
+      signatureConseillerSrc: d.signatureConseillerSrc,
     })}
     ${noteIconee(t, {
       iconeSvg: icones.infoCircle(t.eyebrowOr, 13),

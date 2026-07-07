@@ -54,6 +54,7 @@ export type DerPageData = {
   cabinetRcsVille?: string;     // ex: "Perpignan" — ville du greffe RCS
   cabinetRcs?: string;          // ex: "123 456 789" — n° d'immatriculation RCS
   cabinetConseiller: string;    // "David Perry"
+  signatureConseillerSrc?: string; // image data URL (Lot signature) — cadre cabinet
   // Statuts ORIAS détenus (par catégorie). statutIas est requis (rétro-compat).
   // Les flags fins ci-dessous (statutCoa/Mia/CarteT) servent à la page
   // Références légales (annexe) — si absents, la dérivation se replie sur statutIas.
@@ -274,6 +275,7 @@ export function pageDer(t: Tokens, d: DerPageData): string {
       mentionClient: "précédé de « lu et approuvé »",
       exemplaires: "en deux exemplaires, un par partie",
       hauteurCadre: "74px",
+      signatureConseillerSrc: d.signatureConseillerSrc,
     })}
     ${noteIconee(t, {
       iconeSvg: icones.infoCircle(t.eyebrowOr, 13),

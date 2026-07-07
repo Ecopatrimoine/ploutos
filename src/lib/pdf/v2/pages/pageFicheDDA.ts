@@ -77,6 +77,7 @@ export type FicheDDAPageData = {
   cabinetNom: string;
   cabinetORIAS: string;
   cabinetConseiller: string;
+  signatureConseillerSrc?: string; // image data URL (Lot signature) — cadre cabinet
   // Catégorie IAS (varc) — affichée dans la mention de statut bas de page 2.
   cabinetCategorieIas: string;
   // Statut & rémunération (varc) — affichés dans l'encadré Rémunération.
@@ -236,6 +237,7 @@ export function pageFicheDDA(t: Tokens, d: FicheDDAPageData): string {
       mentionCabinet: d.cabinetNom,
       hauteurCadre: "62px",
       masquerMentionFait: true,
+      signatureConseillerSrc: d.signatureConseillerSrc,
     })}
     ${noteIconee(t, {
       iconeSvg: icones.infoCircle(t.eyebrowOr, 12),

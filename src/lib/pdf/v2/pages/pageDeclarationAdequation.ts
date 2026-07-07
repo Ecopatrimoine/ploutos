@@ -73,6 +73,7 @@ export type DeclarationAdequationPageData = {
   // ── Cabinet (Paramètres) ──────────────────────────────────────────────
   cabinetNom: string;
   cabinetConseiller: string;
+  signatureConseillerSrc?: string; // image data URL (Lot signature) — cadre cabinet
   // ── Dossier client (varm) ─────────────────────────────────────────────
   dateConseil: string;          // ex: "25 mai 2026"
   heureConseil: string;         // ex: "14h30"
@@ -211,6 +212,7 @@ export function pageDeclarationAdequation(t: Tokens, d: DeclarationAdequationPag
       mentionCabinet: d.cabinetNom,
       hauteurCadre: "70px",
       mentionFaitHtml: mentionConseilHtml,
+      signatureConseillerSrc: d.signatureConseillerSrc,
     })}
     ${noteIconee(t, {
       iconeSvg: icones.infoCircle(t.eyebrowOr, 13),

@@ -132,6 +132,7 @@ export function buildAdequationData(p: BuildAdequationDataParams): DeclarationAd
   return {
     cabinetNom:        cabinet.cabinetName || "—",
     cabinetConseiller: cabinet.conseiller || cabinet.conseillerNom || "—",
+    signatureConseillerSrc: cabinet.signatureSrc || undefined,
     dateConseil,
     heureConseil,
     dateQuestionnaire,
