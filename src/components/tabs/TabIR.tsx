@@ -14,12 +14,18 @@ import type { Child, Property, Placement, PatrimonialData, IrOptions, Succession
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName, labelDispositifReduction } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
+import { computeTmiView } from "../../lib/calculs/tmiEffective";
 
 
 // ── TabIR ─────────────────────────────────────────────────────────────────────
 const TabIR = React.memo(function TabIR(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
   const { data, ir, irOptions, setIrOptions, concubinPerson, setConcubinPerson, setChargesDialogOpen, person1, person2 } = props;
+
+  // Lot C (mirror B2/B3) — restitution « taux marginal réel » via le helper de vue PARTAGÉ
+  // (même source que le PDF, aucun recalcul local). isCouple = marié/pacsé (baseParts).
+  const isCouple = data.coupleStatus === "married" || data.coupleStatus === "pacs";
+  const tmiView = computeTmiView(ir, isCouple);
 
   return (
 <TabsContent value="ir" className="space-y-4">
@@ -207,6 +213,26 @@ const TabIR = React.memo(function TabIR(props: any) {
           accent="blue"
         />
       </div>
+
+      {/* Encart « votre taux marginal réel » (Lot C) — miroir de l'encart PDF, sous le trio KPI.
+          Absent en normal ; en divergence = mini-calcul ; forfaitaire = mention PFU courte.
+          Source : computeTmiView (helper partagé écran/PDF). */}
+      {tmiView.encart && (
+        <div className="flex items-start gap-2 rounded-xl px-3 py-2 text-xs" style={{ background: BRAND.warningBg, color: BRAND.navy, border: `1px solid ${BRAND.warningBorder}`, borderLeft: `3px solid ${BRAND.gold}` }}>
+          <span className="shrink-0 text-sm mt-0.5">📊</span>
+          <div>
+            <span className="font-semibold">{tmiView.encart.titre} — </span>
+            {tmiView.encart.leadFort && <><strong style={{ color: BRAND.navy }}>{tmiView.encart.leadFort}</strong> </>}
+            {tmiView.encart.corps}
+          </div>
+        </div>
+      )}
+      {tmiView.tmiCase === "forfaitaire" && (
+        <div className="flex items-start gap-2 rounded-xl px-3 py-2 text-xs" style={{ background: BRAND.warningBg, color: BRAND.navy, border: `1px solid ${BRAND.warningBorder}`, borderLeft: `3px solid ${BRAND.gold}` }}>
+          <span className="shrink-0 text-sm mt-0.5">📊</span>
+          <div><span className="font-semibold">Barème 0 % — </span>l'essentiel de votre impôt provient de l'imposition forfaitaire de vos revenus de capitaux (PFU).</div>
+        </div>
+      )}
 
       {/* Gauge TMI — position dans les 5 tranches */}
       <div className="border p-3" style={{ borderColor: SURFACE.border, borderRadius: 14, background: SURFACE.card, boxShadow: SURFACE.cardShadow }}>
@@ -398,8 +424,25 @@ const TabIR = React.memo(function TabIR(props: any) {
         </div>
       </div>
 
-      {/* Barème */}
-      <BracketFillChart title="Barème IR — remplissage des tranches" data={ir.bracketFill} referenceValue={ir.quotient} valueLabel="Quotient familial" />
+      {/* Barème (Lot C mirror B3) : étiquettes impôt/logés + réconciliation (helper partagé) ;
+          bascule sur le calcul de référence (2 parts) quand le QF est plafonné — barres ET
+          calcul sur le MÊME référentiel, jamais mélangés. */}
+      {(() => {
+        const irAny = ir as any;
+        const plafonne = !!irAny.plafonnementQfActif && Array.isArray(irAny.bracketFillBaseParts) && irAny.bracketFillBaseParts.length > 0;
+        const baseParts = isCouple ? 2 : 1;
+        return (
+          <BracketFillChart
+            title="Barème IR — remplissage des tranches"
+            data={plafonne ? irAny.bracketFillBaseParts : ir.bracketFill}
+            referenceValue={plafonne ? irAny.quotientBaseParts : ir.quotient}
+            valueLabel={plafonne ? `Quotient (référence ${baseParts} parts)` : "Quotient familial"}
+            showImpot
+            reconLignes={tmiView.reconBaremeLignes}
+            note={plafonne ? `Plafonnement du quotient familial actif — lecture au barème de référence à ${baseParts} parts` : undefined}
+          />
+        );
+      })()}
 
       {/* ── Waterfall fiscal ── */}
       {ir.revenuNetGlobal > 0 && (() => {
