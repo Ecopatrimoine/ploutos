@@ -56,7 +56,9 @@ export function renderBracketChartSVG(
   // badgeActif : texte du badge sur la tranche active (ex. "TMI") ; si absent → chevron (IFI).
   // formatBorne : format de la ligne de bornes sous chaque barre — "M" (millions, défaut, IFI)
   //   ou "euro" (euros entiers, IR : bornes par part en dizaines de k€).
-  opts: { hauteur?: number; referenceValue?: number; badgeActif?: string; formatBorne?: "M" | "euro" } = {},
+  // annotation : bandeau optionnel au-dessus du graphe (ex. plafonnement QF actif) ;
+  //   absent ⇒ rien émis (rendu byte-identique pour IFI et l'IR non plafonné).
+  opts: { hauteur?: number; referenceValue?: number; badgeActif?: string; formatBorne?: "M" | "euro"; annotation?: string } = {},
 ): string {
   const n = brackets.length;
   if (n === 0) return "";
@@ -143,9 +145,15 @@ export function renderBracketChartSVG(
 
   const axe = `<line x1="${padL}" y1="${yBase.toFixed(1)}" x2="${(W - padR).toFixed(1)}" y2="${yBase.toFixed(1)}" stroke="${t.bordureMoyenne}" stroke-width="0.5" />`;
 
+  // Bandeau d'annotation (ex. « Plafonnement du quotient familial actif… ») — émis
+  // UNIQUEMENT si fourni, sinon chaîne vide (sortie byte-identique à l'existant).
+  const annotationHtml = opts.annotation
+    ? `<div class="lt" data-chart-annotation style="font-size:9px;font-weight:700;color:${t.or};margin:0 0 8px 0;line-height:1.3">${opts.annotation}</div>`
+    : "";
+
   return `
     <div data-bracket-chart style="margin-top:12px;border:0.5px solid ${t.bordureClaire};border-radius:10px;padding:14px 16px 8px">
-      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Bareme par tranche : assiette logee et impot par tranche">
+      ${annotationHtml}<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Bareme par tranche : assiette logee et impot par tranche">
         ${axe}
         ${corps}
       </svg>
