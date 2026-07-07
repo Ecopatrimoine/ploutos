@@ -500,6 +500,55 @@ const TabIR = React.memo(function TabIR(props: any) {
           </div>
         );
       })()}
+
+      {/* ── Location meublee (BIC) — PUR AFFICHAGE des sorties moteur (ir.meubleDetail),
+           aucun recalcul local (lecon KPI endettement). Par bien puis total. ── */}
+      {(() => {
+        const detail: any[] = (ir as any).meubleDetail || [];
+        if (detail.length === 0) return null;
+        const totalBase = detail.reduce((s: number, d: any) => s + n(d.base), 0);
+        const ps = n((ir as any).meubleSocialLevy);
+        const SOUS_LABEL: Record<string, string> = { longue_duree: "Longue duree", tourisme_classe: "Tourisme classe", tourisme_non_classe: "Tourisme non classe" };
+        return (
+          <div className="p-4 border mt-4" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+            <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: BRAND.goldText }}>Location meublée (BIC)</div>
+            <div className="space-y-2 text-xs">
+              {detail.map((d: any, i: number) => (
+                <div key={d.idBien || i} className="rounded-lg p-2" style={{ background: "rgba(196,151,61,0.05)", border: `1px solid ${SURFACE.border}` }}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold" style={{ color: BRAND.navy }}>{d.nom}</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: BRAND.goldText }}>{d.regime === "micro" ? "Micro-BIC" : "Réel"} · {SOUS_LABEL[d.sousType] || d.sousType}</span>
+                  </div>
+                  <div className="space-y-0.5" style={{ color: BRAND.muted }}>
+                    <div className="flex justify-between"><span>Recettes</span><strong>{euro(d.recettes)}</strong></div>
+                    {d.regime === "micro" ? (
+                      <div className="flex justify-between"><span>Abattement{d.abattement <= 305 && d.recettes > 0 ? " (plancher 305 €)" : ""}</span><strong>− {euro(d.abattement)}</strong></div>
+                    ) : (
+                      <>
+                        <div className="flex justify-between"><span>Charges retenues</span><strong>− {euro(d.chargesRetenues)}</strong></div>
+                        {d.amortDeductible > 0 && <div className="flex justify-between"><span>Amortissement déduit</span><strong>− {euro(d.amortDeductible)}</strong></div>}
+                        {d.ard > 0 && <div className="flex justify-between"><span style={{ color: BRAND.sky }}>Amortissement en report (ARD)</span><span style={{ color: BRAND.sky }}>{euro(d.ard)} <span className="opacity-70">· report illimité, art. 39 C</span></span></div>}
+                        {d.deficitReportable > 0 && <div className="flex justify-between"><span style={{ color: BRAND.warning }}>Déficit</span><span style={{ color: BRAND.warning }}>{euro(d.deficitReportable)} <span className="opacity-70">· non imputable au revenu global, art. 156 I-1 ter</span></span></div>}
+                      </>
+                    )}
+                    <div className="flex justify-between pt-0.5" style={{ borderTop: `1px solid ${SURFACE.border}` }}><span className="font-semibold" style={{ color: BRAND.navy }}>Base imposable</span><strong style={{ color: BRAND.navy }}>{euro(d.base)}</strong></div>
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-between pt-1" style={{ borderTop: `1px solid ${SURFACE.border}` }}>
+                <span className="font-semibold" style={{ color: BRAND.navy }}>Base imposable meublée (total foyer)</span>
+                <strong style={{ color: BRAND.navy }}>{euro(totalBase)}</strong>
+              </div>
+              {ps > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="flex items-center gap-1" style={{ color: BRAND.muted }}>Prélèvements sociaux revenus du patrimoine (LFSS 2026)<HelpTooltip text="PS 18,6 % sur le bénéfice meublé (revenus du patrimoine, LFSS 2026 — art. L136-8 CSS). Distinct du foncier nu à 17,2 %." /></span>
+                  <strong style={{ color: BRAND.danger }}>{euro(ps)}</strong>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </CardContent>
   </Card>
 </TabsContent>
