@@ -1627,7 +1627,10 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
       <PopcardImpression
         open={popcardOpen}
         onClose={() => setPopcardOpen(false)}
-        cabinet={cabinet as Record<string, any>}
+        // signatureSrc est un etat frere de cabinet (local only, retire de Supabase) :
+        // on l'injecte ici dans l'objet cabinet passe au pack PDF, symetrique a logoSrc.
+        // buildProfilData / les adapters doc-reg lisent deja cabinet.signatureSrc.
+        cabinet={{ ...(cabinet as Record<string, any>), signatureSrc } as Record<string, any>}
         mission={mission as Record<string, any>}
         data={data as Record<string, any>}
         updateMission={updateMission as any}
