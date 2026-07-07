@@ -180,6 +180,8 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
     // TMI effective (Lot B2) : classification + encart pédagogique (tuile = tranche statutaire).
     tmiCase,
     tmiEncart,
+    // Lot C2 : sous-label tuile « TRANCHE MARG. » en cas de divergence (renvoi implicite à l'encart).
+    trancheMargSousLabel: tmiView.sousTexteCard,
     // Graphe barème "QF plafonné" (foyer commun) : fill + quotient du calcul de référence.
     plafonnementQfActif,
     bracketFillBaseParts: Array.isArray(ir.bracketFillBaseParts) ? ir.bracketFillBaseParts : undefined,
