@@ -53,6 +53,7 @@ export type IRPageData = {
   quotientBaseParts?: number;             // revenu par part au calcul de référence
   qfEcretement?: number;                  // avantage QF écrêté (annotation graphe)
   baseParts?: number;                     // parts de référence (2 couple / 1 seul)
+  reconBaremeLignes?: string[];           // Lot B3 : lignes de réconciliation somme tranches -> impôt barème net
   // Répartition revenus par nature (l'ordre = ordre de la barre + légende)
   salaires: number;         // 74 000
   fonciers: number;         // 11 000
@@ -154,7 +155,6 @@ export function pageIR(t: Tokens, d: IRPageData): string {
   // « TMI ». Note de réconciliation QUALITATIVE (la décote et le plafonnement QF ne sont pas
   // exposés par le moteur) : la somme des barres N'EST PAS l'impôt net. Aucun plafonnement 75 %.
   const aBareme = Array.isArray(d.bracketFill) && d.bracketFill.length > 0;
-  const tmiPct = Math.round((d.marginalRate <= 1 ? d.marginalRate * 100 : d.marginalRate));
   // Variante « QF plafonné » (Lot B) : barres ET marqueur sur le MÊME calcul de référence
   // (bracketFillBaseParts / quotientBaseParts) — jamais un marqueur réf-2-parts sur des barres
   // par part (caveat recon). Absent/non plafonné ⇒ rendu par part inchangé (byte-identique).
@@ -165,22 +165,27 @@ export function pageIR(t: Tokens, d: IRPageData): string {
   const sousTitreBareme = plafonneActif
     ? "Barème IR — remplissage des tranches (barème de référence)"
     : "Barème IR — remplissage des tranches (par part)";
+  // En-tête de lecture (Lot B3) : sens de chaque barre (hauteur = revenu logé, étiquette = impôt).
+  const lectureBarre = "Chaque barre : la hauteur représente le revenu logé dans la tranche, l'étiquette l'impôt correspondant (par part).";
   const footHautBareme = plafonneActif
-    ? `Le <strong>plafonnement du quotient familial</strong> est atteint (avantage écrêté de ${euro(d.qfEcretement ?? 0)}). Le barème est lu au <strong>calcul de référence à ${baseParts} part${baseParts > 1 ? "s" : ""}</strong> (${euro(chartRef)} par part) : c'est sur ce calcul qu'est prélevé votre euro marginal, marqué « TMI ».`
-    : `Lecture pour <strong>une part</strong> de quotient familial (${euro(d.quotientParPart)} par part, ${d.parts} part${d.parts > 1 ? "s" : ""}) — hauteur = revenu logé par tranche, montant = impôt de la tranche, par part. La tranche « TMI » est votre tranche marginale (${tmiPct} %).`;
-  const footBasBareme = plafonneActif
-    ? `Barème de référence (${baseParts} part${baseParts > 1 ? "s" : ""}) : les demi-parts supplémentaires du quotient familial n'abaissent plus l'impôt au-delà du plafond. La somme des barres n'est pas l'impôt net (avant décote).`
-    : `Barème appliqué au revenu par part (quotient) : impôt par part × ${d.parts} part${d.parts > 1 ? "s" : ""}, puis décote et plafonnement du quotient familial donnent l'impôt net dû. La somme des barres ci-dessus n'est donc pas l'impôt net.`;
+    ? `Le <strong>plafonnement du quotient familial</strong> est atteint (avantage écrêté de ${euro(d.qfEcretement ?? 0)}) : lecture au <strong>barème de référence à ${baseParts} part${baseParts > 1 ? "s" : ""}</strong> (${euro(chartRef)} par part). ${lectureBarre}`
+    : lectureBarre;
   const annotationBareme = plafonneActif
     ? `Plafonnement du quotient familial actif — avantage écrêté de ${euro(d.qfEcretement ?? 0)} ; lecture au barème de référence (${baseParts} part${baseParts > 1 ? "s" : ""}).`
     : undefined;
+  // Réconciliation sous le graphe (Lot B3) : lignes de calcul data-driven (buildIRData).
+  // Repli défensif sur l'ancienne légende si absentes.
+  const reconLignes = d.reconBaremeLignes ?? [];
+  const reconHtml = reconLignes.length > 0
+    ? `<div style="margin-top:8px">${reconLignes.map((l, i) => `<div class="foot"${i === reconLignes.length - 1 ? ` style="font-weight:700;color:${t.navy}"` : ""}>${l}</div>`).join("")}</div>`
+    : `<div class="foot">La somme des barres ci-dessus n'est pas l'impôt net (avant décote et plafonnement du quotient familial).</div>`;
   const baremeBloc: Bloc = {
     kind: "insecable",
     html: `<div style="margin-top:24px">
       ${sousTitreSection(t, sousTitreBareme)}
       <div class="foot" style="margin-bottom:6px">${footHautBareme}</div>
       ${renderBracketChartSVG(chartFill, t, { referenceValue: chartRef, badgeActif: "TMI", formatBorne: "euro", annotation: annotationBareme })}
-      <div class="foot">${footBasBareme}</div>
+      ${reconHtml}
     </div>`,
   };
 
