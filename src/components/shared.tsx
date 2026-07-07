@@ -111,8 +111,12 @@ export function MetricCard({ label, value, hint, accent = "gold" }: { label: str
   );
 }
 
-export function BracketFillChart({ title, data, referenceValue, valueLabel }: {
+export function BracketFillChart({ title, data, referenceValue, valueLabel, showImpot, reconLignes, note }: {
   title: string; data: FilledBracket[]; referenceValue: number; valueLabel: string;
+  // Lot C (mirror B3) — OPTIONNELS : absents ⇒ rendu inchangé (IFI, succession…).
+  showImpot?: boolean;        // étiquette impôt « X € d'impôt » + « X € logés » (IR)
+  reconLignes?: string[];     // bloc de réconciliation sous le graphe (dernière ligne en gras)
+  note?: string;             // bandeau au-dessus (ex. plafonnement QF actif)
 }) {
   const chartData = data.map((item, index) => ({
     label: item.label, filled: Math.round(item.filled), tax: Math.round(item.tax),
@@ -128,6 +132,7 @@ export function BracketFillChart({ title, data, referenceValue, valueLabel }: {
       <div style={{ height: 3, background: BRAND.navy }} />
       <CardHeader><CardTitle style={{ color: BRAND.navy }}>{title}</CardTitle></CardHeader>
       <CardContent className="space-y-4">
+        {note && <div className="text-xs font-bold" style={{ color: BRAND.goldText }}>{note}</div>}
         <div className="text-sm" style={{ color: BRAND.muted }}>{valueLabel} : <strong style={{ color: BRAND.navy }}>{euro(referenceValue)}</strong></div>
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs" style={{ color: BRAND.muted }}>
@@ -146,11 +151,23 @@ export function BracketFillChart({ title, data, referenceValue, valueLabel }: {
               <Tooltip formatter={(value: number) => euro(value)} />
               <Bar dataKey="filled" radius={[8, 8, 0, 0]}>
                 {chartData.map((entry, index) => <Cell key={`${entry.label}-${index}`} fill={entry.fill} />)}
-                <LabelList dataKey="filled" position="top" formatter={(value: number) => euro(value)} />
+                {showImpot ? [
+                  <LabelList key="impot" dataKey="tax" position="top" fill={BRAND.navy} fontSize={10} fontWeight={700} formatter={(value: number) => value > 0 ? `${euro(value)} d'impôt` : ""} />,
+                  <LabelList key="loges" dataKey="filled" position="insideTop" fill="#ffffff" fontSize={9} formatter={(value: number) => value > 0 ? `${euro(value)} logés` : ""} />,
+                ] : (
+                  <LabelList dataKey="filled" position="top" formatter={(value: number) => euro(value)} />
+                )}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
+        {reconLignes && reconLignes.length > 0 && (
+          <div className="space-y-0.5 text-xs" style={{ color: BRAND.muted }}>
+            {reconLignes.map((l, i) => (
+              <div key={i} style={i === reconLignes.length - 1 ? { fontWeight: 700, color: BRAND.navy } : undefined}>{l}</div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
