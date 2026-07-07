@@ -224,6 +224,60 @@ export function computeIRConcubin(
   return { bareme, quotient, marginalRate };
 }
 
+// ── Barème net = barème brut -> plafonnement du quotient familial -> décote ──
+// Fonction PURE extraite de computeIR (foyer commun) ; réutilisée par le chemin
+// concubins avec baseParts = parts (=> qfBenefit 0, plafonnement neutralisé :
+// comportement inchangé). Sert aussi au calcul de la TMI effective par delta.
+// `parentIsole` = data.singleParent && childrenParts > 0 (case T, CGI art. 197-I-2).
+export function computeBaremeNet(input: {
+  revenuImposable: number;
+  parts: number;
+  baseParts: number;
+  isCouple: boolean;
+  parentIsole: boolean;
+}): {
+  bareme: number;
+  taxWithParts: number;
+  qfBenefit: number;
+  qfCap: number;
+  ecretement: number;
+  plafonnementActif: boolean;
+  decote: number;
+  baremeBeforeDecote: number;
+} {
+  const { revenuImposable, parts, baseParts, isCouple, parentIsole } = input;
+  const brackets: TaxBracket[] = [
+    { from: 0, to: 11600, rate: 0 },
+    { from: 11600, to: 29579, rate: 0.11 },
+    { from: 29579, to: 84577, rate: 0.3 },
+    { from: 84577, to: 181917, rate: 0.41 },
+    { from: 181917, to: Number.POSITIVE_INFINITY, rate: 0.45 },
+  ];
+  const quotient = revenuImposable / parts;
+  const taxWithParts = computeTaxFromBrackets(quotient, brackets).tax * parts;
+  const taxWithBaseParts = computeTaxFromBrackets(revenuImposable / baseParts, brackets).tax * baseParts;
+  const addedHalfParts = Math.max(0, parts - baseParts);
+  // Plafonnement QF — parent isolé (case T) : 1ère demi-part enfant plafonnée à 4 262 €,
+  // les suivantes à 1 807 € (CGI art. 197-I-2, revenus 2025)
+  const qfCapParentIsole = parentIsole ? 4262 : 0;
+  const qfCapStandard = addedHalfParts > 0
+    ? (parentIsole
+      ? qfCapParentIsole + getQuotientCapPerHalfPart() * ((addedHalfParts - 0.5) / 0.5)
+      : getQuotientCapPerHalfPart() * (addedHalfParts / 0.5))
+    : 0;
+  const qfCap = qfCapStandard;
+  const qfBenefit = Math.max(0, taxWithBaseParts - taxWithParts);
+  const ecretement = qfBenefit > qfCap ? qfBenefit - qfCap : 0;
+  const baremeBeforeDecote = taxWithParts + ecretement;
+  // Décote — CGI art. 197-I-4 (LF 2026, revenus 2025)
+  const decotePlafond = isCouple ? 1483 : 897;
+  const decoteSeuil = isCouple ? 3277 : 1982;
+  const decote = baremeBeforeDecote > 0 && baremeBeforeDecote < decoteSeuil
+    ? Math.max(0, decotePlafond - 0.4525 * baremeBeforeDecote) : 0;
+  const bareme = Math.max(0, baremeBeforeDecote - decote);
+  return { bareme, taxWithParts, qfBenefit, qfCap, ecretement, plafonnementActif: ecretement > 0, decote, baremeBeforeDecote };
+}
+
 /**
  * CGI art. 194 — parts fiscales enfants :
  * - 1er et 2e enfant : 0,5 part chacun (0,25 en garde alternée)
