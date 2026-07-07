@@ -16,9 +16,11 @@ export type TmiView = {
   tmiCase: TmiCase;
   encart?: TmiEncart;
   reconBaremeLignes: string[];
-  // Sous-texte court « cohérence card/tuile » (Lot C2) — même chaîne pour la card écran
-  // et la tuile PDF « TRANCHE MARG. » ; ABSENT en normal/forfaitaire. Le renderer ajoute
-  // éventuellement « — voir encadré ci-dessous » (écran) ; la tuile PDF l'utilise nu.
+  // Valeur PRINCIPALE affichée (décimale) card écran + tuile PDF (Lot C2 révisé) :
+  // sous plafonnement = tranche du calcul de référence (marginalRateReference), sinon
+  // tranche statutaire (marginalRate). Toujours une VRAIE tranche du barème.
+  tmiAffichee: number;
+  // Sous-texte cohérence card/tuile — MÊME chaîne écran + PDF ; ABSENT en normal/forfaitaire.
   sousTexteCard?: string;
 };
 
@@ -95,11 +97,16 @@ export function computeTmiView(ir: any, isCouple: boolean): TmiView {
     reconBaremeLignes.push(`= impôt barème net ${formatEuro(baremeVal)} (aucune décote ni plafonnement)`);
   }
 
-  // Sous-texte court (cohérence card écran / tuile PDF) — core sans suffixe renderer.
+  // Valeur PRINCIPALE affichée : sous plafonnement = tranche de référence (le taux
+  // réellement supporté à la marge), sinon tranche statutaire. Toujours une vraie tranche.
+  const marginalRateReference = Number(ir?.marginalRateReference) || 0;
+  const tmiAffichee = plafonnementQfActif ? marginalRateReference : mr;
+
+  // Sous-texte cohérence card/tuile (MÊME chaîne écran + PDF) — révisé Lot C2 :
   let sousTexteCard: string | undefined;
-  if (tmiCase === "decote" || tmiCase === "cumul") sousTexteCard = `taux marginal réel : ${pct2(mrEff)}`;
-  else if (tmiCase === "plafonnement") sousTexteCard = `taux marginal réel : ${effPctInt} %`;
+  if (tmiCase === "plafonnement" || tmiCase === "cumul") sousTexteCard = `plafonnement du QF actif — tranche sur le quotient : ${tranchePctInt} %`;
+  else if (tmiCase === "decote") sousTexteCard = `taux réel : ${pct2(mrEff)} (effet décote) — voir encadré`;
   else if (tmiCase === "frontiere") sousTexteCard = `à ${formatEuro(distSeuilFoyer)} de la tranche à ${Math.round((Number(nextBr?.rate) || 0) * 100)} %`;
 
-  return { tmiCase, encart, reconBaremeLignes, sousTexteCard };
+  return { tmiCase, encart, reconBaremeLignes, sousTexteCard, tmiAffichee };
 }
