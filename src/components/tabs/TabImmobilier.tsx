@@ -101,7 +101,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
   })()}
   {projModalPropertyId != null && (() => {
     const p = (data.properties as any[]).find((x) => x.id === projModalPropertyId);
-    return p ? <ProjectionMeubleModal property={p} onClose={() => setProjModalPropertyId(null)} /> : null;
+    return p ? <ProjectionMeubleModal property={p} updateProperty={updateProperty} onClose={() => setProjModalPropertyId(null)} /> : null;
   })()}
   {data.properties.length === 0 && <div className="border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>Aucun bien immobilier saisi. Cliquez « Ajouter un bien » pour commencer.</div>}
   {/* ── Constat LMP (niveau dossier) — carte constat, patron severite douce. Aucun
