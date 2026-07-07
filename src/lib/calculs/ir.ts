@@ -959,6 +959,7 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       // (réservé au graphe foyer commun, Lot B).
       marginalRateEffectif: activeConcubinPerson === 2 ? marginalRateEffectif2 : marginalRateEffectif1,
       marginalRateEffectif1, marginalRateEffectif2,
+      marginalRateReference: activeConcubinPerson === 2 ? bn2.marginalRateReference : bn1.marginalRateReference,
       plafonnementQfActif: false,
       decoteMontant: activeConcubinPerson === 2 ? bn2.decote : bn1.decote,
       bracketFill, currentBracketLabel: currentBracket.label,
@@ -1089,6 +1090,7 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     // Lot A (TMI effective) — champs additifs : TMI effective (delta barème net),
     // état plafonnement QF, montant décote, et fill/quotient réf-2-parts (graphe Lot B).
     marginalRateEffectif, plafonnementQfActif, decoteMontant, bracketFillBaseParts, quotientBaseParts,
+    marginalRateReference: baremeNet.marginalRateReference,
     bracketFill, currentBracketLabel: currentBracket.label, indicatorPct, visualMax,
     avRachatImpot, perCapitalImposable, perInteretsPFU, perRentesImposable, perRentesPS, isConcubin: false, plafondPER, plafondPER1, plafondPER2,
     plafondPER1Base163: plafond1.composante163, plafondPER1Sup154: plafond1.composante154,
