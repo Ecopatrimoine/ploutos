@@ -68,7 +68,8 @@ export function renderBracketChartSVG(
   const padL = 20;
   const padR = 20;
   const padT = 24;   // place pour le label montant au-dessus des barres
-  const padB = 46;   // place pour taux + borne (2 lignes) sous l'axe
+  // IR (formatBorne "euro") : +1 ligne « X € logés » + badge descendu ; IFI ("M") inchangé.
+  const padB = opts.formatBorne === "euro" ? 58 : 46;
   const innerW = W - padL - padR;
   const innerH = H - padT - padB;
   const slot = innerW / n;
@@ -116,7 +117,7 @@ export function renderBracketChartSVG(
       // contour, indépendant de toute couleur de fill (daltonien-safe). Texte si badgeActif
       // fourni (ex. "TMI" pour l'IR), sinon chevron (IFI). data-active-badge dans les 2 cas.
       if (isActive) {
-        const by = yBase + 31;
+        const by = yBase + (opts.formatBorne === "euro" ? 44 : 31);
         if (opts.badgeActif) {
           const txt = opts.badgeActif;
           const w = txt.length * 5.4 + 12;
@@ -130,17 +131,23 @@ export function renderBracketChartSVG(
       }
     }
 
-    // Label montant (impôt de la tranche) — rien si tax=0.
+    // Label montant (impôt de la tranche) — rien si tax=0. En IR, l'unité de sens
+    // « d'impôt » est portée par l'étiquette elle-même (pas seulement la légende).
+    const impotSuffix = opts.formatBorne === "euro" ? " d'impôt" : "";
     const labelMontant = b.tax > 0
-      ? `<text data-bar-amount x="${cx.toFixed(1)}" y="${(yOf(b.filled) - 5).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="${t.navy}" font-family="Lato,sans-serif">${euro(b.tax)}</text>`
+      ? `<text data-bar-amount x="${cx.toFixed(1)}" y="${(yOf(b.filled) - 5).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="${t.navy}" font-family="Lato,sans-serif">${euro(b.tax)}${impotSuffix}</text>`
       : "";
 
     // Sous l'axe : taux (label moteur) + borne (en M€ par défaut, ou en euros si formatBorne="euro").
     const borneTxt = opts.formatBorne === "euro" ? borneEuro(b.from, b.to) : borneM(b.from, b.to);
     const labelTaux = `<text x="${cx.toFixed(1)}" y="${(yBase + 14).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${isActive ? t.navy : t.texteFaible}" font-family="Lato,sans-serif">${b.label}</text>`;
     const labelBorne = `<text x="${cx.toFixed(1)}" y="${(yBase + 26).toFixed(1)}" text-anchor="middle" font-size="8" fill="${t.texteFaibleClair}" font-family="Lato,sans-serif">${borneTxt}</text>`;
+    // IR uniquement : assiette PAR PART logée dans la tranche, sous les bornes (rien si vide).
+    const labelLoges = (opts.formatBorne === "euro" && b.filled > 0)
+      ? `<text data-bar-loges x="${cx.toFixed(1)}" y="${(yBase + 37).toFixed(1)}" text-anchor="middle" font-size="8" fill="${t.texteFaibleClair}" font-family="Lato,sans-serif">${euro(b.filled)} logés</text>`
+      : "";
 
-    return barre + badge + labelMontant + labelTaux + labelBorne;
+    return barre + badge + labelMontant + labelTaux + labelBorne + labelLoges;
   }).join("");
 
   const axe = `<line x1="${padL}" y1="${yBase.toFixed(1)}" x2="${(W - padR).toFixed(1)}" y2="${yBase.toFixed(1)}" stroke="${t.bordureMoyenne}" stroke-width="0.5" />`;
