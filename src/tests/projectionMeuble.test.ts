@@ -156,6 +156,11 @@ describe("computeProjectionMeuble — T13 annee d'acquisition + stock ARD anteri
     expect(L[9].cumulDeduit).toBeCloseTo(145680.36, 2);
     expect(L[9].pvBrute).toBeCloseTo(78180.36, 2);
   });
+  it("k10 : impot PV apres abattements (age 15) - IR 5941.71 + PS 11228.26 = 17169.97", () => {
+    expect(L[9].impotIr).toBeCloseTo(5941.71, 2);
+    expect(L[9].impotPs).toBeCloseTo(11228.26, 2);
+    expect(L[9].impotPvTotal).toBeCloseTo(17169.97, 2);
+  });
 });
 
 describe("computeProjectionMeuble — iso strict (champs vides) + garde-fous 2ter", () => {

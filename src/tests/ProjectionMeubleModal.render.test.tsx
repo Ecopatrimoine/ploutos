@@ -18,12 +18,14 @@ describe("ProjectionMeubleModal — volet plus-value", () => {
   it("prix d'acquisition saisi : colonne PV + avertissement presents", () => {
     render(<ProjectionMeubleModal property={bien({ recettesAnnuelles: "18000", chargesReelles: "8000", prixAcquisition: "300000", partTerrain: "0.15", valeurMobilier: "10000", value: "300000" })} updateProperty={noop} onClose={noop} />);
     expect(screen.getByText("PV brute si vente")).toBeTruthy();
-    expect(screen.getByText(/Plus-value BRUTE avant abattements/)).toBeTruthy();
+    expect(screen.getByText("Impôt PV si vente")).toBeTruthy();
+    expect(screen.getByText(/impôt après abattements pour durée de détention/)).toBeTruthy();
   });
   it("sans prix d'acquisition (manuel) : pas de colonne PV ni avertissement", () => {
     render(<ProjectionMeubleModal property={bien({ recettesAnnuelles: "18000", chargesReelles: "8000", amortissementAnnuelManuel: "5000" })} updateProperty={noop} onClose={noop} />);
     expect(screen.queryByText("PV brute si vente")).toBeNull();
-    expect(screen.queryByText(/Plus-value BRUTE avant abattements/)).toBeNull();
+    expect(screen.queryByText("Impôt PV si vente")).toBeNull();
+    expect(screen.queryByText(/impôt après abattements/)).toBeNull();
   });
   it("Censi-Bouvard : note residence de services (reintegration non applicable)", () => {
     render(<ProjectionMeubleModal property={bien({ recettesAnnuelles: "18000", chargesReelles: "8000", prixAcquisition: "300000", value: "300000", dispositifFiscal: "censiBouvard" })} updateProperty={noop} onClose={noop} />);

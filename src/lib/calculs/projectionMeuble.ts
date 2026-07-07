@@ -30,6 +30,7 @@
 import type { Property } from "../../types/patrimoine";
 import { n, isSet, resolveRecettesMeuble, resolveChargesReellesMeuble } from "./utils";
 import { amortissementAuto } from "./locationMeublee";
+import { computePvImmobiliere } from "./pvImmobiliere";
 import refMeuble from "../../data/location-meublee.json";
 
 export type ProjectionAnnee = {
@@ -48,6 +49,11 @@ export type ProjectionAnnee = {
   prixAcquisitionCorrige: number;  // art. 150 VB : prix + forfaits - amort deduits reintegres (LF 2025)
   pvBrute: number;                 // max(prixCession - prixAcquisitionCorrige, 0)
   moinsValue: boolean;             // true si la PV brute serait negative
+  // Impot PV apres abattements duree de detention (art. 150 VC), via pvImmobiliere :
+  abattementIr: number; baseIr: number; impotIr: number;      // IR (19 %)
+  abattementPs: number; basePs: number; impotPs: number;      // PS (17,2 %)
+  impotPvTotal: number;            // IR + PS
+  alerteSurtaxe: boolean;          // baseIr > 50000 (surtaxe art. 1609 nonies G, non calculee)
 };
 
 export type ProjectionMeubleResult = {
@@ -60,16 +66,12 @@ export type ProjectionMeubleResult = {
   prixCession: number;         // valeur estimee (constante), fallback prixAcquisition
   anneesEcoulees: number;      // annees de detention deja ecoulees a l'ouverture (0 si non renseigne)
   anneeAcquisition: number | null; // annee d'acquisition saisie (null si non renseignee)
+  alerteSurtaxe: boolean;      // surtaxe PV elevees (art. 1609 nonies G) sur au moins une annee
 };
 
 const ANNEE_MIN_ACQUISITION = 1950;
 
 const PEREMPTION_DEFICIT = 10; // art. 156 I-1 ter : report des deficits meubles sur 10 ans
-
-// ── Regime des plus-values des particuliers (art. 150 U et s. CGI) — volet PV brute ──
-const PV_FORFAIT_ACQUISITION = 0.075; // forfait frais d'acquisition, art. 150 VB II-3
-const PV_FORFAIT_TRAVAUX = 0.15;      // forfait travaux, art. 150 VB II-4 (detention > 5 ans)
-const PV_SEUIL_TRAVAUX_ANS = 5;       // forfait travaux a compter de la 6e annee de detention
 
 export function computeProjectionMeuble(bien: Property, annees = 10): ProjectionMeubleResult {
   const recettes = resolveRecettesMeuble(bien);
@@ -130,6 +132,7 @@ export function computeProjectionMeuble(bien: Property, annees = 10): Projection
   let cumulDeduit = cumulDeduitInitial; // seed : amortissements deja deduits (reintegration PV)
   const fileDeficits: { annee: number; montant: number }[] = []; // FIFO, plus anciens en tete
   let anneeBascule: number | null = null;
+  let alerteSurtaxe = false;
 
   for (let annee = 1; annee <= annees; annee++) {
     const age = anneesEcoulees + annee;
@@ -163,20 +166,25 @@ export function computeProjectionMeuble(bien: Property, annees = 10): Projection
     if (anneeBascule === null && baseImposable > 0) anneeBascule = annee;
     const stockDeficits = fileDeficits.reduce((s, d) => s + d.montant, 0);
 
-    // ── Plus-value BRUTE si vente en fin d'annee N (art. 150 VB) ──
-    // prix d'acquisition corrige = prix x (1 + forfait acquisition + forfait travaux
-    // si detention > 5 ans) MOINS les amortissements DEDUITS reintegres (LF 2025).
+    // ── Plus-value si vente en fin d'annee N (fonction pure partagee pvImmobiliere,
+    // art. 150 VB/VC) : amortissements reintegres = cumul deja deduit (LF 2025). ──
     cumulDeduit += utilise;
-    const forfaitTravaux = age > PV_SEUIL_TRAVAUX_ANS ? PV_FORFAIT_TRAVAUX : 0;
-    const prixAcquisitionCorrige = pvDisponible
-      ? prixAcquisition * (1 + PV_FORFAIT_ACQUISITION + forfaitTravaux) - cumulDeduit
-      : 0;
-    const pvNette = prixCession - prixAcquisitionCorrige;
-    const pvBrute = pvDisponible ? Math.max(0, pvNette) : 0;
-    const moinsValue = pvDisponible ? pvNette < 0 : false;
+    const pvr = pvDisponible
+      ? computePvImmobiliere({ prixCession, prixAcquisition, age, amortissementsReintegres: cumulDeduit })
+      : null;
+    if (pvr?.alerteSurtaxe) alerteSurtaxe = true;
 
-    lignes.push({ annee, age, dotation, utilise, stockArd, deficitsImputes, stockDeficits, baseImposable, psEstimes, cumulDeduit, prixAcquisitionCorrige, pvBrute, moinsValue });
+    lignes.push({
+      annee, age, dotation, utilise, stockArd, deficitsImputes, stockDeficits, baseImposable, psEstimes, cumulDeduit,
+      prixAcquisitionCorrige: pvr ? pvr.prixAcquisitionCorrige : 0,
+      pvBrute: pvr ? pvr.pvBrute : 0,
+      moinsValue: pvr ? pvr.moinsValue : false,
+      abattementIr: pvr ? pvr.abattementIr : 0, baseIr: pvr ? pvr.baseIr : 0, impotIr: pvr ? pvr.impotIr : 0,
+      abattementPs: pvr ? pvr.abattementPs : 0, basePs: pvr ? pvr.basePs : 0, impotPs: pvr ? pvr.impotPs : 0,
+      impotPvTotal: pvr ? pvr.impotTotal : 0,
+      alerteSurtaxe: pvr ? pvr.alerteSurtaxe : false,
+    });
   }
 
-  return { lignes, anneeBascule, manuel, recettes, chargesRetenues, pvDisponible, prixCession, anneesEcoulees, anneeAcquisition };
+  return { lignes, anneeBascule, manuel, recettes, chargesRetenues, pvDisponible, prixCession, anneesEcoulees, anneeAcquisition, alerteSurtaxe };
 }

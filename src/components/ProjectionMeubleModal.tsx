@@ -92,6 +92,7 @@ export function ProjectionMeubleModal({ property, updateProperty, onClose }: Pro
                   <th style={{ textAlign: "right", padding: "5px 8px" }}>Base imposable</th>
                   <th style={{ textAlign: "right", padding: "5px 8px" }}>PS estimés</th>
                   {pv && <th style={{ textAlign: "right", padding: "5px 8px", color: BRAND.goldText }}>PV brute si vente</th>}
+                  {pv && <th style={{ textAlign: "right", padding: "5px 8px", color: BRAND.danger }}>Impôt PV si vente</th>}
                 </tr>
               </thead>
               <tbody>
@@ -108,6 +109,10 @@ export function ProjectionMeubleModal({ property, updateProperty, onClose }: Pro
                       <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 700, color: BRAND.navy }}>{euro(l.baseImposable)}</td>
                       <td style={{ padding: "5px 8px", textAlign: "right", color: l.psEstimes > 0 ? BRAND.danger : BRAND.muted }}>{euro(l.psEstimes)}</td>
                       {pv && <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 700, color: l.moinsValue ? BRAND.success : BRAND.goldText }}>{l.moinsValue ? "MV" : euro(l.pvBrute)}</td>}
+                      {pv && <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 700, color: l.impotPvTotal > 0 ? BRAND.danger : BRAND.muted }}>
+                        {l.moinsValue ? "—" : euro(l.impotPvTotal)}
+                        {!l.moinsValue && <HelpTooltip text={`Abattement IR ${Math.round(l.abattementIr * 100)} % -> base ${euro(l.baseIr)} -> IR 19 % = ${euro(l.impotIr)}.\nAbattement PS ${Math.round(l.abattementPs * 1000) / 10} % -> base ${euro(l.basePs)} -> PS 17,2 % = ${euro(l.impotPs)}.\nTotal ${euro(l.impotPvTotal)}.${l.alerteSurtaxe ? "\nSurtaxe PV elevees (art. 1609 nonies G) non incluse." : ""}`} />}
+                      </td>}
                     </tr>
                   );
                 })}
@@ -140,7 +145,7 @@ export function ProjectionMeubleModal({ property, updateProperty, onClose }: Pro
           {/* Avertissement plus-value (seulement si le volet est calculé) */}
           {pv && (
             <div className="text-[11px] rounded-lg px-3 py-2" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}>
-              <strong>Plus-value BRUTE avant abattements pour durée de détention (art. 150 VC)</strong> : l'impôt réel sera inférieur, voire nul selon la durée. Hypothèses : prix de cession = valeur estimée actuelle (sans revalorisation) ; forfait frais d'acquisition 7,5 % ; forfait travaux 15 % à compter de la 6ᵉ année de détention ({proj.anneeAcquisition ? `détention décomptée depuis ${proj.anneeAcquisition}` : "l'an 1 de la projection = 1ʳᵉ année de détention"}) ; amortissements déduits réintégrés (LF 2025, art. 150 VB III), y compris mobilier par prudence. Amortissements antérieurs estimés par application du plan actuel depuis l'acquisition, corrigés du stock ARD saisi — ajustez le stock ARD pour coller à la liasse réelle. Résidences de services : réintégration non applicable.
+              <strong>Plus-value immobilière — impôt après abattements pour durée de détention (art. 150 VC)</strong> : IR 19 % + PS 17,2 %, exonération IR à 22 ans / PS à 30 ans. Hypothèses : prix de cession = valeur estimée actuelle (sans revalorisation) ; forfait frais d'acquisition 7,5 % ; forfait travaux 15 % à compter de la 6ᵉ année de détention ({proj.anneeAcquisition ? `détention décomptée depuis ${proj.anneeAcquisition}` : "l'impôt PV s'appuie sur le rang d'année (an 1 = 1ʳᵉ année de détention)"}) ; amortissements déduits réintégrés (LF 2025, art. 150 VB III), y compris mobilier par prudence. Amortissements antérieurs estimés par application du plan actuel depuis l'acquisition, corrigés du stock ARD saisi — ajustez le stock ARD pour coller à la liasse réelle. {proj.alerteSurtaxe && "Surtaxe sur les PV élevées (art. 1609 nonies G) non incluse. "}Résidences de services : réintégration non applicable.
               {censi && <div style={{ marginTop: 6, fontStyle: "italic" }}>Bien en résidence de services probable (Censi-Bouvard) — la réintégration des amortissements ne s'applique pas (exception LF 2025) ; colonne donnée à titre conservateur.</div>}
             </div>
           )}
