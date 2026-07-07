@@ -6,7 +6,7 @@
 import type { PatrimonialData } from "../../types/patrimoine";
 import { resolveBeneficeTns, resolveSalaireRetenu } from "./ir";
 import { resolveLoanValuesMulti, resolveOtherLoan } from "./credit";
-import { n } from "./utils";
+import { n, isBienMeuble, resolveRecettesMeuble } from "./utils";
 
 // ─── Charges de credit annuelles = numerateur du taux d'endettement ──────────
 // Extrait en helper PUR (Lot budget) pour une source UNIQUE reutilisee a
@@ -72,8 +72,9 @@ export function computeTauxEndettement(data: PatrimonialData): {
   const pP1 = n(data.pensions1 || "");
   const pP2 = n(data.pensions2 || "");
   const pensions = pP1 + pP2 > 0 ? pP1 + pP2 : n(data.pensions);
-  // Loyers bruts ponderes a 70 % (methode bancaire).
-  const loyers = properties.reduce((s, p) => s + n(p.rentGrossAnnual), 0) * 0.70;
+  // Loyers bruts ponderes a 70 % (methode bancaire). Biens meubles : recettes
+  // resolues (source unique avec le moteur BIC) ; fallback loyers si non saisies.
+  const loyers = properties.reduce((s, p) => s + (isBienMeuble(p) ? resolveRecettesMeuble(p) : n(p.rentGrossAnnual)), 0) * 0.70;
   // CA TNS retenu au NET (benefice imposable via resolveBeneficeTns), PAS le CA brut.
   const beneficeTns = resolveBeneficeTns(data, 1) + resolveBeneficeTns(data, 2);
   // Agregat ADDITIF volontaire (cumul salarie+TNS, v1.31.0) :

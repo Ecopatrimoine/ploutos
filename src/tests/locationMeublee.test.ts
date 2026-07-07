@@ -76,6 +76,30 @@ describe("locationMeublee — amortissement par composants", () => {
     expect(byName.facadeEtancheite).toBeCloseTo(1275, 2);
     expect(byName.agencements).toBeCloseTo(2550, 2);
   });
+
+  it("T10 override DUREE : gros oeuvre 40 ans -> dotation 3187.50, autres inchanges, total 11373.57", () => {
+    const r = amortissementAuto(300000, 0.15, 10000, { grosOeuvre: { duree: 40 } });
+    const byName = Object.fromEntries(r.detail.map((d) => [d.composant, d.dotation]));
+    expect(byName.grosOeuvre).toBeCloseTo(3187.5, 2); // 255000 * 0.50 / 40
+    expect(byName.toiture).toBeCloseTo(1020, 2);       // inchange
+    expect(r.immobilier).toBeCloseTo(9945, 2);         // 3187.50 + 1020 + 1912.50 + 1275 + 2550
+    expect(r.total).toBeCloseTo(11373.57, 2);          // + mobilier 1428.57
+    expect(r.detail.find((d) => d.composant === "grosOeuvre")?.ajuste).toBe(true);
+  });
+
+  it("T12 override PART + garde somme des parts : gros oeuvre 60 % -> dotation 3060, sommeParts 1.10", () => {
+    const r = amortissementAuto(300000, 0.15, 10000, { grosOeuvre: { part: 0.6 } });
+    const byName = Object.fromEntries(r.detail.map((d) => [d.composant, d.dotation]));
+    expect(byName.grosOeuvre).toBeCloseTo(3060, 2); // 255000 * 0.60 / 50
+    expect(r.sommeParts).toBeCloseTo(1.1, 4);        // 0.60 + 0.10 + 0.15 + 0.10 + 0.15 -> garde UI (!= 1)
+  });
+
+  it("appel SANS overrides = comportement historique strict (retrocompat)", () => {
+    const r = amortissementAuto(300000, 0.15, 10000);
+    expect(r.total).toBeCloseTo(10736.07, 2);
+    expect(r.sommeParts).toBeCloseTo(1, 6); // grille par defaut = 100 %
+    expect(r.detail.every((d) => d.ajuste === false)).toBe(true);
+  });
 });
 
 describe("locationMeublee — detection LMP (art. 155 IV-2 CGI, double borne stricte)", () => {

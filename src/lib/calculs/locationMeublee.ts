@@ -43,24 +43,40 @@ export function computeReelMeuble(recettes: number, charges: number, dotationAmo
   return { resultat, amortDeductible, ard, baseFoyer, deficitReportable };
 }
 
-// ── Amortissement par composants (auto) ─────────────────────────────────────
+// ── Amortissement par composants (auto, overrides optionnels) ────────────────
 // Repartit le prix hors terrain sur la grille du referentiel (part / duree par
 // composant), plus le mobilier amorti lineairement sur dureeMobilier. Renvoie
 // le detail par composant et les totaux immobilier / mobilier / total.
-export function amortissementAuto(prixBien: number, partTerrain: number, valeurMobilier: number) {
+//
+// overrides (Lot 1bis, modal Detail) : ajustement PARTIEL par composant (part
+// et/ou duree). part en FRACTION comme la grille, duree en annees entieres.
+// Champ absent => valeur du referentiel. Parametre optionnel : appel sans
+// overrides = comportement historique strict (retrocompat totale). La somme des
+// parts (sommeParts) est exposee pour la garde UI (doit valoir 1,00) ; le moteur
+// ne normalise PAS : il calcule chaque dotation = baseBati * part / duree.
+export type AmortComposantOverride = { part?: number; duree?: number };
+export type AmortOverrides = Partial<Record<string, AmortComposantOverride>>;
+
+export function amortissementAuto(prixBien: number, partTerrain: number, valeurMobilier: number, overrides?: AmortOverrides) {
   const partTerrainBornee = Math.min(1, Math.max(0, partTerrain));
   const baseBati = Math.max(0, prixBien) * (1 - partTerrainBornee);
-  const detail = ref.amortissement.grille.map((c) => ({
-    composant: c.composant,
-    part: c.part,
-    duree: c.duree,
-    dotation: c.duree > 0 ? (baseBati * c.part) / c.duree : 0,
-  }));
+  const detail = ref.amortissement.grille.map((c) => {
+    const ov = overrides?.[c.composant];
+    const part = ov?.part != null ? Math.max(0, ov.part) : c.part;
+    const duree = ov?.duree != null ? Math.max(1, Math.floor(ov.duree)) : c.duree;
+    const ajuste = (ov?.part != null && ov.part !== c.part) || (ov?.duree != null && ov.duree !== c.duree);
+    return {
+      composant: c.composant,
+      part, duree, partDefaut: c.part, dureeDefaut: c.duree, ajuste,
+      dotation: duree > 0 ? (baseBati * part) / duree : 0,
+    };
+  });
   const immobilier = detail.reduce((s, d) => s + d.dotation, 0);
   const mobilier = ref.amortissement.dureeMobilier > 0
     ? Math.max(0, valeurMobilier) / ref.amortissement.dureeMobilier
     : 0;
-  return { detail, immobilier, mobilier, total: immobilier + mobilier };
+  const sommeParts = detail.reduce((s, d) => s + d.part, 0);
+  return { detail, immobilier, mobilier, total: immobilier + mobilier, sommeParts, baseBati };
 }
 
 // ── Detection LMP (art. 155 IV-2 CGI) ───────────────────────────────────────

@@ -442,6 +442,23 @@ export function propertyNeedsLoan(type: string) { return ["Résidence principale
 export function isBienMeuble(property: { type: string }): boolean {
   return property.type === "LMNP" || property.type === "LMP";
 }
+// ── Location meublee : resolveurs RECETTES / CHARGES — SOURCE UNIQUE partagee
+// par le moteur BIC (baseBicMeuble), le budget et l'endettement. Toute lecture
+// des recettes/charges d'un bien meuble passe par ici (jamais rentGrossAnnual /
+// otherChargesAnnual en direct). ──
+// Recettes : recettesAnnuelles saisi, sinon loyers existants (rentGrossAnnual)
+// en fallback de lecture (migration douce Lot 1bis, aucune reecriture).
+export function resolveRecettesMeuble(p: { recettesAnnuelles?: string; rentGrossAnnual?: string }): number {
+  return isSet(p.recettesAnnuelles) ? n(p.recettesAnnuelles) : n(p.rentGrossAnnual);
+}
+// Charges reelles decaissees : chargesReelles (fallback otherChargesAnnual pour
+// les biens saisis avant 1bis) + taxe fonciere + assurance de la rangee
+// generique (kept fields). Meme somme cote BIC reel (charges retenues) et cote
+// budget (charges cash-out des biens meubles).
+export function resolveChargesReellesMeuble(p: { chargesReelles?: string; otherChargesAnnual?: string; propertyTaxAnnual?: string; insuranceAnnual?: string }): number {
+  const base = isSet(p.chargesReelles) ? n(p.chargesReelles) : n(p.otherChargesAnnual);
+  return base + n(p.propertyTaxAnnual) + n(p.insuranceAnnual);
+}
 // Dispositif fiscal : dispositifs éligibles PAR nature de bien, via la matrice
 // data-driven DISPOSITIFS_PAR_NATURE. Renvoie la liste des ids autorisés ([] par
 // défaut = nature non éligible). Censi-Bouvard = detention directe uniquement,

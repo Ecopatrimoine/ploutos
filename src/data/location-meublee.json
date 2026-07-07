@@ -45,8 +45,12 @@
   },
   "ps": {
     "revenusPatrimoine": 0.186,
-    "foncierNu": 0.172,
+    "tauxDerogatoire172": 0.172,
     "_comment_revenusPatrimoine": "PS revenus du patrimoine 18,6 % (LFSS 2026, loi 2025-1403 du 30/12/2025, art. L136-8 CSS). Le benefice BIC de location meublee non professionnelle est explicitement au taux revenus du patrimoine. SEUL taux consomme par le circuit meuble.",
-    "_comment_foncierNu": "Taux derogatoire foncier nu maintenu (art. L136-8 IV CSS) : 17,2 %. Trace pour reference documentaire. NON consomme dans ce lot : le foncier nu reste calcule par ir.ts avec son 0.172 en dur (perimetre inchange, dette de centralisation tracee en Roadmap)."
+    "_comment_tauxDerogatoire172": "Taux derogatoire 17,2 % maintenu (art. L136-8 IV CSS) : couvre le foncier nu ET les plus-values immobilieres des particuliers. Consomme par le module PV immobiliere (pvImmobiliere.ts). Le foncier nu de ir.ts garde son 0.172 en dur (perimetre inchange, dette de centralisation tracee en Roadmap)."
+  },
+  "pv": {
+    "tauxIr": 0.19,
+    "_comment_tauxIr": "Impot sur le revenu des plus-values immobilieres des particuliers : 19 % (art. 200 B CGI). Consomme par pvImmobiliere.ts. Abattements pour duree de detention (art. 150 VC) codes dans la fonction pure."
   }
 }

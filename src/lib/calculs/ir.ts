@@ -2,7 +2,8 @@
 import type { PatrimonialData, IrOptions, TaxBracket, Property } from '../../types/patrimoine';
 import { n, computeTaxFromBrackets, isAV, isPERType, fractionRVTO, getHandicapAbattement,
   getChildrenFiscalParts, getBaseFiscalParts, computeIRConcubin, getQuotientCapPerHalfPart,
-  isProfessionLiberale, computeKilometricAllowance, isSet, isBienMeuble } from './utils';
+  isProfessionLiberale, computeKilometricAllowance, isSet, isBienMeuble,
+  resolveRecettesMeuble, resolveChargesReellesMeuble } from './utils';
 import { resolveLoanValuesMulti } from './credit';
 import { referentiels } from '../../data/prevoyance';
 import { computeMicroBicMeuble, computeReelMeuble, amortissementAuto, type SousTypeMeuble, type RegimeMeuble } from './locationMeublee';
@@ -125,7 +126,9 @@ export function resolveBeneficeAuReel(data: PatrimonialData, personne: 1 | 2): b
 // (arbitrage B) pour un bien existant sans champs saisis :
 //   - recettes : recettesAnnuelles saisi, sinon loyers existants (rentGrossAnnual) ;
 //   - regime   : regimeMeuble saisi, sinon micro si recettes <= seuil du sous-type,
-//                sinon reel (charges 0 + amortissement 0 tant que rien n'est saisi) ;
+//                sinon reel (charges 0 + amortissement 0 tant que rien n'est saisi).
+//                Micro applique SEULEMENT si eligible (art. 50-0 CGI) : micro choisi
+//                explicitement au-dessus du seuil => reel de plein droit ;
 //   - sous-type par defaut : longue_duree ;
 //   - amortissement (reel) : barriere douce isSet(amortissementAnnuelManuel)
 //     ("0" = 0 voulu), sinon auto si prixAcquisition saisi, sinon 0 (jamais de
@@ -133,17 +136,34 @@ export function resolveBeneficeAuReel(data: PatrimonialData, personne: 1 | 2): b
 // Renvoie la base imposable au bareme (>= 0 : un deficit meuble ne remonte pas au
 // revenu global, art. 156 I-1 ter). LMP calcule comme LMNP (base identique ; le
 // constat LMP est un lot UI ulterieur).
-function baseBicMeuble(p: Property): number {
-  const recettes = isSet(p.recettesAnnuelles) ? n(p.recettesAnnuelles) : n(p.rentGrossAnnual);
+// Detail BIC imposable d'un bien meuble, expose PAR BIEN dans la sortie computeIR
+// (Lot 1bis, affichage TabIR sans recalcul local). Charges reelles retenues =
+// resolveChargesReellesMeuble (chargesReelles + taxe fonciere + assurance).
+// Amortissement retenu (barriere douce) = manuel ("0" compris) sinon auto AVEC
+// overrides composants (p.amortissementComposants) sinon 0.
+export type MeubleDetailBien = {
+  idBien: string; nom: string; type: string;
+  sousType: SousTypeMeuble; regime: RegimeMeuble;
+  recettes: number; abattement: number;
+  chargesRetenues: number; amortDeductible: number; ard: number;
+  deficitReportable: number; base: number;
+};
+
+function computeDetailBicMeuble(p: Property): MeubleDetailBien {
+  const recettes = resolveRecettesMeuble(p);
   const sousType: SousTypeMeuble = p.sousType ?? "longue_duree";
   const seuilMicro = sousType === "tourisme_non_classe"
     ? refMeuble.microBic.tourismeNonClasse.seuil
     : refMeuble.microBic.residuel.seuil;
-  const regime: RegimeMeuble = p.regimeMeuble ?? (recettes <= seuilMicro ? "micro" : "reel");
-  if (regime === "micro") {
-    return computeMicroBicMeuble(recettes, sousType).base;
+  const regimeChoisi: RegimeMeuble = p.regimeMeuble ?? (recettes <= seuilMicro ? "micro" : "reel");
+  // Le micro n'est de droit que si eligible (recettes <= seuil, art. 50-0 CGI) ;
+  // un micro choisi au-dessus du seuil bascule en reel de plein droit.
+  const micro = computeMicroBicMeuble(recettes, sousType);
+  const commun = { idBien: String(p.id ?? ""), nom: p.name || p.type, type: p.type, sousType, recettes };
+  if (regimeChoisi === "micro" && micro.eligible) {
+    return { ...commun, regime: "micro", abattement: micro.abattement, chargesRetenues: 0, amortDeductible: 0, ard: 0, deficitReportable: 0, base: micro.base };
   }
-  const charges = n(p.chargesReelles);
+  const charges = resolveChargesReellesMeuble(p);
   const dotationAmort = isSet(p.amortissementAnnuelManuel)
     ? n(p.amortissementAnnuelManuel)
     : isSet(p.prixAcquisition)
@@ -151,9 +171,11 @@ function baseBicMeuble(p: Property): number {
           n(p.prixAcquisition),
           isSet(p.partTerrain) ? n(p.partTerrain) : refMeuble.amortissement.partTerrainDefaut,
           n(p.valeurMobilier),
+          p.amortissementComposants,
         ).total
       : 0;
-  return computeReelMeuble(recettes, charges, dotationAmort).baseFoyer;
+  const r = computeReelMeuble(recettes, charges, dotationAmort);
+  return { ...commun, regime: "reel", abattement: 0, chargesRetenues: charges, amortDeductible: r.amortDeductible, ard: r.ard, deficitReportable: r.deficitReportable, base: r.baseFoyer };
 }
 
 // ─── Revenus d'activite du foyer (helper de collecte pour la detection LMP) ───
@@ -630,11 +652,14 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   // foncier (LMNP/LMP retires des listes ci-dessus). baseFoyer >= 0 : un deficit
   // meuble ne remonte pas au revenu global (art. 156 I-1 ter). Somme foyer ;
   // ventilation par concubin faite dans le chemin dedie.
+  const meubleDetail: MeubleDetailBien[] = [];
   let beneficeMeuble = 0;
   for (const property of data.properties) {
     if (isOwnedByNonRattached(property.ownership)) continue;
     if (!isBienMeuble(property)) continue;
-    beneficeMeuble += baseBicMeuble(property);
+    const d = computeDetailBicMeuble(property);
+    meubleDetail.push(d);
+    beneficeMeuble += d.base;
   }
   const meubleSocialLevy = beneficeMeuble * refMeuble.ps.revenusPatrimoine;
   const revenuNetGlobal = Math.max(0, salaries + taxableFonciers + taxablePlacements + perCapitalImposable + perRentesImposable + beneficeMeuble - retainedExpenses - deductibleCharges - handicapAbatt);
@@ -822,13 +847,15 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     // Symetrie stricte avec le foyer commun : benefice BIC au bareme (SANS
     // abattement 10 %) ajoute a rev1/rev2 ; PS revenus du patrimoine 18,6 %
     // ajoute a extra1/extra2. Bien meuble hors foncier (isBienMeuble).
+    const meubleDetail: MeubleDetailBien[] = [];
     let beneficeMeuble1 = 0, beneficeMeuble2 = 0;
     for (const property of data.properties) {
       if (isOwnedByNonRattached(property.ownership)) continue;
       if (!isBienMeuble(property)) continue;
-      const base = baseBicMeuble(property);
-      beneficeMeuble1 += base * ownerShare(property.ownership, "person1", property);
-      beneficeMeuble2 += base * ownerShare(property.ownership, "person2", property);
+      const d = computeDetailBicMeuble(property);
+      meubleDetail.push(d);
+      beneficeMeuble1 += d.base * ownerShare(property.ownership, "person1", property);
+      beneficeMeuble2 += d.base * ownerShare(property.ownership, "person2", property);
     }
     const meublePS1 = beneficeMeuble1 * refMeuble.ps.revenusPatrimoine;
     const meublePS2 = beneficeMeuble2 * refMeuble.ps.revenusPatrimoine;
@@ -916,7 +943,7 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       taxableFonciers: foncier1.taxable + foncier2.taxable,
       foncierSocialLevy: foncierPS1 + foncierPS2,
       beneficeMeuble: beneficeMeuble1 + beneficeMeuble2, meubleSocialLevy: meublePS1 + meublePS2,
-      beneficeMeuble1, beneficeMeuble2, meublePS1, meublePS2,
+      beneficeMeuble1, beneficeMeuble2, meublePS1, meublePS2, meubleDetail,
       taxablePlacements: taxablePlac1 + taxablePlac2, pfuBase: pfuBase1 + pfuBase2, deductibleCharges,
       revenuNetGlobal: revActive, finalIR, totalPFU, forfaitScolaireReduction,
       bareme: activeConcubinPerson === 2 ? bareme2 : bareme1, quotient: rActive.quotient, parts: partsActive,
@@ -1050,7 +1077,7 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   return {
     salaries, retainedExpenses, foncierBrut, foncierCharges, foncierInterests,
     taxableFonciers, foncierSocialLevy, taxablePlacements, pfuBase, deductibleCharges,
-    beneficeMeuble, meubleSocialLevy,
+    beneficeMeuble, meubleSocialLevy, meubleDetail,
     revenuNetGlobal, finalIR, totalPFU, forfaitScolaireReduction, bareme, quotient, parts,
     quotientFamilialCapAdjustment, qfBenefit, qfCap, marginalRate, averageRate,
     bracketFill, currentBracketLabel: currentBracket.label, indicatorPct, visualMax,
