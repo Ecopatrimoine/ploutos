@@ -244,6 +244,7 @@ export function computeBaremeNet(input: {
   plafonnementActif: boolean;
   decote: number;
   baremeBeforeDecote: number;
+  marginalRateReference: number;
 } {
   const { revenuImposable, parts, baseParts, isCouple, parentIsole } = input;
   const brackets: TaxBracket[] = [
@@ -275,7 +276,11 @@ export function computeBaremeNet(input: {
   const decote = baremeBeforeDecote > 0 && baremeBeforeDecote < decoteSeuil
     ? Math.max(0, decotePlafond - 0.4525 * baremeBeforeDecote) : 0;
   const bareme = Math.max(0, baremeBeforeDecote - decote);
-  return { bareme, taxWithParts, qfBenefit, qfCap, ecretement, plafonnementActif: ecretement > 0, decote, baremeBeforeDecote };
+  // Tranche statutaire du calcul de RÉFÉRENCE (revenuImposable / baseParts) — c'est la
+  // tranche réellement supportée à la marge quand le QF est plafonné (Lot C2 révisé).
+  const quotientBaseP = revenuImposable / baseParts;
+  const marginalRateReference = quotientBaseP <= 11600 ? 0 : quotientBaseP <= 29579 ? 0.11 : quotientBaseP <= 84577 ? 0.3 : quotientBaseP <= 181917 ? 0.41 : 0.45;
+  return { bareme, taxWithParts, qfBenefit, qfCap, ecretement, plafonnementActif: ecretement > 0, decote, baremeBeforeDecote, marginalRateReference };
 }
 
 /**
