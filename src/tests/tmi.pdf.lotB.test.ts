@@ -1,8 +1,7 @@
-// LOT B (restitution PDF TMI effective) — chaine reelle computeIR -> buildIRData ->
-// pageIR (HTML rendu, pas de snapshot). Verifie : phrase "Notre lecture" 4 variantes,
-// tuile "TAUX MARGINAL" (effective + sous-label conditionnel), graphe QF plafonne
-// (barres+marqueur sur le calcul de reference, annotation), et byte-identite du chart
-// non plafonne (l'opt annotation absente ne change RIEN).
+// LOT B/B2 (restitution PDF TMI effective) — chaine reelle computeIR -> buildIRData
+// -> pageIR (HTML rendu). Ce fichier ne contient ici que les INVARIANTS (vrais en B
+// comme en B2) ; les assertions specifiques B2 (tuile statutaire, encart pedagogique,
+// frontiere) sont ajoutees apres la refonte B2 (scaffolding golden-master).
 import { describe, it, expect } from "vitest";
 import { buildTokens } from "../lib/pdf/v2/tokens";
 import { computeIR } from "../lib/calculs/ir";
@@ -34,67 +33,29 @@ const D3 = base({ salary1: "25000" });                                          
 const NORMAL = base({ salary1: "60000" });                                                                    // effective == tranche
 const NORMAL_PFU = base({ salary1: "60000", placements: [cto("5000")] });                                     // normal + forfaitaire
 
-describe("Lot B — phrase Notre lecture (4 variantes data-driven)", () => {
-  it("D1 forfaitaire (Perry) : barème 0 %, l'impôt provient du forfaitaire ; pas de 'chaque euro'", () => {
+describe("Lot B — invariants (vrais en B et B2)", () => {
+  it("D1 forfaitaire (Perry) : barème 0 %, impôt forfaitaire ; pas de 'chaque euro'", () => {
     const h = pageOf(D1);
     expect(h).toContain("Barème : 0 %");
     expect(h).toContain("l'essentiel de votre impôt");
     expect(h).toContain("imposition forfaitaire de vos revenus de capitaux");
     expect(h).not.toContain("chaque euro supplémentaire");
   });
-  it("D2 plafonnement QF : effective 30 %, tranche 11 %, avantage écrêté", () => {
-    const h = pageOf(D2);
-    expect(h).toContain("Taux marginal effectif 30 % (tranche 11 %)");
-    expect(h).toContain("le plafonnement du quotient familial est atteint");
-    expect(h).toContain("avantage écrêté de");
+  it("normal : 'chaque euro supplémentaire de revenu imposable'", () => {
+    expect(pageOf(NORMAL)).toContain("chaque euro supplémentaire de revenu imposable est taxé à ce taux");
   });
-  it("D3 décote : effective 16 %, tranche 11 %, la décote s'atténue", () => {
-    const h = pageOf(D3);
-    expect(h).toContain("Taux marginal effectif 16 % (tranche 11 %)");
-    expect(h).toContain("la décote");
-    expect(h).toContain("s'atténue à mesure que le revenu augmente");
-  });
-  it("normal (effective == tranche) : 'chaque euro supplémentaire de revenu imposable'", () => {
-    const h = pageOf(NORMAL);
-    expect(h).toContain("chaque euro supplémentaire de revenu imposable est taxé à ce taux");
-    expect(h).not.toContain("Taux marginal effectif");
-  });
-  it("normal + forfaitaire : seconde phrase PFU ajoutée", () => {
+  it("normal + forfaitaire : seconde phrase PFU", () => {
     const h = pageOf(NORMAL_PFU);
-    expect(h).toContain("chaque euro supplémentaire de revenu imposable est taxé à ce taux");
     expect(h).toContain("Vos revenus de capitaux sont par ailleurs imposés au forfait");
     expect(h).toContain("PFU 31,4 %");
   });
-});
-
-describe("Lot B — tuile TAUX MARGINAL (effective + sous-label conditionnel)", () => {
-  it("D2 : effective 30,0 %, sous-label 'tranche barème 11 %'", () => {
-    const d = dataOf(D2);
-    expect(d.tauxMarginalEffectif).toBe("30,0 %");
-    expect(d.trancheBaremeSousLabel).toBe("tranche barème 11 %");
-    expect(pageOf(D2)).toContain("TAUX MARGINAL");
-  });
-  it("D3 : effective 16,0 %, sous-label 'tranche barème 11 %'", () => {
-    const d = dataOf(D3);
-    expect(d.tauxMarginalEffectif).toBe("16,0 %");
-    expect(d.trancheBaremeSousLabel).toBe("tranche barème 11 %");
-  });
-  it("Perry / normal : effective == tranche => AUCUN sous-label", () => {
-    expect(dataOf(D1).tauxMarginalEffectif).toBe("0,0 %");
-    expect(dataOf(D1).trancheBaremeSousLabel).toBeUndefined();
-    expect(dataOf(NORMAL).trancheBaremeSousLabel).toBeUndefined();
-  });
-});
-
-describe("Lot B — graphe barème : variante QF plafonné vs byte-identité", () => {
-  it("D2 plafonné : annotation présente, barres sur le calcul de référence", () => {
+  it("graphe D2 plafonné : annotation + barème de référence", () => {
     const h = pageOf(D2);
     expect(h).toContain("data-chart-annotation");
     expect(h).toContain("Plafonnement du quotient familial actif");
     expect(h).toContain("lecture au barème de référence (2 parts)");
-    expect(h).toContain("barème de référence"); // légende adaptée
   });
-  it("non plafonné (D3, normal) : AUCUNE annotation dans le graphe", () => {
+  it("graphe non plafonné (D3, normal) : aucune annotation", () => {
     expect(pageOf(D3)).not.toContain("data-chart-annotation");
     expect(pageOf(NORMAL)).not.toContain("data-chart-annotation");
   });
@@ -104,6 +65,5 @@ describe("Lot B — graphe barème : variante QF plafonné vs byte-identité", (
     const sans = renderBracketChartSVG(fill, t, { referenceValue: ref, badgeActif: "TMI", formatBorne: "euro" });
     const undef = renderBracketChartSVG(fill, t, { referenceValue: ref, badgeActif: "TMI", formatBorne: "euro", annotation: undefined });
     expect(undef).toBe(sans);
-    expect(sans).not.toContain("data-chart-annotation");
   });
 });
