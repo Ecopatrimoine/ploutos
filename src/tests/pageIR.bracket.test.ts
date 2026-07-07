@@ -99,14 +99,10 @@ describe("pageIR — graphe barème par tranche (par part)", () => {
     expect(active.index).toBe(3);
   });
 
-  it("(4) labels = impôt par part (1 par tranche à tax>0) ; note de réconciliation qualitative", () => {
+  it("(4) labels = impôt par part (1 par tranche à tax>0) [invariant structurel ; note B3 verifiee ailleurs]", () => {
     const html = rendre({ quotient: 45_000, parts: 2, marginalRate: 0.30 });
     // tranches 11 % et 30 % ont un impôt > 0 -> 2 labels montant ; 0 % et vides -> aucun
     expect(compte(html, /data-bar-amount/g)).toBe(2);
-    expect(html).toContain("× 2 parts");          // "x 2 parts" (multiplication)
-    expect(html).toContain("décote");             // decote
-    expect(html).toContain("plafonnement du quotient familial");
-    expect(html).toContain("n'est donc pas l'impôt net");
   });
 
   it("(5) aucune chaîne 75 % (plafonnement IFI, hors sujet IR)", () => {
