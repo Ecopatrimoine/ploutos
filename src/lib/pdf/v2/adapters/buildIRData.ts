@@ -8,6 +8,8 @@ import type { IRPageData } from "../pages/pageIR";
 import { DISPOSITIFS_FISCAUX } from "../../../../constants";
 import { labelDispositifReduction, estReductionFinanciere } from "../../../calculs/utils";
 import { referentiels } from "../../../../data/prevoyance";
+import { detectLmp } from "../../../calculs/locationMeublee";
+import { collecteRevenusActiviteFoyer } from "../../../calculs/ir";
 
 export type BuildIRDataParams = {
   ir: any;
@@ -102,7 +104,26 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
     motif: s.motif,
   }));
 
+  // ── Location meublee (BIC) : mapping des sorties moteur (ir.meubleDetail), AUCUN
+  //    recalcul (lecon divergence ecran/PDF). Absent/vide ⇒ undefined ⇒ section
+  //    masquee, sortie iso pour un dossier sans bien meuble. ──
+  const meubleDetailRaw = Array.isArray(ir.meubleDetail) ? ir.meubleDetail : [];
+  const meubleDetail = meubleDetailRaw.map((m: any) => ({
+    nom: m.nom, type: m.type, regime: m.regime, sousType: m.sousType,
+    recettes: num(m.recettes), abattement: num(m.abattement), chargesRetenues: num(m.chargesRetenues),
+    amortDeductible: num(m.amortDeductible), ard: num(m.ard), deficitReportable: num(m.deficitReportable), base: num(m.base),
+  }));
+  // Constat LMP : predicat PUR partage avec l'ecran (recettes depuis le detail moteur,
+  // revenus d'activite via collecteRevenusActiviteFoyer). Ne recalcule aucun IR.
+  const recettesMeubleesFoyer = meubleDetailRaw.reduce((s: number, m: any) => s + (m.recettes || 0), 0);
+  const lmpProbable = meubleDetail.length > 0
+    && (detectLmp(recettesMeubleesFoyer, collecteRevenusActiviteFoyer(data as any)) || (data.properties || []).some((pp: any) => pp.type === "LMP"));
+
   return {
+    meubleDetail: meubleDetail.length ? meubleDetail : undefined,
+    meubleBaseTotale: num(ir.beneficeMeuble),
+    meublePS: num(ir.meubleSocialLevy),
+    lmpProbable: lmpProbable || undefined,
     clientName,
     dateStr,
     impotNetDu,

@@ -64,6 +64,12 @@ export type IRPageData = {
   ecretementCommun?: number;  // part écrêtée par l'enveloppe 10 000 €
   ecretementMajore?: number;  // part écrêtée par l'enveloppe majorée 18 000 €
   statutsNonOk?: { bienNom: string; dispositifLabel: string; motif: string }[];
+  // ── Location meublee (BIC, Lot 3) — OPTIONNELS : absents ⇒ section masquee,
+  //    sortie iso pour un dossier sans bien meuble. Mirror du bloc TabIR. ──
+  meubleDetail?: { nom: string; type: string; regime: "micro" | "reel"; sousType: string; recettes: number; abattement: number; chargesRetenues: number; amortDeductible: number; ard: number; deficitReportable: number; base: number }[];
+  meubleBaseTotale?: number;
+  meublePS?: number;
+  lmpProbable?: boolean;
 };
 
 export function pageIR(t: Tokens, d: IRPageData): string {
@@ -105,6 +111,9 @@ export function pageIR(t: Tokens, d: IRPageData): string {
   const items: CascadeItem[] = [
     { label: "Revenus bruts",         pct: 100,                                  valeur: euro(d.revenusBruts),                type: "revenu" },
     { label: "− Abattement 10 %",     pct: pctCascade(d.abattement10pct),        valeur: `− ${euro(d.abattement10pct)}`,      type: "deduction" },
+    // Benefice BIC meuble ajoute au revenu global par le moteur (revenuNetGlobal),
+    // SANS abattement 10 % (art. 50-0 / reel). Ligne informative, deja dans le net.
+    ...((d.meubleBaseTotale ?? 0) > 0 ? [{ label: "+ Bénéfice location meublée (BIC)", pct: pctCascade(d.meubleBaseTotale as number), valeur: `+ ${euro(d.meubleBaseTotale as number)}`, type: "revenu" as const }] : []),
     { label: "Revenu net imposable",  pct: pctCascade(d.revenuNetImposable),     valeur: euro(d.revenuNetImposable),          type: "netImposable" },
     // dont amortissement Jeanbrun (déjà reflété dans le revenu net imposable — informatif).
     ...(jeanbrun ? [{ label: "dont amortissement Jeanbrun Relance logement" + (jeanbrun.ecretement > 0 ? ` — plafond foyer atteint (${euro2(jeanbrun.ecretement)} écrêtés)` : ""), pct: pctCascade(jeanbrun.retenu), valeur: `− ${euro2(jeanbrun.retenu)}`, type: "deduction" as const }] : []),
@@ -135,6 +144,42 @@ export function pageIR(t: Tokens, d: IRPageData): string {
       <div class="foot">Barème appliqué au revenu par part (quotient) : impôt par part × ${d.parts} part${d.parts > 1 ? "s" : ""}, puis décote et plafonnement du quotient familial donnent l'impôt net dû. La somme des barres ci-dessus n'est donc pas l'impôt net.</div>
     </div>`,
   };
+
+  // ─── Location meublee (BIC) — mirror du bloc TabIR (Lot 3), PUR AFFICHAGE de
+  //     d.meubleDetail (sorties moteur), aucun recalcul. Absent ⇒ blocs vides. ──
+  const esc = (s: string) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const SOUS_LABEL: Record<string, string> = { longue_duree: "Longue durée", tourisme_classe: "Tourisme classé", tourisme_non_classe: "Tourisme non classé" };
+  const ligneMeuble = (label: string, valeur: string, opts: { fort?: boolean; note?: string } = {}) =>
+    `<div style="display:flex;justify-content:space-between;gap:12px;padding:1px 0"><span style="color:${opts.fort ? t.navy : t.texteFaibleClair}">${label}${opts.note ? ` <span style="color:${t.texteFaibleClair};font-size:9px">${opts.note}</span>` : ""}</span><span style="font-weight:${opts.fort ? 700 : 600};color:${t.navy}">${valeur}</span></div>`;
+  const meubleBlocs: Bloc[] = [];
+  if (d.meubleDetail && d.meubleDetail.length > 0) {
+    const biensHtml = d.meubleDetail.map((m) => {
+      const entete = `<div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-weight:700;color:${t.navy}">${esc(m.nom)}</span><span style="font-size:9.5px;font-weight:600;text-transform:uppercase;color:${t.or}">${m.regime === "micro" ? "Micro-BIC" : "Réel"} · ${SOUS_LABEL[m.sousType] || esc(m.sousType)}</span></div>`;
+      const corps = m.regime === "micro"
+        ? ligneMeuble("Recettes", euro(m.recettes)) + ligneMeuble("Abattement", `− ${euro(m.abattement)}`)
+        : ligneMeuble("Recettes", euro(m.recettes))
+          + ligneMeuble("Charges retenues", `− ${euro(m.chargesRetenues)}`)
+          + (m.amortDeductible > 0 ? ligneMeuble("Amortissement déduit", `− ${euro(m.amortDeductible)}`) : "")
+          + (m.ard > 0 ? ligneMeuble("Amortissement en report (ARD)", euro(m.ard), { note: "report illimité, art. 39 C" }) : "")
+          + (m.deficitReportable > 0 ? ligneMeuble("Déficit", euro(m.deficitReportable), { note: "non imputable au revenu global, art. 156 I-1 ter" }) : "");
+      return `<div style="border:0.5px solid ${t.bordureEncart};border-radius:6px;padding:7px 9px;margin-bottom:6px">${entete}${corps}<div style="border-top:0.5px solid ${t.bordureEncart};margin-top:3px;padding-top:3px">${ligneMeuble("Base imposable", euro(m.base), { fort: true })}</div></div>`;
+    }).join("");
+    const totalHtml = `<div style="display:flex;justify-content:space-between;padding-top:4px;border-top:1px solid ${t.bordureEncart}"><span style="font-weight:700;color:${t.navy}">Base imposable meublée (total)</span><span style="font-weight:800;color:${t.navy}">${euro(d.meubleBaseTotale ?? 0)}</span></div>`
+      + ((d.meublePS ?? 0) > 0 ? `<div style="display:flex;justify-content:space-between;padding-top:2px"><span style="color:${t.texteFaibleClair}">Prélèvements sociaux revenus du patrimoine (LFSS 2026)</span><span style="font-weight:700;color:${t.danger}">${euro(d.meublePS)}</span></div>` : "");
+    meubleBlocs.push({
+      kind: "insecable",
+      html: `<div style="margin-top:24px">
+      ${sousTitreSection(t, "Location meublée (BIC)")}
+      ${biensHtml}${totalHtml}
+    </div>`,
+    });
+    if (d.lmpProbable) {
+      meubleBlocs.push({
+        kind: "insecable",
+        html: `<div style="margin-top:12px;background:${t.fondEncart};border:0.5px solid ${t.bordureEncart};border-left:3px solid ${t.or};border-radius:6px;padding:10px 13px;font-size:10.5px;color:${t.texteFaibleClair}"><strong style="color:${t.navy}">Statut LMP probable</strong> — recettes meublées du foyer supérieures à 23 000 € et aux revenus d'activité. Conséquences non modélisées : déficit imputable au revenu global, cotisations SSI, plus-values professionnelles, exonération IFI possible (art. 975 V). Modélisation LMNP conservée (sens conservateur).</div>`,
+      });
+    }
+  }
 
   // ─── Déclaration des blocs (contrat de page, engine/contrat.ts) ───────
   // Bascule de mécanisme (coquillePage → compilerPageContrat) : ordre visuel,
@@ -168,6 +213,8 @@ export function pageIR(t: Tokens, d: IRPageData): string {
       ${cascadeRevenus(t, items)}${notesHtml}
     </div>`,
     },
+    // Section « Location meublée (BIC) » (Lot 3) — après la cascade, mirror TabIR.
+    ...meubleBlocs,
     // Barème par tranche (par part) — inséré après la cascade, avant « Notre lecture ».
     ...(aBareme ? [baremeBloc] : []),
     // Encart « Notre lecture » — queue épinglée en fin de flux.
