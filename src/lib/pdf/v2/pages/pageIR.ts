@@ -41,6 +41,15 @@ export type IRPageData = {
   quotientParPart: number;  // revenu net imposable par part (= revenuNetGlobal / parts)
   parts: number;            // nombre de parts fiscales (numérique)
   marginalRate: number;     // TMI en décimal (0,30) — sert au libellé du badge
+  // ── TMI effective (Lot B) — OPTIONNELS : absents ⇒ repli sur trancheMarginale
+  //    (statutaire) + rendu graphe inchangé (byte-identique). ──
+  tauxMarginalEffectif?: string;          // "27,0 %" — valeur de la tuile « TAUX MARGINAL »
+  trancheBaremeSousLabel?: string;        // "tranche barème 11 %" — seulement si effective != tranche
+  plafonnementQfActif?: boolean;
+  bracketFillBaseParts?: FilledBracket[]; // fill du calcul réf-2-parts (barres si QF plafonné)
+  quotientBaseParts?: number;             // revenu par part au calcul de référence
+  qfEcretement?: number;                  // avantage QF écrêté (annotation graphe)
+  baseParts?: number;                     // parts de référence (2 couple / 1 seul)
   // Répartition revenus par nature (l'ordre = ordre de la barre + légende)
   salaires: number;         // 74 000
   fonciers: number;         // 11 000
@@ -76,7 +85,7 @@ export function pageIR(t: Tokens, d: IRPageData): string {
   // ─── KPI band (mode "large" — 4 KPI, 1er navy plus large) ──
   const kpis = [
     { label: "IMPÔT NET DÛ",   value: euro(d.impotNetDu),    type: "main"   as const },
-    { label: "TRANCHE MARG.",  value: d.trancheMarginale,    type: "normal" as const },
+    { label: "TAUX MARGINAL",  value: d.tauxMarginalEffectif ?? d.trancheMarginale, sousLabel: d.trancheBaremeSousLabel, type: "normal" as const },
     { label: "TAUX MOYEN",     value: d.tauxMoyen,           type: "normal" as const },
     { label: "QUOTIENT",       value: d.quotient,            type: "normal" as const },
   ];
@@ -135,13 +144,32 @@ export function pageIR(t: Tokens, d: IRPageData): string {
   // exposés par le moteur) : la somme des barres N'EST PAS l'impôt net. Aucun plafonnement 75 %.
   const aBareme = Array.isArray(d.bracketFill) && d.bracketFill.length > 0;
   const tmiPct = Math.round((d.marginalRate <= 1 ? d.marginalRate * 100 : d.marginalRate));
+  // Variante « QF plafonné » (Lot B) : barres ET marqueur sur le MÊME calcul de référence
+  // (bracketFillBaseParts / quotientBaseParts) — jamais un marqueur réf-2-parts sur des barres
+  // par part (caveat recon). Absent/non plafonné ⇒ rendu par part inchangé (byte-identique).
+  const plafonneActif = !!d.plafonnementQfActif && Array.isArray(d.bracketFillBaseParts) && (d.bracketFillBaseParts?.length ?? 0) > 0;
+  const baseParts = d.baseParts ?? d.parts;
+  const chartFill = plafonneActif ? (d.bracketFillBaseParts as FilledBracket[]) : d.bracketFill;
+  const chartRef = plafonneActif ? (d.quotientBaseParts ?? 0) : d.quotientParPart;
+  const sousTitreBareme = plafonneActif
+    ? "Barème IR — remplissage des tranches (barème de référence)"
+    : "Barème IR — remplissage des tranches (par part)";
+  const footHautBareme = plafonneActif
+    ? `Le <strong>plafonnement du quotient familial</strong> est atteint (avantage écrêté de ${euro(d.qfEcretement ?? 0)}). Le barème est lu au <strong>calcul de référence à ${baseParts} part${baseParts > 1 ? "s" : ""}</strong> (${euro(chartRef)} par part) : c'est sur ce calcul qu'est prélevé votre euro marginal, marqué « TMI ».`
+    : `Lecture pour <strong>une part</strong> de quotient familial (${euro(d.quotientParPart)} par part, ${d.parts} part${d.parts > 1 ? "s" : ""}) — hauteur = revenu logé par tranche, montant = impôt de la tranche, par part. La tranche « TMI » est votre tranche marginale (${tmiPct} %).`;
+  const footBasBareme = plafonneActif
+    ? `Barème de référence (${baseParts} part${baseParts > 1 ? "s" : ""}) : les demi-parts supplémentaires du quotient familial n'abaissent plus l'impôt au-delà du plafond. La somme des barres n'est pas l'impôt net (avant décote).`
+    : `Barème appliqué au revenu par part (quotient) : impôt par part × ${d.parts} part${d.parts > 1 ? "s" : ""}, puis décote et plafonnement du quotient familial donnent l'impôt net dû. La somme des barres ci-dessus n'est donc pas l'impôt net.`;
+  const annotationBareme = plafonneActif
+    ? `Plafonnement du quotient familial actif — avantage écrêté de ${euro(d.qfEcretement ?? 0)} ; lecture au barème de référence (${baseParts} part${baseParts > 1 ? "s" : ""}).`
+    : undefined;
   const baremeBloc: Bloc = {
     kind: "insecable",
     html: `<div style="margin-top:24px">
-      ${sousTitreSection(t, "Barème IR — remplissage des tranches (par part)")}
-      <div class="foot" style="margin-bottom:6px">Lecture pour <strong>une part</strong> de quotient familial (${euro(d.quotientParPart)} par part, ${d.parts} part${d.parts > 1 ? "s" : ""}) — hauteur = revenu logé par tranche, montant = impôt de la tranche, par part. La tranche « TMI » est votre tranche marginale (${tmiPct} %).</div>
-      ${renderBracketChartSVG(d.bracketFill, t, { referenceValue: d.quotientParPart, badgeActif: "TMI", formatBorne: "euro" })}
-      <div class="foot">Barème appliqué au revenu par part (quotient) : impôt par part × ${d.parts} part${d.parts > 1 ? "s" : ""}, puis décote et plafonnement du quotient familial donnent l'impôt net dû. La somme des barres ci-dessus n'est donc pas l'impôt net.</div>
+      ${sousTitreSection(t, sousTitreBareme)}
+      <div class="foot" style="margin-bottom:6px">${footHautBareme}</div>
+      ${renderBracketChartSVG(chartFill, t, { referenceValue: chartRef, badgeActif: "TMI", formatBorne: "euro", annotation: annotationBareme })}
+      <div class="foot">${footBasBareme}</div>
     </div>`,
   };
 
