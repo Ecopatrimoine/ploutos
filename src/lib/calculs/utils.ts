@@ -53,6 +53,15 @@ export function n(v: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+// Barriere douce "saisi vs synthetise" : un champ RENSEIGNE (meme "0") est
+// respecte, un champ vide/absent retombe sur l'auto. Meme semantique que les
+// predicats prives isSet (credit.ts) / isFilled (budget.ts) / estRenseigne
+// (exposition.ts) — expose ici comme source unique pour le circuit meuble
+// (amortissementAnnuelManuel : "0" saisi = 0 voulu ; vide = amortissement auto).
+export function isSet(v: unknown): boolean {
+  return String(v ?? "").trim() !== "";
+}
+
 export function euro(v: unknown): string {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
@@ -426,6 +435,13 @@ export function propertyNeedsPropertyTax(type: string) { return type !== "SCPI";
 export function propertyNeedsInsurance(type: string) { return ["Location nue", "LMNP", "LMP", "SCI IR", "SCI IS", "Local professionnel", "Autre"].includes(type); }
 export function propertyNeedsWorks(type: string) { return ["Location nue", "SCI IR", "SCI IS", "Local professionnel", "Autre"].includes(type); }
 export function propertyNeedsLoan(type: string) { return ["Résidence principale", "Résidence secondaire", "Location nue", "LMNP", "LMP", "SCI IR", "SCI IS", "SCPI", "Local professionnel", "Autre"].includes(type); }
+// Bien en location meublee (LMNP/LMP) : route vers le circuit BIC meuble
+// (locationMeublee.ts), JAMAIS vers le foncier. Predicat UNIQUE partage par
+// computeIR (chemins foyer + concubins) — source de verite, aucune liste
+// dupliquee. (Arbitrage B : les types LMNP/LMP existants portent le meuble.)
+export function isBienMeuble(property: { type: string }): boolean {
+  return property.type === "LMNP" || property.type === "LMP";
+}
 // Dispositif fiscal : dispositifs éligibles PAR nature de bien, via la matrice
 // data-driven DISPOSITIFS_PAR_NATURE. Renvoie la liste des ids autorisés ([] par
 // défaut = nature non éligible). Censi-Bouvard = detention directe uniquement,
