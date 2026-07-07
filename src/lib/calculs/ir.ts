@@ -2,9 +2,11 @@
 import type { PatrimonialData, IrOptions, TaxBracket, Property } from '../../types/patrimoine';
 import { n, computeTaxFromBrackets, isAV, isPERType, fractionRVTO, getHandicapAbattement,
   getChildrenFiscalParts, getBaseFiscalParts, computeIRConcubin, getQuotientCapPerHalfPart,
-  isProfessionLiberale, computeKilometricAllowance } from './utils';
+  isProfessionLiberale, computeKilometricAllowance, isSet, isBienMeuble } from './utils';
 import { resolveLoanValuesMulti } from './credit';
 import { referentiels } from '../../data/prevoyance';
+import { computeMicroBicMeuble, computeReelMeuble, amortissementAuto, type SousTypeMeuble, type RegimeMeuble } from './locationMeublee';
+import refMeuble from '../../data/location-meublee.json';
 import { sommeCotisationsMadelin, plafondMadelinPrevoyance, estEligibleMadelin } from '../prevoyance/madelin';
 import { resolveReductionDispositif, resolveDeductionsJeanbrun, estReduction, type JeanbrunResultat, type PlafondNiches } from '../fiscal/dispositifs-resolveur';
 import { resolveReductionFinanciere } from '../fiscal/dispositifs-financiers-resolveur';
@@ -116,6 +118,58 @@ export function resolveBeneficeAuReel(data: PatrimonialData, personne: 1 | 2): b
   if (!estTnsAvecBenefice(g, cat, sec)) return false;
   const microRegime = personne === 1 ? data.microRegime1 : data.microRegime2;
   return !microRegime;
+}
+
+// ─── Base BIC imposable d'un bien meuble (LMNP/LMP) — Lot 0 ───────────────────
+// Circuit BIC location meublee, JAMAIS foncier. Defauts conservateurs
+// (arbitrage B) pour un bien existant sans champs saisis :
+//   - recettes : recettesAnnuelles saisi, sinon loyers existants (rentGrossAnnual) ;
+//   - regime   : regimeMeuble saisi, sinon micro si recettes <= seuil du sous-type,
+//                sinon reel (charges 0 + amortissement 0 tant que rien n'est saisi) ;
+//   - sous-type par defaut : longue_duree ;
+//   - amortissement (reel) : barriere douce isSet(amortissementAnnuelManuel)
+//     ("0" = 0 voulu), sinon auto si prixAcquisition saisi, sinon 0 (jamais de
+//     deduction inventee).
+// Renvoie la base imposable au bareme (>= 0 : un deficit meuble ne remonte pas au
+// revenu global, art. 156 I-1 ter). LMP calcule comme LMNP (base identique ; le
+// constat LMP est un lot UI ulterieur).
+function baseBicMeuble(p: Property): number {
+  const recettes = isSet(p.recettesAnnuelles) ? n(p.recettesAnnuelles) : n(p.rentGrossAnnual);
+  const sousType: SousTypeMeuble = p.sousType ?? "longue_duree";
+  const seuilMicro = sousType === "tourisme_non_classe"
+    ? refMeuble.microBic.tourismeNonClasse.seuil
+    : refMeuble.microBic.residuel.seuil;
+  const regime: RegimeMeuble = p.regimeMeuble ?? (recettes <= seuilMicro ? "micro" : "reel");
+  if (regime === "micro") {
+    return computeMicroBicMeuble(recettes, sousType).base;
+  }
+  const charges = n(p.chargesReelles);
+  const dotationAmort = isSet(p.amortissementAnnuelManuel)
+    ? n(p.amortissementAnnuelManuel)
+    : isSet(p.prixAcquisition)
+      ? amortissementAuto(
+          n(p.prixAcquisition),
+          isSet(p.partTerrain) ? n(p.partTerrain) : refMeuble.amortissement.partTerrainDefaut,
+          n(p.valeurMobilier),
+        ).total
+      : 0;
+  return computeReelMeuble(recettes, charges, dotationAmort).baseFoyer;
+}
+
+// ─── Revenus d'activite du foyer (helper de collecte pour la detection LMP) ───
+// Base de comparaison aux recettes meublees (art. 155 IV-2 CGI) : salaires
+// retenus P1+P2 (apres garde de masquage TNS) + pensions/rentes art. 79
+// (pensions1/2 nominatives, sinon champ global) + benefice TNS hors meuble
+// (BIC/BNC/BA + art. 62) des deux personnes via resolveBeneficeTns. Le meuble
+// n'y figure PAS (il est porte par Property, hors ca1/ca2). Expose pour le lot
+// UI LMP a venir : detectLmp(recettesMeubleesFoyer, collecteRevenusActiviteFoyer(data)).
+export function collecteRevenusActiviteFoyer(data: PatrimonialData): number {
+  const salaires = resolveSalaireRetenu(data, 1) + resolveSalaireRetenu(data, 2);
+  const pensions = (n(data.pensions1) + n(data.pensions2)) > 0
+    ? n(data.pensions1) + n(data.pensions2)
+    : n(data.pensions);
+  const benefices = resolveBeneficeTns(data, 1) + resolveBeneficeTns(data, 2);
+  return salaires + pensions + benefices;
 }
 
 // ─── Socle générique de réductions d'impôt (art. 197-I-5 + 200-0 A CGI) ───────
@@ -338,9 +392,11 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   let foncierInterests = 0;
   for (const property of data.properties) {
     if (isOwnedByNonRattached(property.ownership)) continue; // exclu : appartient à un enfant non rattaché
-    if (["Location nue", "SCI IR", "SCI IS", "LMNP", "LMP", "Local professionnel", "Autre"].includes(property.type)) {
+    // LMNP/LMP RETIRES du foncier (arbitrage B) : routes vers le circuit BIC
+    // meuble (isBienMeuble / beneficeMeuble ci-dessous), jamais foncier.
+    if (["Location nue", "SCI IR", "SCI IS", "Local professionnel", "Autre"].includes(property.type)) {
       const ltype = property.loanType || "amortissable";
-      const isLocatif = ["Location nue", "SCI IR", "SCI IS", "LMNP", "LMP", "Local professionnel"].includes(property.type);
+      const isLocatif = ["Location nue", "SCI IR", "SCI IS", "Local professionnel"].includes(property.type);
       // Charges communes à tous régimes
       foncierBrut += n(property.rentGrossAnnual);
       // Multi-crédits : agréger primes assurance de tous les crédits
@@ -569,7 +625,19 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   const handicapAbatt1 = data.person1Handicap ? getHandicapAbattement(n(data.salary1) + n(data.ca1) + n(data.baRevenue1)) : 0;
   const handicapAbatt2 = data.person2Handicap ? getHandicapAbattement(n(data.salary2) + n(data.ca2) + n(data.baRevenue2)) : 0;
   const handicapAbatt = handicapAbatt1 + handicapAbatt2;
-  const revenuNetGlobal = Math.max(0, salaries + taxableFonciers + taxablePlacements + perCapitalImposable + perRentesImposable - retainedExpenses - deductibleCharges - handicapAbatt);
+  // ── Location meublee (LMNP/LMP) — benefice BIC au bareme (SANS abattement
+  // 10 %) + PS revenus du patrimoine 18,6 %. Le bien ne passe par AUCUN chemin
+  // foncier (LMNP/LMP retires des listes ci-dessus). baseFoyer >= 0 : un deficit
+  // meuble ne remonte pas au revenu global (art. 156 I-1 ter). Somme foyer ;
+  // ventilation par concubin faite dans le chemin dedie.
+  let beneficeMeuble = 0;
+  for (const property of data.properties) {
+    if (isOwnedByNonRattached(property.ownership)) continue;
+    if (!isBienMeuble(property)) continue;
+    beneficeMeuble += baseBicMeuble(property);
+  }
+  const meubleSocialLevy = beneficeMeuble * refMeuble.ps.revenusPatrimoine;
+  const revenuNetGlobal = Math.max(0, salaries + taxableFonciers + taxablePlacements + perCapitalImposable + perRentesImposable + beneficeMeuble - retainedExpenses - deductibleCharges - handicapAbatt);
 
   // ── Réduction d'impôt forfait scolaire — art. 199 quater B CGI ──
   // Collège : 61 €/enfant | Lycée : 153 €/enfant | Supérieur : 183 €/enfant
@@ -624,14 +692,15 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     let foncierBrut2 = 0, foncierCharges2 = 0, foncierInterests2 = 0;
     for (const property of data.properties) {
       if (isOwnedByNonRattached(property.ownership)) continue;
-      if (!["Location nue", "SCI IR", "SCI IS", "LMNP", "LMP", "Local professionnel", "Autre"].includes(property.type)) continue;
+      // LMNP/LMP RETIRES du foncier (arbitrage B) : circuit BIC meuble ventile plus bas.
+      if (!["Location nue", "SCI IR", "SCI IS", "Local professionnel", "Autre"].includes(property.type)) continue;
       const s1 = ownerShare(property.ownership, "person1", property);
       const s2 = ownerShare(property.ownership, "person2", property);
       const rent = n(property.rentGrossAnnual);
       const lv = resolveLoanValuesMulti(property);
       const charges = n(property.propertyTaxAnnual) + n(property.insuranceAnnual) + n(property.worksAnnual) + n(property.otherChargesAnnual) + lv.insurancePremiumAnnual;
       let interests = 0;
-      const isLocatif = ["Location nue", "SCI IR", "SCI IS", "LMNP", "LMP", "Local professionnel"].includes(property.type);
+      const isLocatif = ["Location nue", "SCI IR", "SCI IS", "Local professionnel"].includes(property.type);
       if (isLocatif && irOptions.foncierRegime === "real") {
         if (property.loans && property.loans.length > 0) {
           for (const r of lv.loans) { if (r.loan.type !== "ptz") interests += r.interestAnnual; }
@@ -749,6 +818,21 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     const hAbatt1 = data.person1Handicap ? getHandicapAbattement(n(data.salary1) + n(data.ca1) + n(data.baRevenue1)) : 0;
     const hAbatt2 = data.person2Handicap ? getHandicapAbattement(n(data.salary2) + n(data.ca2) + n(data.baRevenue2)) : 0;
 
+    // ── Location meublee (LMNP/LMP) ventilee par concubin (part = ownerShare) ──
+    // Symetrie stricte avec le foyer commun : benefice BIC au bareme (SANS
+    // abattement 10 %) ajoute a rev1/rev2 ; PS revenus du patrimoine 18,6 %
+    // ajoute a extra1/extra2. Bien meuble hors foncier (isBienMeuble).
+    let beneficeMeuble1 = 0, beneficeMeuble2 = 0;
+    for (const property of data.properties) {
+      if (isOwnedByNonRattached(property.ownership)) continue;
+      if (!isBienMeuble(property)) continue;
+      const base = baseBicMeuble(property);
+      beneficeMeuble1 += base * ownerShare(property.ownership, "person1", property);
+      beneficeMeuble2 += base * ownerShare(property.ownership, "person2", property);
+    }
+    const meublePS1 = beneficeMeuble1 * refMeuble.ps.revenusPatrimoine;
+    const meublePS2 = beneficeMeuble2 * refMeuble.ps.revenusPatrimoine;
+
     // ── Revenus nets par personne ──
     // Lot B cumul salarie + TNS : on SOMME salaire + benefice (au lieu du ternaire
     // exclusif isIndep ? benefice : salary). salary1/salary2 sont deja passes par la
@@ -757,10 +841,10 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     // concubin pur TNS champ absent => salary=0 via garde C (inchange) ; cumulant =>
     // les deux s'additionnent, abattement 10% sur le SEUL salaire.
     const rev1 = Math.max(0, salary1 + benefice1 + pensionP1 - retained1
-      + foncier1.taxable + taxablePlac1 + perCapital1 + perRentes1
+      + foncier1.taxable + taxablePlac1 + perCapital1 + perRentes1 + beneficeMeuble1
       - perDeduction1 - csgFoncierP1 - autresNonVentilable / 2 - hAbatt1 - madelinDed1);
     const rev2 = Math.max(0, salary2 + benefice2 + pensionP2 - retained2
-      + foncier2.taxable + taxablePlac2 + perCapital2 + perRentes2
+      + foncier2.taxable + taxablePlac2 + perCapital2 + perRentes2 + beneficeMeuble2
       - perDeduction2 - csgFoncierP2 - autresNonVentilable / 2 - hAbatt2 - madelinDed2);
 
     const r1 = computeIRConcubin(rev1, parts1);
@@ -809,8 +893,8 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     }
     // MOD1 (197-I-5) : chaque foyer impute ses réductions sur SON barème seul ; PS
     // foncier + PFU + PS rentes PER + rachat AV sont ajoutés APRÈS imputation.
-    const extra1 = foncierPS1 + perRentesPS1 + (pfuBase1 + perInteretsPFU1) * 0.314 + avRachatImpot;
-    const extra2 = foncierPS2 + perRentesPS2 + (pfuBase2 + perInteretsPFU2) * 0.314;
+    const extra1 = foncierPS1 + perRentesPS1 + (pfuBase1 + perInteretsPFU1) * 0.314 + avRachatImpot + meublePS1;
+    const extra2 = foncierPS2 + perRentesPS2 + (pfuBase2 + perInteretsPFU2) * 0.314 + meublePS2;
     const socle1 = appliquerReductionsIR(bareme1, liste1, plafondGlobalNiches, plafondMajoreNiches);
     const socle2 = appliquerReductionsIR(bareme2, liste2, plafondGlobalNiches, plafondMajoreNiches);
     const finalIR = socle1.impotFinal + extra1 + socle2.impotFinal + extra2;
@@ -831,6 +915,8 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       salaries, retainedExpenses, foncierBrut, foncierCharges, foncierInterests,
       taxableFonciers: foncier1.taxable + foncier2.taxable,
       foncierSocialLevy: foncierPS1 + foncierPS2,
+      beneficeMeuble: beneficeMeuble1 + beneficeMeuble2, meubleSocialLevy: meublePS1 + meublePS2,
+      beneficeMeuble1, beneficeMeuble2, meublePS1, meublePS2,
       taxablePlacements: taxablePlac1 + taxablePlac2, pfuBase: pfuBase1 + pfuBase2, deductibleCharges,
       revenuNetGlobal: revActive, finalIR, totalPFU, forfaitScolaireReduction,
       bareme: activeConcubinPerson === 2 ? bareme2 : bareme1, quotient: rActive.quotient, parts: partsActive,
@@ -865,8 +951,8 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       csgFoncierP1, csgFoncierP2,
       // IR total des 2 foyers (ir.finalIR est filtré sur la personne active dans
       // certaines vues, mais ici le total réel = bareme1 + bareme2 + PS + PFU)
-      finalIR1: bareme1 + foncierPS1 + (pfuBase1 * 0.314) + (perInteretsPFU1 * 0.314) + perRentesPS1,
-      finalIR2: bareme2 + foncierPS2 + (pfuBase2 * 0.314) + (perInteretsPFU2 * 0.314) + perRentesPS2,
+      finalIR1: bareme1 + foncierPS1 + (pfuBase1 * 0.314) + (perInteretsPFU1 * 0.314) + perRentesPS1 + meublePS1,
+      finalIR2: bareme2 + foncierPS2 + (pfuBase2 * 0.314) + (perInteretsPFU2 * 0.314) + perRentesPS2 + meublePS2,
       // Exposition (Lot FIX-FONCIER) : foyer-wide, cohérent avec foncierCharges exposé.
       jeanbrunRetenu, foncierChargesTotal: foncierCharges + jeanbrunRetenu,
       dispositifsFiscaux: {
@@ -953,7 +1039,7 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     plafondGlobalNiches,
     plafondMajoreNiches,
   );
-  const finalIR = socleReductions.impotFinal + totalPFU + foncierSocialLevy + avRachatImpot + perRentesPS;
+  const finalIR = socleReductions.impotFinal + totalPFU + foncierSocialLevy + avRachatImpot + perRentesPS + meubleSocialLevy;
 
   const marginalRate = quotient <= 11600 ? 0 : quotient <= 29579 ? 0.11 : quotient <= 84577 ? 0.3 : quotient <= 181917 ? 0.41 : 0.45;
   const averageRate = revenuNetGlobal > 0 ? finalIR / revenuNetGlobal : 0;
@@ -964,6 +1050,7 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   return {
     salaries, retainedExpenses, foncierBrut, foncierCharges, foncierInterests,
     taxableFonciers, foncierSocialLevy, taxablePlacements, pfuBase, deductibleCharges,
+    beneficeMeuble, meubleSocialLevy,
     revenuNetGlobal, finalIR, totalPFU, forfaitScolaireReduction, bareme, quotient, parts,
     quotientFamilialCapAdjustment, qfBenefit, qfCap, marginalRate, averageRate,
     bracketFill, currentBracketLabel: currentBracket.label, indicatorPct, visualMax,
