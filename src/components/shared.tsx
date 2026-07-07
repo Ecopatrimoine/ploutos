@@ -97,7 +97,7 @@ const METRIC_ACCENTS: Record<string, string> = {
   blue:  BRAND.sky,
 };
 
-export function MetricCard({ label, value, hint, accent = "gold" }: { label: string; value: string; hint?: string; accent?: "gold" | "navy" | "green" | "red" | "blue" }) {
+export function MetricCard({ label, value, hint, sousTexte, accent = "gold" }: { label: string; value: string; hint?: string; sousTexte?: string; accent?: "gold" | "navy" | "green" | "red" | "blue" }) {
   const a = METRIC_ACCENTS[accent] || METRIC_ACCENTS.gold;
   return (
     <Card className="overflow-hidden" style={{ background: SURFACE.card, borderRadius: 14, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
@@ -106,6 +106,8 @@ export function MetricCard({ label, value, hint, accent = "gold" }: { label: str
         <div className="text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.muted }}>{label}</div>
         <div className="mt-2 font-black" style={{ color: BRAND.navy, fontSize: 22, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
         {hint ? <div className="mt-1 text-xs" style={{ color: BRAND.muted }}>{hint}</div> : null}
+        {/* Lot C2 — sous-texte conditionnel mis en évidence (ex. « taux marginal réel : … ») ; absent ⇒ card inchangée. */}
+        {sousTexte ? <div className="mt-1 text-xs font-semibold" style={{ color: BRAND.goldText }}>{sousTexte}</div> : null}
       </CardContent>
     </Card>
   );
