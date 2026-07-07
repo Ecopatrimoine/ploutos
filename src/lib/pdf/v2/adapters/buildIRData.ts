@@ -75,8 +75,11 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
     pressionFiscale = `${tauxMoyenTxt} Tranche marginale ${tranchePctInt} % — vous approchez de la tranche supérieure : voir l'encadré ci-dessus.`;
   } else if (tmiCase === "normal") {
     pressionFiscale = `${tauxMoyenTxt} Tranche marginale ${tranchePctInt} % — chaque euro supplémentaire de revenu imposable est taxé à ce taux.`;
+  } else if (tmiCase === "decote") {
+    pressionFiscale = `${tauxMoyenTxt} Tranche marginale ${tranchePctInt} % — votre taux marginal réel diffère (effet décote) : voir l'encadré « votre taux marginal réel » ci-dessus.`;
   } else {
-    pressionFiscale = `${tauxMoyenTxt} Tranche marginale ${tranchePctInt} % — votre taux marginal réel diffère : voir l'encadré « votre taux marginal réel » ci-dessus.`;
+    // plafonnement | cumul : la tranche marginale RÉELLE est celle du calcul de référence.
+    pressionFiscale = `${tauxMoyenTxt} Tranche marginale réelle ${Math.round(tmiView.tmiAffichee * 100)} % (tranche sur le quotient ${tranchePctInt} %) — voir l'encadré « votre taux marginal réel » ci-dessus.`;
   }
   pressionFiscale += forfaitPFUPhrase;
 
@@ -162,6 +165,9 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
     dateStr,
     impotNetDu,
     trancheMarginale: formatPct(ir.marginalRate),
+    // Lot C2 révisé : valeur principale tuile « TRANCHE MARG. » = tranche affichée (réf sous
+    // plafonnement, statutaire sinon). Normal ⇒ = trancheMarginale (byte-identique).
+    tmiAffichee: formatPct(tmiView.tmiAffichee),
     tauxMoyen: formatPct(ir.averageRate),
     quotient: ir.parts ? `${ir.parts} part${ir.parts > 1 ? "s" : ""}` : "—",
     salaires,
