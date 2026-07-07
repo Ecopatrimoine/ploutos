@@ -46,8 +46,7 @@ export type IRPageData = {
   //    l'encart pédagogique n'apparaît qu'en cas de divergence (absent ⇒ normal/forfaitaire). ──
   tmiCase?: "normal" | "decote" | "plafonnement" | "cumul" | "frontiere" | "forfaitaire";
   tmiEncart?: { titre: string; texteHtml: string };
-  tauxMarginalEffectif?: string;          // Lot B (déprécié B2 — plus consommé par la tuile)
-  trancheBaremeSousLabel?: string;        // Lot B (déprécié B2)
+  trancheMargSousLabel?: string;          // Lot C2 : sous-label tuile « TRANCHE MARG. » en cas de divergence (renvoi encart)
   plafonnementQfActif?: boolean;
   bracketFillBaseParts?: FilledBracket[]; // fill du calcul réf-2-parts (barres si QF plafonné)
   quotientBaseParts?: number;             // revenu par part au calcul de référence
@@ -89,7 +88,7 @@ export function pageIR(t: Tokens, d: IRPageData): string {
   // ─── KPI band (mode "large" — 4 KPI, 1er navy plus large) ──
   const kpis = [
     { label: "IMPÔT NET DÛ",   value: euro(d.impotNetDu),    type: "main"   as const },
-    { label: "TRANCHE MARG.",  value: d.trancheMarginale,    type: "normal" as const },
+    { label: "TRANCHE MARG.",  value: d.trancheMarginale, sousLabel: d.trancheMargSousLabel, type: "normal" as const },
     { label: "TAUX MOYEN",     value: d.tauxMoyen,           type: "normal" as const },
     { label: "QUOTIENT",       value: d.quotient,            type: "normal" as const },
   ];
