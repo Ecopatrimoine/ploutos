@@ -114,6 +114,28 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
   }
   pressionFiscale += forfaitPFUPhrase;
 
+  // ── Réconciliation barème (Lot B3) : lignes de calcul « somme des tranches -> impôt barème
+  //    net », data-driven (champs Lot A). En variante plafonnement, part de la somme réf-2-parts
+  //    MOINS le plafond fixe (cohérent avec les barres affichées, jamais deux référentiels). ──
+  const baremeVal = Number(ir.bareme) || 0;
+  const reconBaremeLignes: string[] = [];
+  if (plafonnementQfActif && Array.isArray(ir.bracketFillBaseParts)) {
+    const sommeRef = (ir.bracketFillBaseParts as any[]).reduce((s, b) => s + (Number(b.tax) || 0), 0);
+    const produitRef = sommeRef * baseParts;
+    reconBaremeLignes.push(`Somme des tranches (référence ${baseParts} parts) ${formatEuro(sommeRef)} × ${baseParts} = ${formatEuro(produitRef)}`);
+    reconBaremeLignes.push(`− plafonnement du quotient familial ${formatEuro(Number(ir.qfCap) || 0)}`);
+    if (decoteMontant > 0) reconBaremeLignes.push(`− décote ${formatEuro(decoteMontant)}`);
+    reconBaremeLignes.push(`= impôt barème net ${formatEuro(baremeVal)}`);
+  } else if (decoteMontant > 0 || qfEcretement > 0) {
+    const sommePart = brf.reduce((s, b) => s + (Number(b.tax) || 0), 0);
+    reconBaremeLignes.push(`Somme des tranches ${formatEuro(sommePart)} × ${partsVal} part${partsVal > 1 ? "s" : ""} = ${formatEuro(sommePart * partsVal)}`);
+    if (decoteMontant > 0) reconBaremeLignes.push(`− décote ${formatEuro(decoteMontant)}`);
+    if (qfEcretement > 0) reconBaremeLignes.push(`+ avantage QF écrêté repris ${formatEuro(qfEcretement)}`);
+    reconBaremeLignes.push(`= impôt barème net ${formatEuro(baremeVal)}`);
+  } else {
+    reconBaremeLignes.push(`= impôt barème net ${formatEuro(baremeVal)} (aucune décote ni plafonnement)`);
+  }
+
   // ─── Analyse "masque" structurée — cadrage métier + chiffres + leviers ──
   const composition: string[] = [];
   if (salaires       > 0) composition.push(`salaires ${formatEuro(salaires)}`);
@@ -220,6 +242,7 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
     quotientBaseParts: ir.quotientBaseParts !== undefined ? num(ir.quotientBaseParts) : undefined,
     qfEcretement,
     baseParts,
+    reconBaremeLignes,
     notreLecture: p.notreLecture || notreLectureCalculee,
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Fiscalité — confidentiel`,
