@@ -149,8 +149,11 @@ export function pageIR(t: Tokens, d: IRPageData): string {
   //     d.meubleDetail (sorties moteur), aucun recalcul. Absent ⇒ blocs vides. ──
   const esc = (s: string) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const SOUS_LABEL: Record<string, string> = { longue_duree: "Longue durée", tourisme_classe: "Tourisme classé", tourisme_non_classe: "Tourisme non classé" };
+  // Typo alignee sur le bloc "De vos revenus a l'impot" (cascadeRevenus) : Lato
+  // 11,5px, libelles en graisse normale, valeurs 700 ; le meuble n'est pas plus
+  // proeminent que le reste de la page (la taille 11,5px est portee par le wrapper).
   const ligneMeuble = (label: string, valeur: string, opts: { fort?: boolean; note?: string } = {}) =>
-    `<div style="display:flex;justify-content:space-between;gap:12px;padding:1px 0"><span style="color:${opts.fort ? t.navy : t.texteFaibleClair}">${label}${opts.note ? ` <span style="color:${t.texteFaibleClair};font-size:9px">${opts.note}</span>` : ""}</span><span style="font-weight:${opts.fort ? 700 : 600};color:${t.navy}">${valeur}</span></div>`;
+    `<div style="display:flex;justify-content:space-between;gap:12px;padding:1.5px 0"><span style="${opts.fort ? `font-weight:700;color:${t.navy}` : `color:${t.texteFaible}`}">${label}${opts.note ? ` <span style="color:${t.texteFaibleClair};font-size:9.5px">${opts.note}</span>` : ""}</span><span style="font-weight:700;color:${t.navy}">${valeur}</span></div>`;
   const meubleBlocs: Bloc[] = [];
   if (d.meubleDetail && d.meubleDetail.length > 0) {
     const biensHtml = d.meubleDetail.map((m) => {
@@ -164,11 +167,11 @@ export function pageIR(t: Tokens, d: IRPageData): string {
           + (m.deficitReportable > 0 ? ligneMeuble("Déficit", euro(m.deficitReportable), { note: "non imputable au revenu global, art. 156 I-1 ter" }) : "");
       return `<div style="border:0.5px solid ${t.bordureEncart};border-radius:6px;padding:7px 9px;margin-bottom:6px">${entete}${corps}<div style="border-top:0.5px solid ${t.bordureEncart};margin-top:3px;padding-top:3px">${ligneMeuble("Base imposable", euro(m.base), { fort: true })}</div></div>`;
     }).join("");
-    const totalHtml = `<div style="display:flex;justify-content:space-between;padding-top:4px;border-top:1px solid ${t.bordureEncart}"><span style="font-weight:700;color:${t.navy}">Base imposable meublée (total)</span><span style="font-weight:800;color:${t.navy}">${euro(d.meubleBaseTotale ?? 0)}</span></div>`
+    const totalHtml = `<div style="display:flex;justify-content:space-between;padding-top:4px;border-top:1px solid ${t.bordureEncart}"><span style="font-weight:700;color:${t.navy}">Base imposable meublée (total)</span><span style="font-weight:700;color:${t.navy}">${euro(d.meubleBaseTotale ?? 0)}</span></div>`
       + ((d.meublePS ?? 0) > 0 ? `<div style="display:flex;justify-content:space-between;padding-top:2px"><span style="color:${t.texteFaibleClair}">Prélèvements sociaux revenus du patrimoine (LFSS 2026)</span><span style="font-weight:700;color:${t.danger}">${euro(d.meublePS)}</span></div>` : "");
     meubleBlocs.push({
       kind: "insecable",
-      html: `<div style="margin-top:24px">
+      html: `<div class="lt" style="margin-top:24px;font-size:11.5px;line-height:1.5">
       ${sousTitreSection(t, "Location meublée (BIC)")}
       ${biensHtml}${totalHtml}
     </div>`,
