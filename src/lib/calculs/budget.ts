@@ -17,7 +17,7 @@
 // flottante ; idem charges).
 
 import type { PatrimonialData } from "../../types/patrimoine";
-import { n } from "./utils";
+import { n, isBienMeuble, resolveRecettesMeuble, resolveChargesReellesMeuble } from "./utils";
 import { resolveBeneficeTns, resolveSalaireRetenu } from "./ir";
 import { computeChargesCreditAnnuelles } from "./endettement";
 
@@ -76,7 +76,9 @@ export function computeBudget(data: PatrimonialData, ir: IrLike): BudgetResult {
   const rentesPer = rentesPerAnnuelles / M;
 
   // Loyers BRUTS a 100 % (tresorerie percue), pas la ponderation bancaire 70 %.
-  const loyersBruts = properties.reduce((s, p) => s + n(p.rentGrossAnnual), 0) / M;
+  // Biens meubles : recettes resolues (source unique, meme resolver que le moteur
+  // BIC) ; fallback loyers existants si recettes non saisies -> iso avant/apres.
+  const loyersBruts = properties.reduce((s, p) => s + (isBienMeuble(p) ? resolveRecettesMeuble(p) : n(p.rentGrossAnnual)), 0) / M;
 
   // Flux mobiliers SORTIS uniquement : retraits AV (annualWithdrawal) + PER
   // (perWithdrawal). taxableIncome / annualIncome EXCLUS (capitalise vs
@@ -120,8 +122,13 @@ export function computeBudget(data: PatrimonialData, ir: IrLike): BudgetResult {
 
   // Charges foncieres reelles DECAISSEES (par bien) : taxe fonciere + assurance
   // + travaux + autres charges. PAS d'amortissement Jeanbrun (fiscal, non decaisse).
+  // Biens meubles : charges reelles decaissees resolues (chargesReelles + taxe +
+  // assurance, source unique avec le moteur BIC) au lieu du cumul generique, pour
+  // ne pas perdre les charges d'exploitation deplacees dans le bloc meuble (1bis).
   const chargesFoncieres = properties.reduce(
-    (s, p) => s + n(p.propertyTaxAnnual) + n(p.insuranceAnnual) + n(p.worksAnnual) + n(p.otherChargesAnnual),
+    (s, p) => s + (isBienMeuble(p)
+      ? resolveChargesReellesMeuble(p)
+      : n(p.propertyTaxAnnual) + n(p.insuranceAnnual) + n(p.worksAnnual) + n(p.otherChargesAnnual)),
     0,
   ) / M;
 
