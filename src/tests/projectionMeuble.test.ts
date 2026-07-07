@@ -67,3 +67,54 @@ describe("computeProjectionMeuble — deficit hors amortissement", () => {
     expect(r.anneeBascule).toBeNull();
   });
 });
+
+describe("computeProjectionMeuble — T12 plus-value brute (art. 150 VB)", () => {
+  // bien 300000 / terrain 0.15 / mobilier 10000 / valeurEstimee 300000 ; recettes 18000, charges 8000.
+  const r = computeProjectionMeuble(bien({ recettesAnnuelles: "18000", chargesReelles: "8000", prixAcquisition: "300000", partTerrain: "0.15", valeurMobilier: "10000", value: "300000" }));
+  const L = r.lignes;
+  it("pvDisponible = true, prixCession = valeur estimee 300000", () => {
+    expect(r.pvDisponible).toBe(true);
+    expect(r.prixCession).toBe(300000);
+  });
+  it("an 1 : cumul 10000, prixCorrige 312500, moins-value (pvBrute 0)", () => {
+    expect(L[0].cumulDeduit).toBeCloseTo(10000, 2);
+    expect(L[0].prixAcquisitionCorrige).toBeCloseTo(312500, 2);
+    expect(L[0].pvBrute).toBeCloseTo(0, 2);
+    expect(L[0].moinsValue).toBe(true);
+  });
+  it("an 3 : cumul 30000, prixCorrige 292500, pvBrute 7500", () => {
+    expect(L[2].cumulDeduit).toBeCloseTo(30000, 2);
+    expect(L[2].prixAcquisitionCorrige).toBeCloseTo(292500, 2);
+    expect(L[2].pvBrute).toBeCloseTo(7500, 2);
+  });
+  it("an 5 : cumul 50000, prixCorrige 272500, pvBrute 27500", () => {
+    expect(L[4].cumulDeduit).toBeCloseTo(50000, 2);
+    expect(L[4].prixAcquisitionCorrige).toBeCloseTo(272500, 2);
+    expect(L[4].pvBrute).toBeCloseTo(27500, 2);
+  });
+  it("an 6 : forfait travaux 15 % entre -> prixCorrige 307500, moins-value", () => {
+    expect(L[5].cumulDeduit).toBeCloseTo(60000, 2);
+    expect(L[5].prixAcquisitionCorrige).toBeCloseTo(307500, 2);
+    expect(L[5].pvBrute).toBeCloseTo(0, 2);
+    expect(L[5].moinsValue).toBe(true);
+  });
+  it("an 7 : pvBrute 2500 ; an 10 : cumul 100000, prixCorrige 267500, pvBrute 32500", () => {
+    expect(L[6].pvBrute).toBeCloseTo(2500, 2);
+    expect(L[9].cumulDeduit).toBeCloseTo(100000, 2);
+    expect(L[9].prixAcquisitionCorrige).toBeCloseTo(267500, 2);
+    expect(L[9].pvBrute).toBeCloseTo(32500, 2);
+  });
+});
+
+describe("computeProjectionMeuble — volet PV : garde-fous", () => {
+  it("pvDisponible = false sans prixAcquisition (amortissement manuel sans intrants)", () => {
+    const r = computeProjectionMeuble(bien({ recettesAnnuelles: "18000", chargesReelles: "8000", amortissementAnnuelManuel: "5000" }));
+    expect(r.pvDisponible).toBe(false);
+    expect(r.lignes.every((l) => l.pvBrute === 0)).toBe(true);
+  });
+  it("fallback prixCession = prixAcquisition si valeur estimee absente", () => {
+    const r = computeProjectionMeuble(bien({ recettesAnnuelles: "18000", chargesReelles: "8000", prixAcquisition: "250000", value: "" }));
+    expect(r.pvDisponible).toBe(true);
+    expect(r.prixCession).toBe(250000);
+  });
+});

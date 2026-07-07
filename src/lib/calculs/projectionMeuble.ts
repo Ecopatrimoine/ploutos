@@ -41,6 +41,12 @@ export type ProjectionAnnee = {
   stockDeficits: number;    // deficits en report cumules (fin d'annee)
   baseImposable: number;    // base BIC apres amort + deficits
   psEstimes: number;        // PS estimes (base x taux revenus du patrimoine)
+  // ── Volet plus-value BRUTE si vente en fin d'annee N (regime PV particuliers,
+  // art. 150 U et s. CGI) — affichage seul, jamais dans computeIR. ──
+  cumulDeduit: number;             // cumul des amortissements DEDUITS 1..N (jamais le stock ARD)
+  prixAcquisitionCorrige: number;  // art. 150 VB : prix + forfaits - amort deduits reintegres (LF 2025)
+  pvBrute: number;                 // max(prixCession - prixAcquisitionCorrige, 0)
+  moinsValue: boolean;             // true si la PV brute serait negative
 };
 
 export type ProjectionMeubleResult = {
@@ -49,15 +55,29 @@ export type ProjectionMeubleResult = {
   manuel: boolean;             // amortissement manuel constant (note UI)
   recettes: number;
   chargesRetenues: number;
+  pvDisponible: boolean;       // false si prixAcquisition absent (volet PV non calcule)
+  prixCession: number;         // valeur estimee (constante), fallback prixAcquisition
 };
 
 const PEREMPTION_DEFICIT = 10; // art. 156 I-1 ter : report des deficits meubles sur 10 ans
+
+// ── Regime des plus-values des particuliers (art. 150 U et s. CGI) — volet PV brute ──
+const PV_FORFAIT_ACQUISITION = 0.075; // forfait frais d'acquisition, art. 150 VB II-3
+const PV_FORFAIT_TRAVAUX = 0.15;      // forfait travaux, art. 150 VB II-4 (detention > 5 ans)
+const PV_SEUIL_TRAVAUX_ANS = 5;       // forfait travaux a compter de la 6e annee de detention
 
 export function computeProjectionMeuble(bien: Property, annees = 10): ProjectionMeubleResult {
   const recettes = resolveRecettesMeuble(bien);
   const chargesRetenues = resolveChargesReellesMeuble(bien);
   const resultatAvantAmort = recettes - chargesRetenues;
   const ps = refMeuble.ps.revenusPatrimoine;
+
+  // Volet plus-value : prix d'acquisition requis (sinon volet non calcule) ;
+  // prix de cession = valeur estimee constante, fallback prix d'acquisition.
+  const prixAcquisition = n(bien.prixAcquisition);
+  const pvDisponible = prixAcquisition > 0;
+  const valeurEstimee = n(bien.value);
+  const prixCession = valeurEstimee > 0 ? valeurEstimee : prixAcquisition;
 
   const manuel = isSet(bien.amortissementAnnuelManuel);
   const manualAmount = manuel ? n(bien.amortissementAnnuelManuel) : 0;
@@ -84,6 +104,7 @@ export function computeProjectionMeuble(bien: Property, annees = 10): Projection
 
   const lignes: ProjectionAnnee[] = [];
   let stockArd = 0;
+  let cumulDeduit = 0; // cumul des amortissements DEDUITS (utilise), pour la reintegration PV
   const fileDeficits: { annee: number; montant: number }[] = []; // FIFO, plus anciens en tete
   let anneeBascule: number | null = null;
 
@@ -118,8 +139,20 @@ export function computeProjectionMeuble(bien: Property, annees = 10): Projection
     if (anneeBascule === null && baseImposable > 0) anneeBascule = annee;
     const stockDeficits = fileDeficits.reduce((s, d) => s + d.montant, 0);
 
-    lignes.push({ annee, dotation, utilise, stockArd, deficitsImputes, stockDeficits, baseImposable, psEstimes });
+    // ── Plus-value BRUTE si vente en fin d'annee N (art. 150 VB) ──
+    // prix d'acquisition corrige = prix x (1 + forfait acquisition + forfait travaux
+    // si detention > 5 ans) MOINS les amortissements DEDUITS reintegres (LF 2025).
+    cumulDeduit += utilise;
+    const forfaitTravaux = annee > PV_SEUIL_TRAVAUX_ANS ? PV_FORFAIT_TRAVAUX : 0;
+    const prixAcquisitionCorrige = pvDisponible
+      ? prixAcquisition * (1 + PV_FORFAIT_ACQUISITION + forfaitTravaux) - cumulDeduit
+      : 0;
+    const pvNette = prixCession - prixAcquisitionCorrige;
+    const pvBrute = pvDisponible ? Math.max(0, pvNette) : 0;
+    const moinsValue = pvDisponible ? pvNette < 0 : false;
+
+    lignes.push({ annee, dotation, utilise, stockArd, deficitsImputes, stockDeficits, baseImposable, psEstimes, cumulDeduit, prixAcquisitionCorrige, pvBrute, moinsValue });
   }
 
-  return { lignes, anneeBascule, manuel, recettes, chargesRetenues };
+  return { lignes, anneeBascule, manuel, recettes, chargesRetenues, pvDisponible, prixCession };
 }
