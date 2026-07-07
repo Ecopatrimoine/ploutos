@@ -198,13 +198,11 @@ const TabIR = React.memo(function TabIR(props: any) {
         />
         <MetricCard
           label={ir.isConcubin ? `TMI ${concubinPerson === 1 ? person1 : (person2 || "Personne 2")}` : "TMI"}
-          value={`${Math.round(ir.marginalRate * 100)} %`}
+          value={`${Math.round(tmiView.tmiAffichee * 100)} %`}
           hint={ir.isConcubin
             ? "TMI du foyer sélectionné. Chaque concubin a son propre quotient et son propre TMI."
             : "Taux Marginal d'Imposition : tranche du barème sur le quotient"}
-          sousTexte={tmiView.sousTexteCard
-            ? (tmiView.tmiCase === "frontiere" ? tmiView.sousTexteCard : `${tmiView.sousTexteCard} — voir encadré ci-dessous`)
-            : undefined}
+          sousTexte={tmiView.sousTexteCard}
           accent="gold"
         />
         <MetricCard
@@ -241,18 +239,22 @@ const TabIR = React.memo(function TabIR(props: any) {
       <div className="border p-3" style={{ borderColor: SURFACE.border, borderRadius: 14, background: SURFACE.card, boxShadow: SURFACE.cardShadow }}>
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.muted }}>Position dans le barème IR</span>
-          <span className="text-xs font-black" style={{ color: BRAND.navy }}>TMI {Math.round(ir.marginalRate * 100)} %</span>
+          <span className="text-xs font-black" style={{ color: BRAND.navy }}>TMI {Math.round(tmiView.tmiAffichee * 100)} %</span>
         </div>
+        {/* Lot C2 révisé : sous plafonnement, la position suit le barème de référence (tmiAffichee). */}
+        {ir.plafonnementQfActif && (
+          <div className="text-xs mb-2" style={{ color: BRAND.goldText }}>Position au barème de référence (plafonnement du QF actif).</div>
+        )}
         <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden" }}>
           {([{ rate: 0, color: "#166534" }, { rate: 0.11, color: "#22c55e" }, { rate: 0.30, color: BRAND.gold }, { rate: 0.41, color: "#f97316" }, { rate: 0.45, color: BRAND.danger }] as const).map((t, i) => (
-            <div key={i} style={{ flex: 1, background: t.color, position: "relative", opacity: ir.marginalRate >= t.rate ? 1 : 0.2 }}>
-              {ir.marginalRate === t.rate && <div style={{ position: "absolute", top: -2, right: 0, width: 3, height: 12, background: BRAND.navy, borderRadius: 2 }} />}
+            <div key={i} style={{ flex: 1, background: t.color, position: "relative", opacity: tmiView.tmiAffichee >= t.rate ? 1 : 0.2 }}>
+              {tmiView.tmiAffichee === t.rate && <div style={{ position: "absolute", top: -2, right: 0, width: 3, height: 12, background: BRAND.navy, borderRadius: 2 }} />}
             </div>
           ))}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, marginTop: 3 }}>
           {([0, 0.11, 0.30, 0.41, 0.45] as const).map((rate, i) => (
-            <span key={i} style={{ fontWeight: ir.marginalRate === rate ? 900 : 400, color: ir.marginalRate === rate ? BRAND.navy : BRAND.muted }}>
+            <span key={i} style={{ fontWeight: tmiView.tmiAffichee === rate ? 900 : 400, color: tmiView.tmiAffichee === rate ? BRAND.navy : BRAND.muted }}>
               {Math.round(rate * 100)} %
             </span>
           ))}
