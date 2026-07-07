@@ -11,9 +11,14 @@ import { Plus, Trash2, Download, Upload, Settings } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_GROUPS, PROPERTY_GROUP_COLORS, PROPERTY_RIGHTS, DISPOSITIFS_FISCAUX, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan, DismemberCounterpart } from "../../types/patrimoine";
-import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, dispositifsPourNature, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
+import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, dispositifsPourNature, safeFilePart, buildExportFileName, isBienMeuble, isSet } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { resolvePropertyRef } from "../../lib/calculs/refs";
+// Location meublee (LMNP/LMP) — Lot 1 UI. Imports LECTURE SEULE du moteur :
+// aucune fonction de calcul n'est modifiee ici (locationMeublee.ts / ir.ts).
+import { computeMicroBicMeuble, amortissementAuto, detectLmp, type SousTypeMeuble } from "../../lib/calculs/locationMeublee";
+import { collecteRevenusActiviteFoyer } from "../../lib/calculs/ir";
+import refMeuble from "../../data/location-meublee.json";
 import { AssetPickerModal } from "../AssetPickerModal";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
 
@@ -53,6 +58,20 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
     items: g.types.map((t) => ({ value: t, label: t })),
   }));
 
+  // ── Location meublee — agregats FOYER (lecture seule, moteur intouche) ──
+  // recettes d'un bien meuble = recettesAnnuelles saisi, sinon loyers existants
+  // (meme defaut que baseBicMeuble, ir.ts). Sert au constat LMP (niveau dossier)
+  // et a l'alerte cotisations tourisme (courte duree).
+  const recettesBienMeuble = (p: any) => (isSet(p.recettesAnnuelles) ? n(p.recettesAnnuelles) : n(p.rentGrossAnnual));
+  const biensMeubles = (data.properties as any[]).filter((p) => isBienMeuble(p));
+  const recettesMeubleesFoyer = biensMeubles.reduce((s, p) => s + recettesBienMeuble(p), 0);
+  const recettesTourismeFoyer = biensMeubles
+    .filter((p) => p.sousType === "tourisme_classe" || p.sousType === "tourisme_non_classe")
+    .reduce((s, p) => s + recettesBienMeuble(p), 0);
+  const revenusActiviteFoyer = collecteRevenusActiviteFoyer(data);
+  const detectLmpTrue = detectLmp(recettesMeubleesFoyer, revenusActiviteFoyer);
+  const lmpProbable = detectLmpTrue || biensMeubles.some((p) => p.type === "LMP");
+
   return (
 <TabsContent value="immobilier" className="space-y-4">
   <div className="flex items-center justify-between gap-4">
@@ -71,6 +90,23 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
 
   <AssetPickerModal open={addPropModalOpen} title="Ajouter un bien" groups={propertyGroups} onClose={closeAddPropModal} onPick={pickProperty} />
   {data.properties.length === 0 && <div className="border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>Aucun bien immobilier saisi. Cliquez « Ajouter un bien » pour commencer.</div>}
+  {/* ── Constat LMP (niveau dossier) — carte constat, patron severite douce. Aucun
+       calcul modifie : lecture de detectLmp / collecteRevenusActiviteFoyer (ir.ts). */}
+  {lmpProbable && (
+    <div className="rounded-xl p-3 flex items-start gap-2" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}` }}>
+      <span style={{ fontSize: 16, lineHeight: "18px" }} aria-hidden="true">🟠</span>
+      <div className="text-xs" style={{ color: BRAND.warning }}>
+        <div className="font-bold uppercase tracking-wider mb-1">Statut LMP probable</div>
+        <div>
+          {detectLmpTrue
+            ? `Recettes meublees du foyer ${euro(recettesMeubleesFoyer)} superieures a 23 000 € ET aux revenus d'activite du foyer (${euro(revenusActiviteFoyer)}).`
+            : `Un bien est saisi en LMP.`}{" "}
+          Consequences non modelisees : deficit imputable au revenu global, cotisations SSI, plus-values professionnelles, exoneration IFI possible (art. 975 V CGI).{" "}
+          <strong>Modelisation LMNP conservee (sens conservateur).</strong>
+        </div>
+      </div>
+    </div>
+  )}
   {data.properties.map((property, index) => {
     const isDonated = property.id != null && donatedPropertyIds.has(property.id);
     // Dispositifs éligibles pour la nature courante (matrice data-driven). Si un
@@ -482,6 +518,103 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
           {propertyNeedsRent(property.type) && <MoneyField label="Autres charges/an" tooltip="Autres charges déductibles : frais de gestion locative, charges de copropriété non récupérables, frais comptables, etc." value={property.otherChargesAnnual} onChange={(e) => updateProperty(property.id, "otherChargesAnnual", e.target.value)} compact />}
           {/* ── Bloc crédit ── */}
           </div>
+          {/* ── Location meublee (LMNP/LMP) — SAISIE SEULE. Tout le calcul vient du
+               moteur (locationMeublee.ts / ir.ts) : ici on ne fait que lire (affichage
+               live) et ecrire les champs Property. Le regime effectif est le MIROIR de
+               baseBicMeuble (micro de droit seulement si eligible, sinon reel). */}
+          {isBienMeuble(property) && (() => {
+            const recettes = recettesBienMeuble(property);
+            const sousType = (property.sousType || "longue_duree") as SousTypeMeuble;
+            const seuilMicro = sousType === "tourisme_non_classe" ? refMeuble.microBic.tourismeNonClasse.seuil : refMeuble.microBic.residuel.seuil;
+            const micro = computeMicroBicMeuble(recettes, sousType);
+            // Miroir EXACT de baseBicMeuble (ir.ts) — ne pas diverger.
+            const regimeChoisi = property.regimeMeuble || (recettes <= seuilMicro ? "micro" : "reel");
+            const microChoisiSurSeuil = regimeChoisi === "micro" && !micro.eligible;
+            const regimeEffectif = regimeChoisi === "micro" && micro.eligible ? "micro" : "reel";
+            const loyersRepris = !isSet(property.recettesAnnuelles) && n(property.rentGrossAnnual) > 0;
+            // Amortissement auto (barriere douce : '0' saisi = 0 ; vide = auto).
+            const partTerrainFrac = isSet(property.partTerrain) ? n(property.partTerrain) : refMeuble.amortissement.partTerrainDefaut;
+            const autoAmort = isSet(property.prixAcquisition) ? amortissementAuto(n(property.prixAcquisition), partTerrainFrac, n(property.valeurMobilier)) : null;
+            const amortSaisi = isSet(property.amortissementAnnuelManuel);
+            const COMPO_LABEL: Record<string, string> = { grosOeuvre: "Gros oeuvre", toiture: "Toiture", installationsTechniques: "Installations techniques", facadeEtancheite: "Facade / etancheite", agencements: "Agencements" };
+            const amortTooltip = autoAmort
+              ? "Methode par composants, durees d'usage BOFiP - convention indicative, ajustable. " +
+                autoAmort.detail.map((d) => `${COMPO_LABEL[d.composant] || d.composant} ${euro(d.dotation)}`).join(" · ") +
+                (autoAmort.mobilier > 0 ? ` · Mobilier ${euro(autoAmort.mobilier)}/an (${refMeuble.amortissement.dureeMobilier} ans)` : "") +
+                `. Total ${euro(autoAmort.total)}/an. '0' saisi = aucun amortissement ; vide = ce calcul auto.`
+              : "Saisissez le prix d'acquisition pour le calcul automatique par composants. '0' = aucun amortissement voulu ; vide = auto.";
+            return (
+              <div className="mt-2 rounded-xl p-3 space-y-3" style={{ background: "rgba(196,151,61,0.05)", border: `1px solid ${BRAND.warningBorder}` }}>
+                <div className="text-xs font-bold uppercase tracking-wider flex items-center gap-2" style={{ color: BRAND.goldText }}>
+                  Location meublee (BIC)
+                  {property.type === "LMP" && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: BRAND.cream, color: BRAND.goldText, border: `1px solid ${BRAND.warningBorder}` }}>LMP</span>}
+                </div>
+                <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(165px,1fr))]">
+                  <Field label="Type de location" tooltip="Chambres d'hotes = regime du tourisme classe (seuil 83 600 €, abattement 50 %).">
+                    <Select value={sousType} onValueChange={(v) => updateProperty(property.id, "sousType", v)}>
+                      <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="longue_duree">Longue duree</SelectItem>
+                        <SelectItem value="tourisme_classe">Meuble de tourisme classe</SelectItem>
+                        <SelectItem value="tourisme_non_classe">Meuble de tourisme non classe</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <div>
+                    <MoneyField label="Recettes annuelles" tooltip="Recettes locatives meublees encaissees sur l'annee. Preremplies depuis le loyer saisi ; modifiables." value={isSet(property.recettesAnnuelles) ? property.recettesAnnuelles : (n(property.rentGrossAnnual) > 0 ? property.rentGrossAnnual : "")} onChange={(e) => updateProperty(property.id, "recettesAnnuelles", e.target.value)} compact />
+                    {loyersRepris && <div className="text-[10px] mt-0.5" style={{ color: BRAND.muted }}>↩ reprise des loyers saisis</div>}
+                  </div>
+                  <div>
+                    <Field label="Regime fiscal" tooltip="Micro-BIC : abattement forfaitaire. Reel : charges reelles + amortissement. Au-dessus du seuil, le reel s'applique de plein droit (art. 50-0 CGI).">
+                      <Select value={regimeChoisi} onValueChange={(v) => updateProperty(property.id, "regimeMeuble", v)}>
+                        <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="micro">Micro-BIC</SelectItem>
+                          <SelectItem value="reel">Reel</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                    {microChoisiSurSeuil && <div className="text-[10px] mt-0.5 font-semibold" style={{ color: BRAND.warning }}>Regime applique : reel</div>}
+                  </div>
+                </div>
+                {/* Alerte 1 : seuil micro depasse (bien) */}
+                {microChoisiSurSeuil && (
+                  <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}>
+                    <span aria-hidden="true">🟠</span>
+                    <span>Seuil micro-BIC depasse ({euro(recettes)} &gt; {euro(seuilMicro)}) — le regime reel s'applique de plein droit (art. 50-0 CGI).</span>
+                  </div>
+                )}
+                {/* Micro : lecture seule abattement + base estimee (live) */}
+                {regimeEffectif === "micro" && (
+                  <div className="text-xs rounded-lg px-3 py-2" style={{ background: "rgba(196,151,61,0.07)", color: BRAND.muted }}>
+                    Abattement {sousType === "tourisme_non_classe" ? "30" : "50"} % : <strong>− {euro(micro.abattement)}</strong> · Base imposable estimee : <strong style={{ color: BRAND.navy }}>{euro(micro.base)}</strong> <span className="opacity-70">(+ PS 18,6 %)</span>
+                  </div>
+                )}
+                {/* Reel : charges + bloc amortissement */}
+                {regimeEffectif === "reel" && (
+                  <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
+                    <MoneyField label="Charges reelles/an" tooltip="Charges deductibles hors amortissement (taxe fonciere, assurance, interets d'emprunt, gestion, coproprie...)." value={property.chargesReelles || ""} onChange={(e) => updateProperty(property.id, "chargesReelles", e.target.value)} compact />
+                    <MoneyField label="Prix d'acquisition" tooltip="Prix de revient de l'immeuble, base de l'amortissement par composants (hors terrain)." value={property.prixAcquisition || ""} onChange={(e) => updateProperty(property.id, "prixAcquisition", e.target.value)} compact />
+                    <Field label="Part terrain (%)" tooltip="Fraction non amortissable du prix (terrain). Defaut 15 %. Saisie en pourcentage.">
+                      <Input value={isSet(property.partTerrain) ? String(Math.round(n(property.partTerrain) * 1000) / 10) : ""} placeholder="15" onChange={(e) => { const v = e.target.value.trim(); updateProperty(property.id, "partTerrain", v === "" ? "" : String(n(v) / 100)); }} className="rounded-xl h-8 text-sm" style={{ fontWeight: 700 }} inputMode="decimal" />
+                    </Field>
+                    <MoneyField label="Valeur mobilier" tooltip={`Valeur du mobilier, amorti lineairement sur ${refMeuble.amortissement.dureeMobilier} ans.`} value={property.valeurMobilier || ""} onChange={(e) => updateProperty(property.id, "valeurMobilier", e.target.value)} compact />
+                    <div>
+                      <MoneyField label="Amortissement annuel" tooltip={amortTooltip} value={amortSaisi ? property.amortissementAnnuelManuel : (autoAmort ? String(Math.round(autoAmort.total * 100) / 100) : "")} onChange={(e) => updateProperty(property.id, "amortissementAnnuelManuel", e.target.value)} compact />
+                      {(amortSaisi || autoAmort) && <div className="text-[10px] mt-0.5 font-semibold" style={{ color: amortSaisi ? BRAND.sky : BRAND.success }}>{amortSaisi ? "✎ saisi" : "⚙ calcule"}</div>}
+                    </div>
+                  </div>
+                )}
+                {/* Alerte 3 : cotisations sociales tourisme courte duree (foyer) */}
+                {(sousType === "tourisme_classe" || sousType === "tourisme_non_classe") && recettesTourismeFoyer > refMeuble.lmp.seuilRecettes && (
+                  <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}>
+                    <span aria-hidden="true">🟠</span>
+                    <span>Affiliation sociale des loueurs de courte duree (art. L611-1 CSS) : cotisations sociales non modelisees.</span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           {/* ── Multi-crédits : bouton ouvre modale ── */}
           {(() => {
             const loanCount = (property.loans || []).length || (property.loanEnabled ? 1 : 0);
