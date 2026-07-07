@@ -144,4 +144,19 @@ describe("TabImmobilier — section Location meublee", () => {
     renderImmo(mkProp({ type: "LMNP", rentGrossAnnual: "12000" }));
     expect(screen.queryByText(/Projection sur 10 ans/)).toBeNull();
   });
+
+  // ── Lot 2quater : bouton "Plus-value de cession" (foncier nu) ──
+  it("Location nue : bouton 'Plus-value de cession' present", () => {
+    renderImmo(mkProp({ type: "Location nue", rentGrossAnnual: "12000" }));
+    expect(screen.getByText(/Plus-value de cession/)).toBeTruthy();
+  });
+  it("Residence principale : note exoneration 150 U II-1, PAS de bouton PV", () => {
+    renderImmo(mkProp({ type: "Résidence principale" }));
+    expect(screen.getByText(/exonérée de plus-value/)).toBeTruthy();
+    expect(screen.queryByText(/Plus-value de cession/)).toBeNull();
+  });
+  it("LMNP : PAS de bouton 'Plus-value de cession' (le meuble a la projection)", () => {
+    renderImmo(mkProp({ type: "LMNP", rentGrossAnnual: "12000" }));
+    expect(screen.queryByText(/Plus-value de cession/)).toBeNull();
+  });
 });

@@ -22,6 +22,7 @@ import refMeuble from "../../data/location-meublee.json";
 import { AssetPickerModal } from "../AssetPickerModal";
 import { AmortissementModal } from "../AmortissementModal";
 import { ProjectionMeubleModal } from "../ProjectionMeubleModal";
+import { PvCessionModal } from "../PvCessionModal";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
 
 
@@ -49,6 +50,8 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
   const [amortModalPropertyId, setAmortModalPropertyId] = React.useState<string | null>(null);
   // Modal "Projete 10 ans" (Lot 2, ecran seul) : id du bien meuble reel ouvert.
   const [projModalPropertyId, setProjModalPropertyId] = React.useState<string | null>(null);
+  // Modal "Plus-value de cession" (Lot 2quater, foncier nu, ecran seul).
+  const [pvCessionModalPropertyId, setPvCessionModalPropertyId] = React.useState<string | null>(null);
   const addPropBtnRef = React.useRef<HTMLButtonElement>(null);
   const closeAddPropModal = React.useCallback(() => {
     setAddPropModalOpen(false);
@@ -102,6 +105,10 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
   {projModalPropertyId != null && (() => {
     const p = (data.properties as any[]).find((x) => x.id === projModalPropertyId);
     return p ? <ProjectionMeubleModal property={p} updateProperty={updateProperty} onClose={() => setProjModalPropertyId(null)} /> : null;
+  })()}
+  {pvCessionModalPropertyId != null && (() => {
+    const p = (data.properties as any[]).find((x) => x.id === pvCessionModalPropertyId);
+    return p ? <PvCessionModal property={p} updateProperty={updateProperty} onClose={() => setPvCessionModalPropertyId(null)} /> : null;
   })()}
   {data.properties.length === 0 && <div className="border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>Aucun bien immobilier saisi. Cliquez « Ajouter un bien » pour commencer.</div>}
   {/* ── Constat LMP (niveau dossier) — carte constat, patron severite douce. Aucun
@@ -534,6 +541,18 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
           {propertyNeedsRent(property.type) && !isBienMeuble(property) && <MoneyField label="Autres charges/an" tooltip="Autres charges déductibles : frais de gestion locative, charges de copropriété non récupérables, frais comptables, etc." value={property.otherChargesAnnual} onChange={(e) => updateProperty(property.id, "otherChargesAnnual", e.target.value)} compact />}
           {/* ── Bloc crédit ── */}
           </div>
+          {/* ── Plus-value de cession (Lot 2quater) — foncier nu du groupe locatif +
+               residence secondaire. RP exoneree (art. 150 U II-1). Ecran seul. ── */}
+          {["Location nue", "SCPI", "Résidence secondaire"].includes(property.type) && (
+            <div className="mt-1">
+              <button type="button" onClick={() => setPvCessionModalPropertyId(property.id)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border transition-colors hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6914]" style={{ background: "rgba(196,151,61,0.1)", borderColor: "rgba(196,151,61,0.35)", color: BRAND.goldText }}>
+                📊 Plus-value de cession
+              </button>
+            </div>
+          )}
+          {property.type === "Résidence principale" && (
+            <div className="text-[11px] mt-1 font-medium" style={{ color: BRAND.success }}>✓ Cession exonérée de plus-value (résidence principale, art. 150 U II-1).</div>
+          )}
           {/* ── Location meublee (LMNP/LMP) — SAISIE SEULE. Tout le calcul vient du
                moteur (locationMeublee.ts / ir.ts) : ici on ne fait que lire (affichage
                live) et ecrire les champs Property. Le regime effectif est le MIROIR de
