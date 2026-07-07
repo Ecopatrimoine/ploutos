@@ -1,7 +1,8 @@
-// LOT B/B2 (restitution PDF TMI effective) — chaine reelle computeIR -> buildIRData
-// -> pageIR (HTML rendu). Ce fichier ne contient ici que les INVARIANTS (vrais en B
-// comme en B2) ; les assertions specifiques B2 (tuile statutaire, encart pedagogique,
-// frontiere) sont ajoutees apres la refonte B2 (scaffolding golden-master).
+// LOT B2 (restitution PDF pédagogique) — chaine reelle computeIR -> buildIRData ->
+// pageIR (HTML rendu). Tuile KPI = tranche STATUTAIRE ("TRANCHE MARG.") ; la TMI
+// effective vit dans un ENCART "votre taux marginal reel" (patron alerte douce), present
+// SEULEMENT en cas de divergence, toujours avec son mini-calcul. 1 test par cas :
+// normal (sans encart) / decote / plafonnement / cumul / frontiere / forfaitaire.
 import { describe, it, expect } from "vitest";
 import { buildTokens } from "../lib/pdf/v2/tokens";
 import { computeIR } from "../lib/calculs/ir";
@@ -32,34 +33,84 @@ const D2 = base({ coupleStatus: "married", salary1: "120000", childrenData: [chi
 const D3 = base({ salary1: "25000" });                                                                        // decote
 const NORMAL = base({ salary1: "60000" });                                                                    // effective == tranche
 const NORMAL_PFU = base({ salary1: "60000", placements: [cto("5000")] });                                     // normal + forfaitaire
+const FRONTIERE = base({ salary1: "93900" });                                                                 // quotient 84 510 -> +100 franchit 84 577
 
-describe("Lot B — invariants (vrais en B et B2)", () => {
-  it("D1 forfaitaire (Perry) : barème 0 %, impôt forfaitaire ; pas de 'chaque euro'", () => {
+describe("Lot B2 — tuile KPI reste la tranche statutaire", () => {
+  it("D2 : tuile 'TRANCHE MARG.' = 11,0 % (statutaire), PAS 'TAUX MARGINAL'", () => {
+    expect(dataOf(D2).trancheMarginale).toBe("11,0 %");
+    const h = pageOf(D2);
+    expect(h).toContain("TRANCHE MARG.");
+    expect(h).not.toContain("TAUX MARGINAL");
+  });
+});
+
+describe("Lot B2 — encart 'votre taux marginal reel' (1 par cas)", () => {
+  it("normal : AUCUN encart, phrase 'chaque euro'", () => {
+    expect(dataOf(NORMAL).tmiCase).toBe("normal");
+    expect(dataOf(NORMAL).tmiEncart).toBeUndefined();
+    const h = pageOf(NORMAL);
+    expect(h).not.toContain("Votre taux marginal réel");
+    expect(h).toContain("chaque euro supplémentaire de revenu imposable est taxé à ce taux");
+  });
+  it("decote : encart avec mini-calcul (barème + décote perdue)", () => {
+    const d = dataOf(D3);
+    expect(d.tmiCase).toBe("decote");
+    const h = pageOf(D3);
+    expect(h).toContain("Votre taux marginal réel");
+    expect(h).toContain("15,98 %");
+    expect(h).toContain("et non 11 %");
+    expect(h).toContain("+11,00 € de barème");
+    expect(h).toContain("de décote perdue");
+    expect(h).toContain("= 15,98 €");
+    expect(h).toContain("voir l'encadré"); // Notre lecture renvoie a l'encart
+  });
+  it("plafonnement : encart 'foyer de 2 parts', graphe plafonné conservé", () => {
+    const d = dataOf(D2);
+    expect(d.tmiCase).toBe("plafonnement");
+    const h = pageOf(D2);
+    expect(h).toContain("Votre taux marginal réel");
+    expect(h).toContain("30 %</strong> (et non 11 %)");
+    expect(h).toContain("avantage de quotient familial est plafonné");
+    expect(h).toContain("foyer de 2 parts");
+    expect(h).toContain("data-chart-annotation"); // graphe Lot B conservé
+  });
+  it("frontiere : pas de taux hybride, distance au seuil + tranche suivante", () => {
+    const d = dataOf(FRONTIERE);
+    expect(d.tmiCase).toBe("frontiere");
+    const h = pageOf(FRONTIERE);
+    expect(h).toContain("Vous approchez d'une tranche");
+    expect(h).toContain("du passage dans la tranche à 41 %");
+    expect(h).not.toContain("Votre taux marginal réel"); // titre distinct, pas de taux reel affiche
+  });
+  it("forfaitaire (Perry) : PAS d'encart, message PFU conservé", () => {
+    const d = dataOf(D1);
+    expect(d.tmiCase).toBe("forfaitaire");
+    expect(d.tmiEncart).toBeUndefined();
     const h = pageOf(D1);
+    expect(h).not.toContain("Votre taux marginal réel");
     expect(h).toContain("Barème : 0 %");
-    expect(h).toContain("l'essentiel de votre impôt");
     expect(h).toContain("imposition forfaitaire de vos revenus de capitaux");
-    expect(h).not.toContain("chaque euro supplémentaire");
   });
-  it("normal : 'chaque euro supplémentaire de revenu imposable'", () => {
-    expect(pageOf(NORMAL)).toContain("chaque euro supplémentaire de revenu imposable est taxé à ce taux");
+  it("cumul (synthétique) : plafonnement + incise décote", () => {
+    const mockIr = { finalIR: 5000, bareme: 500, marginalRate: 0.11, marginalRateEffectif: 0.16, decoteMontant: 200, plafonnementQfActif: true, quotientFamilialCapAdjustment: 1500, totalPFU: 0, averageRate: 0.05, quotient: 25000, parts: 3, bracketFill: [] };
+    const d = buildIRData({ ir: mockIr, data: { coupleStatus: "married" }, cabinet: {}, clientName: "Test" });
+    expect(d.tmiCase).toBe("cumul");
+    expect(d.tmiEncart?.texteHtml).toContain("plafonné");
+    expect(d.tmiEncart?.texteHtml).toMatch(/écrêtement 1.500 €/);          // 1 500 (espace insécable)
+    expect(d.tmiEncart?.texteHtml).toContain("s'y ajoute la décote (200 €)");
+    expect(d.tmiEncart?.texteHtml).toContain("foyer de 2 parts");
   });
-  it("normal + forfaitaire : seconde phrase PFU", () => {
+});
+
+describe("Lot B2 — invariants restitution (forfaitaire, PFU, graphe, byte-identité)", () => {
+  it("normal + forfaitaire : seconde phrase PFU en sus", () => {
     const h = pageOf(NORMAL_PFU);
+    expect(h).toContain("chaque euro supplémentaire de revenu imposable est taxé à ce taux");
     expect(h).toContain("Vos revenus de capitaux sont par ailleurs imposés au forfait");
     expect(h).toContain("PFU 31,4 %");
   });
-  it("graphe D2 plafonné : annotation + barème de référence", () => {
-    const h = pageOf(D2);
-    expect(h).toContain("data-chart-annotation");
-    expect(h).toContain("Plafonnement du quotient familial actif");
-    expect(h).toContain("lecture au barème de référence (2 parts)");
-  });
-  it("graphe non plafonné (D3, normal) : aucune annotation", () => {
+  it("graphe non plafonné : aucune annotation ; byte-identité de l'opt annotation", () => {
     expect(pageOf(D3)).not.toContain("data-chart-annotation");
-    expect(pageOf(NORMAL)).not.toContain("data-chart-annotation");
-  });
-  it("byte-identité : l'opt annotation absente/undefined ne change RIEN au SVG", () => {
     const fill = computeIR(NORMAL, OPTS).bracketFill;
     const ref = computeIR(NORMAL, OPTS).quotient;
     const sans = renderBracketChartSVG(fill, t, { referenceValue: ref, badgeActif: "TMI", formatBorne: "euro" });
