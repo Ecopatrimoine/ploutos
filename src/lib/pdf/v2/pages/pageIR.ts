@@ -18,6 +18,7 @@ import {
   barreRepartition,
   cascadeRevenus,
   encartNotreLecture,
+  noteIconee,
   euro,
   type CascadeItem,
   type SegmentRepartition,
@@ -41,10 +42,12 @@ export type IRPageData = {
   quotientParPart: number;  // revenu net imposable par part (= revenuNetGlobal / parts)
   parts: number;            // nombre de parts fiscales (numérique)
   marginalRate: number;     // TMI en décimal (0,30) — sert au libellé du badge
-  // ── TMI effective (Lot B) — OPTIONNELS : absents ⇒ repli sur trancheMarginale
-  //    (statutaire) + rendu graphe inchangé (byte-identique). ──
-  tauxMarginalEffectif?: string;          // "27,0 %" — valeur de la tuile « TAUX MARGINAL »
-  trancheBaremeSousLabel?: string;        // "tranche barème 11 %" — seulement si effective != tranche
+  // ── TMI effective (Lot B2) — OPTIONNELS. La tuile KPI reste la tranche STATUTAIRE ;
+  //    l'encart pédagogique n'apparaît qu'en cas de divergence (absent ⇒ normal/forfaitaire). ──
+  tmiCase?: "normal" | "decote" | "plafonnement" | "cumul" | "frontiere" | "forfaitaire";
+  tmiEncart?: { titre: string; texteHtml: string };
+  tauxMarginalEffectif?: string;          // Lot B (déprécié B2 — plus consommé par la tuile)
+  trancheBaremeSousLabel?: string;        // Lot B (déprécié B2)
   plafonnementQfActif?: boolean;
   bracketFillBaseParts?: FilledBracket[]; // fill du calcul réf-2-parts (barres si QF plafonné)
   quotientBaseParts?: number;             // revenu par part au calcul de référence
@@ -85,10 +88,18 @@ export function pageIR(t: Tokens, d: IRPageData): string {
   // ─── KPI band (mode "large" — 4 KPI, 1er navy plus large) ──
   const kpis = [
     { label: "IMPÔT NET DÛ",   value: euro(d.impotNetDu),    type: "main"   as const },
-    { label: "TAUX MARGINAL",  value: d.tauxMarginalEffectif ?? d.trancheMarginale, sousLabel: d.trancheBaremeSousLabel, type: "normal" as const },
+    { label: "TRANCHE MARG.",  value: d.trancheMarginale,    type: "normal" as const },
     { label: "TAUX MOYEN",     value: d.tauxMoyen,           type: "normal" as const },
     { label: "QUOTIENT",       value: d.quotient,            type: "normal" as const },
   ];
+
+  // ─── Encart « votre taux marginal réel » (Lot B2) — patron alerte douce (noteIconee
+  //     style "conseil"), SOUS la bande KPI, ABSENT en cas normal/forfaitaire. Le texte
+  //     (mini-calcul) est produit data-driven par buildIRData ; ici pur affichage. ──
+  const iconeTmi = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="10" stroke="${t.or}" stroke-width="2"/><path d="M12 11.2v5M12 7.4v.4" stroke="${t.or}" stroke-width="2" stroke-linecap="round"/></svg>`;
+  const encartTmiHtml = d.tmiEncart
+    ? noteIconee(t, { style: "conseil", iconeSvg: iconeTmi, texteHtml: `<strong style="color:${t.navy}">${d.tmiEncart.titre}</strong> — ${d.tmiEncart.texteHtml}` })
+    : "";
 
   // ─── Répartition revenus par nature ──────────────────────────────────
   const totalRevenus = d.salaires + d.fonciers + d.mobiliers + d.pensionsAutres;
@@ -228,6 +239,8 @@ export function pageIR(t: Tokens, d: IRPageData): string {
     },
     // Bande KPI (variante "large") — insécable.
     { kind: "insecable", html: bandeKPI(t, kpis, { taille: "large" }) },
+    // Encart « votre taux marginal réel » (Lot B2) — sous la bande KPI, seulement si divergence.
+    ...(encartTmiHtml ? [{ kind: "insecable" as const, html: encartTmiHtml }] : []),
     // Section « Revenus par nature » (sous-titre + barre, gardés ensemble).
     {
       kind: "insecable",
