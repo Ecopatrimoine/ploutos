@@ -1,8 +1,8 @@
 // Calcul IR — barème, QF, PFU, foncier, PER, concubinage
 import type { PatrimonialData, IrOptions, TaxBracket, Property } from '../../types/patrimoine';
 import { n, computeTaxFromBrackets, isAV, isPERType, fractionRVTO, getHandicapAbattement,
-  getChildrenFiscalParts, getBaseFiscalParts, computeIRConcubin, getQuotientCapPerHalfPart,
-  isProfessionLiberale, computeKilometricAllowance, isSet, isBienMeuble,
+  getChildrenFiscalParts, getBaseFiscalParts, computeIRConcubin,
+  computeBaremeNet, isProfessionLiberale, computeKilometricAllowance, isSet, isBienMeuble,
   resolveRecettesMeuble, resolveChargesReellesMeuble } from './utils';
 import { resolveLoanValuesMulti } from './credit';
 import { referentiels } from '../../data/prevoyance';
@@ -876,11 +876,16 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
 
     const r1 = computeIRConcubin(rev1, parts1);
     const r2 = computeIRConcubin(rev2, parts2);
-    // Décote concubinage — chaque foyer est un célibataire fiscal (897 € / seuil 1 982 €)
-    const decote1 = r1.bareme > 0 && r1.bareme < 1982 ? Math.max(0, 897 - 0.4525 * r1.bareme) : 0;
-    const decote2 = r2.bareme > 0 && r2.bareme < 1982 ? Math.max(0, 897 - 0.4525 * r2.bareme) : 0;
-    const bareme1 = Math.max(0, r1.bareme - decote1);
-    const bareme2 = Math.max(0, r2.bareme - decote2);
+    // Barème + décote par concubin délégués au helper (baseParts = parts => qfBenefit 0,
+    // plafonnement QF NON modélisé en concubinage : comportement inchangé). Chaque foyer
+    // est un célibataire fiscal (décote 897 € / seuil 1 982 €).
+    const bn1 = computeBaremeNet({ revenuImposable: rev1, parts: parts1, baseParts: parts1, isCouple: false, parentIsole: false });
+    const bn2 = computeBaremeNet({ revenuImposable: rev2, parts: parts2, baseParts: parts2, isCouple: false, parentIsole: false });
+    const bareme1 = bn1.bareme;
+    const bareme2 = bn2.bareme;
+    // TMI effective par personne (delta +100 € de revenu imposable ; décote incluse).
+    const marginalRateEffectif1 = Math.round(((computeBaremeNet({ revenuImposable: rev1 + 100, parts: parts1, baseParts: parts1, isCouple: false, parentIsole: false }).bareme - bareme1) / 100) * 10000) / 10000;
+    const marginalRateEffectif2 = Math.round(((computeBaremeNet({ revenuImposable: rev2 + 100, parts: parts2, baseParts: parts2, isCouple: false, parentIsole: false }).bareme - bareme2) / 100) * 10000) / 10000;
     // PFU ventilé par personne
     const totalPFU = (pfuBase1 + pfuBase2) * 0.314 + (perInteretsPFU1 + perInteretsPFU2) * 0.314;
     // ── Dispositifs PAR concubin (option A) : deux foyers fiscaux distincts. ──
@@ -949,6 +954,13 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
       bareme: activeConcubinPerson === 2 ? bareme2 : bareme1, quotient: rActive.quotient, parts: partsActive,
       quotientFamilialCapAdjustment: 0, qfBenefit: 0, qfCap: 0,
       marginalRate: rActive.marginalRate, averageRate,
+      // Lot A (TMI effective) — concubins : plafonnement QF non modélisé (false) ;
+      // effective de la personne active + les deux par personne. Pas de bracketFillBaseParts
+      // (réservé au graphe foyer commun, Lot B).
+      marginalRateEffectif: activeConcubinPerson === 2 ? marginalRateEffectif2 : marginalRateEffectif1,
+      marginalRateEffectif1, marginalRateEffectif2,
+      plafonnementQfActif: false,
+      decoteMontant: activeConcubinPerson === 2 ? bn2.decote : bn1.decote,
       bracketFill, currentBracketLabel: currentBracket.label,
       indicatorPct: visualMax > 0 ? Math.min(100, (rActive.quotient / visualMax) * 100) : 0, visualMax,
       avRachatImpot, perCapitalImposable: perCapital1 + perCapital2,
@@ -1003,7 +1015,7 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
   const baseParts = getBaseFiscalParts(data);
   const childrenParts = getChildrenFiscalParts(data.childrenData);
   // Demi-part supplémentaire si personne du foyer titulaire carte invalidité — CGI art. 195-1
-  // (s'ajoute aux parts de base — plafond QF 1 785 € par demi-part supplémentaire)
+  // (s'ajoute aux parts de base — plafond QF 1 807 € par demi-part supplémentaire)
   const handicapPersonParts = (data.person1Handicap ? 0.5 : 0) + (data.person2Handicap ? 0.5 : 0);
   const parts = Math.max(1, baseParts + childrenParts + handicapPersonParts + (data.singleParent ? 0.5 : 0));
   const quotient = revenuNetGlobal / parts;
@@ -1016,28 +1028,22 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     { from: 181917, to: Number.POSITIVE_INFINITY, rate: 0.45 },
   ];
 
-  const taxWithParts = computeTaxFromBrackets(quotient, brackets).tax * parts;
-  const taxWithBaseParts = computeTaxFromBrackets(revenuNetGlobal / baseParts, brackets).tax * baseParts;
-  const addedHalfParts = Math.max(0, parts - baseParts);
-  // Plafonnement QF — parent isolé (case T) : 1ère demi-part enfant plafonnée à 4 262 €,
-  // les suivantes à 1 807 € (CGI art. 197-I-2, revenus 2025)
-  const qfCapParentIsole = data.singleParent && childrenParts > 0 ? 4262 : 0;
-  const qfCapStandard = addedHalfParts > 0
-    ? (data.singleParent && childrenParts > 0
-      ? qfCapParentIsole + getQuotientCapPerHalfPart() * ((addedHalfParts - 0.5) / 0.5)
-      : getQuotientCapPerHalfPart() * (addedHalfParts / 0.5))
-    : 0;
-  const qfCap = qfCapStandard;
-  const qfBenefit = Math.max(0, taxWithBaseParts - taxWithParts);
-  const quotientFamilialCapAdjustment = qfBenefit > qfCap ? qfBenefit - qfCap : 0;
-  const baremeBeforeDecote = taxWithParts + quotientFamilialCapAdjustment;
-  // Décote — CGI art. 197-I-4 (LF 2026, revenus 2025)
-  const decotePlafond = isCouple ? 1483 : 897;
-  const decoteSeuil = isCouple ? 3277 : 1982;
-  const decote = baremeBeforeDecote > 0 && baremeBeforeDecote < decoteSeuil
-    ? Math.max(0, decotePlafond - 0.4525 * baremeBeforeDecote) : 0;
-  const bareme = Math.max(0, baremeBeforeDecote - decote);
+  // Barème net (brut -> plafonnement QF -> décote) délégué au helper pur (iso).
+  const parentIsole = data.singleParent && childrenParts > 0;
+  const baremeNet = computeBaremeNet({ revenuImposable: revenuNetGlobal, parts, baseParts, isCouple, parentIsole });
+  const { bareme, qfBenefit, qfCap } = baremeNet;
+  const quotientFamilialCapAdjustment = baremeNet.ecretement;
+  const plafonnementQfActif = baremeNet.plafonnementActif;
+  const decoteMontant = baremeNet.decote;
+  // TMI effective (Lot A) : delta +100 € de revenu imposable sur le barème net
+  // (décote + plafonnement QF inclus) ; ne remplace PAS marginalRate (tranche statutaire).
+  const marginalRateEffectif = Math.round(
+    ((computeBaremeNet({ revenuImposable: revenuNetGlobal + 100, parts, baseParts, isCouple, parentIsole }).bareme - bareme) / 100) * 10000,
+  ) / 10000;
   const bracketFill = computeTaxFromBrackets(quotient, brackets).fill;
+  // Fill du calcul de référence (baseParts) pour le graphe Lot B quand le QF est plafonné.
+  const bracketFillBaseParts = computeTaxFromBrackets(revenuNetGlobal / baseParts, brackets).fill;
+  const quotientBaseParts = revenuNetGlobal / baseParts;
   const totalPFU = pfuBase * 0.314 + perInteretsPFU * 0.314; // PFU 31,4% = 12,8% IR + 18,6% PS — dividendes, intérêts, PV mob. (LFSS 2026)
   // Réductions dispositifs (FOYER COMMUN) : ajoutées APRÈS le forfait scolaire
   // (hors plafond d'abord, plafonnables ensuite) ; une seule liste pour tout le foyer.
@@ -1080,6 +1086,9 @@ export function computeIR(data: PatrimonialData, irOptions: IrOptions, activeCon
     beneficeMeuble, meubleSocialLevy, meubleDetail,
     revenuNetGlobal, finalIR, totalPFU, forfaitScolaireReduction, bareme, quotient, parts,
     quotientFamilialCapAdjustment, qfBenefit, qfCap, marginalRate, averageRate,
+    // Lot A (TMI effective) — champs additifs : TMI effective (delta barème net),
+    // état plafonnement QF, montant décote, et fill/quotient réf-2-parts (graphe Lot B).
+    marginalRateEffectif, plafonnementQfActif, decoteMontant, bracketFillBaseParts, quotientBaseParts,
     bracketFill, currentBracketLabel: currentBracket.label, indicatorPct, visualMax,
     avRachatImpot, perCapitalImposable, perInteretsPFU, perRentesImposable, perRentesPS, isConcubin: false, plafondPER, plafondPER1, plafondPER2,
     plafondPER1Base163: plafond1.composante163, plafondPER1Sup154: plafond1.composante154,
