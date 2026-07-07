@@ -10,6 +10,7 @@ import { labelDispositifReduction, estReductionFinanciere } from "../../../calcu
 import { referentiels } from "../../../../data/prevoyance";
 import { detectLmp } from "../../../calculs/locationMeublee";
 import { collecteRevenusActiviteFoyer } from "../../../calculs/ir";
+import { computeTmiView } from "../../../calculs/tmiEffective";
 
 export type BuildIRDataParams = {
   ir: any;
@@ -44,58 +45,23 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
   const impotNetDu = num(ir.finalIR ?? 0);
   const tmiPct = num((ir.marginalRate ?? 0) * (Number(ir.marginalRate) <= 1 ? 100 : 1));
 
-  // ── TMI effective (Lot B2) : classification du cas + encart pédagogique, depuis les
-  //    champs Lot A du moteur (ZERO recalcul ni barème en dur ; frontière via ir.bracketFill
-  //    déjà exposé). La tuile KPI reste la tranche statutaire. ──
-  const euro2 = (v: number) => new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v) + " €";
-  const pct2 = (r: number) => (r * 100).toFixed(2).replace(".", ",") + " %";
-  const mrEff = Number(ir.marginalRateEffectif) || 0;   // décimal (0,30)
-  const mr = Number(ir.marginalRate) || 0;              // décimal (tranche statutaire)
-  const tranchePctInt = Math.round(mr * 100);
-  const effPctInt = Math.round(mrEff * 100);
-  const decoteMontant = Number(ir.decoteMontant) || 0;
-  const plafonnementQfActif = !!ir.plafonnementQfActif;
-  const qfEcretement = Number(ir.quotientFamilialCapAdjustment) || 0;
+  // ── TMI effective (Lot C) : DÉLÉGATION au helper de vue partagé computeTmiView (source
+  //    unique écran/PDF). Le PDF compose l'encart en HTML (byte-identique à l'existant) ; la
+  //    phrase « Notre lecture » reste spécifique PDF (ci-dessous), pilotée par le tmiCase. ──
+  const plafonnementQfActif = !!ir.plafonnementQfActif;   // champ graphe (return)
+  const qfEcretement = Number(ir.quotientFamilialCapAdjustment) || 0; // champ graphe (return)
+  const baseParts = isCouple ? 2 : 1;                     // champ graphe (return)
+  const tmiView = computeTmiView(ir, isCouple);
+  const tmiCase = tmiView.tmiCase;
+  const tmiEncart = tmiView.encart
+    ? { titre: tmiView.encart.titre, texteHtml: tmiView.encart.leadFort ? `<strong>${tmiView.encart.leadFort}</strong> ${tmiView.encart.corps}` : tmiView.encart.corps }
+    : undefined;
+  const reconBaremeLignes = tmiView.reconBaremeLignes;
+
+  // Phrase « Notre lecture » (PDF-only) : normale inchangée ; divergence -> renvoi à l'encart ;
+  // forfaitaire (Perry) = message PFU. Seconde phrase PFU en sus si présente (hors Perry).
+  const tranchePctInt = Math.round((Number(ir.marginalRate) || 0) * 100);
   const totalPFU = Number(ir.totalPFU) || 0;
-  const forfaitaires = totalPFU + (Number(ir.avRachatImpot) || 0) + (Number(ir.foncierSocialLevy) || 0) + (Number(ir.perRentesPS) || 0) + (Number(ir.meubleSocialLevy) || 0);
-  const baremeNul = (Number(ir.bareme) || 0) <= 0;
-  const effDiffTranche = Math.abs(mrEff - mr) >= 0.0001;
-  const baseParts = isCouple ? 2 : 1;
-  // Frontière : le delta +100 chevauche un seuil de tranche (ni décote ni plafonnement).
-  // Distance au seuil et taux suivant lus dans ir.bracketFill (aucun barème en dur).
-  const brf: any[] = Array.isArray(ir.bracketFill) ? ir.bracketFill : [];
-  const quotientVal = Number(ir.quotient) || 0;
-  const partsVal = Number(ir.parts) || 1;
-  const activeIdxBr = brf.findIndex((b) => quotientVal <= b.to);
-  const activeBr = activeIdxBr >= 0 ? brf[activeIdxBr] : undefined;
-  const nextBr = activeIdxBr >= 0 ? brf[activeIdxBr + 1] : undefined;
-  const distSeuilFoyer = activeBr && Number.isFinite(activeBr.to) ? Math.max(0, (Number(activeBr.to) - quotientVal) * partsVal) : Infinity;
-
-  // Classification (priorité : forfaitaire > cumul > plafonnement > décote > frontière > normal).
-  let tmiCase: "normal" | "decote" | "plafonnement" | "cumul" | "frontiere" | "forfaitaire";
-  if (impotNetDu <= 0) tmiCase = "normal";
-  else if (baremeNul && forfaitaires > 0) tmiCase = "forfaitaire";
-  else if (plafonnementQfActif && decoteMontant > 0) tmiCase = "cumul";
-  else if (plafonnementQfActif) tmiCase = "plafonnement";
-  else if (decoteMontant > 0) tmiCase = "decote";
-  else if (effDiffTranche && !!nextBr) tmiCase = "frontiere";
-  else tmiCase = "normal";
-
-  // Encart « votre taux marginal réel » (mini-calcul) — ABSENT en normal/forfaitaire.
-  let tmiEncart: { titre: string; texteHtml: string } | undefined;
-  if (tmiCase === "decote") {
-    const baremePart = mr * 100, totalPart = mrEff * 100, decotePart = totalPart - baremePart;
-    tmiEncart = { titre: "Votre taux marginal réel", texteHtml: `<strong>${pct2(mrEff)}</strong> (et non ${tranchePctInt} %). Pour 100 € de revenu imposable en plus : +${euro2(baremePart)} de barème, +${euro2(decotePart)} de décote perdue (la décote s'éteint à mesure que le revenu monte) = ${euro2(totalPart)}.` };
-  } else if (tmiCase === "plafonnement") {
-    tmiEncart = { titre: "Votre taux marginal réel", texteHtml: `<strong>${effPctInt} %</strong> (et non ${tranchePctInt} %). Votre avantage de quotient familial est plafonné (écrêtement ${formatEuro(qfEcretement)}) : chaque euro supplémentaire est imposé comme pour un foyer de ${baseParts} parts, dans la tranche à ${effPctInt} %.` };
-  } else if (tmiCase === "cumul") {
-    tmiEncart = { titre: "Votre taux marginal réel", texteHtml: `<strong>${pct2(mrEff)}</strong> (et non ${tranchePctInt} %). Votre avantage de quotient familial est plafonné (écrêtement ${formatEuro(qfEcretement)}) : chaque euro est imposé comme pour un foyer de ${baseParts} parts ; s'y ajoute la décote (${formatEuro(decoteMontant)}) qui s'éteint à mesure que le revenu monte et renchérit encore l'euro marginal.` };
-  } else if (tmiCase === "frontiere") {
-    tmiEncart = { titre: "Vous approchez d'une tranche", texteHtml: `Vous êtes à ${formatEuro(distSeuilFoyer)} de revenu imposable du passage dans la tranche à ${Math.round((Number(nextBr?.rate) || 0) * 100)} %.` };
-  }
-
-  // Phrase "Pression fiscale" (Notre lecture) SIMPLIFIÉE : normale inchangée ; en cas de
-  // divergence, renvoi à l'encart (pas de duplication) ; forfaitaire (Perry) = message PFU.
   const forfaitPFUPhrase = (totalPFU > 0 && tmiCase !== "forfaitaire")
     ? ` Vos revenus de capitaux sont par ailleurs imposés au forfait (${formatEuro(totalPFU)} — PFU 31,4 %), indépendamment de la tranche.`
     : "";
@@ -113,28 +79,6 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
     pressionFiscale = `${tauxMoyenTxt} Tranche marginale ${tranchePctInt} % — votre taux marginal réel diffère : voir l'encadré « votre taux marginal réel » ci-dessus.`;
   }
   pressionFiscale += forfaitPFUPhrase;
-
-  // ── Réconciliation barème (Lot B3) : lignes de calcul « somme des tranches -> impôt barème
-  //    net », data-driven (champs Lot A). En variante plafonnement, part de la somme réf-2-parts
-  //    MOINS le plafond fixe (cohérent avec les barres affichées, jamais deux référentiels). ──
-  const baremeVal = Number(ir.bareme) || 0;
-  const reconBaremeLignes: string[] = [];
-  if (plafonnementQfActif && Array.isArray(ir.bracketFillBaseParts)) {
-    const sommeRef = (ir.bracketFillBaseParts as any[]).reduce((s, b) => s + (Number(b.tax) || 0), 0);
-    const produitRef = sommeRef * baseParts;
-    reconBaremeLignes.push(`Somme des tranches (référence ${baseParts} parts) ${formatEuro(sommeRef)} × ${baseParts} = ${formatEuro(produitRef)}`);
-    reconBaremeLignes.push(`− plafonnement du quotient familial ${formatEuro(Number(ir.qfCap) || 0)}`);
-    if (decoteMontant > 0) reconBaremeLignes.push(`− décote ${formatEuro(decoteMontant)}`);
-    reconBaremeLignes.push(`= impôt barème net ${formatEuro(baremeVal)}`);
-  } else if (decoteMontant > 0 || qfEcretement > 0) {
-    const sommePart = brf.reduce((s, b) => s + (Number(b.tax) || 0), 0);
-    reconBaremeLignes.push(`Somme des tranches ${formatEuro(sommePart)} × ${partsVal} part${partsVal > 1 ? "s" : ""} = ${formatEuro(sommePart * partsVal)}`);
-    if (decoteMontant > 0) reconBaremeLignes.push(`− décote ${formatEuro(decoteMontant)}`);
-    if (qfEcretement > 0) reconBaremeLignes.push(`+ avantage QF écrêté repris ${formatEuro(qfEcretement)}`);
-    reconBaremeLignes.push(`= impôt barème net ${formatEuro(baremeVal)}`);
-  } else {
-    reconBaremeLignes.push(`= impôt barème net ${formatEuro(baremeVal)} (aucune décote ni plafonnement)`);
-  }
 
   // ─── Analyse "masque" structurée — cadrage métier + chiffres + leviers ──
   const composition: string[] = [];
