@@ -35,9 +35,10 @@ const NORMAL = base({ salary1: "60000" });                                      
 const NORMAL_PFU = base({ salary1: "60000", placements: [cto("5000")] });                                     // normal + forfaitaire
 const FRONTIERE = base({ salary1: "93900" });                                                                 // quotient 84 510 -> +100 franchit 84 577
 
-describe("Lot B2 — tuile KPI reste la tranche statutaire", () => {
-  it("D2 : tuile 'TRANCHE MARG.' = 11,0 % (statutaire), PAS 'TAUX MARGINAL'", () => {
-    expect(dataOf(D2).trancheMarginale).toBe("11,0 %");
+describe("Lot B2/C2 — tuile KPI 'TRANCHE MARG.' (valeur = tranche affichée)", () => {
+  it("D2 : tuile affiche la tranche réelle 30,0 % (plafonnement), libellé inchangé, PAS 'TAUX MARGINAL'", () => {
+    expect(dataOf(D2).tmiAffichee).toBe("30,0 %");      // Lot C2 révisé : réf-2-parts
+    expect(dataOf(D2).trancheMarginale).toBe("11,0 %"); // statutaire conservé (champ)
     const h = pageOf(D2);
     expect(h).toContain("TRANCHE MARG.");
     expect(h).not.toContain("TAUX MARGINAL");
@@ -102,20 +103,25 @@ describe("Lot B2 — encart 'votre taux marginal reel' (1 par cas)", () => {
   });
 });
 
-describe("Lot C2 — tuile PDF TRANCHE MARG. : sous-label conditionnel", () => {
-  it("D2 plafonnement : sous-label 'taux marginal réel : 30 %' (libellé principal inchangé)", () => {
-    expect(dataOf(D2).trancheMargSousLabel).toBe("taux marginal réel : 30 %");
+describe("Lot C2 révisé — tuile PDF : valeur = tranche affichée + sous-texte", () => {
+  it("D2 plafonnement : valeur 30,0 % (réf) + sous-texte 'tranche sur le quotient : 11 %'", () => {
+    expect(dataOf(D2).tmiAffichee).toBe("30,0 %");
+    expect(dataOf(D2).trancheMargSousLabel).toBe("plafonnement du QF actif — tranche sur le quotient : 11 %");
     const h = pageOf(D2);
-    expect(h).toContain("TRANCHE MARG.");
-    expect(h).toContain("taux marginal réel : 30 %");
+    expect(h).toContain("30,0 %");
+    expect(h).toContain("plafonnement du QF actif — tranche sur le quotient : 11 %");
   });
-  it("D3 décote : sous-label 'taux marginal réel : 15,98 %'", () => {
-    expect(dataOf(D3).trancheMargSousLabel).toBe("taux marginal réel : 15,98 %");
-    expect(pageOf(D3)).toContain("taux marginal réel : 15,98 %");
+  it("D3 décote : valeur 11,0 % (tranche) + sous-texte 'taux réel : 15,98 % (effet décote)'", () => {
+    expect(dataOf(D3).tmiAffichee).toBe("11,0 %");
+    expect(dataOf(D3).trancheMargSousLabel).toBe("taux réel : 15,98 % (effet décote) — voir encadré");
+    expect(pageOf(D3)).toContain("taux réel : 15,98 % (effet décote)");
   });
-  it("D4 normal : AUCUN sous-label (byte-identique)", () => {
+  it("D4 normal : valeur = trancheMarginale, AUCUN sous-texte (byte-identique)", () => {
+    expect(dataOf(NORMAL).tmiAffichee).toBe(dataOf(NORMAL).trancheMarginale);
     expect(dataOf(NORMAL).trancheMargSousLabel).toBeUndefined();
-    expect(pageOf(NORMAL)).not.toContain("taux marginal réel");
+    const h = pageOf(NORMAL);
+    expect(h).not.toContain("taux réel");
+    expect(h).not.toContain("plafonnement du QF actif — tranche");
   });
 });
 

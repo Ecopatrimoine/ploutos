@@ -41,6 +41,7 @@ describe("TMI effective (Lot A) — dossiers temoins de la recon", () => {
     expect(ir.bareme).toBeCloseTo(11379.98, 2);
     expect(ir.marginalRate).toBe(0.11);           // tranche du quotient (27 000)
     expect(ir.marginalRateEffectif).toBeCloseTo(0.30, 4); // marginal reel = ref 2 parts (cap fixe)
+    expect(ir.marginalRateReference).toBe(0.30);  // Lot C2 revise : tranche du calcul de reference (54 000)
   });
 
   it("D3 decote (seul, salaire 25000) : effective 0.1598 (0.11 x 1.4525) > tranche 0.11", () => {

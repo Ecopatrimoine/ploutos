@@ -77,28 +77,35 @@ describe("Lot C — équivalence écran = PDF (mêmes données, buildIRData dél
   });
 });
 
-describe("Lot C2 — sousTexteCard (cohérence card écran / tuile PDF, source unique)", () => {
-  it("valeurs par cas : plafonnement/decote/frontiere ; absent en normal/forfaitaire", () => {
-    expect(viewOf(D2).sousTexteCard).toBe("taux marginal réel : 30 %");
-    expect(viewOf(D3).sousTexteCard).toBe("taux marginal réel : 15,98 %");
+describe("Lot C2 révisé — tmiAffichee + sousTexteCard (source unique card/tuile)", () => {
+  it("tmiAffichee : plafonnement -> tranche de référence (0.30) ; sinon tranche statutaire", () => {
+    expect(viewOf(D2).tmiAffichee).toBe(0.30);   // plafonnement -> réf-2-parts (et non 0.11)
+    expect(viewOf(D3).tmiAffichee).toBe(0.11);   // décote -> statutaire
+    expect(viewOf(NORMAL).tmiAffichee).toBe(0.30);
+  });
+  it("sousTexteCard par cas : plafonnement/decote/frontiere ; absent en normal/forfaitaire", () => {
+    expect(viewOf(D2).sousTexteCard).toBe("plafonnement du QF actif — tranche sur le quotient : 11 %");
+    expect(viewOf(D3).sousTexteCard).toBe("taux réel : 15,98 % (effet décote) — voir encadré");
     expect(viewOf(FRONTIERE).sousTexteCard).toBe("à 67 € de la tranche à 41 %");
     expect(viewOf(NORMAL).sousTexteCard).toBeUndefined();
     expect(viewOf(D1).sousTexteCard).toBeUndefined();
   });
-  it("la tuile PDF utilise la MÊME source (trancheMargSousLabel == sousTexteCard)", () => {
+  it("cohérence écran = PDF : card sousTexteCard == tuile trancheMargSousLabel ; tmiAffichee identique", () => {
     const pdf2 = buildIRData({ ir: computeIR(D2, OPTS), data: D2, cabinet: {}, clientName: "T" });
     const pdf4 = buildIRData({ ir: computeIR(NORMAL, OPTS), data: NORMAL, cabinet: {}, clientName: "T" });
     expect(pdf2.trancheMargSousLabel).toBe(viewOf(D2).sousTexteCard);
-    expect(pdf4.trancheMargSousLabel).toBeUndefined();  // normal : pas de sous-label (byte-identique)
+    expect(pdf2.tmiAffichee).toBe("30,0 %");                          // tuile PDF = card écran (30 %)
+    expect(pdf4.trancheMargSousLabel).toBeUndefined();                // normal : pas de sous-texte
+    expect(pdf4.tmiAffichee).toBe(pdf4.trancheMarginale);             // byte-identique
   });
-  it("card écran : MetricCard rend le sousTexte (mis en évidence)", () => {
+  it("card écran : MetricCard rend valeur principale + sous-texte", () => {
     const { container } = render(
-      <MetricCard label="TMI" value="11 %" hint="Taux Marginal d'Imposition : tranche du barème sur le quotient" sousTexte={`${viewOf(D2).sousTexteCard} — voir encadré ci-dessous`} accent="gold" />,
+      <MetricCard label="TMI" value={`${Math.round(viewOf(D2).tmiAffichee * 100)} %`} hint="Taux Marginal d'Imposition : tranche du barème sur le quotient" sousTexte={viewOf(D2).sousTexteCard} accent="gold" />,
     );
     const txt = container.textContent || "";
-    expect(txt).toContain("taux marginal réel : 30 %");
-    expect(txt).toContain("voir encadré ci-dessous");
-    expect(txt).toContain("tranche du barème sur le quotient"); // libellé permanent corrigé
+    expect(txt).toContain("30 %");                                    // valeur principale = tranche réelle
+    expect(txt).toContain("tranche sur le quotient : 11 %");          // sous-texte
+    expect(txt).toContain("tranche du barème sur le quotient");       // libellé permanent
   });
 });
 
