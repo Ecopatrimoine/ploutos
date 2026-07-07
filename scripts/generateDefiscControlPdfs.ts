@@ -61,6 +61,18 @@ const dossierB = {
   placements: [plac({ id: "s", name: "SOFICA 2026", type: "SOFICA", defiscalisation: { dispositif: "sofica", montantSouscrit: "18000", dateInvestissement: "2026-06-01", tauxSofica: "48" } })],
 };
 
+// Dossier C (Lot 3 LMNP) : location meublee micro + reel, golden rejoues.
+//   Bien 1 micro (T1) : recettes 12000 -> base 6000.
+//   Bien 2 reel (T5)  : recettes 18000, charges 8000, amort 12000 -> base 0, ARD 2000.
+// (La projection 10 ans / T13 reste ECRAN SEUL en v1 : pas de page PDF.)
+const dossierMeuble = {
+  ...BASE, salary1: "60000",
+  properties: [
+    prop({ id: "m1", name: "Studio meuble (micro)", type: "LMNP", rentGrossAnnual: "12000" }),
+    prop({ id: "m2", name: "Appart meuble (reel)", type: "LMNP", regimeMeuble: "reel", recettesAnnuelles: "18000", chargesReelles: "8000", amortissementAnnuelManuel: "12000" }),
+  ],
+};
+
 function irDataOf(data: any, clientName: string) {
   const ir = computeIR(data, MICRO);
   return { ir, irData: buildIRData({ ir, data, cabinet: { cabinetName: "EcoPatrimoine Conseil" }, clientName, dateLettre: "06 juillet 2026" }) };
@@ -83,12 +95,16 @@ async function main(): Promise<void> {
   const cases = [
     { data: dossierA, name: "A-fcpi-pinel-sans-ecretement", client: "Dossier A — FCPI + Pinel" },
     { data: dossierB, name: "B-sofica-pinel-ecretement-double", client: "Dossier B — SOFICA + Pinel (écrêtement)" },
+    { data: dossierMeuble, name: "C-meuble-micro-reel", client: "Dossier C — location meublée (micro + réel)" },
   ];
   for (const c of cases) {
     const { ir, irData } = irDataOf(c.data, c.client);
     const df: any = ir.dispositifsFiscaux;
     console.log(`\n[${c.name}] réductions imputées : ${(df.reductions || []).filter((r: any) => r.id !== "forfait_scolaire" && r.impute > 0).map((r: any) => `${r.id}=${Math.round(r.impute)}`).join(", ")}`);
     console.log(`  écrêtement : total ${Math.round(df.ecretementNiches)} (commun ${Math.round(df.ecretementCommun)} / majoré ${Math.round(df.ecretementMajore)})`);
+    if (Array.isArray(ir.meubleDetail) && ir.meubleDetail.length) {
+      console.log(`  meublé : ${ir.meubleDetail.map((m: any) => `${m.nom}=${Math.round(m.base)} (ARD ${Math.round(m.ard)})`).join(", ")} ; base totale ${Math.round(ir.beneficeMeuble)} ; PS 18,6 % ${Math.round(ir.meubleSocialLevy)}`);
+    }
     const html = renderIR({ theme: "encreOr", data: irData });
     writeFileSync(join(outDir, `${c.name}.html`), html, "utf8");
     console.log(`  HTML : ${join(outDir, `${c.name}.html`)}`);
