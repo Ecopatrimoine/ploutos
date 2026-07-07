@@ -1,0 +1,52 @@
+{
+  "millesime": 2026,
+  "dateVerification": "2026-07-07",
+  "sources": [
+    "art. 50-0 CGI - micro-BIC : seuils et abattements (residuel 50 %, tourisme non classe 30 %, plancher 305)",
+    "CE 16/09/2025 n 505228 - chambres d'hotes rattachees au regime residuel 50 %",
+    "loi 2024-1039 du 19/11/2024 (loi Le Meur) - meubles de tourisme non classes : seuil 15000 non revalorise, abattement 30 % (art. 50-0 1-1bis)",
+    "LF 2026 - revalorisation triennale du seuil residuel a 83600 (revenus 2026)",
+    "art. 155 IV-2 CGI - seuil LMP 23000, comparaison a l'excedent (> strict)",
+    "art. 39 C CGI - l'amortissement ne peut creer ni aggraver un deficit",
+    "art. 156 I-1 ter CGI - le deficit BIC non professionnel ne s'impute pas sur le revenu global",
+    "PCG art. 214-13 / reglement ANC 2014-03 ; BOFiP BOI-BIC-AMT-10-40-10 - amortissement par composants (consulte 07/07/2026)",
+    "LFSS 2026, loi 2025-1403 du 30/12/2025, art. L136-8 CSS - PS revenus du patrimoine 18,6 %"
+  ],
+  "_comment": "Referentiel LMNP/LMP millesime 2026. Toutes les valeurs sont sourcees et datees (consulte 07/07/2026). Le bloc ps ci-dessous est la SEULE source du taux PS consomme par le circuit meuble : aucun taux n'est duplique depuis ir.ts.",
+  "microBic": {
+    "residuel": {
+      "seuil": 83600,
+      "abattement": 0.5,
+      "_comment": "Regime micro-BIC residuel (art. 50-0 1-2 CGI). Couvre location meublee longue duree, meubles de tourisme CLASSES et chambres d'hotes (CE 16/09/2025 n 505228). Seuil 83600 EUR (revenus 2026, revalorisation triennale LF 2026), abattement 50 %."
+    },
+    "tourismeNonClasse": {
+      "seuil": 15000,
+      "abattement": 0.3,
+      "_comment": "Meubles de tourisme NON classes (art. 50-0 1-1bis CGI, loi Le Meur 2024-1039). Seuil 15000 EUR NON revalorise, abattement 30 %."
+    },
+    "plancherAbattement": 305,
+    "_comment_plancher": "Abattement minimum art. 50-0 CGI : 305 EUR, borne a hauteur des recettes."
+  },
+  "lmp": {
+    "seuilRecettes": 23000,
+    "_comment": "Seuil LMP art. 155 IV-2 CGI : recettes meublees annuelles du foyer > 23000 EUR (comparaison STRICTE : 'excedent') ET superieures aux autres revenus d'activite du foyer. Comparaison a 2 bornes strictes."
+  },
+  "amortissement": {
+    "partTerrainDefaut": 0.15,
+    "dureeMobilier": 7,
+    "grille": [
+      { "composant": "grosOeuvre", "part": 0.5, "duree": 50 },
+      { "composant": "toiture", "part": 0.1, "duree": 25 },
+      { "composant": "installationsTechniques", "part": 0.15, "duree": 20 },
+      { "composant": "facadeEtancheite", "part": 0.1, "duree": 20 },
+      { "composant": "agencements", "part": 0.15, "duree": 15 }
+    ],
+    "_comment": "Amortissement par composants (PCG art. 214-13 / reglement ANC 2014-03). Part terrain non amortissable par defaut 15 %. Duree mobilier 7 ans (lineaire). Grille bati : parts et durees dans les fourchettes BOFiP BOI-BIC-AMT-10-40-10 (consulte 07/07/2026). Somme des parts bati = 1,00."
+  },
+  "ps": {
+    "revenusPatrimoine": 0.186,
+    "foncierNu": 0.172,
+    "_comment_revenusPatrimoine": "PS revenus du patrimoine 18,6 % (LFSS 2026, loi 2025-1403 du 30/12/2025, art. L136-8 CSS). Le benefice BIC de location meublee non professionnelle est explicitement au taux revenus du patrimoine. SEUL taux consomme par le circuit meuble.",
+    "_comment_foncierNu": "Taux derogatoire foncier nu maintenu (art. L136-8 IV CSS) : 17,2 %. Trace pour reference documentaire. NON consomme dans ce lot : le foncier nu reste calcule par ir.ts avec son 0.172 en dur (perimetre inchange, dette de centralisation tracee en Roadmap)."
+  }
+}
