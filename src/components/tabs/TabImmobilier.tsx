@@ -21,6 +21,7 @@ import { collecteRevenusActiviteFoyer } from "../../lib/calculs/ir";
 import refMeuble from "../../data/location-meublee.json";
 import { AssetPickerModal } from "../AssetPickerModal";
 import { AmortissementModal } from "../AmortissementModal";
+import { ProjectionMeubleModal } from "../ProjectionMeubleModal";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
 
 
@@ -46,6 +47,8 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
   const [addPropModalOpen, setAddPropModalOpen] = React.useState(false);
   // Modal "Detail de l'amortissement" (Lot 1bis) : id du bien meuble ouvert.
   const [amortModalPropertyId, setAmortModalPropertyId] = React.useState<string | null>(null);
+  // Modal "Projete 10 ans" (Lot 2, ecran seul) : id du bien meuble reel ouvert.
+  const [projModalPropertyId, setProjModalPropertyId] = React.useState<string | null>(null);
   const addPropBtnRef = React.useRef<HTMLButtonElement>(null);
   const closeAddPropModal = React.useCallback(() => {
     setAddPropModalOpen(false);
@@ -95,6 +98,10 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
   {amortModalPropertyId != null && (() => {
     const p = (data.properties as any[]).find((x) => x.id === amortModalPropertyId);
     return p ? <AmortissementModal property={p} updateProperty={updateProperty} onClose={() => setAmortModalPropertyId(null)} /> : null;
+  })()}
+  {projModalPropertyId != null && (() => {
+    const p = (data.properties as any[]).find((x) => x.id === projModalPropertyId);
+    return p ? <ProjectionMeubleModal property={p} onClose={() => setProjModalPropertyId(null)} /> : null;
   })()}
   {data.properties.length === 0 && <div className="border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>Aucun bien immobilier saisi. Cliquez « Ajouter un bien » pour commencer.</div>}
   {/* ── Constat LMP (niveau dossier) — carte constat, patron severite douce. Aucun
@@ -622,6 +629,14 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                         )}
                       </div>
                     </div>
+                  </div>
+                )}
+                {/* Bouton projete 10 ans (Lot 2) — visible au reel resolu, ecran seul. */}
+                {regimeEffectif === "reel" && (
+                  <div>
+                    <button type="button" onClick={() => setProjModalPropertyId(property.id)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border transition-colors hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#26428B]" style={{ background: "rgba(38,66,139,0.08)", borderColor: "rgba(38,66,139,0.25)", color: BRAND.sky }}>
+                      📈 Projete 10 ans
+                    </button>
                   </div>
                 )}
                 {/* Garde-fou conformite : Censi-Bouvard exclut l'amortissement sur la
