@@ -99,10 +99,15 @@ describe("pageIR — graphe barème par tranche (par part)", () => {
     expect(active.index).toBe(3);
   });
 
-  it("(4) labels = impôt par part (1 par tranche à tax>0) [invariant structurel ; note B3 verifiee ailleurs]", () => {
+  it("(4) labels IR (X EUR d'impot + X EUR loges) + en-tete + reconciliation (Lot B3)", () => {
     const html = rendre({ quotient: 45_000, parts: 2, marginalRate: 0.30 });
     // tranches 11 % et 30 % ont un impôt > 0 -> 2 labels montant ; 0 % et vides -> aucun
     expect(compte(html, /data-bar-amount/g)).toBe(2);
+    expect(html).toContain("d'impôt");                 // unité de sens sur l'étiquette
+    expect(html).toContain("logés");                   // assiette logée sous les bornes
+    expect(html).toContain("Chaque barre");            // en-tête de lecture reformulé
+    expect(html).toContain("= impôt barème net");      // bloc de réconciliation
+    expect(html).toContain("aucune décote ni plafonnement"); // fixture finalIR 0 -> ligne unique
   });
 
   it("(5) aucune chaîne 75 % (plafonnement IFI, hors sujet IR)", () => {

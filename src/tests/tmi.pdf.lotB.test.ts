@@ -102,6 +102,33 @@ describe("Lot B2 — encart 'votre taux marginal reel' (1 par cas)", () => {
   });
 });
 
+describe("Lot B3 — histogramme (étiquettes + réconciliation)", () => {
+  it("étiquettes barres IR : 'd'impôt' au-dessus, 'logés' sous les bornes, en-tête reformulé", () => {
+    const h = pageOf(NORMAL);
+    expect(h).toContain("d'impôt");
+    expect(h).toContain("logés");
+    expect(h).toContain("Chaque barre");
+  });
+  it("réconciliation D4 normal : ligne unique 'impôt barème net … (aucune décote ni plafonnement)'", () => {
+    const d = dataOf(NORMAL);
+    expect(d.reconBaremeLignes?.length).toBe(1);
+    expect(d.reconBaremeLignes?.[0]).toMatch(/= impôt barème net 9.304 € \(aucune décote ni plafonnement\)/);
+  });
+  it("réconciliation D3 décote : somme × parts − décote = impôt barème net", () => {
+    const j = (dataOf(D3).reconBaremeLignes || []).join("\n");
+    expect(j).toContain("Somme des tranches");
+    expect(j).toContain("× 1 part");
+    expect(j).toMatch(/décote 354 €/);
+    expect(j).toMatch(/= impôt barème net 845 €/);
+  });
+  it("réconciliation D2 plafonnement : part de la référence 2 parts moins le plafond (cohérent barres)", () => {
+    const j = (dataOf(D2).reconBaremeLignes || []).join("\n");
+    expect(j).toMatch(/Somme des tranches \(référence 2 parts\) 9.304 € × 2 = 18.608 €/);
+    expect(j).toContain("plafonnement du quotient familial");
+    expect(j).toMatch(/= impôt barème net 11.380 €/); // 18 608 − 7 228 = 11 380
+  });
+});
+
 describe("Lot B2 — invariants restitution (forfaitaire, PFU, graphe, byte-identité)", () => {
   it("normal + forfaitaire : seconde phrase PFU en sus", () => {
     const h = pageOf(NORMAL_PFU);
