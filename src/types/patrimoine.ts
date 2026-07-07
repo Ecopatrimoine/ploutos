@@ -123,6 +123,20 @@ export type Property = {
   dispositifNiveauLoyer?: "intermediaire" | "social" | "tresSocial" | "loc1" | "loc2" | "loc3";
   dispositifIntermediation?: boolean;   // locavantages
   dispositifNeufAncien?: "neuf" | "ancien"; // jeanbrunRelanceLogement
+  // ── Location meublee (LMNP/LMP) — Lot 0 moteur BIC ────────────────────────
+  // Champs OPTIONNELS, ZERO migration : un bien type "LMNP"/"LMP" sans ces
+  // champs est calcule avec des defauts conservateurs (cf. computeIR +
+  // src/lib/calculs/locationMeublee.ts). Convention string comme value /
+  // rentGrossAnnual. Le bien passe par le circuit BIC meuble, jamais foncier
+  // (predicat isBienMeuble). Saisie UI = lot suivant (feat/lmnp).
+  sousType?: "longue_duree" | "tourisme_classe" | "tourisme_non_classe";
+  recettesAnnuelles?: string;      // vide => reutilise rentGrossAnnual du bien
+  regimeMeuble?: "micro" | "reel"; // vide => micro si recettes <= seuil du sous-type, sinon reel
+  chargesReelles?: string;         // regime reel : charges deductibles hors amortissement
+  prixAcquisition?: string;        // base de l'amortissement auto (hors terrain)
+  partTerrain?: string;            // fraction terrain non amortissable ; vide => 0.15 (referentiel)
+  valeurMobilier?: string;         // base de l'amortissement mobilier
+  amortissementAnnuelManuel?: string; // barriere douce : "0" saisi = 0 voulu ; vide => amortissement auto
 };
 
 export type ExternalShareholder = {
