@@ -44,6 +44,45 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
   const impotNetDu = num(ir.finalIR ?? 0);
   const tmiPct = num((ir.marginalRate ?? 0) * (Number(ir.marginalRate) <= 1 ? 100 : 1));
 
+  // ── TMI effective (Lot B) : champs Lot A du moteur, ZERO recalcul ni barème en dur. ──
+  const mrEff = Number(ir.marginalRateEffectif) || 0;   // décimal (0,30)
+  const mr = Number(ir.marginalRate) || 0;              // décimal (tranche statutaire)
+  const effPctInt = Math.round(mrEff * 100);
+  const tranchePctInt = Math.round(mr * 100);
+  const decoteMontant = Number(ir.decoteMontant) || 0;
+  const plafonnementQfActif = !!ir.plafonnementQfActif;
+  const qfEcretement = Number(ir.quotientFamilialCapAdjustment) || 0;
+  const totalPFU = Number(ir.totalPFU) || 0;
+  const forfaitaires = totalPFU + (Number(ir.avRachatImpot) || 0) + (Number(ir.foncierSocialLevy) || 0) + (Number(ir.perRentesPS) || 0) + (Number(ir.meubleSocialLevy) || 0);
+  const baremeNul = (Number(ir.bareme) || 0) <= 0;
+  const effDiffTranche = Math.abs(mrEff - mr) >= 0.0001;
+  const baseParts = isCouple ? 2 : 1;
+
+  // Phrase "Pression fiscale" — 4 variantes data-driven (priorité plafonnement > décote
+  // > normal), seconde phrase forfaitaire (PFU) si présente ; barème nul + forfaitaire
+  // (Perry) => la ligne forfaitaire devient la principale. Montants depuis le moteur.
+  const forfaitPFUPhrase = (totalPFU > 0 && !(baremeNul && forfaitaires > 0))
+    ? ` Vos revenus de capitaux sont par ailleurs imposés au forfait (${formatEuro(totalPFU)} — PFU 31,4 %), indépendamment de la tranche.`
+    : "";
+  let pressionFiscale: string;
+  if (impotNetDu <= 0) {
+    pressionFiscale = "Aucun impôt dû à ce stade (revenus sous le seuil ou compensés par les déductions).";
+  } else if (baremeNul && forfaitaires > 0) {
+    pressionFiscale = `Barème : 0 % — l'essentiel de votre impôt (${formatEuro(impotNetDu)}) provient de l'imposition forfaitaire de vos revenus de capitaux.`;
+  } else {
+    const tauxMoyenTxt = `Impôt dû : ${formatEuro(impotNetDu)}, soit ${formatPct(ir.averageRate)} en taux moyen.`;
+    let marginalTxt: string;
+    if (plafonnementQfActif) {
+      marginalTxt = `Taux marginal effectif ${effPctInt} % (tranche ${tranchePctInt} %) : le plafonnement du quotient familial est atteint (avantage écrêté de ${formatEuro(qfEcretement)}) — l'euro marginal est taxé au barème de référence hors demi-parts supplémentaires${decoteMontant > 0 ? `, la décote (${formatEuro(decoteMontant)}) accentuant par ailleurs l'effet` : ""}.`;
+    } else if (decoteMontant > 0) {
+      marginalTxt = `Taux marginal effectif ${effPctInt} % (tranche ${tranchePctInt} %) : la décote (${formatEuro(decoteMontant)}) s'atténue à mesure que le revenu augmente, ce qui renchérit l'euro marginal.`;
+    } else {
+      marginalTxt = `Tranche marginale ${tranchePctInt} % — chaque euro supplémentaire de revenu imposable est taxé à ce taux.`;
+    }
+    pressionFiscale = `${tauxMoyenTxt} ${marginalTxt}`;
+  }
+  pressionFiscale += forfaitPFUPhrase;
+
   // ─── Analyse "masque" structurée — cadrage métier + chiffres + leviers ──
   const composition: string[] = [];
   if (salaires       > 0) composition.push(`salaires ${formatEuro(salaires)}`);
@@ -72,9 +111,7 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
     <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
       <li><strong>Composition</strong> — Revenus bruts annuels : ${formatEuro(revenusBruts)} (${composition.join(", ") || "à compléter dans la collecte"}).</li>
       <li><strong>Assiette</strong> — Revenu net imposable : ${formatEuro(revenuNetImposable)} pour ${ir.parts || "—"} part${(ir.parts || 0) > 1 ? "s" : ""} fiscale${(ir.parts || 0) > 1 ? "s" : ""}.</li>
-      <li><strong>Pression fiscale</strong> — ${impotNetDu > 0
-        ? `Impôt dû : ${formatEuro(impotNetDu)}, soit ${formatPct(ir.averageRate)} en taux moyen. Tranche marginale ${tmiPct.toFixed(0)} % — chaque euro supplémentaire est taxé à ce taux.`
-        : `Aucun impôt dû à ce stade (revenus sous le seuil ou compensés par les déductions).`}</li>
+      <li><strong>Pression fiscale</strong> — ${pressionFiscale}</li>
     </ul>
     <p style="margin:0;font-style:italic;color:#6B6353"><strong>Leviers à étudier :</strong> ${leviers.join(" ; ")}.</p>
   `.trim();
@@ -143,6 +180,15 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
     quotientParPart: num(ir.quotient),
     parts: num(ir.parts),
     marginalRate: Number(ir.marginalRate) || 0,
+    // TMI effective (Lot B) : la tuile affiche l'effective ; sous-label seulement si != tranche.
+    tauxMarginalEffectif: formatPct(mrEff),
+    trancheBaremeSousLabel: effDiffTranche ? `tranche barème ${tranchePctInt} %` : undefined,
+    // Graphe barème "QF plafonné" (foyer commun) : fill + quotient du calcul de référence.
+    plafonnementQfActif,
+    bracketFillBaseParts: Array.isArray(ir.bracketFillBaseParts) ? ir.bracketFillBaseParts : undefined,
+    quotientBaseParts: ir.quotientBaseParts !== undefined ? num(ir.quotientBaseParts) : undefined,
+    qfEcretement,
+    baseParts,
     notreLecture: p.notreLecture || notreLectureCalculee,
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Fiscalité — confidentiel`,
