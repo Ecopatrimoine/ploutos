@@ -137,6 +137,12 @@ export type Property = {
   partTerrain?: string;            // fraction terrain non amortissable ; vide => 0.15 (referentiel)
   valeurMobilier?: string;         // base de l'amortissement mobilier
   amortissementAnnuelManuel?: string; // barriere douce : "0" saisi = 0 voulu ; vide => amortissement auto
+  // Overrides par composant de l'amortissement (modal "Detail", Lot 1bis). Cle =
+  // slug de composant (grosOeuvre, toiture, installationsTechniques,
+  // facadeEtancheite, agencements). part en FRACTION (comme la grille du
+  // referentiel), duree en annees ; champ absent = valeur du referentiel.
+  // Optionnel/vide = grille par defaut. Consomme par amortissementAuto (moteur).
+  amortissementComposants?: Record<string, { part?: number; duree?: number }>;
 };
 
 export type ExternalShareholder = {

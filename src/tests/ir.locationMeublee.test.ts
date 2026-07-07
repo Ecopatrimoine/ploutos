@@ -161,6 +161,51 @@ describe("LMNP — micro choisi au-dessus du seuil bascule en reel de plein droi
   });
 });
 
+// ─── Lot 1bis — charges reelles = chargesReelles + taxe + assurance ───────────
+describe("LMNP 1bis — charges retenues au reel incluent taxe fonciere + assurance", () => {
+  it("reel 30000 / chargesReelles 3000 / taxe 2000 / assurance 1000 -> charges 6000, base 24000", () => {
+    const ir: any = computeIR({ ...BASE_DATA, salary1: "40000", properties: [prop({ type: "LMNP", regimeMeuble: "reel", recettesAnnuelles: "30000", chargesReelles: "3000", propertyTaxAnnual: "2000", insuranceAnnual: "1000" })] }, MICRO);
+    expect(ir.beneficeMeuble).toBeCloseTo(24000, 2); // 30000 - 6000 - 0
+    expect(ir.meubleDetail[0].chargesRetenues).toBeCloseTo(6000, 2);
+  });
+  it("fallback legacy : otherChargesAnnual utilise si chargesReelles vide", () => {
+    const ir: any = computeIR({ ...BASE_DATA, salary1: "40000", properties: [prop({ type: "LMNP", regimeMeuble: "reel", recettesAnnuelles: "30000", otherChargesAnnual: "4000", propertyTaxAnnual: "1000" })] }, MICRO);
+    expect(ir.meubleDetail[0].chargesRetenues).toBeCloseTo(5000, 2); // 4000 + 1000 + 0
+  });
+});
+
+// ─── Lot 1bis — detail par bien expose (affichage TabIR, aucun recalcul local) ─
+describe("LMNP 1bis — meubleDetail expose par bien", () => {
+  it("micro : detail regime/recettes/abattement/base", () => {
+    const ir: any = computeIR({ ...BASE_DATA, salary1: "30000", properties: [prop({ type: "LMNP", rentGrossAnnual: "12000" })] }, MICRO);
+    expect(ir.meubleDetail).toHaveLength(1);
+    const d = ir.meubleDetail[0];
+    expect(d.regime).toBe("micro");
+    expect(d.recettes).toBeCloseTo(12000, 2);
+    expect(d.abattement).toBeCloseTo(6000, 2);
+    expect(d.base).toBeCloseTo(6000, 2);
+  });
+  it("reel deficitaire : ARD + deficit reportable exposes, base 0", () => {
+    // recettes 10000, charges 13000 (via chargesReelles), amort 5000 -> T7 du module
+    const ir: any = computeIR({ ...BASE_DATA, salary1: "40000", properties: [prop({ type: "LMNP", regimeMeuble: "reel", recettesAnnuelles: "10000", chargesReelles: "13000", amortissementAnnuelManuel: "5000" })] }, MICRO);
+    const d = ir.meubleDetail[0];
+    expect(d.base).toBeCloseTo(0, 2);
+    expect(d.ard).toBeCloseTo(5000, 2);
+    expect(d.deficitReportable).toBeCloseTo(3000, 2);
+  });
+});
+
+// ─── Lot 1bis — overrides d'amortissement par composant (modal Detail) ────────
+describe("LMNP 1bis — amortissementComposants (overrides) branches dans computeIR", () => {
+  it("override gros oeuvre 40 ans change la base reel", () => {
+    const base = { type: "LMNP", regimeMeuble: "reel", recettesAnnuelles: "40000", prixAcquisition: "300000" };
+    const sans: any = computeIR({ ...BASE_DATA, salary1: "40000", properties: [prop({ ...base })] }, MICRO);
+    const avec: any = computeIR({ ...BASE_DATA, salary1: "40000", properties: [prop({ ...base, amortissementComposants: { grosOeuvre: { duree: 40 } } })] }, MICRO);
+    expect(sans.beneficeMeuble).toBeCloseTo(40000 - 9307.5, 2); // amort auto 9307.50
+    expect(avec.beneficeMeuble).toBeCloseTo(40000 - 9945, 2);   // amort override 9945
+  });
+});
+
 // ─── Helper de collecte (detection LMP, lot UI a venir) ───────────────────────
 describe("LMNP — collecteRevenusActiviteFoyer (base de comparaison LMP)", () => {
   it("somme salaires + pensions + benefice TNS, hors meuble", () => {
