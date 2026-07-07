@@ -95,6 +95,9 @@ export type KpiItem = {
   /** Surcharge la taille de la valeur (par défaut 15px compact / 20px large).
    *  Utile pour les libellés textuels longs (« Modérée », « Équilibré »…). */
   valueFontSize?: string;
+  /** Sous-libellé optionnel affiché sous la valeur (ex. « tranche barème 11 % »).
+   *  Absent ⇒ rien émis (sortie byte-identique pour tous les appelants existants). */
+  sousLabel?: string;
 };
 
 export type BandeKpiOpts = {
@@ -124,7 +127,8 @@ export function bandeKPI(t: Tokens, kpis: KpiItem[], opts: BandeKpiOpts = {}): s
     const valColor = k.type === "success" ? t.succes : t.navy;
     return `<div style="border:0.5px solid ${t.bordureMoyenne};border-radius:9px;padding:${padding};display:flex;flex-direction:column">
       <div class="lt" style="font-size:${labelSize};color:${t.texteFaible};letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">${k.label}</div>
-      <div class="lt" style="font-weight:700;font-size:${vSize};color:${valColor};margin-top:5px;line-height:1">${k.value}</div>
+      <div class="lt" style="font-weight:700;font-size:${vSize};color:${valColor};margin-top:5px;line-height:1">${k.value}</div>${k.sousLabel ? `
+      <div class="lt" style="font-size:8.5px;color:${t.texteFaibleClair};margin-top:3px;line-height:1.2">${k.sousLabel}</div>` : ""}
     </div>`;
   };
   return `<div style="display:grid;grid-template-columns:${template};gap:${isLarge ? "9px" : "8px"};margin-top:18px">
