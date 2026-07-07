@@ -102,6 +102,23 @@ describe("Lot B2 — encart 'votre taux marginal reel' (1 par cas)", () => {
   });
 });
 
+describe("Lot C2 — tuile PDF TRANCHE MARG. : sous-label conditionnel", () => {
+  it("D2 plafonnement : sous-label 'taux marginal réel : 30 %' (libellé principal inchangé)", () => {
+    expect(dataOf(D2).trancheMargSousLabel).toBe("taux marginal réel : 30 %");
+    const h = pageOf(D2);
+    expect(h).toContain("TRANCHE MARG.");
+    expect(h).toContain("taux marginal réel : 30 %");
+  });
+  it("D3 décote : sous-label 'taux marginal réel : 15,98 %'", () => {
+    expect(dataOf(D3).trancheMargSousLabel).toBe("taux marginal réel : 15,98 %");
+    expect(pageOf(D3)).toContain("taux marginal réel : 15,98 %");
+  });
+  it("D4 normal : AUCUN sous-label (byte-identique)", () => {
+    expect(dataOf(NORMAL).trancheMargSousLabel).toBeUndefined();
+    expect(pageOf(NORMAL)).not.toContain("taux marginal réel");
+  });
+});
+
 describe("Lot B3 — histogramme (étiquettes + réconciliation)", () => {
   it("étiquettes barres IR : 'd'impôt' au-dessus, 'logés' sous les bornes, en-tête reformulé", () => {
     const h = pageOf(NORMAL);

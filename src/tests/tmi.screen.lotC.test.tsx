@@ -8,7 +8,7 @@ import { render } from "@testing-library/react";
 import { computeIR } from "../lib/calculs/ir";
 import { computeTmiView } from "../lib/calculs/tmiEffective";
 import { buildIRData } from "../lib/pdf/v2/adapters/buildIRData";
-import { BracketFillChart } from "../components/shared";
+import { BracketFillChart, MetricCard } from "../components/shared";
 import { EMPTY_CHARGES_DETAIL } from "../constants";
 
 const OPTS = { expenseMode1: "standard", expenseMode2: "standard", km1: "0", cv1: "5", mealCount1: "0", mealUnit1: "4.9", km2: "0", cv2: "5", mealCount2: "0", mealUnit2: "4.9", foncierRegime: "micro", other1: "0", other2: "0" } as any;
@@ -74,6 +74,31 @@ describe("Lot C — équivalence écran = PDF (mêmes données, buildIRData dél
     const pdf = buildIRData({ ir: computeIR(D3, OPTS), data: D3, cabinet: {}, clientName: "T" });
     const e = viewOf(D3).encart!;
     expect(pdf.tmiEncart?.texteHtml).toBe(`<strong>${e.leadFort}</strong> ${e.corps}`);
+  });
+});
+
+describe("Lot C2 — sousTexteCard (cohérence card écran / tuile PDF, source unique)", () => {
+  it("valeurs par cas : plafonnement/decote/frontiere ; absent en normal/forfaitaire", () => {
+    expect(viewOf(D2).sousTexteCard).toBe("taux marginal réel : 30 %");
+    expect(viewOf(D3).sousTexteCard).toBe("taux marginal réel : 15,98 %");
+    expect(viewOf(FRONTIERE).sousTexteCard).toBe("à 67 € de la tranche à 41 %");
+    expect(viewOf(NORMAL).sousTexteCard).toBeUndefined();
+    expect(viewOf(D1).sousTexteCard).toBeUndefined();
+  });
+  it("la tuile PDF utilise la MÊME source (trancheMargSousLabel == sousTexteCard)", () => {
+    const pdf2 = buildIRData({ ir: computeIR(D2, OPTS), data: D2, cabinet: {}, clientName: "T" });
+    const pdf4 = buildIRData({ ir: computeIR(NORMAL, OPTS), data: NORMAL, cabinet: {}, clientName: "T" });
+    expect(pdf2.trancheMargSousLabel).toBe(viewOf(D2).sousTexteCard);
+    expect(pdf4.trancheMargSousLabel).toBeUndefined();  // normal : pas de sous-label (byte-identique)
+  });
+  it("card écran : MetricCard rend le sousTexte (mis en évidence)", () => {
+    const { container } = render(
+      <MetricCard label="TMI" value="11 %" hint="Taux Marginal d'Imposition : tranche du barème sur le quotient" sousTexte={`${viewOf(D2).sousTexteCard} — voir encadré ci-dessous`} accent="gold" />,
+    );
+    const txt = container.textContent || "";
+    expect(txt).toContain("taux marginal réel : 30 %");
+    expect(txt).toContain("voir encadré ci-dessous");
+    expect(txt).toContain("tranche du barème sur le quotient"); // libellé permanent corrigé
   });
 });
 
