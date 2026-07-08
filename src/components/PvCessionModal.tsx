@@ -9,7 +9,7 @@ import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { BRAND, SURFACE } from "../constants";
-import { n, euro } from "../lib/calculs/utils";
+import { n, euro, pct } from "../lib/calculs/utils";
 import { MoneyField, Field } from "./shared";
 import { computePvImmobiliere } from "../lib/calculs/pvImmobiliere";
 import refMeuble from "../data/location-meublee.json";
@@ -72,9 +72,9 @@ export function PvCessionModal({ property, updateProperty, onClose }: Props) {
             {ligne("Plus-value brute", res.moinsValue ? "Moins-value — aucun impôt" : euro(res.pvBrute), { strong: true, color: res.moinsValue ? BRAND.success : BRAND.navy })}
             {!res.moinsValue && (
               <>
-                {ligne(`Abattement IR ${Math.round(res.abattementIr * 100)} % → base`, euro(res.baseIr))}
+                {ligne(`Abattement IR ${pct(res.abattementIr, 0)} → base`, euro(res.baseIr))}
                 {ligne("Impôt IR (19 %)", euro(res.impotIr), { color: BRAND.danger })}
-                {ligne(`Abattement PS ${Math.round(res.abattementPs * 1000) / 10} % → base`, euro(res.basePs))}
+                {ligne(`Abattement PS ${pct(res.abattementPs, 1)} → base`, euro(res.basePs))}
                 {ligne("Prélèvements sociaux (17,2 %)", euro(res.impotPs), { color: BRAND.danger })}
                 <div className="flex justify-between pt-1" style={{ borderTop: `1px solid ${SURFACE.border}` }}>
                   <span className="font-bold" style={{ color: BRAND.navy }}>Impôt total</span>
