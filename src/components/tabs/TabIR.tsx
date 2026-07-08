@@ -290,7 +290,8 @@ const TabIR = React.memo(function TabIR(props: any) {
               label={`Quotient familial${foyerLabel}`}
               value={euro(ir.quotient)}
               hint={(() => {
-                const base = `${ir.parts} part(s) — Revenu net divisé par le nombre de parts.`;
+                const partsTxt = `${ir.parts.toLocaleString("fr-FR")} ${ir.parts >= 2 ? "parts" : "part"}`;
+                const base = `${partsTxt} — Revenu net divisé par le nombre de parts.`;
                 const plaf = ir.quotientFamilialCapAdjustment > 0
                   ? ` Plafonnement QF actif : +${euro(ir.quotientFamilialCapAdjustment)} d'IR (avantage retenu ${euro(Math.min(ir.qfBenefit, ir.qfCap))} sur ${euro(ir.qfCap)} maximum par demi-part supplémentaire).`
                   : "";
@@ -556,7 +557,7 @@ const TabIR = React.memo(function TabIR(props: any) {
         if (detail.length === 0) return null;
         const totalBase = detail.reduce((s: number, d: any) => s + n(d.base), 0);
         const ps = n((ir as any).meubleSocialLevy);
-        const SOUS_LABEL: Record<string, string> = { longue_duree: "Longue duree", tourisme_classe: "Tourisme classe", tourisme_non_classe: "Tourisme non classe" };
+        const SOUS_LABEL: Record<string, string> = { longue_duree: "Longue durée", tourisme_classe: "Tourisme classé", tourisme_non_classe: "Tourisme non classé" };
         return (
           <div className="p-4 border mt-4" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
             <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: BRAND.goldText }}>Location meublée (BIC)</div>
