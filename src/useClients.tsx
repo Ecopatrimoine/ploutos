@@ -12,6 +12,7 @@ import {
   dossierResume,
   formatRelativeDate,
   type SearchCriteria,
+  type SortMode,
   type DossierData,
 } from "./lib/accueil/dossierResume";
 
@@ -492,6 +493,7 @@ export function ClientManager({
   const [renameValue, setRenameValue] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>("modif");
 
   const setCrit = (key: keyof SearchCriteria, value: string) =>
     setCriteria((c) => ({ ...c, [key]: value }));
@@ -563,15 +565,31 @@ export function ClientManager({
 
   const dataOf = (c: ClientRecord): DossierData => (c.payload?.data ?? {}) as DossierData;
 
-  // Filtre multi-critères (cumulatif) puis tri par défaut (dernière modification).
+  const byRecent = (a: ClientRecord, b: ClientRecord) =>
+    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+
+  // Reprendre là où vous en étiez : 4 dossiers les plus récents (toujours, hors filtre).
+  const recents = useMemo(() => [...clients].sort(byRecent).slice(0, 4), [clients]);
+
+  // Filtre multi-critères (cumulatif) puis tri (dernière modification par défaut, ou nom A→Z).
   const visibleClients = useMemo(() => {
     const filtered = anyCriteria(criteria)
       ? clients.filter((c) => matchesCriteria(dataOf(c), criteria))
       : clients;
-    return [...filtered].sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    );
-  }, [clients, criteria]);
+    const sorted = [...filtered];
+    if (sortMode === "alpha") {
+      sorted.sort((a, b) =>
+        dossierName(dataOf(a), a.displayName).localeCompare(
+          dossierName(dataOf(b), b.displayName),
+          "fr",
+          { sensitivity: "base" },
+        ),
+      );
+    } else {
+      sorted.sort(byRecent);
+    }
+    return sorted;
+  }, [clients, criteria, sortMode]);
 
   // Indicateur de sync (global, offline-first existant) affiché au pied de chaque carte.
   const renderSync = () => {
@@ -810,6 +828,31 @@ export function ClientManager({
       {/* Main — Accueil v2 (Lot 1) */}
       <div className="acc-root" style={{ ...accVars, position:"relative", zIndex:1, width:"100%", padding:"36px 26px 60px" }}>
 
+        {/* Reprendre là où vous en étiez — dossiers récents */}
+        {clients.length > 0 && (
+          <>
+            <div className="acc-sec-head">
+              <div className="acc-sec-title">
+                <span className="acc-sec-dot">
+                  <svg viewBox="0 0 24 24" fill="none" strokeWidth={2.2}><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15.5 14" /></svg>
+                </span>
+                Reprendre là où vous en étiez
+              </div>
+            </div>
+            <div className="acc-recents">
+              {recents.map((c) => (
+                <button key={c.id} className="acc-recent" onClick={() => onOpen(c)}>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="acc-recent-name">{dossierName(dataOf(c), c.displayName)}</div>
+                    <div className="acc-recent-when">Modifié {formatRelativeDate(c.updatedAt).toLowerCase()}</div>
+                  </div>
+                  <span className="acc-recent-chev">→</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
         {/* Recherche multi-critères + Nouveau dossier */}
         <div className="acc-search">
           <div className="acc-fields">
@@ -871,6 +914,17 @@ export function ClientManager({
           <div className="acc-sec-title">
             <span className="acc-sec-dot"><Folder /></span>
             Dossiers clients <span className="acc-sec-count">({visibleClients.length})</span>
+          </div>
+          <div className="acc-toolbar">
+            <select
+              className="ploutos-field acc-sort"
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as SortMode)}
+              title="Trier les dossiers"
+            >
+              <option value="modif">Tri : dernière modification</option>
+              <option value="alpha">Tri : nom A → Z</option>
+            </select>
           </div>
         </div>
 

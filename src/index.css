@@ -177,11 +177,26 @@ html {
 .acc-empty-btn:focus-visible{outline:2px solid var(--acc-gold-deep);outline-offset:2px}
 .acc-empty-plus{color:var(--acc-gold);font-weight:900}
 
+/* Récents "Reprendre la ou vous en etiez" */
+.acc-recents{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:34px}
+.acc-recent{background:var(--acc-card);border:2px solid var(--acc-border);border-radius:14px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:var(--acc-shadow);transition:transform .15s,border-color .15s,box-shadow .15s;text-align:left}
+.acc-recent:hover{transform:translateY(-3px);border-color:var(--acc-gold);box-shadow:var(--acc-shadow-hover)}
+.acc-recent:focus-visible{outline:2px solid var(--acc-gold-deep);outline-offset:2px}
+.acc-recent-name{font-weight:900;font-size:15px;color:var(--acc-navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc-recent-when{font-size:12.5px;color:var(--acc-muted);margin-top:3px}
+.acc-recent-chev{color:var(--acc-gold-deep);font-size:18px;flex-shrink:0;transition:transform .15s}
+.acc-recent:hover .acc-recent-chev{transform:translateX(3px)}
+
+/* Barre d'outils des dossiers (tri) */
+.acc-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.acc-sort{height:36px;padding:0 12px;border-radius:11px;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
+
 @media (max-width:1020px){
   .acc-fields{grid-template-columns:1fr 1fr}
   .acc-grid{grid-template-columns:repeat(2,1fr)}
+  .acc-recents{grid-template-columns:repeat(2,1fr)}
 }
 @media (max-width:640px){
-  .acc-grid,.acc-fields{grid-template-columns:1fr}
+  .acc-grid,.acc-fields,.acc-recents{grid-template-columns:1fr}
 }
  
