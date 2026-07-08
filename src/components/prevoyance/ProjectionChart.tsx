@@ -29,6 +29,7 @@ import {
 import type { ProjectionResult } from "../../lib/prevoyance/types";
 import { BRAND } from "../../constants";
 import { HelpTooltip } from "../shared";
+import { formatDureeArret } from "../../lib/calculs/utils";
 
 type Props = {
   projection: ProjectionResult;
@@ -62,7 +63,7 @@ function formatLabelX(jour: number, phase: "am" | "invalidite"): string {
     // J91 = relais CARMF : libellé explicite (sinon collision avec J90 → "3 mois").
     if (jour === 91) return "J91";
     if (jour < 365) return `${Math.round(jour / 30)} mois`;
-    return `${(jour / 365).toFixed(1)} an${jour >= 365 ? "s" : ""}`;
+    return formatDureeArret(jour); // C3 — "1 an" / "18 mois" / "3 ans" au lieu de "1.0 ans"
   }
   return `${Math.round(jour / 365)} ans`;
 }
