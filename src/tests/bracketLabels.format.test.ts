@@ -1,7 +1,7 @@
 // LOT 4 (charts) — C4 : labels de tranche au format FR (virgule decimale, pas de
 // point anglais, ".0" superflu retire). Le formateur vit dans computeTaxFromBrackets.
 import { describe, it, expect } from "vitest";
-import { computeTaxFromBrackets, euro } from "../lib/calculs/utils";
+import { computeTaxFromBrackets, euro, euroTick } from "../lib/calculs/utils";
 
 // Construit des tranches contigues et remplit tout (base tres grande) pour lire les labels.
 const labelsFor = (rates: number[]): string[] => {
@@ -44,5 +44,12 @@ describe("euro — grands nombres (ticks YAxis C3)", () => {
     expect(s).toContain("€");
     expect(s).not.toMatch(/\d,\d{3}/); // pas de "999,999,999"
     expect(euro(90_000)).toContain("€");
+  });
+
+  it("euroTick : euros pleins sous le seuil, compact (M€/Md€) au-dela (C3)", () => {
+    expect(euroTick(90_000)).toBe(euro(90_000));         // plein
+    expect(euroTick(12_000_000)).toBe(euro(12_000_000)); // patrimoine realiste max -> plein
+    expect(euroTick(250_000_000)).toBe("250 M€");        // compact
+    expect(euroTick(1_000_000_000)).toBe("1 Md€");       // compact
   });
 });
