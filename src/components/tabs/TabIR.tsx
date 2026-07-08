@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardAccentTop } from "../CardAccentTop";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
-import { Plus, Trash2, Download, Upload, Settings, FileText, Database } from "lucide-react";
+import { Plus, Trash2, Download, Upload, Settings, FileText, Database, AlertTriangle, BarChart3, Lightbulb } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA, SEUIL_MICRO_FONCIER } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
@@ -55,7 +55,7 @@ const TabIR = React.memo(function TabIR(props: any) {
         return (
           <div className="flex items-start gap-2 rounded-xl px-3 py-2 text-xs"
             style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
-            <span className="shrink-0 text-sm mt-0.5">⚠️</span>
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
             <div>
               <span className="font-semibold">Dépassement seuil micro — </span>
               {alertes.map((a, i) => (
@@ -71,7 +71,7 @@ const TabIR = React.memo(function TabIR(props: any) {
       {irOptions.foncierRegime === "micro" && ir.foncierBrut > SEUIL_MICRO_FONCIER && (
         <div className="flex items-start gap-2 rounded-xl px-3 py-2 text-xs"
           style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
-          <span className="shrink-0 text-sm mt-0.5">⚠️</span>
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
           <div>
             <span className="font-semibold">Revenus fonciers bruts ({euro(ir.foncierBrut)}) supérieurs à 15 000 € — </span>
             le régime micro-foncier n'est plus applicable au-delà de ce seuil.
@@ -172,7 +172,7 @@ const TabIR = React.memo(function TabIR(props: any) {
       {data.placements.some((p) => p.pfuOptOut) && (
         <div className="flex items-start gap-2 rounded-xl px-3 py-2 text-xs"
           style={{ background: BRAND.successBg, color: BRAND.success, border: `1px solid ${BRAND.successBorder}` }}>
-          <span className="shrink-0">📊</span>
+          <BarChart3 className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span>
             {data.placements.filter((p) => p.pfuOptOut).map((p) => p.name || "Placement").join(", ")} : option barème IR activée.
             Les revenus de ces placements sont intégrés au revenu global et imposés au barème progressif.
@@ -220,7 +220,7 @@ const TabIR = React.memo(function TabIR(props: any) {
           Source : computeTmiView (helper partagé écran/PDF). */}
       {tmiView.encart && (
         <div className="flex items-start gap-2 rounded-xl px-3 py-2 text-xs" style={{ background: BRAND.warningBg, color: BRAND.navy, border: `1px solid ${BRAND.warningBorder}`, borderLeft: `3px solid ${BRAND.gold}` }}>
-          <span className="shrink-0 text-sm mt-0.5">📊</span>
+          <BarChart3 className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
           <div>
             <span className="font-semibold">{tmiView.encart.titre} — </span>
             {tmiView.encart.leadFort && <><strong style={{ color: BRAND.navy }}>{tmiView.encart.leadFort}</strong> </>}
@@ -230,7 +230,7 @@ const TabIR = React.memo(function TabIR(props: any) {
       )}
       {tmiView.tmiCase === "forfaitaire" && (
         <div className="flex items-start gap-2 rounded-xl px-3 py-2 text-xs" style={{ background: BRAND.warningBg, color: BRAND.navy, border: `1px solid ${BRAND.warningBorder}`, borderLeft: `3px solid ${BRAND.gold}` }}>
-          <span className="shrink-0 text-sm mt-0.5">📊</span>
+          <BarChart3 className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
           <div><span className="font-semibold">Barème 0 % — </span>l'essentiel de votre impôt provient de l'imposition forfaitaire de vos revenus de capitaux (PFU).</div>
         </div>
       )}
@@ -419,8 +419,8 @@ const TabIR = React.memo(function TabIR(props: any) {
                   {microDisponible && Math.abs(diff) > 10 && (
                     <div style={{ fontSize: 11, fontWeight: 700, textAlign: "center", color: diff > 0 ? BRAND.success : BRAND.danger }}>
                       {diff > 0
-                        ? `💡 Le réel ferait économiser ${euro(diff)} de base imposable`
-                        : `💡 Le micro est plus avantageux de ${euro(-diff)}`}
+                        ? <><Lightbulb className="h-3.5 w-3.5 inline-block align-middle mr-1" aria-hidden="true" />Le réel ferait économiser {euro(diff)} de base imposable</>
+                        : <><Lightbulb className="h-3.5 w-3.5 inline-block align-middle mr-1" aria-hidden="true" />Le micro est plus avantageux de {euro(-diff)}</>}
                     </div>
                   )}
                 </div>
@@ -543,7 +543,7 @@ const TabIR = React.memo(function TabIR(props: any) {
             </div>
             {statutsNonOk.length > 0 && (
               <div className="mt-2 text-[11px]" style={{ color: BRAND.muted }}>
-                {statutsNonOk.map((s: any, i: number) => <div key={`s${i}`}>⚠ {s.dispositif} — {s.motif}</div>)}
+                {statutsNonOk.map((s: any, i: number) => <div key={`s${i}`}><AlertTriangle className="h-3.5 w-3.5 inline-block align-middle mr-1" aria-hidden="true" />{s.dispositif} — {s.motif}</div>)}
               </div>
             )}
           </div>
