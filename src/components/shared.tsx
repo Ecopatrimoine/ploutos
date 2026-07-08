@@ -129,6 +129,13 @@ export function BracketFillChart({ title, data, referenceValue, valueLabel, show
   const currentSlice = data[safeIndex];
   const localMax = currentSlice ? (Number.isFinite(currentSlice.to) ? currentSlice.to : Math.max(referenceValue, 1)) : Math.max(referenceValue, 1);
   const indicatorPct = localMax > 0 ? Math.min(100, Math.max(0, (referenceValue / localMax) * 100)) : 0;
+  // C1 (Lot 4) — Recharts cree un span de mesure singleton sur document.body et ne le
+  // retire jamais : apres navigation entre onglets (IR -> IFI -> Succession -> Hypotheses)
+  // il reste un nombre orphelin en bas de page (dernier tick mesure, perime). On le
+  // retire au demontage du chart.
+  React.useEffect(() => {
+    return () => { document.getElementById("recharts_measurement_span")?.remove(); };
+  }, []);
   return (
     <Card className="overflow-hidden" style={{ background: SURFACE.card, borderRadius: 14, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
       <div style={{ height: 3, background: BRAND.navy }} />
@@ -149,13 +156,17 @@ export function BracketFillChart({ title, data, referenceValue, valueLabel, show
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" /><YAxis />
+              <XAxis dataKey="label" />
+              {/* C3 ticks en euros (largeur elargie pour ne pas tronquer les grands
+                  montants) ; C5 axe non degenere sur dossier vierge (max >= 1, pas de
+                  decimales -> plus de "0 1 2 3 4"). */}
+              <YAxis tickFormatter={euro} width={92} domain={[0, (m: number) => Math.max(m, 1)]} allowDecimals={false} />
               <Tooltip formatter={(value: number) => euro(value)} />
               <Bar dataKey="filled" radius={[8, 8, 0, 0]}>
                 {chartData.map((entry, index) => <Cell key={`${entry.label}-${index}`} fill={entry.fill} />)}
                 {showImpot ? [
-                  <LabelList key="impot" dataKey="tax" position="top" fill={BRAND.navy} fontSize={10} fontWeight={700} formatter={(value: number) => value > 0 ? `${euro(value)} d'impôt` : ""} />,
-                  <LabelList key="loges" dataKey="filled" position="insideTop" fill="#ffffff" fontSize={9} formatter={(value: number) => value > 0 ? `${euro(value)} logés` : ""} />,
+                  <LabelList key="impot" dataKey="tax" position="top" fill={BRAND.navy} fontSize={10} fontWeight={700} formatter={(value: number) => value > 0 ? `${euro(value)}\u00A0d'impôt` : ""} />,
+                  <LabelList key="loges" dataKey="filled" position="insideTop" fill="#ffffff" fontSize={9} formatter={(value: number) => value > 0 ? `${euro(value)}\u00A0dans la tranche` : ""} />,
                 ] : (
                   <LabelList dataKey="filled" position="top" formatter={(value: number) => euro(value)} />
                 )}
