@@ -5,6 +5,7 @@
 import React, { useState } from "react";
 import { Gem } from "lucide-react";
 import { parseNum, formatEur, formatPct, ifiSummary } from "../../lib/accueil/quickCalc";
+import { BracketFillChart } from "../shared";
 
 export function IfiCalc({ onClose }: { onClose: () => void }) {
   const [patrimoine, setPatrimoine] = useState("2 000 000");
@@ -52,6 +53,17 @@ export function IfiCalc({ onClose }: { onClose: () => void }) {
       {r.valid && r.assujetti && r.decote > 0 && (
         <div className="qc-abatt">
           Décote appliquée : {formatEur(r.decote)} (patrimoine net taxable entre 1,3 et 1,4 M€).
+        </div>
+      )}
+
+      {r.valid && r.bracketFill.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <BracketFillChart
+            title="Position dans le barème IFI"
+            data={r.bracketFill}
+            referenceValue={r.netTaxable}
+            valueLabel="Patrimoine net taxable"
+          />
         </div>
       )}
 
