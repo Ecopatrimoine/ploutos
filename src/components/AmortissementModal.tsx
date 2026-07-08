@@ -15,7 +15,7 @@ import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { BRAND, SURFACE } from "../constants";
-import { n, euro, isSet } from "../lib/calculs/utils";
+import { n, euro, isSet, pct } from "../lib/calculs/utils";
 import { amortissementAuto } from "../lib/calculs/locationMeublee";
 import refMeuble from "../data/location-meublee.json";
 import type { Property } from "../types/patrimoine";
@@ -43,7 +43,6 @@ export function AmortissementModal({ property, updateProperty, onClose }: Props)
   const prix = n(property.prixAcquisition);
   const valeurMobilier = n(property.valeurMobilier);
   const plan = amortissementAuto(prix, partTerrain, valeurMobilier, draft);
-  const sommePct = Math.round(plan.sommeParts * 1000) / 10;
   const sommeOk = Math.abs(plan.sommeParts - 1) < 1e-9;
 
   const setOverride = (compo: string, key: "part" | "duree", raw: string) => {
@@ -89,7 +88,7 @@ export function AmortissementModal({ property, updateProperty, onClose }: Props)
                       {d.ajuste && <span style={{ color: BRAND.sky, fontSize: 10, marginLeft: 6, fontWeight: 700 }}>ajuste</span>}
                     </td>
                     <td style={{ padding: "4px 8px", textAlign: "right" }}>
-                      <Input value={String(Math.round(d.part * 1000) / 10)} onChange={(e) => setOverride(d.composant, "part", e.target.value)} className="h-7 text-sm w-16 ml-auto" style={{ textAlign: "right", fontWeight: 700 }} inputMode="decimal" aria-label={`Part ${COMPO_LABEL[d.composant] || d.composant}`} />
+                      <Input value={String(Math.round(d.part * 1000) / 10).replace(".", ",")} onChange={(e) => setOverride(d.composant, "part", e.target.value)} className="h-7 text-sm w-16 ml-auto" style={{ textAlign: "right", fontWeight: 700 }} inputMode="decimal" aria-label={`Part ${COMPO_LABEL[d.composant] || d.composant}`} />
                     </td>
                     <td style={{ padding: "6px 8px", textAlign: "right", color: BRAND.muted }}>{euro(plan.baseBati * d.part)}</td>
                     <td style={{ padding: "4px 8px", textAlign: "right" }}>
@@ -118,7 +117,7 @@ export function AmortissementModal({ property, updateProperty, onClose }: Props)
           <div className="flex items-center justify-between rounded-xl px-3 py-2 text-xs"
             style={{ background: sommeOk ? BRAND.successBg : BRAND.warningBg, border: `1px solid ${sommeOk ? BRAND.successBorder : BRAND.warningBorder}`, color: sommeOk ? BRAND.success : BRAND.warning }}>
             <span>Somme des parts immobilieres</span>
-            <span style={{ fontWeight: 800 }}>{sommePct} %{sommeOk ? " ✓" : " — doit valoir 100 %"}</span>
+            <span style={{ fontWeight: 800 }}>{pct(plan.sommeParts, 1)}{sommeOk ? " ✓" : " — doit valoir 100 %"}</span>
           </div>
 
           <div className="text-xs" style={{ color: BRAND.muted, fontStyle: "italic" }}>
