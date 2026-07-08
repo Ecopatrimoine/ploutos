@@ -7,7 +7,11 @@ import { calcMonthlyPayment } from "../calculs/credit";
 import { computePvImmobiliere, type PvImmobiliereResult } from "../calculs/pvImmobiliere";
 import { computeBaremeNet, computeIRConcubin, getChildrenFiscalParts, computeTaxFromBrackets } from "../calculs/utils";
 import { getDonationTaxProfile } from "../calculs/donation";
-import type { Child } from "../../types/patrimoine";
+import { referentiels } from "../../data/prevoyance";
+import { computeIjCarmfJournaliere, pensionInvaliditeTotaleAnnuelle, capitalDecesCarmf } from "../prevoyance/carmf";
+import { ijCipavPhase1Journaliere, pensionInvaliditeCipavAnnuelle, capitalDecesCipav } from "../prevoyance/cipav";
+import { ijCarpimkoPhase1Journaliere, renteInvaliditeCarpimkoAnnuelle, capitalDecesCarpimko } from "../prevoyance/carpimko";
+import type { Child, CarmfConfig, CipavConfig, CarpimkoConfig } from "../../types/patrimoine";
 
 // Saisie tolérante : espaces (séparateurs de milliers) + virgule décimale.
 export function parseNum(s: string): number {
@@ -113,6 +117,70 @@ export function endettementSummary(revenusMensuels: number, chargesCredits: numb
     tauxEffortProjet: projet > 0 ? (charges + projet) / revenusMensuels : null,
     mensualiteMax35: Math.max(0, revenusMensuels * HCSF_TAUX_EFFORT_MAX - charges),
     resteAVivre: revenusMensuels - charges - projet,
+  };
+}
+
+// ── Prévoyance obligatoire ───────────────────────────────────────────────────
+// Verdict étape 0 : seules CARMF / CIPAV / CARPIMKO exposent des briques pures
+// dédiées produisant IJ + invalidité + capital décès directement (les caisses
+// forfaitaires n'exposent PAS l'IJ complète -> reportées). On CONSOMME ces briques
+// avec un profil par défaut simple ; aucune valeur réglementaire recalculée.
+export type PrevoyanceCaisse = "CARMF" | "CIPAV" | "CARPIMKO";
+
+export const PREVOYANCE_CAISSES: { value: PrevoyanceCaisse; label: string }[] = [
+  { value: "CARMF", label: "CARMF (médecins)" },
+  { value: "CIPAV", label: "CIPAV (professions libérales)" },
+  { value: "CARPIMKO", label: "CARPIMKO (auxiliaires médicaux)" },
+];
+
+export type PrevoyanceSummary = {
+  valid: boolean;
+  ijJour: number;        // €/jour — invalidité temporaire (régime obligatoire)
+  invaliditeAn: number;  // €/an — invalidité totale
+  capitalDeces: number;  // € — versement unique
+};
+
+// Profil par défaut (affiché en note) : affiliation ancienne (hors carence),
+// invalidité totale, célibataire sans enfant, statut titulaire.
+export function prevoyanceSummary(caisse: PrevoyanceCaisse, revenuAnnuel: number, age: number): PrevoyanceSummary {
+  const invalid = { valid: false, ijJour: 0, invaliditeAn: 0, capitalDeces: 0 };
+  if (!(revenuAnnuel > 0) || !(age > 0)) return invalid;
+
+  if (caisse === "CARMF") {
+    const cfg: CarmfConfig = {
+      statut: "medecin_titulaire", revenuBNC_N2: revenuAnnuel,
+      ancienneteAffiliationTrimestres: 40, cumulEmploiRetraite: false,
+      marie: false, anneesMariage: 0, ressourcesConjoint: 0, besoinTiercePersonne: false,
+    };
+    return {
+      valid: true,
+      ijJour: computeIjCarmfJournaliere(referentiels.carmf, cfg, age, 100),
+      invaliditeAn: pensionInvaliditeTotaleAnnuelle(referentiels.carmf, cfg, 0),
+      capitalDeces: capitalDecesCarmf(referentiels.carmf, cfg),
+    };
+  }
+  if (caisse === "CIPAV") {
+    const cfg: CipavConfig = {
+      revenuBNC_N2: revenuAnnuel, ancienneteAffiliationMois: 60, cumulEmploiRetraite: false,
+      tauxInvalidite: 100, marie: false, nbEnfants: 0, decesAccidentel: false,
+    };
+    return {
+      valid: true,
+      ijJour: ijCipavPhase1Journaliere(referentiels.cipav, cfg, 30),
+      invaliditeAn: pensionInvaliditeCipavAnnuelle(referentiels.cipav, cfg),
+      capitalDeces: capitalDecesCipav(referentiels.cipav, revenuAnnuel, false),
+    };
+  }
+  // CARPIMKO
+  const cfg: CarpimkoConfig = {
+    revenuBNC_N2: revenuAnnuel, tauxInvalidite: 100, nbEnfants: 0,
+    besoinTiercePersonne: false, marie: false,
+  };
+  return {
+    valid: true,
+    ijJour: ijCarpimkoPhase1Journaliere(referentiels.carpimko, cfg, 30),
+    invaliditeAn: renteInvaliditeCarpimkoAnnuelle(referentiels.carpimko, cfg),
+    capitalDeces: capitalDecesCarpimko(referentiels.carpimko, cfg),
   };
 }
 

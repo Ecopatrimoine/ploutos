@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseNum, formatEur, formatPct, creditSummary, pvImmoSummary, irSummary, endettementSummary, dmtgSummary } from "../lib/accueil/quickCalc";
+import { parseNum, formatEur, formatPct, creditSummary, pvImmoSummary, irSummary, endettementSummary, dmtgSummary, prevoyanceSummary } from "../lib/accueil/quickCalc";
 
 describe("parseNum — saisie tolérante", () => {
   it("espaces (milliers) + virgule décimale", () => {
@@ -189,5 +189,27 @@ describe("dmtgSummary — consomme getDonationTaxProfile + computeTaxFromBracket
   });
   it("montant 0 -> invalide", () => {
     expect(dmtgSummary(0, "enfant").valid).toBe(false);
+  });
+});
+
+describe("prevoyanceSummary — briques dédiées CARMF / CIPAV / CARPIMKO", () => {
+  it("CARMF (proportionnelle) : IJ, invalidité, capital décès", () => {
+    const r = prevoyanceSummary("CARMF", 100000, 45);
+    expect(r.valid).toBe(true);
+    expect(Math.round(r.ijJour)).toBe(137);
+    expect(Math.round(r.invaliditeAn)).toBe(27924);
+    expect(Math.round(r.capitalDeces)).toBe(71500);
+    // proportionnelle : l'invalidité varie avec le revenu
+    expect(prevoyanceSummary("CARMF", 50000, 45).invaliditeAn).not.toBe(r.invaliditeAn);
+  });
+  it("CARPIMKO (invalidité forfaitaire) : revenu-indépendante", () => {
+    const r = prevoyanceSummary("CARPIMKO", 40000, 45);
+    expect(Math.round(r.invaliditeAn)).toBe(20160);
+    expect(prevoyanceSummary("CARPIMKO", 80000, 45).invaliditeAn).toBe(r.invaliditeAn);
+    expect(Math.round(r.capitalDeces)).toBe(18144);
+  });
+  it("revenu 0 -> invalide", () => {
+    expect(prevoyanceSummary("CARMF", 0, 45).valid).toBe(false);
+    expect(prevoyanceSummary("CARPIMKO", 0, 45).valid).toBe(false);
   });
 });
