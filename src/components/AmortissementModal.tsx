@@ -13,6 +13,7 @@
 
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { BRAND, SURFACE } from "../constants";
 import { n, euro, isSet, pct } from "../lib/calculs/utils";
@@ -117,7 +118,7 @@ export function AmortissementModal({ property, updateProperty, onClose }: Props)
           <div className="flex items-center justify-between rounded-xl px-3 py-2 text-xs"
             style={{ background: sommeOk ? BRAND.successBg : BRAND.warningBg, border: `1px solid ${sommeOk ? BRAND.successBorder : BRAND.warningBorder}`, color: sommeOk ? BRAND.success : BRAND.warning }}>
             <span>Somme des parts immobilières</span>
-            <span style={{ fontWeight: 800 }}>{pct(plan.sommeParts, 1)}{sommeOk ? " ✓" : " — doit valoir 100 %"}</span>
+            <span style={{ fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 4 }}>{pct(plan.sommeParts, 1)}{sommeOk ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : " — doit valoir 100 %"}</span>
           </div>
 
           <div className="text-xs" style={{ color: BRAND.muted, fontStyle: "italic" }}>

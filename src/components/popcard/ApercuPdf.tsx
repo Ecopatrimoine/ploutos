@@ -20,6 +20,7 @@ import {
 } from "../../lib/pdf/v2/popcard/concatPack";
 import type { PackItem } from "../../lib/pdf/v2/popcard/checkCompletude";
 import { buildFeederDocument } from "../../lib/pdf/v2/engine/feeder";
+import { X } from "lucide-react";
 
 export type ApercuPdfProps = {
   open: boolean;
@@ -140,7 +141,7 @@ export function ApercuPdf(p: ApercuPdfProps) {
               {pret ? `${pages ?? "?"} pages A4` : "Pagination en cours…"}
             </div>
           </div>
-          <button onClick={p.onClose} style={{ background: "transparent", border: "none", fontSize: 22, color: "#637896", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>
+          <button onClick={p.onClose} aria-label="Fermer" style={{ background: "transparent", border: "none", color: "#637896", cursor: "pointer", padding: 0, lineHeight: 1, display: "flex", alignItems: "center" }}><X className="h-5 w-5" aria-hidden="true" /></button>
         </div>
 
         {/* Aperçu paginé (iframe isolé) */}

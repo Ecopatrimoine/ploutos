@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardAccentTop } from "../CardAccentTop";
 import { TabsContent } from "@/components/ui/tabs";
-import { Plus, Trash2, Download, Upload } from "lucide-react";
+import { Plus, Trash2, Download, Upload, Pencil, X, Gift } from "lucide-react";
 import { BRAND, SURFACE, labelPlacement, DONATION_RELATIONS } from "../../constants";
 import type { DonationItem, DonationHeir, Hypothesis, DifferenceLine } from "../../types/patrimoine";
 import { n, euro, deepClone, getDemembrementPercentages } from "../../lib/calculs/utils";
@@ -261,13 +261,13 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                             {n(don.sharePercent) < 100 ? ` (${don.sharePercent}%)` : ""}
                           </div>
                           <div className="flex gap-1">
-                            <button className="text-slate-400 hover:text-sky-600 px-1"
+                            <button className="text-slate-400 hover:text-sky-600 px-1" aria-label="Modifier la donation"
                               onClick={() => setDonationModal({ hypoId: item.hypothesis.id, donation: { ...don } })}>
-                              ✎
+                              <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                             </button>
-                            <button className="text-slate-400 hover:text-red-500 px-1"
+                            <button className="text-slate-400 hover:text-red-500 px-1" aria-label="Supprimer la donation"
                               onClick={() => removeDonation?.(item.hypothesis.id, don.id)}>
-                              ✕
+                              <X className="h-3.5 w-3.5" aria-hidden="true" />
                             </button>
                           </div>
                         </div>
@@ -486,13 +486,14 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
           background: `linear-gradient(135deg, ${colorNavy} 0%, #26428B 100%)`,
           display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
         }}>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: "16px" }}>
-            🎁 Simulation de donation
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: "16px", display: "flex", alignItems: "center", gap: 8 }}>
+            <Gift className="h-4 w-4" aria-hidden="true" /> Simulation de donation
           </div>
-          <button onClick={onClose} style={{
+          <button onClick={onClose} aria-label="Fermer" style={{
             background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "8px",
-            color: "#fff", width: "30px", height: "30px", cursor: "pointer", fontSize: "18px",
-          }}>×</button>
+            color: "#fff", width: "30px", height: "30px", cursor: "pointer",
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+          }}><X className="h-4 w-4" aria-hidden="true" /></button>
         </div>
 
         {/* Corps */}
@@ -623,10 +624,10 @@ function DonationModal({ donation, data, colorNavy, colorGold, colorSky, onSave,
                     onChange={e => updateHeir(heir.id, { priorDonations: e.target.value })}
                     style={{ ...inp, padding: "7px 10px", fontSize: "12px" }} />
                 </div>
-                <button onClick={() => removeHeir(heir.id)} style={{
+                <button onClick={() => removeHeir(heir.id)} aria-label="Supprimer l'heritier" style={{
                   background: "none", border: "none", cursor: "pointer",
                   color: "#aaa", fontSize: "16px", paddingBottom: "6px",
-                }}>✕</button>
+                }}><X className="h-4 w-4" aria-hidden="true" /></button>
               </div>
             ))}
           </div>

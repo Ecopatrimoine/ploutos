@@ -8,6 +8,7 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { AlertTriangle } from "lucide-react";
 import { BRAND, SURFACE } from "../constants";
 import { n, euro, pct } from "../lib/calculs/utils";
 import { MoneyField, Field } from "./shared";
@@ -57,8 +58,8 @@ export function PvCessionModal({ property, updateProperty, onClose }: Props) {
           </div>
 
           {!ageValide && (
-            <div className="text-[11px] rounded-lg px-3 py-2" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}>
-              🟠 Renseignez l'année d'acquisition pour appliquer les abattements de durée de détention (sinon l'impôt est calculé sans abattement).
+            <div className="text-[11px] rounded-lg px-3 py-2 flex items-start gap-1.5" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}>
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-px" aria-hidden="true" /> Renseignez l'année d'acquisition pour appliquer les abattements de durée de détention (sinon l'impôt est calculé sans abattement).
             </div>
           )}
           {jeanbrun && (
@@ -89,8 +90,8 @@ export function PvCessionModal({ property, updateProperty, onClose }: Props) {
           </div>
 
           {res.alerteSurtaxe && (
-            <div className="text-[11px] rounded-lg px-3 py-2" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}>
-              🟠 Surtaxe sur les plus-values élevées (art. 1609 nonies G) non incluse (base IR &gt; 50 000 €).
+            <div className="text-[11px] rounded-lg px-3 py-2 flex items-start gap-1.5" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}>
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-px" aria-hidden="true" /> Surtaxe sur les plus-values élevées (art. 1609 nonies G) non incluse (base IR &gt; 50 000 €).
             </div>
           )}
 

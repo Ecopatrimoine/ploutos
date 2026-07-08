@@ -18,6 +18,7 @@ import { checkCompletude, sortPack, type PackItem, type CompletudeManque } from 
 import { type PackOverrides, type PackPayload } from "../../lib/pdf/v2/popcard/concatPack";
 import { plur } from "../../lib/calculs/utils";
 import { ApercuPdf } from "./ApercuPdf";
+import { Clock, FileText, AlertTriangle, X } from "lucide-react";
 
 export type PopcardImpressionProps = {
   open: boolean;
@@ -230,7 +231,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
                 Choisissez les éléments à inclure dans le PDF généré. Vous pouvez combiner librement docs réglementaires + sections du bilan patrimonial. <strong>1 seul PDF</strong> final contenant tous les éléments cochés.
               </div>
             </div>
-            <button onClick={p.onClose} style={{ background: "transparent", border: "none", fontSize: 22, color: "#637896", cursor: "pointer", padding: 0, lineHeight: 1, flex: "none" }}>×</button>
+            <button onClick={p.onClose} aria-label="Fermer" style={{ background: "transparent", border: "none", color: "#637896", cursor: "pointer", padding: 0, lineHeight: 1, flex: "none", display: "inline-flex" }}><X className="h-5 w-5" aria-hidden="true" /></button>
           </div>
 
           {/* Body */}
@@ -386,7 +387,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
 
             {count === 0 && (
               <div style={{ padding: "30px 20px", textAlign: "center", background: "#FDFCFA", border: "1.5px dashed #D8D2C6", borderRadius: 12, marginTop: 18 }}>
-                <div style={{ fontSize: 34, marginBottom: 8 }}>📄</div>
+                <FileText size={34} aria-hidden="true" style={{ display: "block", margin: "0 auto 8px", color: "#94A3B8" }} />
                 <div style={{ fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>Cochez au moins un élément ci-dessus</div>
                 <div style={{ fontSize: 11.5, color: "#637896" }}>Les options de surcharge s'afficheront selon les documents sélectionnés.</div>
               </div>
@@ -411,7 +412,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
                   display: "inline-flex", alignItems: "center", gap: 6,
                 }}
               >
-                <span>◷</span> Aperçu
+<Clock className="h-4 w-4" aria-hidden="true" /> Aperçu
               </button>
             </div>
           </div>
@@ -424,18 +425,18 @@ export function PopcardImpression(p: PopcardImpressionProps) {
           <div style={{ background: "#fff", borderRadius: 24, maxWidth: 580, width: "100%", maxHeight: "90vh", overflow: "auto", boxShadow: "0 30px 80px rgba(15,23,42,.4)" }}>
             <div style={{ padding: "22px 28px 14px", borderBottom: "1px solid #F5D78E", background: "linear-gradient(180deg,#FEF9EE 0%,#fff 100%)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14 }}>
               <div>
-                <h2 style={{ fontSize: 18, fontWeight: 800, color: "#92400E", margin: 0, display: "flex", alignItems: "center", gap: 10 }}>⚠ Données incomplètes</h2>
+                <h2 style={{ fontSize: 18, fontWeight: 800, color: "#92400E", margin: 0, display: "flex", alignItems: "center", gap: 10 }}><AlertTriangle className="h-5 w-5" aria-hidden="true" /> Données incomplètes</h2>
                 <div style={{ fontSize: 12, color: "#637896", marginTop: 4, lineHeight: 1.5 }}>
                   Certains champs nécessaires aux documents cochés ne sont pas renseignés. Vous pouvez compléter d'abord ou continuer quand même (les champs vides apparaîtront en « à confirmer » sur le PDF).
                 </div>
               </div>
-              <button onClick={() => setCheckOpen(false)} style={{ background: "transparent", border: "none", fontSize: 22, color: "#637896", cursor: "pointer", padding: 0, lineHeight: 1, flex: "none" }}>×</button>
+              <button onClick={() => setCheckOpen(false)} aria-label="Fermer" style={{ background: "transparent", border: "none", color: "#637896", cursor: "pointer", padding: 0, lineHeight: 1, flex: "none", display: "inline-flex" }}><X className="h-5 w-5" aria-hidden="true" /></button>
             </div>
             <div style={{ padding: "18px 28px" }}>
               {missing.map(m => (
                 <div key={m.pack} style={{ background: "#FDFCFA", border: "1px solid #D8D2C6", borderRadius: 10, padding: "11px 13px", marginBottom: 10 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: "#0F172A", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ color: "#92400E", fontSize: 8 }}>●</span>{m.packLabel}
+                    <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: "#92400E" }} aria-hidden="true" />{m.packLabel}
                   </div>
                   <ul style={{ margin: 0, paddingLeft: 18, fontSize: 11.5, color: "#637896", lineHeight: 1.55 }}>
                     {m.fields.map((f, i) => <li key={i}>{f}</li>)}

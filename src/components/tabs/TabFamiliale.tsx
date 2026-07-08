@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
-import { Plus, Trash2, Download, Upload, Settings, Users } from "lucide-react";
+import { Plus, Trash2, Download, Upload, Settings, Users, Accessibility, Check, X } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
@@ -77,7 +77,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
                 style={{ transform: data.person1Handicap ? "translateX(13px)" : "translateX(2px)" }} />
             </button>
             <span className="text-xs whitespace-nowrap" style={{ color: data.person1Handicap ? BRAND.warning : BRAND.muted }}>
-              {data.person1Handicap ? "♿ Handicap" : "Handicap"}
+              {data.person1Handicap ? <><Accessibility className="h-3.5 w-3.5 inline-block" aria-hidden="true" /> Handicap</> : "Handicap"}
             </span>
           </div>
         </div>
@@ -120,7 +120,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
                 style={{ transform: data.person2Handicap ? "translateX(13px)" : "translateX(2px)" }} />
             </button>
             <span className="text-xs whitespace-nowrap" style={{ color: data.person2Handicap ? BRAND.warning : BRAND.muted }}>
-              {data.person2Handicap ? "♿ Handicap" : "Handicap"}
+              {data.person2Handicap ? <><Accessibility className="h-3.5 w-3.5 inline-block" aria-hidden="true" /> Handicap</> : "Handicap"}
             </span>
           </div>
         </div>
@@ -225,7 +225,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
               border: `1px solid ${child.rattached !== false ? "rgba(81,106,199,0.2)" : BRAND.dangerBorder}`,
             }}
           >
-            {child.rattached !== false ? "✓ Rattaché" : "✗ Non rattaché"}
+            {child.rattached !== false ? <><Check className="h-3.5 w-3.5 inline-block" aria-hidden="true" /> Rattaché</> : <><X className="h-3.5 w-3.5 inline-block" aria-hidden="true" /> Non rattaché</>}
           </button>
         </Field>
 
@@ -239,7 +239,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
                 style={{ transform: child.handicap ? "translateX(13px)" : "translateX(2px)" }} />
             </button>
             <span className="text-xs" style={{ color: child.handicap ? BRAND.warning : BRAND.muted }}>
-              {child.handicap ? "♿" : "—"}
+              {child.handicap ? <Accessibility className="h-3.5 w-3.5 inline-block" aria-hidden="true" /> : "—"}
             </span>
           </div>
         </Field>
