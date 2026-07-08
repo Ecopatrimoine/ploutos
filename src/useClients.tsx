@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Trash2, Copy, Pencil, FolderOpen, Folder, MoreHorizontal, LayoutGrid, List, CloudOff, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { BRAND, SURFACE, FIELD } from "./constants";
@@ -59,6 +60,13 @@ function pendingKey(userId: string) {
   return `ecopatrimoine_pending_${userId}`;
 }
 
+// Tombstones : ids de dossiers supprimes localement dont la suppression serveur
+// n'est pas encore confirmee. Persiste (comme pending) pour survivre au reload —
+// sinon un dossier supprime hors-ligne ressusciterait au merge suivant (C3).
+function deletedKey(userId: string) {
+  return `ecopatrimoine_deleted_${userId}`;
+}
+
 function loadClientsLocal(userId: string): ClientRecord[] {
   try {
     if (isElectron && electronAPI) return []; // géré via IPC
@@ -87,6 +95,19 @@ function loadPendingIds(userId: string): Set<string> {
 function savePendingIds(userId: string, ids: Set<string>) {
   try {
     localStorage.setItem(pendingKey(userId), JSON.stringify([...ids]));
+  } catch { /* ignore si localStorage indisponible */ }
+}
+
+function loadDeletedIds(userId: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(deletedKey(userId));
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch { return new Set(); }
+}
+
+function saveDeletedIds(userId: string, ids: Set<string>) {
+  try {
+    localStorage.setItem(deletedKey(userId), JSON.stringify([...ids]));
   } catch { /* ignore si localStorage indisponible */ }
 }
 
@@ -146,15 +167,35 @@ async function upsertToSupabase(userId: string, client: ClientRecord): Promise<v
   if (error) throw error;
 }
 
-async function deleteFromSupabase(userId: string, clientId: string): Promise<void> {
+// Retourne le NOMBRE de lignes reellement supprimees (via .select() = equivalent
+// Prefer: return=representation). 0 = rien supprime (ligne inexistante ou refus RLS) ;
+// c'est ce que l'appelant doit verifier pour ne pas mentir a l'utilisateur (C2).
+async function deleteFromSupabase(userId: string, clientId: string): Promise<number> {
   if (!userId) throw new Error("userId vide — delete annulé");
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("clients")
     .delete()
     .eq("id", clientId)
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .select("id");
 
   if (error) throw error;
+  return Array.isArray(data) ? data.length : 0;
+}
+
+// La ligne existe-t-elle encore cote serveur ? Sert a lever l'ambiguite d'un DELETE
+// a 0 ligne : soit deja supprimee / jamais synchronisee (sur de retirer localement),
+// soit refusee et toujours presente (ne PAS retirer, resterait a l'ecran serveur).
+async function existsOnSupabase(userId: string, clientId: string): Promise<boolean> {
+  if (!userId) return false;
+  const { data, error } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("id", clientId)
+    .eq("user_id", userId)
+    .limit(1);
+  if (error) throw error;
+  return Array.isArray(data) && data.length > 0;
 }
 
 // Un dossier est "vide" tant que son payload ne porte pas de donnee metier
@@ -203,13 +244,16 @@ export function mergeClients(local: ClientRecord[], remote: ClientRecord[]): Cli
 export function useClients(userId: string, authState = "authenticated") {
   const [clients, setClients] = useState<ClientRecord[]>([]);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("syncing");
+  // Message d'echec de suppression (C2 — honnetete) : non nul quand le serveur a
+  // refuse la suppression (0 ligne, dossier toujours present). Efface au succes.
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const pendingRef = useRef<Set<string>>(new Set());
   const deletedRef = useRef<Set<string>>(new Set());
 
   // ── Nettoyage des clés orphelines (userId vide) au montage ──
   useEffect(() => {
     try {
-      ["ecopatrimoine_clients_", "ecopatrimoine_pending_"].forEach(k => {
+      ["ecopatrimoine_clients_", "ecopatrimoine_pending_", "ecopatrimoine_deleted_"].forEach(k => {
         if (localStorage.getItem(k) !== null) localStorage.removeItem(k);
       });
     } catch { /* ignore */ }
@@ -220,6 +264,7 @@ export function useClients(userId: string, authState = "authenticated") {
     if (!userId) { setClients([]); setSyncStatus("offline"); return; }
 
     pendingRef.current = loadPendingIds(userId);
+    deletedRef.current = loadDeletedIds(userId); // tombstones persistes (C3)
 
     // 1. Charger local immédiatement
     const loadLocal = async () => {
@@ -234,7 +279,9 @@ export function useClients(userId: string, authState = "authenticated") {
 
     loadLocal().then((localClients) => {
       if (cancelled) return;
-      setClients(localClients);
+      // Ne jamais afficher un dossier tombstone (suppression locale non encore
+      // confirmee cote serveur) — sinon il "clignoterait" avant le merge (C3).
+      setClients(localClients.filter((c) => !deletedRef.current.has(c.id)));
 
       // Nettoyer les pendingIds orphelins (IDs qui n'existent plus localement)
       const localIds = new Set(localClients.map(c => c.id));
@@ -270,25 +317,39 @@ export function useClients(userId: string, authState = "authenticated") {
           const merged = mergeClients(freshLocal, remoteClients as ClientRecord[]);
           // Un dossier en attente de push (saisie locale non encore synchronisee) ne
           // doit JAMAIS etre ecrase par la version remote : on force la version locale
-          // fraiche pour tout id present dans pendingRef.
+          // fraiche pour tout id present dans pendingRef. Et un dossier tombstone
+          // (supprime localement, pas encore confirme serveur) ne doit JAMAIS revenir
+          // du remote (C3 anti-resurrection).
           const freshById = new Map(freshLocal.map((c) => [c.id, c]));
-          const guarded = merged.map((c) =>
-            pendingRef.current.has(c.id) && freshById.has(c.id)
-              ? (freshById.get(c.id) as ClientRecord)
-              : c,
-          );
+          const guarded = merged
+            .filter((c) => !deletedRef.current.has(c.id))
+            .map((c) =>
+              pendingRef.current.has(c.id) && freshById.has(c.id)
+                ? (freshById.get(c.id) as ClientRecord)
+                : c,
+            );
           setClients(guarded);
           saveClientsLocal(userId, guarded);
 
-          // Pousser les modifications locales en attente (version fraiche, porteuse
-          // des donnees — jamais le record vide capture au montage).
+          // Pousser les upserts en attente (version fraiche, porteuse des donnees).
           if (pendingRef.current.size > 0) {
             const toSync = guarded.filter((c) => pendingRef.current.has(c.id));
             await Promise.all(toSync.map((c) => upsertToSupabase(userId, c)));
-            await Promise.all([...deletedRef.current].map((id) => deleteFromSupabase(userId, id)));
             pendingRef.current.clear();
-            deletedRef.current.clear();
             savePendingIds(userId, pendingRef.current);
+          }
+          // Rejouer les suppressions en attente (tombstones) — INDEPENDANT du pending.
+          // On ne leve un tombstone que si la ligne a reellement disparu du serveur.
+          if (deletedRef.current.size > 0) {
+            for (const id of [...deletedRef.current]) {
+              try {
+                const removed = await deleteFromSupabase(userId, id);
+                if (removed > 0 || !(await existsOnSupabase(userId, id))) {
+                  deletedRef.current.delete(id);
+                }
+              } catch { /* garder le tombstone, retry a la prochaine synchro */ }
+            }
+            saveDeletedIds(userId, deletedRef.current);
           }
 
           console.log("[useClients] Sync success, merged:", guarded.length, "clients");
@@ -312,6 +373,7 @@ export function useClients(userId: string, authState = "authenticated") {
       if (deleted) {
         deletedRef.current.add(changedId);
         pendingRef.current.delete(changedId);
+        saveDeletedIds(uid, deletedRef.current);
       } else {
         pendingRef.current.add(changedId);
       }
@@ -338,16 +400,6 @@ export function useClients(userId: string, authState = "authenticated") {
     }
   }, []);
 
-  const syncDelete = useCallback(async (uid: string, clientId: string) => {
-    if (!uid) return;
-    try {
-      await deleteFromSupabase(uid, clientId);
-      deletedRef.current.delete(clientId);
-    } catch {
-      setSyncStatus("pending");
-    }
-  }, []);
-
   // ── Sync manuelle ──
   const syncNow = useCallback(async () => {
     if (!userId) return;
@@ -355,10 +407,12 @@ export function useClients(userId: string, authState = "authenticated") {
     try {
       const remoteClients = await fetchFromSupabase(userId);
 
-      // Un seul setState pour merger — on capture prev dans une ref pour la suite
+      // Un seul setState pour merger — on capture prev dans une ref pour la suite.
+      // Filtrer les tombstones : un dossier supprime localement (suppression serveur
+      // non confirmee) ne doit pas ressusciter du remote (C3).
       let mergedSnapshot: ClientRecord[] = [];
       setClients((prev) => {
-        mergedSnapshot = mergeClients(prev, remoteClients);
+        mergedSnapshot = mergeClients(prev, remoteClients).filter((c) => !deletedRef.current.has(c.id));
         saveClientsLocal(userId, mergedSnapshot);
         return mergedSnapshot;
       });
@@ -370,11 +424,18 @@ export function useClients(userId: string, authState = "authenticated") {
       if (toSync.length > 0) {
         await Promise.all(toSync.map((c) => upsertToSupabase(userId, c)));
       }
-      await Promise.all([...deletedRef.current].map((id) => deleteFromSupabase(userId, id)));
-
       pendingRef.current.clear();
-      deletedRef.current.clear();
       savePendingIds(userId, pendingRef.current);
+
+      // Rejouer les suppressions ; ne lever un tombstone que si la ligne a bien
+      // disparu du serveur (sinon la garder pour retry — pas de faux succes).
+      for (const id of [...deletedRef.current]) {
+        try {
+          const removed = await deleteFromSupabase(userId, id);
+          if (removed > 0 || !(await existsOnSupabase(userId, id))) deletedRef.current.delete(id);
+        } catch { /* garder le tombstone */ }
+      }
+      saveDeletedIds(userId, deletedRef.current);
       setSyncStatus("synced");
     } catch {
       setSyncStatus("pending");
@@ -437,16 +498,60 @@ export function useClients(userId: string, authState = "authenticated") {
     return Promise.resolve(false);
   }, [userId, persist, syncOne]);
 
-  const deleteClient = useCallback((id: string) => {
+  // Retrait local d'un dossier (+ purge pending ; tombstone si suppression serveur
+  // pas encore confirmee). saveClientsLocal ecrit le localStorage sans le dossier.
+  const removeLocally = useCallback((id: string, tombstone: boolean) => {
     setClients((prev) => {
       const next = prev.filter((c) => c.id !== id);
-      persist(userId, next, id, true);
+      saveClientsLocal(userId, next);
       return next;
     });
-    // Side effects HORS du setState
-    setSyncStatus("pending");
-    syncDelete(userId, id);
-  }, [userId, persist, syncDelete]);
+    pendingRef.current.delete(id);
+    if (tombstone) deletedRef.current.add(id); else deletedRef.current.delete(id);
+    savePendingIds(userId, pendingRef.current);
+    saveDeletedIds(userId, deletedRef.current);
+  }, [userId]);
+
+  // Suppression HONNETE (C2 + C3). On ne retire le dossier localement QUE si la
+  // suppression est confirmee cote serveur (>0 ligne, ou ligne deja absente). Si le
+  // serveur refuse (0 ligne + ligne toujours presente) : on garde le dossier et on
+  // affiche une erreur.
+  // Dans TOUS les retraits on pose un tombstone (meme suppression confirmee) : un fetch
+  // initial encore en vol (demarre AVANT la suppression, donc avec la ligne encore
+  // presente cote serveur) pourrait resoudre APRES et re-unir le dossier au merge. Le
+  // tombstone filtre ce re-ajout ; il est leve au 1er sync qui confirme l'absence serveur.
+  const deleteClient = useCallback(async (id: string): Promise<boolean> => {
+    setDeleteError(null);
+    if (!userId || authState !== "authenticated") {
+      removeLocally(id, true);
+      setSyncStatus("pending");
+      return true;
+    }
+    setSyncStatus("syncing");
+    try {
+      const removed = await deleteFromSupabase(userId, id);
+      if (removed > 0) {
+        removeLocally(id, true);
+        setSyncStatus(pendingRef.current.size > 0 ? "pending" : "synced");
+        return true;
+      }
+      // 0 ligne : lever l'ambiguite (deja supprime / local-only vs refus serveur).
+      const stillThere = await existsOnSupabase(userId, id);
+      if (stillThere) {
+        setDeleteError("Suppression refusée par le serveur — réessayez.");
+        setSyncStatus(pendingRef.current.size > 0 ? "pending" : "synced");
+        return false;
+      }
+      removeLocally(id, true);
+      setSyncStatus(pendingRef.current.size > 0 ? "pending" : "synced");
+      return true;
+    } catch (err: any) {
+      console.warn("[useClients] delete echec reseau:", err?.message || err);
+      removeLocally(id, true);
+      setSyncStatus("pending");
+      return true;
+    }
+  }, [userId, authState, removeLocally]);
 
   const duplicateClient = useCallback((id: string): ClientRecord | null => {
     let duplicated: ClientRecord | null = null;
@@ -487,6 +592,8 @@ export function useClients(userId: string, authState = "authenticated") {
     if (updatedClient) { setSyncStatus("pending"); syncOne(userId, updatedClient); }
   }, [userId, persist, syncOne]);
 
+  const dismissDeleteError = useCallback(() => setDeleteError(null), []);
+
   const sortedClients = [...clients].sort((a, b) =>
     a.displayName.localeCompare(b.displayName, "fr", { sensitivity: "base" })
   );
@@ -500,6 +607,8 @@ export function useClients(userId: string, authState = "authenticated") {
     deleteClient,
     duplicateClient,
     renameClient,
+    deleteError,
+    dismissDeleteError,
   };
 }
 
@@ -511,7 +620,7 @@ type ClientManagerProps = {
   syncNow: () => void;
   onOpen: (client: ClientRecord) => void;
   onCreate: (name: string) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => void | Promise<boolean>;
   onDuplicate: (id: string) => void;
   onRename: (id: string, newName: string) => void;
   logoSrc: string;
@@ -531,6 +640,9 @@ type ClientManagerProps = {
   onSignOut?: () => void;
   licence?: { type: string | null; status: string; isValid: boolean; trialDaysLeft?: number } | null;
   userId?: string;
+  // C2 — suppression honnete : message d'echec (refus serveur) + acquittement.
+  deleteError?: string | null;
+  dismissDeleteError?: () => void;
 };
 
 export function ClientManager({
@@ -558,12 +670,16 @@ export function ClientManager({
   onSignOut,
   licence,
   userId = "",
+  deleteError,
+  dismissDeleteError,
 }: ClientManagerProps) {
   const [criteria, setCriteria] = useState<SearchCriteria>(EMPTY_CRITERIA);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  // C4 — position d'ancrage du menu kebab (rendu en portal document.body).
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("modif");
   const [view, setView] = useState<"cards" | "list">("cards");
 
@@ -583,14 +699,8 @@ export function ClientManager({
     setRenameValue("");
   };
 
-  // Fermer le menu contextuel au clic extérieur. Le clic sur le kebab et sur le
-  // menu stoppe la propagation : ce listener n'attrape que les clics "ailleurs".
-  useEffect(() => {
-    if (!openMenuId) return;
-    const close = () => setOpenMenuId(null);
-    document.addEventListener("click", close);
-    return () => document.removeEventListener("click", close);
-  }, [openMenuId]);
+  // C4 — la fermeture au clic exterieur est desormais assuree par le backdrop du
+  // portal (voir renderCard), qui capte les clics hors menu et reinitialise menuPos.
 
   const SURFACE_APP = "linear-gradient(135deg, #f5f0e8 0%, #fdf8f0 40%, #f0ece4 100%)";
 
@@ -732,29 +842,55 @@ export function ClientManager({
                 className="acc-kebab"
                 title="Actions du dossier"
                 aria-label="Actions du dossier"
-                onClick={(e) => { e.stopPropagation(); setOpenMenuId(menuOpen ? null : client.id); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // C4 — ancrer le menu sous le kebab, aligne a droite (coords viewport
+                  // pour le portal en position:fixed).
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  setMenuPos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) });
+                  setOpenMenuId(menuOpen ? null : client.id);
+                }}
               >
                 <MoreHorizontal size={19} />
               </button>
             </>
           )}
 
-          {menuOpen && !isRenaming && (
-            <div className="acc-menu" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => { setOpenMenuId(null); onOpen(client); }}>
-                <FolderOpen /> Ouvrir
-              </button>
-              <button onClick={() => { setOpenMenuId(null); setRenamingId(client.id); setRenameValue(client.displayName); }}>
-                <Pencil /> Renommer
-              </button>
-              <button onClick={() => { setOpenMenuId(null); onDuplicate(client.id); }}>
-                <Copy /> Dupliquer (scénario)
-              </button>
-              <hr />
-              <button className="dg" onClick={() => { setOpenMenuId(null); setConfirmDeleteId(client.id); }}>
-                <Trash2 /> Supprimer…
-              </button>
-            </div>
+          {/* C4 — menu rendu en PORTAL (document.body) : au-dessus de toutes les cards
+              (z-index eleve) + backdrop invisible qui capte les clics hors menu, pour
+              qu'aucun clic ne traverse vers la card du dessous (ouvertures accidentelles). */}
+          {menuOpen && !isRenaming && menuPos && createPortal(
+            <>
+              <div
+                onClick={() => { setOpenMenuId(null); setMenuPos(null); }}
+                style={{ position: "fixed", inset: 0, zIndex: 9998, background: "transparent" }}
+              />
+              <div
+                className="acc-menu"
+                onClick={(e) => e.stopPropagation()}
+                // C4-suite : le portal est rendu dans document.body, HORS de .acc-root
+                // qui porte les custom properties --acc-*. On les re-pose ici (accVars)
+                // pour que le style .acc-menu (fond de carte, bordure, coins, ombre,
+                // padding, hover des items, separateur, couleur alerte de "Supprimer")
+                // resolve correctement — sinon le conteneur reste transparent.
+                style={{ ...accVars, position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 9999 }}
+              >
+                <button onClick={() => { setOpenMenuId(null); setMenuPos(null); onOpen(client); }}>
+                  <FolderOpen /> Ouvrir
+                </button>
+                <button onClick={() => { setOpenMenuId(null); setMenuPos(null); setRenamingId(client.id); setRenameValue(client.displayName); }}>
+                  <Pencil /> Renommer
+                </button>
+                <button onClick={() => { setOpenMenuId(null); setMenuPos(null); onDuplicate(client.id); }}>
+                  <Copy /> Dupliquer (scénario)
+                </button>
+                <hr />
+                <button className="dg" onClick={() => { setOpenMenuId(null); setMenuPos(null); setConfirmDeleteId(client.id); }}>
+                  <Trash2 /> Supprimer…
+                </button>
+              </div>
+            </>,
+            document.body,
           )}
         </div>
 
@@ -913,6 +1049,20 @@ export function ClientManager({
             </button>
           </div>
         </div>
+
+        {/* C2 — Echec honnete de suppression : le serveur a refuse, le dossier reste visible */}
+        {deleteError && (
+          <div className="rounded-2xl px-4 py-3 text-sm flex items-center justify-between"
+            style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.danger}` }}>
+            <div className="flex items-center gap-2">
+              <Trash2 className="h-4 w-4" />
+              <span>{deleteError}</span>
+            </div>
+            {dismissDeleteError && (
+              <button onClick={dismissDeleteError} className="font-semibold underline text-xs">Fermer</button>
+            )}
+          </div>
+        )}
 
         {/* Bannière hors-ligne */}
         {(syncStatus === "offline" || syncStatus === "pending") && (
