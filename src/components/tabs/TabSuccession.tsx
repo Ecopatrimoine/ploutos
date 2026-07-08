@@ -505,7 +505,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
           />
         </div>
         <MetricCard label="Droits de succession" value={euro(succession.totalSuccessionRights)} hint="Droits calculés par héritier après abattements légaux et barème progressif" accent="red" />
-        <MetricCard label="Net transmis aux héritiers (succession + AV)" value={euro(totalNet)} hint="Total net après droits de succession et fiscalité AV" accent="green" />
+        <MetricCard label="Net transmis aux héritiers (succession + AV)" value={euro(totalNet)} hint="Après droits de succession et fiscalité AV perçue par les héritiers — les bénéficiaires AV non-héritiers figurent dans le bloc Assurances-vie" accent="green" />
       </div>
 
       {/* ── Cartes héritiers 3 colonnes cliquables ── */}
@@ -583,7 +583,8 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                       <div style={{ fontSize: "12px", color: heir.duties > 0 ? BRAND.danger : BRAND.success, fontWeight: 500 }}>
                         {heir.duties > 0 ? `−${euro(heir.duties)}` : "Exonéré"}
                       </div>
-                      <div style={{ fontSize: "11px", color: BRAND.muted }}>droits</div>
+                      {/* C5c — ne pas confondre droits de succession et fiscalite AV sous le seul mot "droits" */}
+                      <div style={{ fontSize: "11px", color: BRAND.muted }}>{heir.avDuties > 0 ? "droits + fiscalité AV" : "droits"}</div>
                     </div>
                   </div>
                   <div style={{ marginTop: "10px", fontSize: "11px", color: BRAND.goldText, borderTop: `1px solid ${SURFACE.border}`, paddingTop: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
