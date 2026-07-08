@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseNum, formatEur, creditSummary } from "../lib/accueil/quickCalc";
+import { parseNum, formatEur, formatPct, creditSummary, pvImmoSummary } from "../lib/accueil/quickCalc";
 
 describe("parseNum — saisie tolérante", () => {
   it("espaces (milliers) + virgule décimale", () => {
@@ -50,5 +50,54 @@ describe("creditSummary — consomme calcMonthlyPayment", () => {
   });
   it("capital nul -> invalide", () => {
     expect(creditSummary(0, 3.4, 20).valid).toBe(false);
+  });
+});
+
+describe("formatPct — fraction -> pourcentage fr-FR", () => {
+  it("mappe les abattements", () => {
+    expect(formatPct(0.96)).toBe("96 %");
+    expect(formatPct(1)).toBe("100 %");
+    expect(formatPct(0.28)).toBe("28 %");
+    expect(formatPct(0)).toBe("0 %");
+  });
+});
+
+describe("pvImmoSummary — consomme computePvImmobiliere", () => {
+  it("détention courte (3 ans) : abattements nuls, IR 19 % + PS 17,2 %", () => {
+    const r = pvImmoSummary(200000, 300000, 3);
+    expect(r.valid).toBe(true);
+    expect(r.moinsValue).toBe(false);
+    expect(Math.round(r.baseIr)).toBe(85000);
+    expect(Math.round(r.impotIr)).toBe(16150);
+    expect(Math.round(r.impotPs)).toBe(14620);
+    expect(Math.round(r.impotTotal)).toBe(30770);
+    expect(r.exonereIr).toBe(false);
+    expect(r.exonerePs).toBe(false);
+  });
+  it("22 ans : exonéré d'IR, PS encore dû", () => {
+    const r = pvImmoSummary(200000, 400000, 22);
+    expect(r.exonereIr).toBe(true);
+    expect(Math.round(r.impotIr)).toBe(0);
+    expect(r.exonerePs).toBe(false);
+    expect(Math.round(r.impotPs)).toBe(19195);
+  });
+  it("30 ans : exonéré d'IR et de PS", () => {
+    const r = pvImmoSummary(200000, 500000, 30);
+    expect(r.exonereIr).toBe(true);
+    expect(r.exonerePs).toBe(true);
+    expect(Math.round(r.impotTotal)).toBe(0);
+  });
+  it("moins-value : 0 partout, aucun négatif", () => {
+    const r = pvImmoSummary(300000, 250000, 10);
+    expect(r.moinsValue).toBe(true);
+    expect(r.pvBrute).toBe(0);
+    expect(r.impotIr).toBe(0);
+    expect(r.impotPs).toBe(0);
+    expect(r.impotTotal).toBe(0);
+    expect(r.impotTotal).toBeGreaterThanOrEqual(0);
+  });
+  it("invalide si un prix manque", () => {
+    expect(pvImmoSummary(0, 300000, 10).valid).toBe(false);
+    expect(pvImmoSummary(200000, 0, 10).valid).toBe(false);
   });
 });
