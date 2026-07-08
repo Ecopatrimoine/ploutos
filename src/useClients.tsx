@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Trash2, Copy, Pencil, FolderOpen, Folder, MoreHorizontal, LayoutGrid, List, CloudOff, RefreshCw } from "lucide-react";
+import { Trash2, Copy, Pencil, FolderOpen, Folder, MoreHorizontal, LayoutGrid, List, CloudOff, RefreshCw, AlertTriangle, ArrowRight, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { BRAND, SURFACE, FIELD } from "./constants";
 import {
@@ -953,14 +953,14 @@ export function ClientManager({
                     ? "Votre essai gratuit a expiré."
                     : `Essai gratuit — ${trialDays} jour${trialDays > 1 ? "s" : ""} restant${trialDays > 1 ? "s" : ""}.`}
                 </span>
-                <button onClick={handleAbonnement} className="underline font-bold">S'abonner →</button>
+                <button onClick={handleAbonnement} className="underline font-bold inline-flex items-center gap-1">S'abonner <ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
               </div>
             );
           })()}
           {licence?.status === "cancelling" && (
             <div className="w-full py-1.5 px-6 flex items-center justify-between text-xs font-semibold"
               style={{ background: BRAND.warningBg, color: BRAND.warning, borderBottom: `1px solid ${BRAND.warningBorder}` }}>
-              <span>⚠️ Annulation prévue — accès maintenu jusqu'à fin de période</span>
+              <span className="inline-flex items-center gap-1.5"><AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" /> Annulation prévue — accès maintenu jusqu'à fin de période</span>
               <button onClick={handleAbonnement} className="underline font-bold">Réactiver</button>
             </div>
           )}
@@ -1005,7 +1005,7 @@ export function ClientManager({
                     <div className="acc-recent-name">{dossierName(dataOf(c), c.displayName)}</div>
                     <div className="acc-recent-when">Modifié {formatRelativeDate(c.updatedAt).toLowerCase()}</div>
                   </div>
-                  <span className="acc-recent-chev">→</span>
+                  <span className="acc-recent-chev"><ChevronRight className="h-4 w-4" aria-hidden="true" /></span>
                 </button>
               ))}
             </div>

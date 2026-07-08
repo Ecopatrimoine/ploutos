@@ -1,5 +1,6 @@
 // src/components/HelpMenu.tsx
 import { useState, useRef, useEffect } from "react";
+import { Bug, Lightbulb, ClipboardList, Check, ArrowRight, X } from "lucide-react";
 
 interface HelpMenuProps {
   colorNavy: string;
@@ -101,7 +102,7 @@ export function HelpMenu({ colorNavy, colorGold, colorSky, cabinetName = "Utilis
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(16,27,59,0.05)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
               >
-                🐛 Signaler un bug
+                <Bug className="h-4 w-4" aria-hidden="true" />Signaler un bug
               </button>
               <div style={{ height: "1px", background: "rgba(0,0,0,0.06)", margin: "0 12px" }} />
               <button
@@ -116,7 +117,7 @@ export function HelpMenu({ colorNavy, colorGold, colorSky, cabinetName = "Utilis
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(16,27,59,0.05)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
               >
-                💡 Faire une suggestion
+                <Lightbulb className="h-4 w-4" aria-hidden="true" />Faire une suggestion
               </button>
               <div style={{ height: "1px", background: "rgba(0,0,0,0.06)", margin: "0 12px" }} />
               <a
@@ -134,7 +135,7 @@ export function HelpMenu({ colorNavy, colorGold, colorSky, cabinetName = "Utilis
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(16,27,59,0.05)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
               >
-                📋 Fiche de collecte PDF
+                <ClipboardList className="h-4 w-4" aria-hidden="true" />Fiche de collecte PDF
               </a>
             </div>
           </>
@@ -258,8 +259,8 @@ ${cabinetName}`;
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
           <div>
-            <div style={{ color: "#fff", fontWeight: 700, fontSize: "16px" }}>
-              {isBug ? "🐛 Signaler un bug" : "💡 Faire une suggestion"}
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: "16px", display: "inline-flex", alignItems: "center", gap: 8 }}>
+              {isBug ? <><Bug className="h-4 w-4" aria-hidden="true" /> Signaler un bug</> : <><Lightbulb className="h-4 w-4" aria-hidden="true" /> Faire une suggestion</>}
             </div>
             <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "12px", marginTop: "2px" }}>
               Envoi à contact@ecopatrimoine-conseil.com
@@ -269,7 +270,7 @@ ${cabinetName}`;
             background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "8px",
             color: "#fff", width: "30px", height: "30px", cursor: "pointer",
             fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center",
-          }}>×</button>
+          }} aria-label="Fermer"><X className="h-4 w-4" aria-hidden="true" /></button>
         </div>
 
         {/* Corps modale */}
@@ -330,9 +331,10 @@ ${cabinetName}`;
                 fontFamily: "'Lato', sans-serif",
                 transition: "background 0.3s",
                 boxShadow: "0 4px 16px rgba(16,27,59,0.25)",
+                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
               }}
             >
-              {sent ? "✓ Ouverture du client mail..." : "Envoyer →"}
+              {sent ? <><Check className="h-4 w-4" aria-hidden="true" /> Ouverture du client mail...</> : <>Envoyer <ArrowRight className="h-4 w-4" aria-hidden="true" /></>}
             </button>
           </div>
         </div>

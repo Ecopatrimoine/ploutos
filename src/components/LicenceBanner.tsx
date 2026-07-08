@@ -1,5 +1,6 @@
 // src/components/LicenceBanner.tsx
 import React, { useState } from "react";
+import { AlertTriangle, Settings, ArrowRight, Sparkles } from "lucide-react";
 import type { LicenceInfo } from "../hooks/useLicense";
 
 interface LicenceBannerProps {
@@ -46,14 +47,14 @@ export function LicenceBanner({ licence, userId, colorGold, colorNavy }: Licence
           color: urgency ? "#991B1B" : colorNavy,
           borderBottom: `1px solid ${urgency ? "#FCA5A5" : "rgba(227,175,100,0.3)"}`,
         }}>
-        <span>
+        <span className="inline-flex items-center gap-1.5">
           {urgency
-            ? `⚠️ Essai gratuit — ${days} jour${days > 1 ? "s" : ""} restant${days > 1 ? "s" : ""}`
-            : `✦ Essai gratuit — ${days} jours restants`}
+            ? <><AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" /> Essai gratuit — {days} jour{days > 1 ? "s" : ""} restant{days > 1 ? "s" : ""}</>
+            : <><Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" /> Essai gratuit — {days} jours restants</>}
         </span>
         {urgency && (
-          <a href="https://app.ploutos-cgp.fr" className="underline font-bold">
-            S'abonner →
+          <a href="https://app.ploutos-cgp.fr" className="underline font-bold inline-flex items-center gap-1">
+            S'abonner <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </a>
         )}
       </div>
@@ -71,7 +72,7 @@ export function LicenceBanner({ licence, userId, colorGold, colorNavy }: Licence
           className="text-xs font-medium hover:underline disabled:opacity-50 transition-opacity"
           style={{ color: colorNavy }}
         >
-          {loading ? "Chargement…" : "⚙ Gérer mon abonnement"}
+          {loading ? "Chargement…" : <span className="inline-flex items-center gap-1.5"><Settings className="h-4 w-4" aria-hidden="true" /> Gérer mon abonnement</span>}
         </button>
       </div>
     );
@@ -82,7 +83,7 @@ export function LicenceBanner({ licence, userId, colorGold, colorNavy }: Licence
     return (
       <div className="w-full text-center py-1.5 px-4 text-xs font-semibold flex items-center justify-center gap-3"
         style={{ background: "#FEF3C7", color: "#92400E", borderBottom: "1px solid #FCD34D" }}>
-        <span>⚠️ Abonnement annulé — accès maintenu jusqu'à la fin de la période</span>
+        <span className="inline-flex items-center gap-1.5"><AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" /> Abonnement annulé — accès maintenu jusqu'à la fin de la période</span>
         <button
           onClick={handlePortal}
           disabled={loading}
