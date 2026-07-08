@@ -12,6 +12,7 @@
 import React, { useEffect, useRef } from "react";
 import { Landmark, Coins, Building2, Gauge, Users, Shield } from "lucide-react";
 import { BRAND, SURFACE, FIELD } from "../constants";
+import { CreditCalc } from "./calculs/CreditCalc";
 
 export type QuickCalcId = "credit" | "pvImmo";
 
@@ -113,8 +114,8 @@ export function AccueilCalculs({ onClose, activeCalc, setActiveCalc }: Props) {
             );
           })}
 
-          {/* Panneaux calculettes — branchés aux commits 2 (crédit) et 3 (PV immo). */}
-          {activeCalc === "credit" && <div className="qc-panel">Calculette crédit — intégration en cours.</div>}
+          {/* Panneaux calculettes — PV immo branchée au commit 3. */}
+          {activeCalc === "credit" && <CreditCalc onClose={() => setActiveCalc(null)} />}
           {activeCalc === "pvImmo" && <div className="qc-panel">Calculette plus-value — intégration en cours.</div>}
         </div>
       </div>
