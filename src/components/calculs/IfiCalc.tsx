@@ -3,7 +3,7 @@
 // L'abattement 30 % résidence principale est appliqué par computeIFI.
 
 import React, { useState } from "react";
-import { Gem } from "lucide-react";
+import { Gem, X } from "lucide-react";
 import { parseNum, formatEur, formatPct, ifiSummary } from "../../lib/accueil/quickCalc";
 import { BracketFillChart } from "../shared";
 
@@ -20,7 +20,7 @@ export function IfiCalc({ onClose }: { onClose: () => void }) {
           <span className="qc-tile-ico"><Gem /></span>
           Calculette IFI
         </div>
-        <button className="qc-close" onClick={onClose} title="Fermer la calculette" aria-label="Fermer la calculette">✕</button>
+        <button className="qc-close" onClick={onClose} title="Fermer la calculette" aria-label="Fermer la calculette"><X className="h-4 w-4" aria-hidden="true" /></button>
       </div>
 
       <div className="qc-body">

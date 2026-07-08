@@ -2,7 +2,7 @@
 // Consomme creditSummary (lib/accueil/quickCalc) -> calcMonthlyPayment (moteur).
 
 import React, { useState } from "react";
-import { Landmark } from "lucide-react";
+import { Landmark, X } from "lucide-react";
 import { parseNum, formatEur, creditSummary } from "../../lib/accueil/quickCalc";
 
 export function CreditCalc({ onClose }: { onClose: () => void }) {
@@ -20,7 +20,7 @@ export function CreditCalc({ onClose }: { onClose: () => void }) {
           <span className="qc-tile-ico"><Landmark /></span>
           Calculette crédit
         </div>
-        <button className="qc-close" onClick={onClose} title="Fermer la calculette" aria-label="Fermer la calculette">✕</button>
+        <button className="qc-close" onClick={onClose} title="Fermer la calculette" aria-label="Fermer la calculette"><X className="h-4 w-4" aria-hidden="true" /></button>
       </div>
 
       <div className="qc-body">

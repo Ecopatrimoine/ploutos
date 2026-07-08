@@ -2,7 +2,7 @@
 // Arithmétique pure (endettementSummary) : taux d'effort = charges / revenus.
 
 import React, { useState } from "react";
-import { Gauge } from "lucide-react";
+import { Gauge, X } from "lucide-react";
 import { parseNum, formatEur, formatPct, endettementSummary, HCSF_TAUX_EFFORT_MAX } from "../../lib/accueil/quickCalc";
 
 export function EndettementCalc({ onClose }: { onClose: () => void }) {
@@ -20,7 +20,7 @@ export function EndettementCalc({ onClose }: { onClose: () => void }) {
           <span className="qc-tile-ico"><Gauge /></span>
           Calculette capacité d'endettement
         </div>
-        <button className="qc-close" onClick={onClose} title="Fermer la calculette" aria-label="Fermer la calculette">✕</button>
+        <button className="qc-close" onClick={onClose} title="Fermer la calculette" aria-label="Fermer la calculette"><X className="h-4 w-4" aria-hidden="true" /></button>
       </div>
 
       <div className="qc-body">

@@ -4,7 +4,7 @@
 // tranche. TMI = tmiAffichee (même chemin que la carte IR).
 
 import React, { useState } from "react";
-import { Coins } from "lucide-react";
+import { Coins, X } from "lucide-react";
 import { parseNum, formatEur, formatPct, irSummary } from "../../lib/accueil/quickCalc";
 import { computeIrBracketFill } from "../../lib/calculs/utils";
 import { BracketFillChart } from "../shared";
@@ -23,7 +23,7 @@ export function IrCalc({ onClose }: { onClose: () => void }) {
           <span className="qc-tile-ico"><Coins /></span>
           Calculette impôt sur le revenu
         </div>
-        <button className="qc-close" onClick={onClose} title="Fermer la calculette" aria-label="Fermer la calculette">✕</button>
+        <button className="qc-close" onClick={onClose} title="Fermer la calculette" aria-label="Fermer la calculette"><X className="h-4 w-4" aria-hidden="true" /></button>
       </div>
 
       <div className="qc-body">
