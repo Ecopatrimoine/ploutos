@@ -13,9 +13,9 @@ import { computeIjCarmfJournaliere, pensionInvaliditeTotaleAnnuelle, capitalDece
 import { ijCipavPhase1Journaliere, pensionInvaliditeCipavAnnuelle, capitalDecesCipav } from "../prevoyance/cipav";
 import { ijCarpimkoPhase1Journaliere, renteInvaliditeCarpimkoAnnuelle, capitalDecesCarpimko } from "../prevoyance/carpimko";
 import { buildPlafondVariables } from "../prevoyance/formula";
-import { computeIJObligatoireJournaliere, computeInvalObligatoireMensuel } from "../prevoyance/projection";
+import { computeIJObligatoireJournaliere, computeInvalObligatoireMensuel, projeterArretMaladie } from "../prevoyance/projection";
 import { resolveCapitauxDeces } from "../prevoyance/capitaux-deces";
-import type { EntreePerso } from "../prevoyance/types";
+import type { EntreePerso, ProjectionResult } from "../prevoyance/types";
 import type { Child, CarmfConfig, CipavConfig, CarpimkoConfig, FilledBracket, CodeCaisse } from "../../types/patrimoine";
 
 // Saisie tolérante : espaces (séparateurs de milliers) + virgule décimale.
@@ -241,6 +241,18 @@ export type PrevoyanceSummary = {
   capitalDeces: number;  // € — versement unique
 };
 
+// Configs par défaut des caisses dédiées — SOURCE UNIQUE partagée par les KPI et
+// la projection (invalidité totale, affiliation ancienne, célibataire sans enfant).
+function carmfCfg(revenu: number): CarmfConfig {
+  return { statut: "medecin_titulaire", revenuBNC_N2: revenu, ancienneteAffiliationTrimestres: 40, cumulEmploiRetraite: false, marie: false, anneesMariage: 0, ressourcesConjoint: 0, besoinTiercePersonne: false };
+}
+function cipavCfg(revenu: number): CipavConfig {
+  return { revenuBNC_N2: revenu, ancienneteAffiliationMois: 60, cumulEmploiRetraite: false, tauxInvalidite: 100, marie: false, nbEnfants: 0, decesAccidentel: false };
+}
+function carpimkoCfg(revenu: number): CarpimkoConfig {
+  return { revenuBNC_N2: revenu, tauxInvalidite: 100, nbEnfants: 0, besoinTiercePersonne: false, marie: false };
+}
+
 // Profil par défaut (affiché en note) : affiliation ancienne (hors carence),
 // invalidité totale, célibataire sans enfant, statut titulaire.
 export function prevoyanceSummary(caisse: PrevoyanceCaisse, revenuAnnuel: number, age: number): PrevoyanceSummary {
@@ -250,11 +262,7 @@ export function prevoyanceSummary(caisse: PrevoyanceCaisse, revenuAnnuel: number
   if (caisse in GENERIC_CAISSES) return genericPrevoyance(caisse, revenuAnnuel, age);
 
   if (caisse === "CARMF") {
-    const cfg: CarmfConfig = {
-      statut: "medecin_titulaire", revenuBNC_N2: revenuAnnuel,
-      ancienneteAffiliationTrimestres: 40, cumulEmploiRetraite: false,
-      marie: false, anneesMariage: 0, ressourcesConjoint: 0, besoinTiercePersonne: false,
-    };
+    const cfg = carmfCfg(revenuAnnuel);
     return {
       valid: true,
       ijJour: computeIjCarmfJournaliere(referentiels.carmf, cfg, age, 100),
@@ -263,10 +271,7 @@ export function prevoyanceSummary(caisse: PrevoyanceCaisse, revenuAnnuel: number
     };
   }
   if (caisse === "CIPAV") {
-    const cfg: CipavConfig = {
-      revenuBNC_N2: revenuAnnuel, ancienneteAffiliationMois: 60, cumulEmploiRetraite: false,
-      tauxInvalidite: 100, marie: false, nbEnfants: 0, decesAccidentel: false,
-    };
+    const cfg = cipavCfg(revenuAnnuel);
     return {
       valid: true,
       ijJour: ijCipavPhase1Journaliere(referentiels.cipav, cfg, 30),
@@ -275,16 +280,35 @@ export function prevoyanceSummary(caisse: PrevoyanceCaisse, revenuAnnuel: number
     };
   }
   // CARPIMKO
-  const cfg: CarpimkoConfig = {
-    revenuBNC_N2: revenuAnnuel, tauxInvalidite: 100, nbEnfants: 0,
-    besoinTiercePersonne: false, marie: false,
-  };
+  const cfg = carpimkoCfg(revenuAnnuel);
   return {
     valid: true,
     ijJour: ijCarpimkoPhase1Journaliere(referentiels.carpimko, cfg, 30),
     invaliditeAn: renteInvaliditeCarpimkoAnnuelle(referentiels.carpimko, cfg),
     capitalDeces: capitalDecesCarpimko(referentiels.carpimko, cfg),
   };
+}
+
+// Timeline d'indemnisation obligatoire dans le temps — CONSOMME projeterArretMaladie
+// (moteur, pur, sans dossier) avec un EntreePerso minimal (couverture collective et
+// contrats individuels vides -> seule la série "régime obligatoire" est peuplée).
+// Réutilisé tel quel par le composant ProjectionChart existant.
+function buildPrevoyanceEntree(caisse: PrevoyanceCaisse, revenu: number, age: number): EntreePerso {
+  const cfg = GENERIC_CAISSES[caisse];
+  if (cfg) return genericEntree(caisse as CodeCaisse, cfg, revenu, age);
+  const base: EntreePerso = {
+    age, ageRetraite: 64, statutPro: "tns_liberal", caisse: caisse as CodeCaisse,
+    idccCCN: null, ancienneteMois: 120, salaireBrutAnnuel: 0, salaireNetMensuel: 0,
+    revenuTNSAnnuel: revenu, contratsIndividuels: [], couvertureCollective: null,
+  };
+  if (caisse === "CARMF") return { ...base, carmf: carmfCfg(revenu) };
+  if (caisse === "CIPAV") return { ...base, cipav: cipavCfg(revenu) };
+  return { ...base, carpimko: carpimkoCfg(revenu) };
+}
+
+export function prevoyanceProjection(caisse: PrevoyanceCaisse, revenuAnnuel: number, age: number): ProjectionResult | null {
+  if (!(revenuAnnuel > 0) || !(age > 0)) return null;
+  return projeterArretMaladie(buildPrevoyanceEntree(caisse, revenuAnnuel, age), "cat2", referentiels, "ald");
 }
 
 // ── IR barème ───────────────────────────────────────────────────────────────

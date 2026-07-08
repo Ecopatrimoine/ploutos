@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseNum, formatEur, formatPct, creditSummary, pvImmoSummary, irSummary, endettementSummary, dmtgSummary, prevoyanceSummary, ifiSummary } from "../lib/accueil/quickCalc";
+import { parseNum, formatEur, formatPct, creditSummary, pvImmoSummary, irSummary, endettementSummary, dmtgSummary, prevoyanceSummary, prevoyanceProjection, ifiSummary } from "../lib/accueil/quickCalc";
 
 describe("parseNum — saisie tolérante", () => {
   it("espaces (milliers) + virgule décimale", () => {
@@ -245,6 +245,20 @@ describe("prevoyanceSummary — regimes generiques (CPAM / SSI / MSA / FONCTION_
     for (const c of ["CPAM", "SSI", "MSA", "FONCTION_PUBLIQUE"] as const) {
       expect(prevoyanceSummary(c, 0, 45).valid).toBe(false);
     }
+  });
+});
+
+describe("prevoyanceProjection — timeline IJ (projeterArretMaladie)", () => {
+  it("retourne une projection non vide pour les 7 caisses", () => {
+    for (const c of ["CPAM", "SSI", "MSA", "FONCTION_PUBLIQUE", "CARMF", "CIPAV", "CARPIMKO"] as const) {
+      const p = prevoyanceProjection(c, 40000, 45);
+      expect(p).not.toBeNull();
+      expect(p!.axe.length).toBeGreaterThan(0);
+      expect(p!.series).toHaveProperty("ijObligatoire");
+    }
+  });
+  it("null si revenu 0", () => {
+    expect(prevoyanceProjection("CPAM", 0, 45)).toBeNull();
   });
 });
 

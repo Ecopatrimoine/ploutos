@@ -6,8 +6,9 @@
 
 import React, { useState } from "react";
 import { Shield } from "lucide-react";
-import { parseNum, formatEur, prevoyanceSummary, PREVOYANCE_CAISSES, type PrevoyanceCaisse } from "../../lib/accueil/quickCalc";
+import { parseNum, formatEur, prevoyanceSummary, prevoyanceProjection, PREVOYANCE_CAISSES, type PrevoyanceCaisse } from "../../lib/accueil/quickCalc";
 import { BRAND } from "../../constants";
+import { ProjectionChart } from "../prevoyance/ProjectionChart";
 
 export function PrevoyanceCalc({ onClose }: { onClose: () => void }) {
   const [caisse, setCaisse] = useState<PrevoyanceCaisse>("CPAM");
@@ -15,6 +16,7 @@ export function PrevoyanceCalc({ onClose }: { onClose: () => void }) {
   const [age, setAge] = useState("45");
 
   const r = prevoyanceSummary(caisse, parseNum(revenu), parseNum(age));
+  const proj = prevoyanceProjection(caisse, parseNum(revenu), parseNum(age));
 
   return (
     <div className="qc-panel">
@@ -61,6 +63,15 @@ export function PrevoyanceCalc({ onClose }: { onClose: () => void }) {
           <div className="qc-kpi-val">{r.valid ? formatEur(r.capitalDeces) : "—"}</div>
         </div>
       </div>
+
+      {proj && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--qc-muted)", marginBottom: 8 }}>
+            Indemnisation obligatoire dans le temps
+          </div>
+          <ProjectionChart projection={proj} codeCaisse={caisse} />
+        </div>
+      )}
 
       <div className="qc-abatt">
         Profil retenu : invalidité totale (catégorie 2), IJ à 30 jours d'arrêt, célibataire sans enfant.
