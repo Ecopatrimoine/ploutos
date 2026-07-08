@@ -21,10 +21,10 @@ import refMeuble from "../data/location-meublee.json";
 import type { Property } from "../types/patrimoine";
 
 const COMPO_LABEL: Record<string, string> = {
-  grosOeuvre: "Gros oeuvre",
+  grosOeuvre: "Gros œuvre",
   toiture: "Toiture",
   installationsTechniques: "Installations techniques",
-  facadeEtancheite: "Facade / etancheite",
+  facadeEtancheite: "Façade / étanchéité",
   agencements: "Agencements",
 };
 
@@ -66,7 +66,7 @@ export function AmortissementModal({ property, updateProperty, onClose }: Props)
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-2xl rounded-2xl" style={{ background: SURFACE.card }}>
         <DialogHeader>
-          <DialogTitle style={{ color: BRAND.navy }}>Detail de l'amortissement (par composants)</DialogTitle>
+          <DialogTitle style={{ color: BRAND.navy }}>Détail de l'amortissement (par composants)</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div style={{ overflowX: "auto" }}>
@@ -76,7 +76,7 @@ export function AmortissementModal({ property, updateProperty, onClose }: Props)
                   <th style={{ textAlign: "left", padding: "6px 8px" }}>Composant</th>
                   <th style={{ textAlign: "right", padding: "6px 8px" }}>Part %</th>
                   <th style={{ textAlign: "right", padding: "6px 8px" }}>Base</th>
-                  <th style={{ textAlign: "right", padding: "6px 8px" }}>Duree (ans)</th>
+                  <th style={{ textAlign: "right", padding: "6px 8px" }}>Durée (ans)</th>
                   <th style={{ textAlign: "right", padding: "6px 8px" }}>Dotation/an</th>
                 </tr>
               </thead>
@@ -85,14 +85,14 @@ export function AmortissementModal({ property, updateProperty, onClose }: Props)
                   <tr key={d.composant} style={{ borderTop: `1px solid ${SURFACE.border}` }}>
                     <td style={{ padding: "6px 8px", fontWeight: 600, color: BRAND.navy }}>
                       {COMPO_LABEL[d.composant] || d.composant}
-                      {d.ajuste && <span style={{ color: BRAND.sky, fontSize: 10, marginLeft: 6, fontWeight: 700 }}>ajuste</span>}
+                      {d.ajuste && <span style={{ color: BRAND.sky, fontSize: 10, marginLeft: 6, fontWeight: 700 }}>ajusté</span>}
                     </td>
                     <td style={{ padding: "4px 8px", textAlign: "right" }}>
                       <Input value={String(Math.round(d.part * 1000) / 10).replace(".", ",")} onChange={(e) => setOverride(d.composant, "part", e.target.value)} className="h-7 text-sm w-16 ml-auto" style={{ textAlign: "right", fontWeight: 700 }} inputMode="decimal" aria-label={`Part ${COMPO_LABEL[d.composant] || d.composant}`} />
                     </td>
                     <td style={{ padding: "6px 8px", textAlign: "right", color: BRAND.muted }}>{euro(plan.baseBati * d.part)}</td>
                     <td style={{ padding: "4px 8px", textAlign: "right" }}>
-                      <Input value={String(d.duree)} onChange={(e) => setOverride(d.composant, "duree", e.target.value)} className="h-7 text-sm w-16 ml-auto" style={{ textAlign: "right", fontWeight: 700 }} inputMode="numeric" aria-label={`Duree ${COMPO_LABEL[d.composant] || d.composant}`} />
+                      <Input value={String(d.duree)} onChange={(e) => setOverride(d.composant, "duree", e.target.value)} className="h-7 text-sm w-16 ml-auto" style={{ textAlign: "right", fontWeight: 700 }} inputMode="numeric" aria-label={`Durée ${COMPO_LABEL[d.composant] || d.composant}`} />
                     </td>
                     <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 700 }}>{euro(d.dotation)}</td>
                   </tr>
@@ -116,16 +116,16 @@ export function AmortissementModal({ property, updateProperty, onClose }: Props)
 
           <div className="flex items-center justify-between rounded-xl px-3 py-2 text-xs"
             style={{ background: sommeOk ? BRAND.successBg : BRAND.warningBg, border: `1px solid ${sommeOk ? BRAND.successBorder : BRAND.warningBorder}`, color: sommeOk ? BRAND.success : BRAND.warning }}>
-            <span>Somme des parts immobilieres</span>
+            <span>Somme des parts immobilières</span>
             <span style={{ fontWeight: 800 }}>{pct(plan.sommeParts, 1)}{sommeOk ? " ✓" : " — doit valoir 100 %"}</span>
           </div>
 
           <div className="text-xs" style={{ color: BRAND.muted, fontStyle: "italic" }}>
-            Methode par composants, durees d'usage BOFiP — convention indicative, ajustable. Part et duree modifiables par composant ; base = prix hors terrain reparti selon la part.
+            Méthode par composants, durées d'usage BOFiP — convention indicative, ajustable. Part et durée modifiables par composant ; base = prix hors terrain réparti selon la part.
           </div>
 
           <div className="flex flex-wrap gap-2 items-center">
-            <button type="button" onClick={() => setDraft({})} className="rounded-xl px-3 py-2 text-sm font-medium" style={{ background: "rgba(99,120,150,0.1)", color: BRAND.muted }}>Reinitialiser la grille</button>
+            <button type="button" onClick={() => setDraft({})} className="rounded-xl px-3 py-2 text-sm font-medium" style={{ background: "rgba(99,120,150,0.1)", color: BRAND.muted }}>Réinitialiser la grille</button>
             <div style={{ flex: 1 }} />
             <button type="button" onClick={onClose} className="rounded-xl px-3 py-2 text-sm font-medium" style={{ background: "rgba(99,120,150,0.1)", color: BRAND.muted }}>Annuler</button>
             <button type="button" onClick={valider} disabled={!sommeOk} className="rounded-xl px-4 py-2 text-sm font-semibold"
