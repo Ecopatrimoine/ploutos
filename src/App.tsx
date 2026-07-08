@@ -410,6 +410,9 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   };
   const { clients, syncStatus, syncNow, createClient, saveClient, deleteClient, duplicateClient, renameClient } = useClients(userId, authState)
   const [activeClient, setActiveClient] = useState<ClientRecord | null>(null)
+  // Vue autonome de l'accueil (hors dossier). Patron prévu pour d'autres modules
+  // (activeModule). Lot 2 : "parametres". Lot 3+ : calculettes.
+  const [activeModule, setActiveModule] = useState<null | "parametres">(null)
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   // Couleurs dynamiques tirées des paramètres cabinet
@@ -1269,6 +1272,10 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
         colorGold={cabinet.colorGold}
         colorSky={cabinet.colorSky}
         colorCream={cabinet.colorCream}
+        colorBlue={cabinet.colorBlue}
+        conseiller={cabinet.conseiller}
+        orias={cabinet.orias}
+        onOpenParametres={() => setActiveModule("parametres")}
         isInstallable={isInstallable}
         onInstall={handleInstallClick}
         onSignOut={onSignOut}

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { Trash2, Copy, Pencil, FolderOpen, Folder, MoreHorizontal, LayoutGrid, List, Database, Cloud, CloudOff, RefreshCw } from "lucide-react";
+import { Trash2, Copy, Pencil, FolderOpen, Folder, MoreHorizontal, LayoutGrid, List, CloudOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { BRAND, SURFACE, FIELD } from "./constants";
 import {
@@ -17,6 +17,7 @@ import {
   type SortMode,
   type DossierData,
 } from "./lib/accueil/dossierResume";
+import { AccueilHeader } from "./components/AccueilHeader";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -461,6 +462,10 @@ type ClientManagerProps = {
   colorGold: string;
   colorSky: string;
   colorCream: string;
+  colorBlue?: string;
+  conseiller?: string;
+  orias?: string;
+  onOpenParametres: () => void;
   isInstallable?: boolean;
   onInstall?: () => void;
   // Nouveaux props
@@ -484,6 +489,10 @@ export function ClientManager({
   colorGold,
   colorSky,
   colorCream,
+  colorBlue,
+  conseiller,
+  orias,
+  onOpenParametres,
   isInstallable = false,
   onInstall,
   onSignOut,
@@ -525,26 +534,18 @@ export function ClientManager({
 
   const SURFACE_APP = "linear-gradient(135deg, #f5f0e8 0%, #fdf8f0 40%, #f0ece4 100%)";
 
-  // Indicateur de sync
-  const SyncIndicator = () => {
-    const configs: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
-      synced:  { icon: <Cloud className="h-3.5 w-3.5" />,      label: "Synchronisé",       color: "#4ade80" },
-      pending: { icon: <RefreshCw className="h-3.5 w-3.5" />,  label: "En attente",        color: "#fbbf24" },
-      offline: { icon: <CloudOff className="h-3.5 w-3.5" />,   label: "Hors ligne",        color: "#d1d5db" },
-      syncing: { icon: <RefreshCw className="h-3.5 w-3.5 animate-spin" />, label: "Synchronisation…", color: "#93c5fd" },
-    };
-    const cfg = configs[syncStatus] ?? configs["syncing"];
-    return (
-      <button
-        onClick={syncNow}
-        title="Cliquer pour synchroniser"
-        className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg transition-colors hover:bg-white/20"
-        style={{ color: cfg.color }}
-      >
-        {cfg.icon}
-        <span>{cfg.label}</span>
-      </button>
-    );
+  // Abonnement — portail Stripe (handler existant, déplacé depuis l'ancien header
+  // de l'accueil vers le nouveau AccueilHeader).
+  const canManageAbonnement =
+    licence?.type === "paid" && licence?.status === "active" && !!userId;
+  const handleAbonnement = async () => {
+    const res = await fetch("https://ysbgfiqsuvdwzkcsiqir.supabase.co/functions/v1/create-portal-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: userId, return_url: window.location.origin }),
+    });
+    const data = await res.json();
+    if (data.url) window.open(data.url, "_blank");
   };
 
   // Couleurs de l'accueil v2 : custom properties posées inline depuis les tokens
@@ -759,77 +760,23 @@ export function ClientManager({
         </div>
       )}
 
-      {/* Header imposant avec stats */}
-      <div style={{ position:"relative", zIndex:1, background: `linear-gradient(135deg, ${colorNavy} 0%, ${colorSky} 55%, ${colorGold} 100%)`, boxShadow:"0 4px 24px rgba(16,27,59,0.18)" }}>
-        <div className="w-full px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img src={logoSrc} alt={cabinetName} className="h-16 w-auto object-contain drop-shadow-md" />
-            <div>
-              <div className="text-white font-bold text-xl leading-tight">{cabinetName}</div>
-              <div className="text-white/60 text-xs font-medium tracking-wide mt-0.5">Gestion des dossiers clients</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <SyncIndicator />
-            {licence?.type === "paid" && licence?.status === "active" && userId && (
-              <button
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.8)" }}
-                onClick={async () => {
-                  const res = await fetch("https://ysbgfiqsuvdwzkcsiqir.supabase.co/functions/v1/create-portal-session", {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ user_id: userId, return_url: window.location.origin }),
-                  });
-                  const data = await res.json();
-                  if (data.url) window.open(data.url, "_blank");
-                }}>
-                Abonnement
-              </button>
-            )}
-            {onSignOut && (
-              <button onClick={onSignOut}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.8)" }}>
-                Déconnexion
-              </button>
-            )}
-            {isInstallable && onInstall && (
-              <button
-                onClick={onInstall}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                style={{ background: "rgba(227,175,100,0.25)", border: "1px solid rgba(227,175,100,0.6)", color: "#E3AF64" }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                Installer l'app
-              </button>
-            )}
-          </div>
-        </div>
-        {/* Barre de stats */}
-        <div className="w-full px-6 pb-4 flex items-center gap-6" style={{ borderTop:"1px solid rgba(255,255,255,0.12)" }}>
-          <div className="flex items-center gap-2 pt-3">
-            <Database className="h-4 w-4 text-white/50" />
-            <span className="text-white font-semibold text-sm">{clients.length}</span>
-            <span className="text-white/60 text-xs">dossier{clients.length !== 1 ? "s" : ""}</span>
-          </div>
-          {clients.length > 0 && (
-            <div className="flex items-center gap-2 pt-3">
-              <span className="text-white/50 text-xs">Dernière modif. :</span>
-              <span className="text-white/80 text-xs">{
-                new Date(Math.max(...clients.map(c => new Date(c.updatedAt).getTime())))
-                  .toLocaleDateString("fr-FR", { day:"2-digit", month:"short", year:"numeric" })
-              }</span>
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* Main — Accueil v2 (Lot 1) */}
-      <div className="acc-root" style={{ ...accVars, position:"relative", zIndex:1, width:"100%", padding:"36px 26px 60px" }}>
+      {/* Main — Accueil v2 (Lot 1 + header Lot 2) */}
+      <div className="acc-root" style={{ ...accVars, position:"relative", zIndex:1, width:"100%", padding:"26px 26px 60px" }}>
+
+        {/* Header cabinet unifié (Lot 2) */}
+        <AccueilHeader
+          cabColors={{ navy: colorNavy, sky: colorSky, blue: colorBlue, gold: colorGold, cream: colorCream }}
+          cabinetName={cabinetName}
+          conseiller={conseiller}
+          orias={orias}
+          logoSrc={logoSrc}
+          onOpenParametres={onOpenParametres}
+          onAbonnement={canManageAbonnement ? handleAbonnement : undefined}
+          onSignOut={onSignOut}
+          isInstallable={isInstallable}
+          onInstall={onInstall}
+        />
 
         {/* Reprendre là où vous en étiez — dossiers récents */}
         {clients.length > 0 && (

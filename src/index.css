@@ -218,4 +218,33 @@ html {
 @media (max-width:640px){
   .acc-grid,.acc-fields,.acc-recents{grid-template-columns:1fr}
 }
+
+/* ══ Accueil v2 (Lot 2) — header cabinet unifie ════════════════════════════════
+   Cadre gradient = couleurs cabinet (inline). Boutons/separateurs = custom
+   properties --ah-* posees inline sur .ah-frame (couleurs cabinet + tokens
+   BRAND/SURFACE/FIELD). Aucune couleur codee en dur ici. */
+.ah-frame{border-radius:18px;padding:4px;box-shadow:var(--ah-shadow);margin-bottom:26px}
+.ah-bar{background:var(--ah-cardsoft);border-radius:14px;display:flex;align-items:center;justify-content:space-between;padding:16px 24px;gap:20px;flex-wrap:wrap}
+.ah-id{display:flex;align-items:center;gap:16px;min-width:0}
+.ah-logo{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:var(--ah-navy);flex-shrink:0;overflow:hidden;box-shadow:0 0 0 3px rgba(196,151,61,.18)}
+.ah-logo img{width:100%;height:100%;object-fit:contain}
+.ah-name{font-size:22px;font-weight:900;letter-spacing:.2px;color:var(--ah-navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ah-sub{font-size:13px;color:var(--ah-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ah-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ah-sep{width:1px;height:30px;background:var(--ah-gold);opacity:.45}
+.ah-btn{display:flex;align-items:center;gap:8px;height:44px;padding:0 16px;border-radius:11px;background:var(--ah-card);border:2px solid var(--ah-border);font-family:inherit;font-size:14px;font-weight:700;color:var(--ah-navy);cursor:pointer;white-space:nowrap;transition:border-color .15s,transform .15s,box-shadow .15s}
+.ah-btn svg{width:18px;height:18px;color:var(--ah-muted)}
+.ah-btn:hover:not(:disabled){border-color:var(--ah-gold)}
+.ah-btn:hover:not(:disabled) svg{color:var(--ah-gold)}
+.ah-btn:focus-visible{outline:2px solid var(--ah-gold-deep);outline-offset:2px}
+.ah-btn:disabled{opacity:.55;cursor:not-allowed}
+.ah-calc{background:var(--ah-navy);color:#fff;border-color:var(--ah-navy)}
+.ah-calc svg,.ah-calc:hover:not(:disabled) svg{color:var(--ah-gold)}
+.ah-calc:hover:not(:disabled){transform:translateY(-1px);box-shadow:var(--ah-shadow)}
+.ah-quit svg,.ah-quit:hover:not(:disabled) svg{color:var(--ah-danger)}
+
+@media (max-width:640px){
+  .ah-bar{padding:14px 16px}
+  .ah-actions{width:100%}
+}
  
