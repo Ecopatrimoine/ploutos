@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { Trash2, Copy, Pencil, FolderOpen, Folder, MoreHorizontal, Database, Cloud, CloudOff, RefreshCw } from "lucide-react";
+import { Trash2, Copy, Pencil, FolderOpen, Folder, MoreHorizontal, LayoutGrid, List, Database, Cloud, CloudOff, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { BRAND, SURFACE, FIELD } from "./constants";
 import {
@@ -11,6 +11,8 @@ import {
   dossierMeta,
   dossierResume,
   formatRelativeDate,
+  formatBirthDateFr,
+  departementFrom,
   type SearchCriteria,
   type SortMode,
   type DossierData,
@@ -494,6 +496,7 @@ export function ClientManager({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("modif");
+  const [view, setView] = useState<"cards" | "list">("cards");
 
   const setCrit = (key: keyof SearchCriteria, value: string) =>
     setCriteria((c) => ({ ...c, [key]: value }));
@@ -925,12 +928,35 @@ export function ClientManager({
               <option value="modif">Tri : dernière modification</option>
               <option value="alpha">Tri : nom A → Z</option>
             </select>
+            <div className="acc-viewtog">
+              <button
+                className={view === "cards" ? "on" : ""}
+                onClick={() => setView("cards")}
+                title="Vue cartes"
+                aria-label="Vue cartes"
+                aria-pressed={view === "cards"}
+              >
+                <LayoutGrid />
+              </button>
+              <button
+                className={view === "list" ? "on" : ""}
+                onClick={() => setView("list")}
+                title="Vue liste"
+                aria-label="Vue liste"
+                aria-pressed={view === "list"}
+              >
+                <List />
+              </button>
+            </div>
           </div>
         </div>
 
         {clients.length === 0 ? (
           <div className="acc-empty">
-            <b>Aucun dossier pour l'instant.</b>
+            <b>Aucun dossier pour l'instant</b> — créez votre premier dossier client.<br />
+            <button className="acc-empty-btn" onClick={handleNewDossier}>
+              <span className="acc-empty-plus">+</span> Nouveau dossier
+            </button>
           </div>
         ) : visibleClients.length === 0 ? (
           <div className="acc-empty">
@@ -939,6 +965,43 @@ export function ClientManager({
             <button className="acc-empty-btn" onClick={handleNewDossier}>
               <span className="acc-empty-plus">+</span> Créer ce dossier
             </button>
+          </div>
+        ) : view === "list" ? (
+          <div className="acc-tablewrap">
+            <table className="acc-table">
+              <thead>
+                <tr>
+                  <th>Client</th>
+                  <th>Né(e) le</th>
+                  <th>Dépt</th>
+                  <th>Situation</th>
+                  <th>Modifié</th>
+                  <th>Sync</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleClients.map((c) => {
+                  const d = dataOf(c);
+                  return (
+                    <tr
+                      key={c.id}
+                      tabIndex={0}
+                      onClick={() => onOpen(c)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(c); }
+                      }}
+                    >
+                      <td className="tname">{dossierName(d, c.displayName)}</td>
+                      <td className="tinfo">{formatBirthDateFr(d.person1BirthDate) || "—"}</td>
+                      <td className="tinfo">{departementFrom(d.codePostal) || "—"}</td>
+                      <td className="tsum">{dossierResume(d) || "—"}</td>
+                      <td className="tdate">{formatRelativeDate(c.updatedAt)}</td>
+                      <td>{renderSync()}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="acc-grid">
