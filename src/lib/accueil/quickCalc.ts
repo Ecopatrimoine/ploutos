@@ -246,13 +246,15 @@ export type IrSummary = {
   tmi: number;        // taux marginal affiché (fraction, ex. 0.30)
   tauxMoyen: number;  // fraction
   parts: number;
+  quotient: number;   // revenu imposable / parts (base du graphique par tranche)
+  decote: number;     // montant de décote appliqué (0 si aucune)
   plafonnementActif: boolean;
 };
 
 export function irSummary(revenuImposable: number, couple: boolean, nbEnfants: number): IrSummary {
   const baseParts = couple ? 2 : 1;
   if (!(revenuImposable > 0)) {
-    return { valid: false, impot: 0, tmi: 0, tauxMoyen: 0, parts: baseParts, plafonnementActif: false };
+    return { valid: false, impot: 0, tmi: 0, tauxMoyen: 0, parts: baseParts, quotient: 0, decote: 0, plafonnementActif: false };
   }
   const n = Math.max(0, Math.floor(nbEnfants));
   // Enfants à charge simples (garde exclusive, non handicapés) : la règle des
@@ -270,6 +272,8 @@ export function irSummary(revenuImposable: number, couple: boolean, nbEnfants: n
     tmi,
     tauxMoyen: bn.bareme / revenuImposable,
     parts,
+    quotient: revenuImposable / parts,
+    decote: bn.decote,
     plafonnementActif: bn.plafonnementActif,
   };
 }

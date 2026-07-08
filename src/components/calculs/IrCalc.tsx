@@ -1,22 +1,13 @@
-// ─── Calculette Impôt sur le revenu (barème) — Lot 4 ────────────────────────
-// Consomme irSummary (lib/accueil/quickCalc) -> computeBaremeNet + computeIRConcubin
-// + getChildrenFiscalParts (moteur). TMI = tmiAffichee (même chemin que la carte IR).
+// ─── Calculette Impôt sur le revenu (barème) — Lot 4 / graphique Lot 5b ──────
+// Consomme irSummary (computeBaremeNet + computeIRConcubin + getChildrenFiscalParts)
+// pour les KPI, et computeIrBracketFill (moteur, additif R2a) pour le graphique par
+// tranche. TMI = tmiAffichee (même chemin que la carte IR).
 
 import React, { useState } from "react";
 import { Coins } from "lucide-react";
 import { parseNum, formatEur, formatPct, irSummary } from "../../lib/accueil/quickCalc";
-import { BRAND } from "../../constants";
-
-// Jauge « position dans le barème IR » — même patron (et mêmes couleurs de tranche)
-// que la carte IR du dossier (TabIR). Pilotée par la TMI issue du moteur (r.tmi) ;
-// aucune donnée de barème recalculée ici.
-const IR_TRANCHES: { rate: number; color: string }[] = [
-  { rate: 0, color: BRAND.success },
-  { rate: 0.11, color: "#22c55e" },
-  { rate: 0.3, color: BRAND.gold },
-  { rate: 0.41, color: "#f97316" },
-  { rate: 0.45, color: BRAND.danger },
-];
+import { computeIrBracketFill } from "../../lib/calculs/utils";
+import { BracketFillChart } from "../shared";
 
 export function IrCalc({ onClose }: { onClose: () => void }) {
   const [revenu, setRevenu] = useState("35 000");
@@ -68,32 +59,22 @@ export function IrCalc({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      {r.valid && r.plafonnementActif && (
-        <div className="qc-abatt">
-          Quotient familial plafonné — à la marge, imposition comme un foyer de {couple ? "2 parts" : "1 part"}.
-        </div>
-      )}
-
       {r.valid && (
-        <div style={{ marginTop: 16, border: `1px solid var(--qc-border)`, borderRadius: 14, padding: 12, background: "var(--qc-card)" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 900, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--qc-muted)" }}>Position dans le barème IR</span>
-            <span style={{ fontSize: 12, fontWeight: 900, color: "var(--qc-navy)" }}>TMI {Math.round(r.tmi * 100)} %</span>
-          </div>
-          <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden" }}>
-            {IR_TRANCHES.map((t, i) => (
-              <div key={i} style={{ flex: 1, background: t.color, position: "relative", opacity: r.tmi >= t.rate ? 1 : 0.2 }}>
-                {r.tmi === t.rate && <div style={{ position: "absolute", top: -2, right: 0, width: 3, height: 12, background: BRAND.navy, borderRadius: 2 }} />}
-              </div>
-            ))}
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, marginTop: 3 }}>
-            {IR_TRANCHES.map((t, i) => (
-              <span key={i} style={{ fontWeight: r.tmi === t.rate ? 900 : 400, color: r.tmi === t.rate ? BRAND.navy : BRAND.muted }}>
-                {Math.round(t.rate * 100)} %
-              </span>
-            ))}
-          </div>
+        <div style={{ marginTop: 16 }}>
+          <BracketFillChart
+            title="Remplissage des tranches (quotient familial)"
+            data={computeIrBracketFill(r.quotient)}
+            referenceValue={r.quotient}
+            valueLabel="Quotient familial (revenu / parts)"
+            showImpot
+          />
+          {(r.decote > 0 || r.plafonnementActif) && (
+            <div style={{ marginTop: 8, fontSize: 12, color: "var(--qc-muted)", fontStyle: "italic" }}>
+              {r.plafonnementActif
+                ? "Barème avant plafonnement du quotient familial — les KPI ci-dessus tiennent compte de l'écrêtement."
+                : "Barème avant décote — les KPI ci-dessus tiennent compte de la décote."}
+            </div>
+          )}
         </div>
       )}
 
