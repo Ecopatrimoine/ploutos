@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseNum, formatEur, formatPct, creditSummary, pvImmoSummary, irSummary } from "../lib/accueil/quickCalc";
+import { parseNum, formatEur, formatPct, creditSummary, pvImmoSummary, irSummary, endettementSummary } from "../lib/accueil/quickCalc";
 
 describe("parseNum — saisie tolérante", () => {
   it("espaces (milliers) + virgule décimale", () => {
@@ -136,5 +136,27 @@ describe("irSummary — consomme computeBaremeNet + computeIRConcubin + getChild
   });
   it("revenu 0 -> invalide", () => {
     expect(irSummary(0, false, 0).valid).toBe(false);
+  });
+});
+
+describe("endettementSummary — arithmétique pure (taux d'effort)", () => {
+  it("sans projet", () => {
+    const r = endettementSummary(4000, 800, 0);
+    expect(r.valid).toBe(true);
+    expect(r.tauxEffortActuel).toBeCloseTo(0.2);
+    expect(r.tauxEffortProjet).toBeNull();
+    expect(r.mensualiteMax35).toBeCloseTo(600); // 4000*0.35 - 800
+    expect(r.resteAVivre).toBeCloseTo(3200);
+  });
+  it("avec projet", () => {
+    const r = endettementSummary(4000, 800, 700);
+    expect(r.tauxEffortProjet).toBeCloseTo(0.375); // (800+700)/4000
+    expect(r.resteAVivre).toBeCloseTo(2500);
+    expect(r.mensualiteMax35).toBeCloseTo(600);
+  });
+  it("revenus nuls -> invalide", () => {
+    const r = endettementSummary(0, 800, 0);
+    expect(r.valid).toBe(false);
+    expect(Number.isNaN(r.tauxEffortActuel)).toBe(false);
   });
 });

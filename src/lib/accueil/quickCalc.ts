@@ -57,6 +57,35 @@ export function pvImmoSummary(prixAcquisition: number, prixCession: number, dure
   return { ...r, valid, exonereIr: r.abattementIr >= 1, exonerePs: r.abattementPs >= 1 };
 }
 
+// ── Capacité d'endettement ──────────────────────────────────────────────────
+// Arithmétique pure (aucune logique fiscale) : taux d'effort = charges / revenus.
+// Norme HCSF (Haut Conseil de stabilité financière) : taux d'effort <= 35 %,
+// assurance emprunteur comprise. Constante nommée (pas un littéral dispersé).
+export const HCSF_TAUX_EFFORT_MAX = 0.35;
+
+export type EndettementSummary = {
+  valid: boolean;
+  tauxEffortActuel: number;         // fraction
+  tauxEffortProjet: number | null;  // fraction, null si pas de projet saisi
+  mensualiteMax35: number;          // €/mois : mensualité max supplémentaire avant 35 %
+  resteAVivre: number;              // €/mois après charges (+ projet)
+};
+
+export function endettementSummary(revenusMensuels: number, chargesCredits: number, mensualiteProjet: number): EndettementSummary {
+  if (!(revenusMensuels > 0)) {
+    return { valid: false, tauxEffortActuel: 0, tauxEffortProjet: null, mensualiteMax35: 0, resteAVivre: 0 };
+  }
+  const charges = Math.max(0, chargesCredits);
+  const projet = mensualiteProjet > 0 ? mensualiteProjet : 0;
+  return {
+    valid: true,
+    tauxEffortActuel: charges / revenusMensuels,
+    tauxEffortProjet: projet > 0 ? (charges + projet) / revenusMensuels : null,
+    mensualiteMax35: Math.max(0, revenusMensuels * HCSF_TAUX_EFFORT_MAX - charges),
+    resteAVivre: revenusMensuels - charges - projet,
+  };
+}
+
 // ── IR barème ───────────────────────────────────────────────────────────────
 // CONSOMME computeBaremeNet (barème + plafonnement QF + décote), computeIRConcubin
 // (tranche marginale du quotient) et getChildrenFiscalParts (demi-parts enfants).

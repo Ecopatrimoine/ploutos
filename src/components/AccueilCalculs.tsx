@@ -15,8 +15,9 @@ import { BRAND, SURFACE, FIELD } from "../constants";
 import { CreditCalc } from "./calculs/CreditCalc";
 import { PvImmoCalc } from "./calculs/PvImmoCalc";
 import { IrCalc } from "./calculs/IrCalc";
+import { EndettementCalc } from "./calculs/EndettementCalc";
 
-export type QuickCalcId = "credit" | "pvImmo" | "ir";
+export type QuickCalcId = "credit" | "pvImmo" | "ir" | "endettement";
 
 type Tile = {
   id: QuickCalcId | null; // null => à venir (Lot 4)
@@ -30,7 +31,7 @@ const TILES: Tile[] = [
   { id: "credit", name: "Crédit", desc: "Mensualité et coût total d'un emprunt à partir du capital, du taux et de la durée.", icon: Landmark },
   { id: "ir", name: "Impôt sur le revenu", desc: "Barème, TMI et taux moyen à partir du revenu imposable et de la situation.", icon: Coins },
   { id: "pvImmo", name: "Plus-value immobilière", desc: "PV nette, abattements de durée, IR et prélèvements sociaux sur une cession.", icon: Building2 },
-  { id: null, name: "Capacité d'endettement", desc: "Taux d'effort et mensualité maximale à partir des revenus et charges.", icon: Gauge },
+  { id: "endettement", name: "Capacité d'endettement", desc: "Taux d'effort et mensualité maximale à partir des revenus et charges.", icon: Gauge },
   { id: null, name: "Donation & succession", desc: "Abattements par lien de parenté et droits (DMTG) sur un montant transmis.", icon: Users },
   { id: null, name: "Prévoyance obligatoire", desc: "IJ, invalidité et capital décès du régime obligatoire selon la caisse et le revenu.", icon: Shield },
 ];
@@ -120,6 +121,7 @@ export function AccueilCalculs({ onClose, activeCalc, setActiveCalc }: Props) {
           {activeCalc === "credit" && <CreditCalc onClose={() => setActiveCalc(null)} />}
           {activeCalc === "pvImmo" && <PvImmoCalc onClose={() => setActiveCalc(null)} />}
           {activeCalc === "ir" && <IrCalc onClose={() => setActiveCalc(null)} />}
+          {activeCalc === "endettement" && <EndettementCalc onClose={() => setActiveCalc(null)} />}
         </div>
       </div>
     </div>
