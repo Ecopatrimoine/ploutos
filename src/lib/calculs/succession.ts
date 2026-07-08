@@ -5,7 +5,7 @@ import type { PatrimonialData, SuccessionData, TaxBracket, FilledBracket,
   CapitalDecesCaisseRelation, CapitalDecesCaisseSurcharge, CodeCaisse } from '../../types/patrimoine';
 import { n, getDemembrementPercentages, computeTaxFromBrackets, isAV, isPERType,
   childMatchesDeceased, getAgeFromBirthDate, isSpouseHeirEligible, getAvailableSpouseOptions,
-  getQuotiteDisponible, buildCollectedHeirs, euro } from './utils';
+  getQuotiteDisponible, buildCollectedHeirs, euro, plur } from './utils';
 import { resolveLoanValuesMulti } from './credit';
 import { computeRappelParHeritier } from './rappelFiscal';
 import { resolvePlacementRef, resolvePropertyRef } from './refs';
@@ -1263,7 +1263,7 @@ export function computeSuccession(successionData: SuccessionData, data: Patrimon
 
   // ── Camemberts ──
   const pieData: PieDatum[] = [
-    legalReserveAmount > 0 ? { name: "Réserve légale", holder: `${reserveChildrenCount} enfant(s)`, value: legalReserveAmount } : null,
+    legalReserveAmount > 0 ? { name: "Réserve légale", holder: plur(reserveChildrenCount, "enfant"), value: legalReserveAmount } : null,
     legalDisposableAmount > 0 ? { name: reserveChildrenCount > 0 ? "Quotité disponible" : "Masse disponible", holder: spouseEligible ? "Conjoint / disposition" : "Libre disposition", value: legalDisposableAmount } : null,
   ].filter((e): e is PieDatum => Boolean(e));
 
