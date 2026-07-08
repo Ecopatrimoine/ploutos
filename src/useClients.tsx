@@ -868,7 +868,12 @@ export function ClientManager({
               <div
                 className="acc-menu"
                 onClick={(e) => e.stopPropagation()}
-                style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 9999 }}
+                // C4-suite : le portal est rendu dans document.body, HORS de .acc-root
+                // qui porte les custom properties --acc-*. On les re-pose ici (accVars)
+                // pour que le style .acc-menu (fond de carte, bordure, coins, ombre,
+                // padding, hover des items, separateur, couleur alerte de "Supprimer")
+                // resolve correctement — sinon le conteneur reste transparent.
+                style={{ ...accVars, position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 9999 }}
               >
                 <button onClick={() => { setOpenMenuId(null); setMenuPos(null); onOpen(client); }}>
                   <FolderOpen /> Ouvrir
