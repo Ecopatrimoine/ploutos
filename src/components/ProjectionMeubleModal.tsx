@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { BRAND, SURFACE } from "../constants";
-import { euro } from "../lib/calculs/utils";
+import { euro, pct } from "../lib/calculs/utils";
 import { HelpTooltip } from "./shared";
 import { computeProjectionMeuble } from "../lib/calculs/projectionMeuble";
 import refMeuble from "../data/location-meublee.json";
@@ -111,7 +111,7 @@ export function ProjectionMeubleModal({ property, updateProperty, onClose }: Pro
                       {pv && <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 700, color: l.moinsValue ? BRAND.success : BRAND.goldText }}>{l.moinsValue ? "MV" : euro(l.pvBrute)}</td>}
                       {pv && <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 700, color: l.impotPvTotal > 0 ? BRAND.danger : BRAND.muted }}>
                         {l.moinsValue ? "—" : euro(l.impotPvTotal)}
-                        {!l.moinsValue && <HelpTooltip text={`Abattement IR ${Math.round(l.abattementIr * 100)} % -> base ${euro(l.baseIr)} -> IR 19 % = ${euro(l.impotIr)}.\nAbattement PS ${Math.round(l.abattementPs * 1000) / 10} % -> base ${euro(l.basePs)} -> PS 17,2 % = ${euro(l.impotPs)}.\nTotal ${euro(l.impotPvTotal)}.${l.alerteSurtaxe ? "\nSurtaxe PV elevees (art. 1609 nonies G) non incluse." : ""}`} />}
+                        {!l.moinsValue && <HelpTooltip text={`Abattement IR ${pct(l.abattementIr, 0)} -> base ${euro(l.baseIr)} -> IR 19 % = ${euro(l.impotIr)}.\nAbattement PS ${pct(l.abattementPs, 1)} -> base ${euro(l.basePs)} -> PS 17,2 % = ${euro(l.impotPs)}.\nTotal ${euro(l.impotPvTotal)}.${l.alerteSurtaxe ? "\nSurtaxe PV elevees (art. 1609 nonies G) non incluse." : ""}`} />}
                       </td>}
                     </tr>
                   );
