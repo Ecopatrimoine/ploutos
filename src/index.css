@@ -243,8 +243,17 @@ html {
 .ah-calc:hover:not(:disabled){transform:translateY(-1px);box-shadow:var(--ah-shadow)}
 .ah-quit svg,.ah-quit:hover:not(:disabled) svg{color:var(--ah-danger)}
 
-@media (max-width:640px){
-  .ah-bar{padding:14px 16px}
+/* Responsive header : sous 900px, les actions passent en pleine largeur sous
+   l'identite et s'enroulent proprement (teste 1024 / 768, aucun debordement). */
+@media (max-width:900px){
+  .ah-bar{align-items:flex-start}
   .ah-actions{width:100%}
 }
+@media (max-width:640px){
+  .ah-bar{padding:14px 16px}
+}
+
+/* Bouton "Retour a l'accueil" de la vue Parametres autonome — focus clavier visible
+   (la bordure reste inline ; seul l'outline est gere ici, non ecrasable inline). */
+.acc-backbtn:focus-visible{outline:2px solid var(--field-border-focus);outline-offset:2px}
  

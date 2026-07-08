@@ -1267,7 +1267,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
             <button
               onClick={() => setActiveModule(null)}
               title="Retour à l'accueil"
-              className="inline-flex items-center gap-2 rounded-xl px-4 font-semibold"
+              className="acc-backbtn inline-flex items-center gap-2 rounded-xl px-4 font-semibold"
               style={{ height: 44, background: SURFACE.card, border: `2px solid ${SURFACE.border}`, color: BRAND.navy, cursor: "pointer" }}
             >
               <ArrowLeft className="h-4 w-4" /> Retour à l'accueil
