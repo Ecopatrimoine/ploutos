@@ -47,6 +47,7 @@ type Props = {
 export function AccueilCalculs({ onClose, activeCalc, setActiveCalc }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const restoreRef = useRef<Element | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // Focus dans le panneau à l'ouverture, rendu au déclencheur à la fermeture.
   useEffect(() => {
@@ -61,6 +62,21 @@ export function AccueilCalculs({ onClose, activeCalc, setActiveCalc }: Props) {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  // Piège à focus : Tab (et Maj+Tab) cyclent DANS le panneau, jamais vers l'arrière-plan.
+  const onModalKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== "Tab" || !modalRef.current) return;
+    const focusables = Array.from(
+      modalRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((el) => el.offsetParent !== null);
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
 
   const qcVars = {
     ["--qc-bg" as any]: SURFACE.app,
@@ -81,7 +97,7 @@ export function AccueilCalculs({ onClose, activeCalc, setActiveCalc }: Props) {
       style={qcVars}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="qc-modal" role="dialog" aria-modal="true" aria-label="Calculs rapides">
+      <div className="qc-modal" role="dialog" aria-modal="true" aria-label="Calculs rapides" ref={modalRef} onKeyDown={onModalKeyDown}>
         <div className="qc-modal-head">
           <div style={{ display: "flex", alignItems: "center", gap: 11, fontSize: 17, fontWeight: 900, color: "var(--qc-navy)", minWidth: 0 }}>
             <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--qc-gold)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>

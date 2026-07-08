@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { Trash2, Copy, Pencil, FolderOpen, Folder, MoreHorizontal, LayoutGrid, List, CloudOff } from "lucide-react";
+import { Trash2, Copy, Pencil, FolderOpen, Folder, MoreHorizontal, LayoutGrid, List, CloudOff, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { BRAND, SURFACE, FIELD } from "./constants";
 import {
@@ -879,6 +879,11 @@ export function ClientManager({
           <div className="acc-sec-title">
             <span className="acc-sec-dot"><Folder /></span>
             Dossiers clients <span className="acc-sec-count">({visibleClients.length})</span>
+            {(syncStatus === "pending" || syncStatus === "offline") && (
+              <button className="acc-syncbtn" onClick={syncNow} title="Synchroniser maintenant">
+                <RefreshCw /> Synchroniser
+              </button>
+            )}
           </div>
           <div className="acc-toolbar">
             <select

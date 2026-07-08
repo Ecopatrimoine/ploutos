@@ -187,6 +187,12 @@ html {
 .acc-recent-chev{color:var(--acc-gold-deep);font-size:18px;flex-shrink:0;transition:transform .15s}
 .acc-recent:hover .acc-recent-chev{transform:translateX(3px)}
 
+/* Bouton de synchronisation manuelle (conditionnel : sync pending/offline) */
+.acc-syncbtn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:9px;background:var(--acc-field);border:1px solid var(--acc-field-border);font-family:inherit;font-size:12.5px;font-weight:700;color:var(--acc-muted);cursor:pointer;transition:border-color .15s,color .15s}
+.acc-syncbtn:hover{border-color:var(--acc-gold);color:var(--acc-navy)}
+.acc-syncbtn:focus-visible{outline:2px solid var(--acc-gold-deep);outline-offset:2px}
+.acc-syncbtn svg{width:14px;height:14px}
+
 /* Barre d'outils des dossiers (tri + bascule de vue) */
 .acc-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .acc-sort{height:36px;padding:0 12px;border-radius:11px;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
