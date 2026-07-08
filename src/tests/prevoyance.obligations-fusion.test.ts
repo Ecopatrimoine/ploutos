@@ -65,7 +65,7 @@ describe("fusionnerColleges — Syntec 1486", () => {
   it("2. relabel : un verdict indetermine rend 'A etudier', jamais 'Indetermine'", () => {
     const vue = buildVueObligationsFusionnee(ent({ idccCCN: "1486" }), referentiels);
     const labels = vue.lignes.flatMap((l) => chaines(l.verdictLabel));
-    expect(labels).toContain("A etudier");
+    expect(labels).toContain("À étudier");
     expect(labels).not.toContain("Indetermine");
   });
 

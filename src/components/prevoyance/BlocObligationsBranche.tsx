@@ -17,6 +17,7 @@ import type {
   VerdictFusionne,
 } from "../../lib/prevoyance/comparaison-branche-vue";
 import { BRAND, SURFACE } from "../../constants";
+import { plur } from "../../lib/calculs/utils";
 
 type Props = {
   vue: VueObligationsFusionnee | null;
@@ -85,7 +86,7 @@ export const BlocObligationsBranche = React.memo(function BlocObligationsBranche
       {/* 1. Titre + statut */}
       <div>
         <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>
-          Obligations de prevoyance de branche
+          Obligations de prévoyance de branche
         </div>
         <div className="text-xs mt-0.5" style={{ color: BRAND.muted }}>
           {vue.statutLabel}
@@ -98,7 +99,7 @@ export const BlocObligationsBranche = React.memo(function BlocObligationsBranche
           className="rounded-xl p-2.5 text-xs"
           style={{ background: "rgba(245, 158, 11, 0.08)", border: "1px solid #F59E0B", color: "#7C4A04" }}
         >
-          ⚠ Donnees de branche partiellement documentees : verification manuelle conseillee.
+          ⚠ Données de branche partiellement documentées : vérification manuelle conseillée.
         </div>
       )}
 
@@ -109,9 +110,9 @@ export const BlocObligationsBranche = React.memo(function BlocObligationsBranche
           {afficherComparaison && synthese && (
             <div className="flex flex-wrap gap-2">
               {([
-                ["conforme", `${synthese.conformes} conformes`],
-                ["insuffisant", `${synthese.insuffisants} insuffisante(s)`],
-                ["indetermine", `${synthese.aEtudier} a etudier`],
+                ["conforme", plur(synthese.conformes, "conforme")],
+                ["insuffisant", plur(synthese.insuffisants, "insuffisante")],
+                ["indetermine", `${synthese.aEtudier} à étudier`],
               ] as const).map(([k, texte]) => {
                 const c = COULEURS_VERDICT[k];
                 return (
@@ -130,7 +131,7 @@ export const BlocObligationsBranche = React.memo(function BlocObligationsBranche
           {/* 5. Bandeau "comparaison non realisee" si aucun souscrit */}
           {!afficherComparaison && (
             <div className="text-xs rounded-xl p-2.5" style={{ background: SURFACE.cardSoft, border: `1px solid ${SURFACE.border}`, color: BRAND.muted }}>
-              Aucune garantie souscrite renseignee — comparaison non realisee.
+              Aucune garantie souscrite renseignée — comparaison non réalisée.
             </div>
           )}
 
@@ -163,7 +164,7 @@ export const BlocObligationsBranche = React.memo(function BlocObligationsBranche
                     {afficherComparaison && (
                       <td className="py-2 pr-3 align-top" style={{ color: BRAND.navy }}>
                         {l.estReference
-                          ? <span className="text-xs italic" style={{ color: BRAND.muted }}>reference</span>
+                          ? <span className="text-xs italic" style={{ color: BRAND.muted }}>référence</span>
                           : renderValeur(l.souscrit)}
                       </td>
                     )}
@@ -185,12 +186,12 @@ export const BlocObligationsBranche = React.memo(function BlocObligationsBranche
             <div className="text-xs space-y-1" style={{ color: BRAND.muted }}>
               {vue.nonPrevues.length > 0 && (
                 <div>
-                  Non prevue par la branche : {vue.nonPrevues.map((n) => n.garantieLabel).join(", ")}.
+                  Non prévue par la branche : {vue.nonPrevues.map((n) => n.garantieLabel).join(", ")}.
                 </div>
               )}
               {vue.lignes.some((l) => l.estReference) && (
                 <div>
-                  Le maintien employeur est deja integre a la projection (Prevoyance personnelle).
+                  Le maintien employeur est déjà intégré à la projection (Prévoyance personnelle).
                 </div>
               )}
             </div>

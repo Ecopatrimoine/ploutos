@@ -98,8 +98,8 @@
       ]
     },
     "SSI": {
-      "nom": "Securite sociale des independants (ex-RSI, integree au regime general depuis 2020)",
-      "publicConcerne": "Artisans, commercants, micro-entrepreneurs",
+      "nom": "Sécurité sociale des indépendants (ex-RSI, intégrée au régime général depuis 2020)",
+      "publicConcerne": "Artisans, commerçants, micro-entrepreneurs",
       "dateVerification": "2026-05-28",
       "_terminologie": "Le regime SSI n'utilise PAS cat1/2/3 comme la CPAM. Il a : PIPM (incapacite partielle au metier) ~ cat1 ; PITD (invalidite totale et definitive) ~ cat2 ; PITD+MTP ~ cat3. Mapping ci-dessous pour coherence avec le moteur.",
       "ij": {
@@ -617,7 +617,7 @@
     },
     "FONCTION_PUBLIQUE": {
       "nom": "Fonction publique (titulaire)",
-      "publicConcerne": "Fonctionnaires titulaires (fonction publique territoriale / hospitaliere)",
+      "publicConcerne": "Fonctionnaires titulaires (fonction publique territoriale / hospitalière)",
       "dateVerification": "2026-07-02",
       "moteur": "forfaitaire",
       "discriminant": { "type": "aucun" },

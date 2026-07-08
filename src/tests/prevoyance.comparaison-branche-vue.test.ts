@@ -107,7 +107,7 @@ describe("idcc absent", () => {
   it("idccCCN null -> statut idcc_absent, colleges vides, tauxT1/sante null", () => {
     const vue = mapBrancheEnVue(resolveComparaisonBranche(ent({ idccCCN: null }), referentiels));
     expect(vue.statut).toBe("idcc_absent");
-    expect(vue.statutLabel).toBe("Aucune convention de branche renseignee");
+    expect(vue.statutLabel).toBe("Aucune convention de branche renseignée");
     expect(vue.colleges).toEqual([]);
     expect(vue.tauxT1).toBeNull();
     expect(vue.sante).toBeNull();
@@ -158,7 +158,7 @@ describe("mapBrancheEnVue — presentation", () => {
     expect(vue.afficherAvertissementIncomplet).toBe(true);
     const nc = college(vue, "Non-cadres");
     expect(nc?.verdictGlobal).toBe("indetermine");
-    expect(nc?.verdictGlobalLabel).toBe("A etudier"); // relabel LOT 4 (indetermine -> "A etudier")
+    expect(nc?.verdictGlobalLabel).toBe("À étudier"); // relabel LOT 4 (indetermine -> "A etudier")
   });
 
   it("branche_documentee -> pas d'avertissement incomplet", () => {
