@@ -16,8 +16,9 @@ import { CreditCalc } from "./calculs/CreditCalc";
 import { PvImmoCalc } from "./calculs/PvImmoCalc";
 import { IrCalc } from "./calculs/IrCalc";
 import { EndettementCalc } from "./calculs/EndettementCalc";
+import { DmtgCalc } from "./calculs/DmtgCalc";
 
-export type QuickCalcId = "credit" | "pvImmo" | "ir" | "endettement";
+export type QuickCalcId = "credit" | "pvImmo" | "ir" | "endettement" | "dmtg";
 
 type Tile = {
   id: QuickCalcId | null; // null => à venir (Lot 4)
@@ -32,7 +33,7 @@ const TILES: Tile[] = [
   { id: "ir", name: "Impôt sur le revenu", desc: "Barème, TMI et taux moyen à partir du revenu imposable et de la situation.", icon: Coins },
   { id: "pvImmo", name: "Plus-value immobilière", desc: "PV nette, abattements de durée, IR et prélèvements sociaux sur une cession.", icon: Building2 },
   { id: "endettement", name: "Capacité d'endettement", desc: "Taux d'effort et mensualité maximale à partir des revenus et charges.", icon: Gauge },
-  { id: null, name: "Donation & succession", desc: "Abattements par lien de parenté et droits (DMTG) sur un montant transmis.", icon: Users },
+  { id: "dmtg", name: "Donation & succession", desc: "Abattements par lien de parenté et droits (DMTG) sur un montant transmis.", icon: Users },
   { id: null, name: "Prévoyance obligatoire", desc: "IJ, invalidité et capital décès du régime obligatoire selon la caisse et le revenu.", icon: Shield },
 ];
 
@@ -122,6 +123,7 @@ export function AccueilCalculs({ onClose, activeCalc, setActiveCalc }: Props) {
           {activeCalc === "pvImmo" && <PvImmoCalc onClose={() => setActiveCalc(null)} />}
           {activeCalc === "ir" && <IrCalc onClose={() => setActiveCalc(null)} />}
           {activeCalc === "endettement" && <EndettementCalc onClose={() => setActiveCalc(null)} />}
+          {activeCalc === "dmtg" && <DmtgCalc onClose={() => setActiveCalc(null)} />}
         </div>
       </div>
     </div>

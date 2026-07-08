@@ -5,7 +5,8 @@
 
 import { calcMonthlyPayment } from "../calculs/credit";
 import { computePvImmobiliere, type PvImmobiliereResult } from "../calculs/pvImmobiliere";
-import { computeBaremeNet, computeIRConcubin, getChildrenFiscalParts } from "../calculs/utils";
+import { computeBaremeNet, computeIRConcubin, getChildrenFiscalParts, computeTaxFromBrackets } from "../calculs/utils";
+import { getDonationTaxProfile } from "../calculs/donation";
 import type { Child } from "../../types/patrimoine";
 
 // Saisie tolérante : espaces (séparateurs de milliers) + virgule décimale.
@@ -55,6 +56,35 @@ export function pvImmoSummary(prixAcquisition: number, prixCession: number, dure
   const valid = prixAcquisition > 0 && prixCession > 0 && dureeAnnees >= 0;
   const r = computePvImmobiliere({ prixAcquisition, prixCession, age: dureeAnnees });
   return { ...r, valid, exonereIr: r.abattementIr >= 1, exonerePs: r.abattementPs >= 1 };
+}
+
+// ── Donation & succession (DMTG) ─────────────────────────────────────────────
+// CONSOMME getDonationTaxProfile (abattement + barème par lien) + computeTaxFromBrackets
+// (moteur). Aucun abattement ni barème recalculé ici.
+export type DmtgSummary = {
+  valid: boolean;
+  abattement: number;          // abattement légal du lien
+  abattementApplique: number;  // effectivement absorbé (min montant / abattement)
+  baseTaxable: number;
+  droits: number;
+  netTransmis: number;
+};
+
+export function dmtgSummary(montant: number, relation: string): DmtgSummary {
+  if (!(montant > 0)) {
+    return { valid: false, abattement: 0, abattementApplique: 0, baseTaxable: 0, droits: 0, netTransmis: 0 };
+  }
+  const profile = getDonationTaxProfile(relation);
+  const base = Math.max(0, montant - profile.allowance);
+  const droits = computeTaxFromBrackets(base, profile.brackets).tax;
+  return {
+    valid: true,
+    abattement: profile.allowance,
+    abattementApplique: Math.min(montant, profile.allowance),
+    baseTaxable: base,
+    droits,
+    netTransmis: montant - droits,
+  };
 }
 
 // ── Capacité d'endettement ──────────────────────────────────────────────────

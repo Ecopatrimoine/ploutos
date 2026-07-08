@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseNum, formatEur, formatPct, creditSummary, pvImmoSummary, irSummary, endettementSummary } from "../lib/accueil/quickCalc";
+import { parseNum, formatEur, formatPct, creditSummary, pvImmoSummary, irSummary, endettementSummary, dmtgSummary } from "../lib/accueil/quickCalc";
 
 describe("parseNum — saisie tolérante", () => {
   it("espaces (milliers) + virgule décimale", () => {
@@ -158,5 +158,36 @@ describe("endettementSummary — arithmétique pure (taux d'effort)", () => {
     const r = endettementSummary(0, 800, 0);
     expect(r.valid).toBe(false);
     expect(Number.isNaN(r.tauxEffortActuel)).toBe(false);
+  });
+});
+
+describe("dmtgSummary — consomme getDonationTaxProfile + computeTaxFromBrackets", () => {
+  it("enfant sous l'abattement -> 0 droit", () => {
+    const r = dmtgSummary(80000, "enfant");
+    expect(r.valid).toBe(true);
+    expect(r.abattement).toBe(100000);
+    expect(r.baseTaxable).toBe(0);
+    expect(Math.round(r.droits)).toBe(0);
+    expect(Math.round(r.netTransmis)).toBe(80000);
+  });
+  it("enfant au-delà de l'abattement", () => {
+    const r = dmtgSummary(200000, "enfant");
+    expect(r.baseTaxable).toBe(100000);
+    expect(Math.round(r.droits)).toBe(18194);
+    expect(Math.round(r.netTransmis)).toBe(181806);
+  });
+  it("tiers (aucun abattement, 60 %)", () => {
+    const r = dmtgSummary(50000, "tiers");
+    expect(r.abattement).toBe(0);
+    expect(Math.round(r.droits)).toBe(30000);
+    expect(Math.round(r.netTransmis)).toBe(20000);
+  });
+  it("frère / soeur (abattement 15 932)", () => {
+    const r = dmtgSummary(100000, "frereSoeur");
+    expect(r.abattement).toBe(15932);
+    expect(Math.round(r.droits)).toBe(35388);
+  });
+  it("montant 0 -> invalide", () => {
+    expect(dmtgSummary(0, "enfant").valid).toBe(false);
   });
 });
