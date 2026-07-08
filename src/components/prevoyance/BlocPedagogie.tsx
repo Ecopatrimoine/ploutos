@@ -17,6 +17,7 @@
 // pour la cohérence visuelle ; seuils couleur repris de TableauJalons.
 
 import React from "react";
+import { AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import type { ProjectionResult } from "../../lib/prevoyance/types";
 import { BRAND, SURFACE } from "../../constants";
 import { formatDureeArret } from "../../lib/calculs/utils";
@@ -363,7 +364,7 @@ function EncartTrou({ projection }: { projection: ProjectionResult }) {
         style={{ background: BRAND.dangerBg, border: `1px solid ${BRAND.dangerBorder}`, borderLeft: `4px solid ${BRAND.danger}` }}
       >
         <div className="text-sm font-black flex items-center gap-2" style={{ color: BRAND.danger }}>
-          <span aria-hidden>⚠</span> Aucune couverture sur tout l'arrêt
+          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" /> Aucune couverture sur tout l'arrêt
         </div>
         <div className="text-sm mt-1" style={{ color: BRAND.navy, lineHeight: 1.5 }}>
           Aucun revenu de remplacement n'est versé sur <strong>TOUTE</strong> la durée de l'arrêt de travail,
@@ -383,7 +384,7 @@ function EncartTrou({ projection }: { projection: ProjectionResult }) {
         style={{ background: BRAND.dangerBg, border: `1px solid ${BRAND.dangerBorder}`, borderLeft: `4px solid ${BRAND.danger}` }}
       >
         <div className="text-sm font-black flex items-center gap-2" style={{ color: BRAND.danger }}>
-          <span aria-hidden>⚠</span> Trou de couverture — aucun revenu
+          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" /> Trou de couverture — aucun revenu
         </div>
         <div className="text-sm mt-1" style={{ color: BRAND.navy, lineHeight: 1.5 }}>
           Aucun revenu de remplacement n'est versé entre <strong>{debut}</strong> et <strong>{fin}</strong>.
@@ -402,7 +403,7 @@ function EncartTrou({ projection }: { projection: ProjectionResult }) {
       style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, borderLeft: `4px solid ${BRAND.warning}` }}
     >
       <div className="text-sm font-black flex items-center gap-2" style={{ color: BRAND.warning }}>
-        <span aria-hidden>⚠</span> Régime de base à sec
+        <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" /> Régime de base à sec
       </div>
       <div className="text-sm mt-1" style={{ color: BRAND.navy, lineHeight: 1.5 }}>
         Entre <strong>{debut}</strong> et <strong>{fin}</strong>, le régime obligatoire ne verse aucun revenu de
@@ -429,7 +430,7 @@ function Accordeon({ titre, children }: { titre: string; children: React.ReactNo
         aria-expanded={open}
       >
         <span>{titre}</span>
-        <span style={{ color: BRAND.muted }}>{open ? "▾" : "▸"}</span>
+        <span style={{ color: BRAND.muted }}>{open ? <ChevronDown className="h-4 w-4" aria-hidden="true" /> : <ChevronRight className="h-4 w-4" aria-hidden="true" />}</span>
       </button>
       {open && (
         <div className="px-3 py-2 text-xs" style={{ color: BRAND.muted, lineHeight: 1.6 }}>

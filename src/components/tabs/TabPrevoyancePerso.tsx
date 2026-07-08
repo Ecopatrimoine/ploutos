@@ -17,7 +17,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, AlertTriangle } from "lucide-react";
 import type {
   PatrimonialData,
   PayloadPrevoyancePerso,
@@ -482,7 +482,7 @@ function ColonnePerso({
           className="rounded-xl p-3 text-sm"
           style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}
         >
-          {WARNING_MICRO_TNS}
+          <AlertTriangle className="inline-block h-4 w-4 shrink-0 mr-1.5 align-text-bottom" aria-hidden="true" />{WARNING_MICRO_TNS}
         </div>
       )}
 

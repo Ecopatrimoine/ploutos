@@ -11,6 +11,7 @@
 
 import React from "react";
 import { Input } from "@/components/ui/input";
+import { AlertTriangle } from "lucide-react";
 import { BRAND, SURFACE } from "../../constants";
 import { Field } from "../shared";
 import type { CipavConfig, EntreePerso } from "../../lib/prevoyance/types";
@@ -112,7 +113,7 @@ export const BlocCipav = React.memo(function BlocCipav({ value, onChange }: Prop
             </Field>
             {revenuSousSeuilIJ && (
               <InlineAlert>
-                ⚠ Revenu &lt; seuil d'éligibilité IJ (4 806 €) : aucune indemnité journalière versée.
+                <AlertTriangle className="inline-block h-3.5 w-3.5 shrink-0 mr-1 align-text-bottom" aria-hidden="true" />Revenu &lt; seuil d'éligibilité IJ (4 806 €) : aucune indemnité journalière versée.
               </InlineAlert>
             )}
             {revenuInhabituel && <InlineAlert>Vérifier la saisie : valeur inhabituelle.</InlineAlert>}
@@ -131,7 +132,7 @@ export const BlocCipav = React.memo(function BlocCipav({ value, onChange }: Prop
             </Field>
             {affiliationInsuffisante && (
               <InlineAlert>
-                ⚠ Affiliation &lt; 1 an : pas d'IJ libéraux — trou de couverture dès le 4ᵉ jour d'arrêt.
+                <AlertTriangle className="inline-block h-3.5 w-3.5 shrink-0 mr-1 align-text-bottom" aria-hidden="true" />Affiliation &lt; 1 an : pas d'IJ libéraux — trou de couverture dès le 4ᵉ jour d'arrêt.
               </InlineAlert>
             )}
           </div>

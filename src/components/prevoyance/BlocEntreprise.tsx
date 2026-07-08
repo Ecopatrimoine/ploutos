@@ -13,6 +13,7 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertTriangle } from "lucide-react";
 import { BRAND, SURFACE } from "../../constants";
 import { Field } from "../shared";
 import { fractionEnPct, pctEnFraction } from "../../lib/calculs/utils";
@@ -292,7 +293,7 @@ export const BlocEntreprise = React.memo(function BlocEntreprise({ value, onChan
             )}
             {value.idccListe && value.idccListe.length > 1 && (
               <div className="text-xs" style={{ color: BRAND.warning }}>
-                ⚠ Plusieurs conventions détectées pour ce SIRET : {value.idccListe.join(", ")}. Vérifiez la convention applicable.
+                <AlertTriangle className="inline-block h-3.5 w-3.5 shrink-0 mr-1 align-text-bottom" aria-hidden="true" />Plusieurs conventions détectées pour ce SIRET : {value.idccListe.join(", ")}. Vérifiez la convention applicable.
               </div>
             )}
           </div>
