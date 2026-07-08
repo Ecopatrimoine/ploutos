@@ -8,6 +8,7 @@ import { computeProfilRisque, MAX_RISQUE } from "../../../conformite/profil";
 import { computeCapacitePerte } from "../../../conformite/capacitePerte";
 import type { PatrimonialData } from "../../../../types/patrimoine";
 import { SEMANTIC_DANGER } from "../tokens";
+import { icones } from "../primitives";
 
 export type BuildProfilDataParams = {
   mission: Record<string, any>;
@@ -91,7 +92,7 @@ export function buildProfilData(p: BuildProfilDataParams): ProfilPageData {
   // Leviers contextuels
   const leviers: string[] = [];
   if (dissonance) {
-    leviers.push(`<span style="color:${SEMANTIC_DANGER};font-weight:600">⚠ Dissonance profil ↔ capacité</span> : profil ${niveauActif} vs capacité ${capacite.niveau}. À arbitrer avec le client (capacité financière = contrainte, profil = préférence).`);
+    leviers.push(`<span style="color:${SEMANTIC_DANGER};font-weight:600">${icones.alertTriangle(SEMANTIC_DANGER, 11)} Dissonance profil ↔ capacité</span> : profil ${niveauActif} vs capacité ${capacite.niveau}. À arbitrer avec le client (capacité financière = contrainte, profil = préférence).`);
   }
   if (mission.esgPref === "oui") {
     leviers.push("Préférences ESG marquées — privilégier supports labellisés ISR / Greenfin / Finansol, et l'art. 9 SFDR pour les UC");

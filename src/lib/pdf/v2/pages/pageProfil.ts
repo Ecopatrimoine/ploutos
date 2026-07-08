@@ -125,7 +125,7 @@ export function pageProfil(t: Tokens, d: ProfilPageData): string {
       ${echelleSegments(t, {
         segments: NIVEAUX_LABELS,
         activeIndex: activeIndex >= 0 ? activeIndex : 1,
-        labelCurseur: "▲ votre profil",
+        labelCurseur: "votre profil",
       })}
     </div>`,
   });

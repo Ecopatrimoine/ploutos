@@ -437,7 +437,7 @@ export function barreRailFill(t: Tokens, opts: {
       </div>`
     : opts.noteAlerte
     ? `<div style="display:flex;align-items:center;gap:7px;margin-top:10px">
-        <span style="color:${t.eyebrowOr};font-weight:700">⚠</span>
+        ${icones.alertTriangle(t.eyebrowOr, 14)}
         <span class="lt" style="font-size:11px;color:${t.texte}">${opts.noteAlerte}</span>
       </div>`
     : "";
@@ -641,12 +641,13 @@ export function echelleSegments(t: Tokens, opts: {
   labelCurseur?: string;       // ex: "▲ votre profil"
 }): string {
   const n = opts.segments.length;
-  const curseurLabel = opts.labelCurseur || "▲";
+  const curseurLabel = opts.labelCurseur || "";
+  const triangleCurseur = `<svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:3px"><path d="M12 5 21 20H3z"></path></svg>`;
   // Ligne du curseur — vide sauf au-dessus du segment actif
   const curseur = `<div style="display:grid;grid-template-columns:repeat(${n},1fr);margin-bottom:5px">
     ${opts.segments.map((_, i) =>
       i === opts.activeIndex
-        ? `<div style="text-align:center;font-family:'Lato',sans-serif;font-size:9.5px;font-weight:700;color:${t.eyebrowOr}">${curseurLabel}</div>`
+        ? `<div style="text-align:center;font-family:'Lato',sans-serif;font-size:9.5px;font-weight:700;color:${t.eyebrowOr}">${triangleCurseur}${curseurLabel}</div>`
         : `<div></div>`
     ).join("")}
   </div>`;
@@ -938,7 +939,7 @@ export function legendeChampsDocReg(_t: Tokens, opts: { seulementCabinet?: boole
 // Couleurs sémantiques FIXES (vert/orange) — invariantes thèmes pour
 // préserver la signalétique conformité.
 export function marqueurVerifie(_t: Tokens, date: string): string {
-  return `<span class="lt" style="font-size:8px;color:#2F7D5B;letter-spacing:.02em">✓ vérifié le ${date}</span>`;
+  return `<span class="lt" style="font-size:8px;color:#2F7D5B;letter-spacing:.02em">${icones.circleCheck("#2F7D5B", 9)} vérifié le ${date}</span>`;
 }
 
 export function marqueurAConfirmer(_t: Tokens, texte: string): string {
