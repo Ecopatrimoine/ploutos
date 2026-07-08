@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Upload, Plus, Trash2, Database, Settings } from "lucide-react";
+import { Download, Upload, Plus, Trash2, Database, Settings, ArrowLeft } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, CartesianGrid
@@ -1256,6 +1256,34 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   // Guard — Client actif
 
   if (!activeClient) {
+    // ── Vue autonome "Paramètres cabinet" (hors dossier, Lot 2) ──
+    // TabParametres ne dépend QUE de cabinet_settings (+ logo/signature) : mêmes
+    // sources et mêmes props que l'usage intra-dossier. Enveloppé dans <Tabs
+    // value="parametres"> car TabParametres rend un <TabsContent value="parametres">.
+    if (activeModule === "parametres") {
+      return (
+        <div className="fixed inset-0 overflow-y-scroll" style={{ background: SURFACE.app, scrollbarWidth: "thin", scrollbarColor: `${BRAND.sky} ${SURFACE.border}`, scrollbarGutter: "stable" }}>
+          <div className="mx-auto max-w-7xl p-6 space-y-4">
+            <button
+              onClick={() => setActiveModule(null)}
+              title="Retour à l'accueil"
+              className="inline-flex items-center gap-2 rounded-xl px-4 font-semibold"
+              style={{ height: 44, background: SURFACE.card, border: `2px solid ${SURFACE.border}`, color: BRAND.navy, cursor: "pointer" }}
+            >
+              <ArrowLeft className="h-4 w-4" /> Retour à l'accueil
+            </button>
+            <Tabs value="parametres">
+              <TabParametres
+                cabinet={cabinet} updateCabinet={updateCabinet}
+                logoSrc={logoSrc} setLogoSrc={setLogoSrc}
+                signatureSrc={signatureSrc} setSignatureSrc={setSignatureSrc}
+                handleLogoUpload={handleLogoUpload} handleSignatureUpload={handleSignatureUpload}
+              />
+            </Tabs>
+          </div>
+        </div>
+      )
+    }
     return (
       <ClientManager
         clients={clients}
