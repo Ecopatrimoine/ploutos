@@ -103,6 +103,26 @@ export function formatDureeArret(jour: number): string {
   return `${mois} mois`;
 }
 
+// Pluriel FR (Lot 6 C3) : accord au nombre connu. Singulier pour 0 et 1, pluriel
+// au-dela. `pluriel` par defaut = `singulier` + "s" ; le passer pour les accords
+// composes ou irreguliers. Ex. plur(2, "part") -> "2 parts" ;
+// plur(1, "champ manquant", "champs manquants") -> "1 champ manquant".
+export function plur(n: number, singulier: string, pluriel?: string): string {
+  return `${n} ${n >= 2 ? (pluriel ?? singulier + "s") : singulier}`;
+}
+
+// Conversion fraction 0-1 <-> pourcentage saisi 0-100 (Lot 6 C4). Le MODELE reste
+// une fraction (0-1) : ces helpers ne servent QU'A l'affichage/saisie d'un champ %.
+// Arrondi a 0,1 % pour eviter le bruit flottant (0.3 * 100 = 30.000000000000004).
+// Ex. fractionEnPct(0.5) -> 50 ; fractionEnPct(0.335) -> 33.5 ; pctEnFraction(50) -> 0.5.
+export function fractionEnPct(frac: number): number {
+  return Math.round((Number(frac) || 0) * 1000) / 10;
+}
+
+export function pctEnFraction(pct: number): number {
+  return (Number(pct) || 0) / 100;
+}
+
 export function isAV(type: string): boolean {
   return AV_TYPES.includes(type);
 }
