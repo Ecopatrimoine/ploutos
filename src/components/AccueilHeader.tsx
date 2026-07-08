@@ -22,6 +22,7 @@ export type AccueilHeaderProps = {
   logoSrc?: string;
   onOpenParametres: () => void;
   onAbonnement?: () => void; // absent => bouton Abonnement masqué
+  abonnementBadge?: string;  // ex. "Essai · 12 j" pendant l'essai
   onSignOut?: () => void;
   isInstallable?: boolean;
   onInstall?: () => void;
@@ -41,6 +42,7 @@ export function AccueilHeader({
   logoSrc,
   onOpenParametres,
   onAbonnement,
+  abonnementBadge,
   onSignOut,
   isInstallable = false,
   onInstall,
@@ -80,16 +82,21 @@ export function AccueilHeader({
     >
       <div className="ah-bar">
         <div className="ah-id">
-          <div
-            className="ah-logo"
-            style={{ background: `radial-gradient(circle at 35% 30%, ${cabColors.cream}, ${cabColors.gold} 70%)` }}
-          >
-            {showLogo ? (
-              <img src={logoSrc} alt={cabinetName || "Logo cabinet"} onError={() => setLogoFailed(true)} />
-            ) : (
+          {showLogo ? (
+            <img
+              className="ah-logo-img"
+              src={logoSrc}
+              alt={cabinetName || "Logo cabinet"}
+              onError={() => setLogoFailed(true)}
+            />
+          ) : (
+            <div
+              className="ah-logo-fallback"
+              style={{ background: `radial-gradient(circle at 35% 30%, ${cabColors.cream}, ${cabColors.gold} 70%)` }}
+            >
               <span>{initialsOf(cabinetName)}</span>
-            )}
-          </div>
+            </div>
+          )}
           <div style={{ minWidth: 0 }}>
             <div className="ah-name">{cabinetName || "Cabinet"}</div>
             {subtitle && <div className="ah-sub">{subtitle}</div>}
@@ -112,6 +119,7 @@ export function AccueilHeader({
           {onAbonnement && (
             <button className="ah-btn" onClick={onAbonnement} title="Gérer l'abonnement">
               <CreditCard /> Abonnement
+              {abonnementBadge && <span className="ah-badge">{abonnementBadge}</span>}
             </button>
           )}
           {onSignOut && (

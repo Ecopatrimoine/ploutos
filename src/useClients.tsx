@@ -470,7 +470,7 @@ type ClientManagerProps = {
   onInstall?: () => void;
   // Nouveaux props
   onSignOut?: () => void;
-  licence?: { type: string | null; status: string; isValid: boolean } | null;
+  licence?: { type: string | null; status: string; isValid: boolean; trialDaysLeft?: number } | null;
   userId?: string;
 };
 
@@ -534,18 +534,31 @@ export function ClientManager({
 
   const SURFACE_APP = "linear-gradient(135deg, #f5f0e8 0%, #fdf8f0 40%, #f0ece4 100%)";
 
-  // Abonnement — portail Stripe (handler existant, déplacé depuis l'ancien header
-  // de l'accueil vers le nouveau AccueilHeader).
-  const canManageAbonnement =
-    licence?.type === "paid" && licence?.status === "active" && !!userId;
+  // ── État d'abonnement (R2) — source : useLicense (licence.trialDaysLeft/status) ──
+  const isTrial = licence?.type === "trial";
+  const trialDays = licence?.trialDaysLeft ?? 0;
+  const abonnementBadge = isTrial && licence?.status === "active" ? `Essai · ${trialDays} j` : undefined;
+  // Bouton Abonnement visible pour l'essai (badge) OU l'abonnement payant actif.
+  const showAbonnement =
+    !!userId && (isTrial || (licence?.type === "paid" && licence?.status === "active"));
+  // Bannière pleine largeur seulement si essai <= 5 jours restants OU expiré.
+  const showTrialBanner =
+    !!userId && isTrial && ((licence?.status === "active" && trialDays <= 5) || licence?.status === "expired");
+
+  // Action Abonnement : portail Stripe si payant, page d'abonnement sinon (essai).
+  // Les deux URLs préexistent dans le code (portail + app.ploutos-cgp.fr).
   const handleAbonnement = async () => {
-    const res = await fetch("https://ysbgfiqsuvdwzkcsiqir.supabase.co/functions/v1/create-portal-session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: userId, return_url: window.location.origin }),
-    });
-    const data = await res.json();
-    if (data.url) window.open(data.url, "_blank");
+    if (licence?.type === "paid") {
+      const res = await fetch("https://ysbgfiqsuvdwzkcsiqir.supabase.co/functions/v1/create-portal-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, return_url: window.location.origin }),
+      });
+      const data = await res.json();
+      if (data.url) window.open(data.url, "_blank");
+    } else {
+      window.open("https://app.ploutos-cgp.fr", "_blank");
+    }
   };
 
   // Couleurs de l'accueil v2 : custom properties posées inline depuis les tokens
@@ -727,36 +740,34 @@ export function ClientManager({
         <div style={{ position:"absolute", top:"-60px", left:"40%", width:"240px", height:"240px",
           borderRadius:"50%", background:colorGold, opacity:0.10 }} />
       </div>
-      {/* Bannière abonnement */}
-      {licence && userId && (
+      {/* Bannière abonnement (R2) — pleine largeur, essai <= 5 j / expiré ou annulation */}
+      {userId && (
         <div style={{ position:"relative", zIndex:2 }}>
-          {licence.type === "trial" && licence.status === "active" && (() => {
+          {showTrialBanner && (() => {
+            const expired = licence?.status === "expired";
             return (
               <div className="w-full text-center py-1.5 px-4 text-xs font-semibold flex items-center justify-center gap-3"
-                style={{ background: `rgba(227,175,100,0.15)`, color: colorNavy, borderBottom: `1px solid rgba(227,175,100,0.3)` }}>
-                <span>✦ Essai gratuit en cours</span>
-                <a href="https://app.ploutos-cgp.fr" className="underline font-bold">S'abonner →</a>
+                style={{
+                  background: expired ? BRAND.dangerBg : BRAND.warningBg,
+                  color: expired ? BRAND.danger : BRAND.warning,
+                  borderBottom: `1px solid ${expired ? BRAND.dangerBorder : BRAND.warningBorder}`,
+                }}>
+                <span>
+                  {expired
+                    ? "Votre essai gratuit a expiré."
+                    : `Essai gratuit — ${trialDays} jour${trialDays > 1 ? "s" : ""} restant${trialDays > 1 ? "s" : ""}.`}
+                </span>
+                <button onClick={handleAbonnement} className="underline font-bold">S'abonner →</button>
               </div>
             );
           })()}
-          {licence.type === "paid" && licence.status === "active" && null}
-          {licence.status === "cancelling" && (() => {
-            const handlePortal = async () => {
-              const res = await fetch("https://ysbgfiqsuvdwzkcsiqir.supabase.co/functions/v1/create-portal-session", {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: userId, return_url: window.location.origin }),
-              });
-              const data = await res.json();
-              if (data.url) window.open(data.url, "_blank");
-            };
-            return (
-              <div className="w-full py-1.5 px-6 flex items-center justify-between text-xs font-semibold"
-                style={{ background: "#FEF3C7", color: "#92400E", borderBottom: "1px solid #FCD34D" }}>
-                <span>⚠️ Annulation prévue — accès maintenu jusqu'à fin de période</span>
-                <button onClick={handlePortal} className="underline font-bold">Réactiver</button>
-              </div>
-            );
-          })()}
+          {licence?.status === "cancelling" && (
+            <div className="w-full py-1.5 px-6 flex items-center justify-between text-xs font-semibold"
+              style={{ background: BRAND.warningBg, color: BRAND.warning, borderBottom: `1px solid ${BRAND.warningBorder}` }}>
+              <span>⚠️ Annulation prévue — accès maintenu jusqu'à fin de période</span>
+              <button onClick={handleAbonnement} className="underline font-bold">Réactiver</button>
+            </div>
+          )}
         </div>
       )}
 
@@ -772,7 +783,8 @@ export function ClientManager({
           orias={orias}
           logoSrc={logoSrc}
           onOpenParametres={onOpenParametres}
-          onAbonnement={canManageAbonnement ? handleAbonnement : undefined}
+          onAbonnement={showAbonnement ? handleAbonnement : undefined}
+          abonnementBadge={abonnementBadge}
           onSignOut={onSignOut}
           isInstallable={isInstallable}
           onInstall={onInstall}

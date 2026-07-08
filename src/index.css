@@ -132,7 +132,7 @@ html {
 
 /* Grille de cartes dossiers */
 .acc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
-.acc-card{position:relative;background:var(--acc-card);border:2px solid var(--acc-border);border-radius:14px;padding:16px 16px 13px;box-shadow:var(--acc-shadow);cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;display:flex;flex-direction:column;gap:9px}
+.acc-card{position:relative;background:var(--acc-card);border:2px solid var(--acc-border);border-left:4px solid var(--acc-gold);border-radius:14px;padding:16px 16px 13px;box-shadow:var(--acc-shadow);cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;display:flex;flex-direction:column;gap:9px}
 .acc-card:hover{transform:translateY(-3px);box-shadow:var(--acc-shadow-hover);border-color:var(--acc-gold)}
 .acc-card:focus-visible{outline:2px solid var(--acc-gold-deep);outline-offset:2px}
 .acc-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
@@ -226,8 +226,10 @@ html {
 .ah-frame{border-radius:18px;padding:4px;box-shadow:var(--ah-shadow);margin-bottom:26px}
 .ah-bar{background:var(--ah-cardsoft);border-radius:14px;display:flex;align-items:center;justify-content:space-between;padding:16px 24px;gap:20px;flex-wrap:wrap}
 .ah-id{display:flex;align-items:center;gap:16px;min-width:0}
-.ah-logo{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:var(--ah-navy);flex-shrink:0;overflow:hidden;box-shadow:0 0 0 3px rgba(196,151,61,.18)}
-.ah-logo img{width:100%;height:100%;object-fit:contain}
+/* Logo : rendu sans rognage (contain, h max 56px, largeur auto plafonnee) */
+.ah-logo-img{height:56px;width:auto;max-width:180px;object-fit:contain;display:block;flex-shrink:0}
+/* Repli sans logo : cercle or + initiales */
+.ah-logo-fallback{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:var(--ah-navy);flex-shrink:0;box-shadow:0 0 0 3px rgba(196,151,61,.18)}
 .ah-name{font-size:22px;font-weight:900;letter-spacing:.2px;color:var(--ah-navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ah-sub{font-size:13px;color:var(--ah-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ah-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -242,6 +244,7 @@ html {
 .ah-calc svg,.ah-calc:hover:not(:disabled) svg{color:var(--ah-gold)}
 .ah-calc:hover:not(:disabled){transform:translateY(-1px);box-shadow:var(--ah-shadow)}
 .ah-quit svg,.ah-quit:hover:not(:disabled) svg{color:var(--ah-danger)}
+.ah-badge{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:800;background:var(--ah-gold);color:var(--ah-navy);margin-left:2px;white-space:nowrap}
 
 /* Responsive header : sous 900px, les actions passent en pleine largeur sous
    l'identite et s'enroulent proprement (teste 1024 / 768, aucun debordement). */
