@@ -465,7 +465,9 @@ export function computeTaxFromBrackets(base: number, brackets: TaxBracket[]) {
     const lineTax = filled * bracket.rate;
     tax += lineTax;
     return {
-      label: `${(bracket.rate * 100).toFixed(bracket.rate >= 0.1 ? 0 : 1).replace(".0", "")} %`,
+      // C4 (Lot 4) — decimales FR : retirer un ".0" superflu (1.0 -> 1) PUIS virgule
+      // decimale (0.5 -> 0,5 ; 1.3 -> 1,3 ; couvre le bareme IFI).
+      label: `${(bracket.rate * 100).toFixed(bracket.rate >= 0.1 ? 0 : 1).replace(".0", "").replace(".", ",")} %`,
       from: bracket.from,
       to: Number.isFinite(bracket.to) ? bracket.to : safeBase,
       filled,
