@@ -77,7 +77,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
                 style={{ transform: data.person1Handicap ? "translateX(13px)" : "translateX(2px)" }} />
             </button>
             <span className="text-xs whitespace-nowrap" style={{ color: data.person1Handicap ? BRAND.warning : BRAND.muted }}>
-              {data.person1Handicap ? "♿ Handi." : "Handi."}
+              {data.person1Handicap ? "♿ Handicap" : "Handicap"}
             </span>
           </div>
         </div>
@@ -120,7 +120,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
                 style={{ transform: data.person2Handicap ? "translateX(13px)" : "translateX(2px)" }} />
             </button>
             <span className="text-xs whitespace-nowrap" style={{ color: data.person2Handicap ? BRAND.warning : BRAND.muted }}>
-              {data.person2Handicap ? "♿ Handi." : "Handi."}
+              {data.person2Handicap ? "♿ Handicap" : "Handicap"}
             </span>
           </div>
         </div>

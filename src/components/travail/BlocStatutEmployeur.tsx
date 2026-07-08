@@ -201,7 +201,7 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
                   className="rounded-xl whitespace-nowrap"
                   style={{ background: BRAND.navy }}
                 >
-                  {siretLoading ? "…" : "Résoudre"}
+                  {siretLoading ? "…" : "Rechercher l'entreprise"}
                 </Button>
               </div>
               {siretError && (

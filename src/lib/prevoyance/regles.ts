@@ -111,8 +111,9 @@ function formatEUR(montant: number): string {
   return `${Math.round(montant).toLocaleString("fr-FR")} €`;
 }
 
-function libelleCible(cible: "p1" | "p2"): string {
-  return cible === "p1" ? "la personne 1" : "la personne 2";
+function libelleCible(ctx: ContexteRegle, cible: "p1" | "p2"): string {
+  const prenom = (cible === "p1" ? ctx.prenomP1 : ctx.prenomP2)?.trim();
+  return prenom || (cible === "p1" ? "la personne 1" : "la personne 2");
 }
 
 // Phrase explicative en italique à ajouter au détail des constats qui
@@ -149,7 +150,7 @@ export const regleDcTnsSansCapital: Regle = (ctx, cible) => {
     motifs.push(`${ctx.enfantsMineurs} enfant${ctx.enfantsMineurs > 1 ? "s" : ""} mineur${ctx.enfantsMineurs > 1 ? "s" : ""}`);
 
   const detailBase =
-    `En tant que TNS, ${libelleCible(cible)} ne dispose d'aucun capital décès souscrit à titre individuel. ` +
+    `En tant que TNS, ${libelleCible(ctx, cible)} ne dispose d'aucun capital décès souscrit à titre individuel. ` +
     `Le capital décès du régime obligatoire est généralement forfaitaire et insuffisant au regard ` +
     `de la situation du foyer (${motifs.join(" et ")}).`;
   // Phrase explicative ajoutée seulement si la règle s'est déclenchée
@@ -190,7 +191,7 @@ export const regleDcCapitalInsuffisantDettes: Regle = (ctx, cible) => {
     cible,
     titre: "Capital décès insuffisant pour apurer les dettes immobilières",
     detail:
-      `Le capital décès individuel cumulé pour ${libelleCible(cible)} est de ${formatEUR(capital)}, ` +
+      `Le capital décès individuel cumulé pour ${libelleCible(ctx, cible)} est de ${formatEUR(capital)}, ` +
       `alors que les dettes immobilières en cours s'élèvent à ${formatEUR(ctx.dettesImmobilieres)}. ` +
       `En cas de décès, les héritiers peuvent être contraints à céder un bien pour rembourser le solde.`,
     action:
@@ -209,7 +210,7 @@ export const regleDcPasDeRenteConjointEnfantsJeunes: Regle = (ctx, cible) => {
   const detailBase =
     `Le foyer compte ${ctx.enfantsMineurs} enfant${ctx.enfantsMineurs > 1 ? "s" : ""} mineur${ctx.enfantsMineurs > 1 ? "s" : ""} ` +
     `et un conjoint dont les revenus propres sont insuffisants pour maintenir le train de vie du foyer. ` +
-    `En cas de décès de ${libelleCible(cible)}, le conjoint survivant et les enfants se retrouveraient sans ` +
+    `En cas de décès de ${libelleCible(ctx, cible)}, le conjoint survivant et les enfants se retrouveraient sans ` +
     `revenu de remplacement régulier au-delà du seul capital décès.`;
   return {
     id: `dc_pas_de_rente_conjoint_enfants_jeunes_${cible}`,
@@ -248,7 +249,7 @@ export const regleDcPasDeRenteEducation: Regle = (ctx, cible) => {
     titre: "Pas de rente éducation prévue pour les enfants à charge",
     detail:
       `Le foyer compte ${ctx.enfantsMineurs} enfant${ctx.enfantsMineurs > 1 ? "s" : ""} à charge, ` +
-      `mais aucune rente éducation n'est prévue. En cas de décès de ${libelleCible(cible)}, les enfants ` +
+      `mais aucune rente éducation n'est prévue. En cas de décès de ${libelleCible(ctx, cible)}, les enfants ` +
       `ne bénéficieraient d'aucun revenu dédié au financement de leur scolarité et de leur éducation, ` +
       `au-delà du seul capital décès.`,
     action:
@@ -280,7 +281,7 @@ export const regleIjCarenceCaisseSansMadelin: Regle = (ctx, cible) => {
     cible,
     titre: "Caisse à carence longue et aucune IJ complémentaire individuelle",
     detail:
-      `Le régime obligatoire de ${libelleCible(cible)} ne verse aucune indemnité avant le 60ᵉ jour d'arrêt ` +
+      `Le régime obligatoire de ${libelleCible(ctx, cible)} ne verse aucune indemnité avant le 60ᵉ jour d'arrêt ` +
       `(carence longue typique des caisses libérales). Sans IJ complémentaire individuelle, le revenu de ` +
       `remplacement reste à zéro pendant toute cette période.`,
     action:
@@ -308,7 +309,7 @@ export const regleIjPlafondInsuffisant: Regle = (ctx, cible) => {
     cible,
     titre: "Couverture incapacité insuffisante à 6 mois d'arrêt",
     detail:
-      `À J180 d'arrêt, le revenu de remplacement estimé pour ${libelleCible(cible)} est de ${formatEUR(total)}/mois ` +
+      `À J180 d'arrêt, le revenu de remplacement estimé pour ${libelleCible(ctx, cible)} est de ${formatEUR(total)}/mois ` +
       `contre ${formatEUR(ref)} de référence — soit une perte de ${Math.round((1 - ratio) * 100)} %.`,
     action:
       "Évaluer la mise en place d'une couverture complémentaire IJ visant un revenu de remplacement " +
@@ -377,7 +378,7 @@ export const regleInvCat2AucuneCouvertureCompl: Regle = (ctx, cible) => {
     detail:
       `En cas d'invalidité (catégorie projetée ${ctx.projection.categorieInvaliditeProjetee}), ` +
       `la pension du régime obligatoire couvre ${Math.round((pension / ref) * 100)} % du revenu de référence ` +
-      `de ${libelleCible(cible)}. Aucune rente complémentaire (collective ou individuelle) n'est en place.`,
+      `de ${libelleCible(ctx, cible)}. Aucune rente complémentaire (collective ou individuelle) n'est en place.`,
     action:
       "Évaluer la mise en place d'une rente invalidité complémentaire visant un revenu de remplacement " +
       "proche du revenu de référence en cas d'invalidité reconnue.",
@@ -398,7 +399,7 @@ export const regleInvTnsMadelinAbsent: Regle = (ctx, cible) => {
     titre: "TNS sans rente invalidité individuelle",
     detail:
       `Le régime obligatoire d'invalidité des TNS est souvent forfaitaire ou plafonné à un niveau très ` +
-      `inférieur aux revenus réels. Sans rente invalidité individuelle, ${libelleCible(cible)} risque ` +
+      `inférieur aux revenus réels. Sans rente invalidité individuelle, ${libelleCible(ctx, cible)} risque ` +
       `une perte de revenus durable et non compensée en cas d'invalidité reconnue.`,
     action:
       "Évaluer la mise en place d'une rente invalidité individuelle couvrant les trois catégories " +

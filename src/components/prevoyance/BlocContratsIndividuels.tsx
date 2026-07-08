@@ -13,6 +13,7 @@ import {
   mergeContratsIndividuels,
   categorieDeType,
 } from "../../lib/prevoyance/contrats-individuels-split";
+import { fractionEnPct, pctEnFraction } from "../../lib/calculs/utils";
 import { estEligibleMadelin } from "../../lib/prevoyance/madelin";
 import { CadreMadelin } from "./CadreMadelin";
 
@@ -33,7 +34,7 @@ type Props = {
 // (type affiché en item désactivé via le fallback du Select, cf. plus bas).
 const TYPES: Array<{ value: PayloadContratIndividuel["type"]; label: string; hint: string }> = [
   { value: "ij",         label: "IJ complémentaires", hint: "IJ journalière (€)" },
-  { value: "invalidite", label: "Rente invalidité",   hint: "% du revenu (0-1)" },
+  { value: "invalidite", label: "Rente invalidité",   hint: "% du revenu (ex. 50)" },
 ];
 
 // Libellés d'AFFICHAGE de TOUS les types lisibles, y compris ceux retirés des
@@ -172,19 +173,19 @@ export const BlocContratsIndividuels = React.memo(function BlocContratsIndividue
                 </Field>
               </div>
               <div className="md:col-span-3">
-                <Field label={isInvalidite ? "% revenu (ex. 0.5)" : "Montant (€)"}>
+                <Field label={isInvalidite ? "% du revenu (ex. 50)" : "Montant (€)"}>
                   <Input
                     type="number"
                     min={0}
-                    step={isInvalidite ? 0.01 : 1}
-                    value={isInvalidite ? c.baseInvalidite ?? 0 : c.capitalOuMontant}
+                    step={isInvalidite ? 0.1 : 1}
+                    value={isInvalidite ? fractionEnPct(c.baseInvalidite ?? 0) : c.capitalOuMontant}
                     onChange={(e) => {
                       const v = Number(e.target.value) || 0;
-                      if (isInvalidite) updateAt(idx, { baseInvalidite: v });
+                      if (isInvalidite) updateAt(idx, { baseInvalidite: pctEnFraction(v) });
                       else updateAt(idx, { capitalOuMontant: v });
                     }}
                     className="rounded-xl"
-                    placeholder={isInvalidite ? "0.5" : "ex. 100000"}
+                    placeholder={isInvalidite ? "ex. 50" : "ex. 100000"}
                   />
                 </Field>
               </div>
