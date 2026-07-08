@@ -11,7 +11,7 @@ import { Plus, Trash2, Download, Upload, Settings, FileText, Database } from "lu
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA, SEUIL_MICRO_FONCIER } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
-import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName, labelDispositifReduction } from "../../lib/calculs/utils";
+import { n, euro, pct, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName, labelDispositifReduction } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
 import { computeTmiView } from "../../lib/calculs/tmiEffective";
@@ -126,7 +126,7 @@ const TabIR = React.memo(function TabIR(props: any) {
                   {/* Bloc revenus */}
                   <div className="space-y-0.5 mb-2">
                     <div className="text-slate-500">Revenu net : <strong>{euro(rev)}</strong></div>
-                    <div className="text-slate-500">Parts : <strong>{parts.toFixed(2)}</strong></div>
+                    <div className="text-slate-500">Parts : <strong>{parts.toFixed(2).replace(".", ",")}</strong></div>
                   </div>
                   {/* Bloc foncier (si présent) */}
                   {fonBrut > 0 && (() => {
@@ -207,7 +207,7 @@ const TabIR = React.memo(function TabIR(props: any) {
         />
         <MetricCard
           label={ir.isConcubin ? `Taux moyen ${concubinPerson === 1 ? person1 : (person2 || "Personne 2")}` : "Taux moyen"}
-          value={`${Math.round(ir.averageRate * 1000) / 10} %`}
+          value={pct(ir.averageRate, 1)}
           hint={ir.isConcubin
             ? "Taux moyen du foyer sélectionné (IR foyer / revenu net foyer)."
             : "IR total / revenu net imposable. Taux effectif réellement supporté"}
