@@ -20,6 +20,7 @@ export type AccueilHeaderProps = {
   conseiller?: string;
   orias?: string;
   logoSrc?: string;
+  onOpenCalc?: () => void;   // absent => bouton "Calculs rapides" désactivé
   onOpenParametres: () => void;
   onAbonnement?: () => void; // absent => bouton Abonnement masqué
   abonnementBadge?: string;  // ex. "Essai · 12 j" pendant l'essai
@@ -40,6 +41,7 @@ export function AccueilHeader({
   conseiller,
   orias,
   logoSrc,
+  onOpenCalc,
   onOpenParametres,
   onAbonnement,
   abonnementBadge,
@@ -109,7 +111,12 @@ export function AccueilHeader({
               <Download /> Installer
             </button>
           )}
-          <button className="ah-btn ah-calc" disabled title="Disponible prochainement">
+          <button
+            className="ah-btn ah-calc"
+            onClick={onOpenCalc}
+            disabled={!onOpenCalc}
+            title={onOpenCalc ? "Calculs rapides — sans ouvrir de dossier" : "Disponible prochainement"}
+          >
             <Calculator /> Calculs rapides
           </button>
           <div className="ah-sep" />

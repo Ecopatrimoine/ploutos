@@ -259,4 +259,50 @@ html {
 /* Bouton "Retour a l'accueil" de la vue Parametres autonome — focus clavier visible
    (la bordure reste inline ; seul l'outline est gere ici, non ecrasable inline). */
 .acc-backbtn:focus-visible{outline:2px solid var(--field-border-focus);outline-offset:2px}
+
+/* ══ Accueil v2 (Lot 3) — overlay "Calculs rapides" ════════════════════════════
+   Structure/espacements repris de maquette-accueil-v2-it2.html. Couleurs via
+   custom properties --qc-* posees inline sur .qc-overlay (tokens BRAND/SURFACE/
+   FIELD). Aucune couleur codee en dur. */
+.qc-overlay{position:fixed;inset:0;z-index:100;background:rgba(15,23,42,.45);display:flex;align-items:flex-start;justify-content:center;padding:60px 24px 40px;overflow-y:auto}
+.qc-modal{width:100%;max-width:980px;background:var(--qc-bg);border-radius:18px;box-shadow:0 24px 80px rgba(15,23,42,.35);padding:22px 24px 26px}
+.qc-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px}
+.qc-close{width:38px;height:38px;border-radius:11px;border:2px solid var(--qc-border);background:var(--qc-card);font-size:17px;color:var(--qc-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qc-close:hover{border-color:var(--qc-gold);color:var(--qc-navy)}
+.qc-close:focus-visible{outline:2px solid var(--qc-gold-deep);outline-offset:2px}
+.qc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.qc-tile{background:var(--qc-card);border:2px solid var(--qc-border);border-radius:14px;padding:16px;box-shadow:var(--qc-shadow);cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s;display:flex;flex-direction:column;gap:8px;text-align:left;font-family:inherit}
+.qc-tile:hover:not(:disabled){transform:translateY(-3px);border-color:var(--qc-gold);box-shadow:var(--qc-shadow-hover)}
+.qc-tile:focus-visible{outline:2px solid var(--qc-gold-deep);outline-offset:2px}
+.qc-tile.on{border-color:var(--qc-gold)}
+.qc-tile:disabled{opacity:.55;cursor:not-allowed}
+.qc-tile-head{display:flex;align-items:center;gap:12px}
+.qc-tile-ico{width:38px;height:38px;border-radius:11px;background:var(--qc-gold);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.qc-tile-ico svg{width:19px;height:19px;color:var(--qc-navy)}
+.qc-tile-name{font-size:15.5px;font-weight:900;color:var(--qc-navy)}
+.qc-tile-desc{font-size:12.5px;color:var(--qc-muted);line-height:1.5}
+.qc-tile-go{font-size:12.5px;font-weight:900;color:var(--qc-gold-deep);margin-top:auto}
+.qc-tile-soon{font-size:12.5px;font-weight:900;color:var(--qc-muted);margin-top:auto}
+.qc-panel{grid-column:1 / -1;background:var(--qc-card);border:2px solid var(--qc-gold);border-radius:14px;box-shadow:var(--qc-shadow);padding:18px 20px;color:var(--qc-navy)}
+.qc-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px}
+.qc-panel-title{display:flex;align-items:center;gap:12px;font-size:16px;font-weight:900;color:var(--qc-navy)}
+.qc-body{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.qc-field label{display:block;font-size:12px;font-weight:900;letter-spacing:.5px;color:var(--qc-muted);margin-bottom:6px;text-transform:uppercase}
+.qc-field input{width:100%;height:46px;padding:0 13px;border-radius:11px;font-size:15px;font-weight:700}
+.qc-results{display:flex;gap:14px;margin-top:16px;flex-wrap:wrap}
+.qc-kpi{flex:1;min-width:150px;background:var(--qc-cardsoft);border:1px solid var(--qc-border);border-top:3px solid var(--qc-gold);border-radius:12px;padding:12px 15px}
+.qc-kpi.navy{border-top-color:var(--qc-navy)}
+.qc-kpi-lab{font-size:11.5px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;color:var(--qc-muted)}
+.qc-kpi-val{font-size:21px;font-weight:900;margin-top:4px;color:var(--qc-navy)}
+.qc-abatt{font-size:12px;color:var(--qc-muted);margin-top:12px}
+.qc-exo{font-size:12px;font-weight:800;color:var(--qc-gold-deep);margin-top:6px}
+.qc-note{font-size:12px;color:var(--qc-muted);margin-top:12px;font-style:italic}
+@media (max-width:1020px){
+  .qc-grid{grid-template-columns:repeat(2,1fr)}
+  .qc-body{grid-template-columns:1fr 1fr}
+}
+@media (max-width:640px){
+  .qc-grid,.qc-body{grid-template-columns:1fr}
+  .qc-results{flex-direction:column}
+}
  

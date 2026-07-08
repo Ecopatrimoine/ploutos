@@ -466,6 +466,7 @@ type ClientManagerProps = {
   conseiller?: string;
   orias?: string;
   onOpenParametres: () => void;
+  onOpenCalc?: () => void;
   isInstallable?: boolean;
   onInstall?: () => void;
   // Nouveaux props
@@ -493,6 +494,7 @@ export function ClientManager({
   conseiller,
   orias,
   onOpenParametres,
+  onOpenCalc,
   isInstallable = false,
   onInstall,
   onSignOut,
@@ -782,6 +784,7 @@ export function ClientManager({
           conseiller={conseiller}
           orias={orias}
           logoSrc={logoSrc}
+          onOpenCalc={onOpenCalc}
           onOpenParametres={onOpenParametres}
           onAbonnement={showAbonnement ? handleAbonnement : undefined}
           abonnementBadge={abonnementBadge}

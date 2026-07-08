@@ -85,6 +85,7 @@ import { TabSuccession } from "./components/tabs/TabSuccession";
 import { TabHypotheses } from "./components/tabs/TabHypotheses";
 import { TabMission } from "./components/tabs/TabMission";
 import { TabParametres } from "./components/tabs/TabParametres";
+import { AccueilCalculs, type QuickCalcId } from "./components/AccueilCalculs";
 import { TabPrevoyancePerso } from "./components/tabs/TabPrevoyancePerso";
 import { TabPrevoyanceCollective } from "./components/tabs/TabPrevoyanceCollective";
 
@@ -413,6 +414,9 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   // Vue autonome de l'accueil (hors dossier). Patron prévu pour d'autres modules
   // (activeModule). Lot 2 : "parametres". Lot 3+ : calculettes.
   const [activeModule, setActiveModule] = useState<null | "parametres">(null)
+  // Overlay "Calculs rapides" (Lot 3) — par-dessus l'accueil uniquement.
+  const [quickCalcOpen, setQuickCalcOpen] = useState(false)
+  const [activeQuickCalc, setActiveQuickCalc] = useState<QuickCalcId | null>(null)
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   // Couleurs dynamiques tirées des paramètres cabinet
@@ -1285,6 +1289,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       )
     }
     return (
+      <>
       <ClientManager
         clients={clients}
         syncStatus={syncStatus}
@@ -1304,12 +1309,21 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
         conseiller={cabinet.conseiller}
         orias={cabinet.orias}
         onOpenParametres={() => setActiveModule("parametres")}
+        onOpenCalc={() => setQuickCalcOpen(true)}
         isInstallable={isInstallable}
         onInstall={handleInstallClick}
         onSignOut={onSignOut}
         licence={licence}
         userId={userId}
       />
+      {quickCalcOpen && (
+        <AccueilCalculs
+          onClose={() => { setQuickCalcOpen(false); setActiveQuickCalc(null); }}
+          activeCalc={activeQuickCalc}
+          setActiveCalc={setActiveQuickCalc}
+        />
+      )}
+      </>
     )
   }
 
