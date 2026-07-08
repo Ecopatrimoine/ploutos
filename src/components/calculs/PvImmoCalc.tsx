@@ -12,7 +12,8 @@ export function PvImmoCalc({ onClose }: { onClose: () => void }) {
   const [cession, setCession] = useState("300 000");
   const [duree, setDuree] = useState("10");
 
-  const r = pvImmoSummary(parseNum(acq), parseNum(cession), parseNum(duree));
+  const prixCession = parseNum(cession);
+  const r = pvImmoSummary(parseNum(acq), prixCession, parseNum(duree));
   const kpi = (v: number) => (r.valid ? formatEur(v) : "—");
 
   return (
@@ -64,13 +65,27 @@ export function PvImmoCalc({ onClose }: { onClose: () => void }) {
           <div className="qc-exo">Moins-value — aucune imposition.</div>
         ) : (
           <>
-            <div className="qc-abatt">
-              Abattement durée : {formatPct(r.abattementIr)} IR · {formatPct(r.abattementPs)} PS
-            </div>
             {r.exonereIr && <div className="qc-exo">Exonéré d'IR au-delà de 22 ans de détention.</div>}
             {r.exonerePs && <div className="qc-exo">Exonéré de prélèvements sociaux au-delà de 30 ans de détention.</div>}
           </>
         )
+      )}
+
+      {r.valid && (
+        <table className="qc-table">
+          <tbody>
+            <tr><td>Prix de cession</td><td>{formatEur(prixCession)}</td></tr>
+            <tr><td>Prix d'acquisition majoré (7,5 % frais + 15 % travaux si &gt; 5 ans)</td><td>{formatEur(r.prixAcquisitionCorrige)}</td></tr>
+            <tr><td>Plus-value brute</td><td>{formatEur(r.pvBrute)}</td></tr>
+            <tr className="qc-sub"><td>Abattement de durée — IR</td><td>{formatPct(r.abattementIr)}</td></tr>
+            <tr><td>Base imposable IR</td><td>{formatEur(r.baseIr)}</td></tr>
+            <tr><td>Impôt sur le revenu (19 %)</td><td>{formatEur(r.impotIr)}</td></tr>
+            <tr className="qc-sub"><td>Abattement de durée — prélèvements sociaux</td><td>{formatPct(r.abattementPs)}</td></tr>
+            <tr><td>Base prélèvements sociaux</td><td>{formatEur(r.basePs)}</td></tr>
+            <tr><td>Prélèvements sociaux (17,2 %)</td><td>{formatEur(r.impotPs)}</td></tr>
+            <tr className="qc-total"><td>Coût fiscal total</td><td>{formatEur(r.impotTotal)}</td></tr>
+          </tbody>
+        </table>
       )}
 
       <div className="qc-note">

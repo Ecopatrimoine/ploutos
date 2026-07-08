@@ -303,6 +303,13 @@ html {
 .qc-abatt{font-size:12px;color:var(--qc-muted);margin-top:12px}
 .qc-exo{font-size:12px;font-weight:800;color:var(--qc-gold-deep);margin-top:6px}
 .qc-note{font-size:12px;color:var(--qc-muted);margin-top:12px;font-style:italic}
+/* Tableau de deroule (PV immo) — nombres alignes a droite, total en gras */
+.qc-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:16px}
+.qc-table td{padding:6px 4px;border-bottom:1px solid var(--qc-border);color:var(--qc-navy)}
+.qc-table td:last-child{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:700}
+.qc-table tr.qc-sub td{color:var(--qc-muted);font-weight:400}
+.qc-table tr.qc-sub td:last-child{font-weight:700}
+.qc-table tr.qc-total td{font-weight:900;border-top:2px solid var(--qc-navy);border-bottom:none;padding-top:10px}
 @media (max-width:1020px){
   .qc-grid{grid-template-columns:repeat(2,1fr)}
   .qc-body{grid-template-columns:1fr 1fr}
