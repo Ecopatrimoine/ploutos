@@ -54,11 +54,18 @@ describe("creditSummary — consomme calcMonthlyPayment", () => {
 });
 
 describe("formatPct — fraction -> pourcentage fr-FR", () => {
+  // Lot 5 : formatPct delegue a pct() (espace insecable). On compare le contenu
+  // sans dependre de la variante d'espace (U+00A0 / U+202F selon ICU).
+  const strip = (s: string) => s.replace(/\s/g, "");
   it("mappe les abattements", () => {
-    expect(formatPct(0.96)).toBe("96 %");
-    expect(formatPct(1)).toBe("100 %");
-    expect(formatPct(0.28)).toBe("28 %");
-    expect(formatPct(0)).toBe("0 %");
+    expect(strip(formatPct(0.96))).toBe("96%");
+    expect(strip(formatPct(1))).toBe("100%");
+    expect(strip(formatPct(0.28))).toBe("28%");
+    expect(strip(formatPct(0))).toBe("0%");
+  });
+  it("espace avant % insecable (jamais un espace normal)", () => {
+    expect(/ %/.test(formatPct(0.96))).toBe(false);
+    expect(/\s%/.test(formatPct(0.96))).toBe(true);
   });
 });
 
