@@ -8,7 +8,7 @@ import {
   CartesianGrid, LabelList, Cell
 } from "recharts";
 import { BRAND, SURFACE, CHART_COLORS } from "../constants";
-import { euro } from "../lib/calculs/utils";
+import { euro, euroTick } from "../lib/calculs/utils";
 import type { FilledBracket, DifferenceLine } from "../types/patrimoine";
 
 export function HelpTooltip({ text }: { text: string }) {
@@ -160,7 +160,7 @@ export function BracketFillChart({ title, data, referenceValue, valueLabel, show
               {/* C3 ticks en euros (largeur elargie pour ne pas tronquer les grands
                   montants) ; C5 axe non degenere sur dossier vierge (max >= 1, pas de
                   decimales -> plus de "0 1 2 3 4"). */}
-              <YAxis tickFormatter={euro} width={92} domain={[0, (m: number) => Math.max(m, 1)]} allowDecimals={false} />
+              <YAxis tickFormatter={euroTick} width={92} domain={[0, (m: number) => Math.max(m, 1)]} allowDecimals={false} />
               <Tooltip formatter={(value: number) => euro(value)} />
               <Bar dataKey="filled" radius={[8, 8, 0, 0]}>
                 {chartData.map((entry, index) => <Cell key={`${entry.label}-${index}`} fill={entry.fill} />)}
