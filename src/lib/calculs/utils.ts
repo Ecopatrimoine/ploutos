@@ -79,6 +79,30 @@ export function euroTick(v: number): string {
   return euro(v);
 }
 
+// Pourcentage FR (Lot 5 C1) — formateur unique. Entree = FRACTION (0.219 -> "21,9 %").
+// Espace insecable avant % (fourni par la locale fr-FR) ; zeros decimaux superflus
+// retires (0.5 -> "50 %", 0.219 -> "21,9 %").
+export function pct(frac: number, decimals = 1): string {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "percent",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimals,
+  }).format(Number.isFinite(frac) ? frac : 0);
+}
+
+// Duree d'arret en francais naturel (Lot 5 C3) — remplace "1.0 ans / 1.5 ans / 2.5 ans".
+// Annees pleines -> "X an(s)" ; sinon exprime en mois. Ex. 365j -> "1 an",
+// 547j -> "18 mois", 912j -> "30 mois", 1095j -> "3 ans".
+export function formatDureeArret(jour: number): string {
+  const mois = Math.round(jour / (365 / 12));
+  if (mois <= 0) return "0 mois";
+  if (mois % 12 === 0) {
+    const ans = mois / 12;
+    return ans === 1 ? "1 an" : `${ans} ans`;
+  }
+  return `${mois} mois`;
+}
+
 export function isAV(type: string): boolean {
   return AV_TYPES.includes(type);
 }
