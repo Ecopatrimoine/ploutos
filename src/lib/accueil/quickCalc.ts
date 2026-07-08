@@ -7,11 +7,12 @@ import { calcMonthlyPayment } from "../calculs/credit";
 import { computePvImmobiliere, type PvImmobiliereResult } from "../calculs/pvImmobiliere";
 import { computeBaremeNet, computeIRConcubin, getChildrenFiscalParts, computeTaxFromBrackets } from "../calculs/utils";
 import { getDonationTaxProfile } from "../calculs/donation";
+import { computeIFI } from "../calculs/ifi";
 import { referentiels } from "../../data/prevoyance";
 import { computeIjCarmfJournaliere, pensionInvaliditeTotaleAnnuelle, capitalDecesCarmf } from "../prevoyance/carmf";
 import { ijCipavPhase1Journaliere, pensionInvaliditeCipavAnnuelle, capitalDecesCipav } from "../prevoyance/cipav";
 import { ijCarpimkoPhase1Journaliere, renteInvaliditeCarpimkoAnnuelle, capitalDecesCarpimko } from "../prevoyance/carpimko";
-import type { Child, CarmfConfig, CipavConfig, CarpimkoConfig } from "../../types/patrimoine";
+import type { Child, CarmfConfig, CipavConfig, CarpimkoConfig, FilledBracket } from "../../types/patrimoine";
 
 // Saisie tolérante : espaces (séparateurs de milliers) + virgule décimale.
 export function parseNum(s: string): number {
@@ -117,6 +118,56 @@ export function endettementSummary(revenusMensuels: number, chargesCredits: numb
     tauxEffortProjet: projet > 0 ? (charges + projet) / revenusMensuels : null,
     mensualiteMax35: Math.max(0, revenusMensuels * HCSF_TAUX_EFFORT_MAX - charges),
     resteAVivre: revenusMensuels - charges - projet,
+  };
+}
+
+// ── IFI (impôt sur la fortune immobilière) ──────────────────────────────────
+// Le barème IFI (tranches, seuil 1,3 M, décote 1,3-1,4 M) et l'abattement 30 % RP
+// sont INLINE dans computeIFI (aucune fonction isolée « netTaxable -> IFI »).
+// On CONSOMME computeIFI (déjà exporté) via une propriété minimale construite :
+// aucune règle recalculée, aucune modification du moteur.
+export const IFI_SEUIL = 1300000;
+
+export type IfiSummary = {
+  valid: boolean;
+  assujetti: boolean;    // netTaxable > seuil 1,3 M
+  netTaxable: number;
+  ifi: number;
+  decote: number;
+  tauxMoyen: number;     // ifi / netTaxable
+  bracketFill: FilledBracket[];
+};
+
+// Propriété minimale (sans crédit) — seuls value/type/propertyRight/ownership sont
+// lus par computeIFI ; le type "Résidence principale" déclenche l'abattement 30 %.
+function ifiProperty(type: string, value: number) {
+  return {
+    name: type, type, ownership: "person1", propertyRight: "full",
+    value: String(value), loanEnabled: false,
+  };
+}
+
+// patrimoineNet = patrimoine immobilier net de dettes (valeur brute des biens) ;
+// residencePrincipale = valeur brute de la RP incluse dans ce total (abattement
+// 30 % appliqué par computeIFI). netTaxable = patrimoineNet - 0,3 x RP.
+export function ifiSummary(patrimoineNet: number, residencePrincipale: number): IfiSummary {
+  if (!(patrimoineNet > 0)) {
+    return { valid: false, assujetti: false, netTaxable: 0, ifi: 0, decote: 0, tauxMoyen: 0, bracketFill: [] };
+  }
+  const rp = Math.max(0, Math.min(residencePrincipale, patrimoineNet));
+  const autre = patrimoineNet - rp;
+  const properties: any[] = [];
+  if (rp > 0) properties.push(ifiProperty("Résidence principale", rp));
+  if (autre > 0) properties.push(ifiProperty("Autre", autre));
+  const r = computeIFI({ properties, childrenData: [] } as any);
+  return {
+    valid: true,
+    assujetti: r.netTaxable > IFI_SEUIL,
+    netTaxable: r.netTaxable,
+    ifi: r.ifi,
+    decote: r.decote,
+    tauxMoyen: r.netTaxable > 0 ? r.ifi / r.netTaxable : 0,
+    bracketFill: r.bracketFill,
   };
 }
 

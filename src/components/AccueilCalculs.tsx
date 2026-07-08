@@ -10,7 +10,7 @@
 // clic extérieur et Échap.
 
 import React, { useEffect, useRef } from "react";
-import { Landmark, Coins, Building2, Gauge, Users, Shield } from "lucide-react";
+import { Landmark, Coins, Gem, Building2, Gauge, Users, Shield } from "lucide-react";
 import { BRAND, SURFACE, FIELD } from "../constants";
 import { CreditCalc } from "./calculs/CreditCalc";
 import { PvImmoCalc } from "./calculs/PvImmoCalc";
@@ -18,8 +18,9 @@ import { IrCalc } from "./calculs/IrCalc";
 import { EndettementCalc } from "./calculs/EndettementCalc";
 import { DmtgCalc } from "./calculs/DmtgCalc";
 import { PrevoyanceCalc } from "./calculs/PrevoyanceCalc";
+import { IfiCalc } from "./calculs/IfiCalc";
 
-export type QuickCalcId = "credit" | "pvImmo" | "ir" | "endettement" | "dmtg" | "prevoyance";
+export type QuickCalcId = "credit" | "pvImmo" | "ir" | "ifi" | "endettement" | "dmtg" | "prevoyance";
 
 type Tile = {
   id: QuickCalcId | null; // null => à venir (Lot 4)
@@ -32,6 +33,7 @@ type Tile = {
 const TILES: Tile[] = [
   { id: "credit", name: "Crédit", desc: "Mensualité et coût total d'un emprunt à partir du capital, du taux et de la durée.", icon: Landmark },
   { id: "ir", name: "Impôt sur le revenu", desc: "Barème, TMI et taux moyen à partir du revenu imposable et de la situation.", icon: Coins },
+  { id: "ifi", name: "Impôt sur la fortune immobilière", desc: "IFI dû, barème et décote à partir du patrimoine immobilier net taxable.", icon: Gem },
   { id: "pvImmo", name: "Plus-value immobilière", desc: "PV nette, abattements de durée, IR et prélèvements sociaux sur une cession.", icon: Building2 },
   { id: "endettement", name: "Capacité d'endettement", desc: "Taux d'effort et mensualité maximale à partir des revenus et charges.", icon: Gauge },
   { id: "dmtg", name: "Donation & succession", desc: "Abattements par lien de parenté et droits (DMTG) sur un montant transmis.", icon: Users },
@@ -139,6 +141,7 @@ export function AccueilCalculs({ onClose, activeCalc, setActiveCalc }: Props) {
           {activeCalc === "credit" && <CreditCalc onClose={() => setActiveCalc(null)} />}
           {activeCalc === "pvImmo" && <PvImmoCalc onClose={() => setActiveCalc(null)} />}
           {activeCalc === "ir" && <IrCalc onClose={() => setActiveCalc(null)} />}
+          {activeCalc === "ifi" && <IfiCalc onClose={() => setActiveCalc(null)} />}
           {activeCalc === "endettement" && <EndettementCalc onClose={() => setActiveCalc(null)} />}
           {activeCalc === "dmtg" && <DmtgCalc onClose={() => setActiveCalc(null)} />}
           {activeCalc === "prevoyance" && <PrevoyanceCalc onClose={() => setActiveCalc(null)} />}

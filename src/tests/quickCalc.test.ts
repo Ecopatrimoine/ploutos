@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseNum, formatEur, formatPct, creditSummary, pvImmoSummary, irSummary, endettementSummary, dmtgSummary, prevoyanceSummary } from "../lib/accueil/quickCalc";
+import { parseNum, formatEur, formatPct, creditSummary, pvImmoSummary, irSummary, endettementSummary, dmtgSummary, prevoyanceSummary, ifiSummary } from "../lib/accueil/quickCalc";
 
 describe("parseNum — saisie tolérante", () => {
   it("espaces (milliers) + virgule décimale", () => {
@@ -211,5 +211,33 @@ describe("prevoyanceSummary — briques dédiées CARMF / CIPAV / CARPIMKO", () 
   it("revenu 0 -> invalide", () => {
     expect(prevoyanceSummary("CARMF", 0, 45).valid).toBe(false);
     expect(prevoyanceSummary("CARPIMKO", 0, 45).valid).toBe(false);
+  });
+});
+
+describe("ifiSummary — consomme computeIFI (barème + décote + abattement 30 % RP)", () => {
+  it("sous le seuil (1,2 M) -> non assujetti, IFI 0", () => {
+    const r = ifiSummary(1200000, 0);
+    expect(r.valid).toBe(true);
+    expect(r.assujetti).toBe(false);
+    expect(r.ifi).toBe(0);
+  });
+  it("zone de décote (1,35 M)", () => {
+    const r = ifiSummary(1350000, 0);
+    expect(r.assujetti).toBe(true);
+    expect(Math.round(r.ifi)).toBe(2225);
+    expect(Math.round(r.decote)).toBe(625);
+  });
+  it("patrimoine élevé (2 M) -> hors décote", () => {
+    const r = ifiSummary(2000000, 0);
+    expect(Math.round(r.ifi)).toBe(7400);
+    expect(r.decote).toBe(0);
+  });
+  it("abattement 30 % résidence principale", () => {
+    const r = ifiSummary(1700000, 1000000); // net taxable = 1,7 M - 0,3 x 1 M = 1,4 M
+    expect(r.netTaxable).toBe(1400000);
+    expect(Math.round(r.ifi)).toBe(3200);
+  });
+  it("patrimoine 0 -> invalide", () => {
+    expect(ifiSummary(0, 0).valid).toBe(false);
   });
 });
