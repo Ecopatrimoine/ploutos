@@ -137,7 +137,7 @@ export function ApercuPdf(p: ApercuPdfProps) {
           <div>
             <h2 style={{ fontSize: 16, fontWeight: 800, color: "#101B3B", margin: 0 }}>Aperçu PDF</h2>
             <div style={{ fontSize: 11.5, color: "#637896", marginTop: 3 }}>
-              {pret ? `${pages ?? "?"} feuille(s) A4 paginées — pagination mesurée, plus de coupe silencieuse.` : "Pagination en cours…"}
+              {pret ? `${pages ?? "?"} pages A4` : "Pagination en cours…"}
             </div>
           </div>
           <button onClick={p.onClose} style={{ background: "transparent", border: "none", fontSize: 22, color: "#637896", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>

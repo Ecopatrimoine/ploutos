@@ -16,6 +16,7 @@
 import React, { useState, useMemo } from "react";
 import { checkCompletude, sortPack, type PackItem, type CompletudeManque } from "../../lib/pdf/v2/popcard/checkCompletude";
 import { type PackOverrides, type PackPayload } from "../../lib/pdf/v2/popcard/concatPack";
+import { plur } from "../../lib/calculs/utils";
 import { ApercuPdf } from "./ApercuPdf";
 
 export type PopcardImpressionProps = {
@@ -50,17 +51,17 @@ type PackItemDef = {
 
 const PACK_ITEMS: PackItemDef[] = [
   // ─── Bilan patrimonial — toggles GOLD (couleur logiciel) ──────────
-  { key: "couverture", label: "Page de couverture", desc: "v2", group: "bilan", subgroup: "Préambule", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
+  { key: "couverture", label: "Page de couverture", desc: "", group: "bilan", subgroup: "Préambule", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   { key: "cabinet", label: "Présentation cabinet", desc: "À propos + démarche en 5 étapes", group: "bilan", subgroup: "Préambule", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   { key: "famille", label: "Composition familiale", desc: "Personnes, statut, régime, enfants à charge", group: "bilan", subgroup: "Préambule", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   { key: "travail", label: "Situation professionnelle", desc: "Revenus actifs + revenus du foyer (foncier, mobiliers)", group: "bilan", subgroup: "Préambule", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
-  { key: "bilanEndettement", label: "Bilan & endettement", desc: "v2", group: "bilan", subgroup: "Synthèse fiscale", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
-  { key: "ir", label: "Impôt sur le revenu (IR)", desc: "v2", group: "bilan", subgroup: "Synthèse fiscale", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
-  { key: "ifi", label: "IFI", desc: "v2", group: "bilan", subgroup: "Synthèse fiscale", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
-  { key: "successionA", label: "Succession civile", desc: "v2 — dévolution + héritiers", group: "bilan", subgroup: "Transmission", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
-  { key: "successionB", label: "Assurance-vie & transmission", desc: "v2 — clause bénéficiaire", group: "bilan", subgroup: "Transmission", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
-  { key: "capitauxDeces", label: "Capitaux décès", desc: "v2 — capitaux exonérés + rentes de survie (n.d. si indisponible)", group: "bilan", subgroup: "Transmission", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
-  { key: "profil", label: "Profil & adéquation MIF II", desc: "v2", group: "bilan", subgroup: "Profil & protection", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
+  { key: "bilanEndettement", label: "Bilan & endettement", desc: "", group: "bilan", subgroup: "Synthèse fiscale", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
+  { key: "ir", label: "Impôt sur le revenu (IR)", desc: "", group: "bilan", subgroup: "Synthèse fiscale", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
+  { key: "ifi", label: "IFI", desc: "", group: "bilan", subgroup: "Synthèse fiscale", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
+  { key: "successionA", label: "Succession civile", desc: "Dévolution + héritiers", group: "bilan", subgroup: "Transmission", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
+  { key: "successionB", label: "Assurance-vie & transmission", desc: "Clause bénéficiaire", group: "bilan", subgroup: "Transmission", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
+  { key: "capitauxDeces", label: "Capitaux décès", desc: "Capitaux exonérés + rentes de survie (n.d. si indisponible)", group: "bilan", subgroup: "Transmission", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
+  { key: "profil", label: "Profil & adéquation MIF II", desc: "", group: "bilan", subgroup: "Profil & protection", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   { key: "prevoyancePersoP1", label: "Prévoyance personnelle (P1)", desc: "Projection arrêt maladie + invalidité — Personne 1", group: "bilan", subgroup: "Profil & protection", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   { key: "prevoyancePersoP2", label: "Prévoyance personnelle (P2)", desc: "Projection arrêt maladie + invalidité — Personne 2", group: "bilan", subgroup: "Profil & protection", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
   { key: "prevoyanceColl", label: "Prévoyance collective", desc: "Audit conformité — dirigeant ou analyse externe", group: "bilan", subgroup: "Profil & protection", bar: "var(--cab-gold)", toggle: "var(--cab-gold)" },
@@ -245,7 +246,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
               color: count === 0 ? "#637896" : "#7C3AED",
               fontSize: 11.5, fontWeight: 700,
             }}>
-              <div><span style={{ fontSize: 14, fontWeight: 800 }}>{count}</span> élément(s) sélectionné(s) — {count === 0 ? "aucun" : `1 PDF contenant ${count} élément(s)`}</div>
+              <div><span style={{ fontSize: 14, fontWeight: 800 }}>{count}</span> {count >= 2 ? "éléments sélectionnés" : "élément sélectionné"} — {count === 0 ? "aucun" : `1 PDF contenant ${plur(count, "élément")}`}</div>
               {orderNote && <div style={{ fontSize: 10.5, fontWeight: 600, marginTop: 4, opacity: .8 }}>{orderNote}</div>}
             </div>
 
@@ -277,7 +278,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
                     ))}
                   </div>
                   <div style={{ fontSize: 10.5, color: "#7E8F9F", marginTop: 6, fontStyle: "italic" }}>
-                    Stocké sous <code style={{ fontFamily: "monospace", fontSize: 10, background: "rgba(15,23,42,.05)", padding: "1px 4px", borderRadius: 3 }}>mission.pdfPaletteOverride</code> — vide = suit cabinet.
+                    Par défaut : palette du cabinet.
                   </div>
                 </OverrideSection>
 
@@ -394,7 +395,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
 
           {/* Footer */}
           <div style={{ padding: "16px 28px 24px", borderTop: "1px solid #D8D2C6", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-            <div style={{ fontSize: 10.5, color: "#7E8F9F", fontStyle: "italic" }}>Overrides persistés dans le dossier client</div>
+            <div style={{ fontSize: 10.5, color: "#7E8F9F", fontStyle: "italic" }}>Réglages enregistrés dans le dossier</div>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={p.onClose} style={{ background: "transparent", color: "#637896", border: "1px solid #D8D2C6", padding: "9px 16px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Annuler</button>
               <button
@@ -443,7 +444,7 @@ export function PopcardImpression(p: PopcardImpressionProps) {
               ))}
             </div>
             <div style={{ padding: "16px 28px 24px", borderTop: "1px solid #D8D2C6", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-              <div style={{ fontSize: 10.5, color: "#7E8F9F", fontStyle: "italic" }}>{missing.reduce((s, m) => s + m.fields.length, 0)} champ(s) manquant(s)</div>
+              <div style={{ fontSize: 10.5, color: "#7E8F9F", fontStyle: "italic" }}>{plur(missing.reduce((s, m) => s + m.fields.length, 0), "champ manquant", "champs manquants")}</div>
               <div style={{ display: "flex", gap: 10 }}>
                 <button onClick={() => setCheckOpen(false)} style={{ background: "transparent", color: "#637896", border: "1px solid #D8D2C6", padding: "9px 16px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>← Compléter d'abord</button>
                 <button onClick={onForceContinue} style={{ background: "#92400E", color: "#fff", border: "none", padding: "9px 18px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 1px 3px rgba(146,64,14,.4)" }}>Continuer quand même →</button>
@@ -522,7 +523,7 @@ function PackToggle({ item, checked, onToggle }: { item: PackItemDef; checked: b
       <span style={{ width: 3, height: 28, borderRadius: 1.5, flex: "none", opacity: checked ? 1 : 0.7, background: item.bar }} />
       <span style={{ flex: 1, lineHeight: 1.3, minWidth: 0 }}>
         <strong style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#0F172A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.label}</strong>
-        <span style={{ display: "block", fontSize: 9.5, color: "#637896", marginTop: 1 }}>{item.desc}</span>
+        {item.desc && <span style={{ display: "block", fontSize: 9.5, color: "#637896", marginTop: 1 }}>{item.desc}</span>}
       </span>
     </label>
   );
