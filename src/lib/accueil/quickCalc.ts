@@ -5,6 +5,8 @@
 
 import { calcMonthlyPayment } from "../calculs/credit";
 import { computePvImmobiliere, type PvImmobiliereResult } from "../calculs/pvImmobiliere";
+import { computeBaremeNet, computeIRConcubin, getChildrenFiscalParts } from "../calculs/utils";
+import type { Child } from "../../types/patrimoine";
 
 // Saisie tolérante : espaces (séparateurs de milliers) + virgule décimale.
 export function parseNum(s: string): number {
@@ -53,4 +55,43 @@ export function pvImmoSummary(prixAcquisition: number, prixCession: number, dure
   const valid = prixAcquisition > 0 && prixCession > 0 && dureeAnnees >= 0;
   const r = computePvImmobiliere({ prixAcquisition, prixCession, age: dureeAnnees });
   return { ...r, valid, exonereIr: r.abattementIr >= 1, exonerePs: r.abattementPs >= 1 };
+}
+
+// ── IR barème ───────────────────────────────────────────────────────────────
+// CONSOMME computeBaremeNet (barème + plafonnement QF + décote), computeIRConcubin
+// (tranche marginale du quotient) et getChildrenFiscalParts (demi-parts enfants).
+// TMI affichée reproduit EXACTEMENT tmiEffective.ts : plafonnement actif -> tranche
+// de référence (revenu/baseParts) ; sinon tranche du quotient (revenu/parts).
+export type IrSummary = {
+  valid: boolean;
+  impot: number;
+  tmi: number;        // taux marginal affiché (fraction, ex. 0.30)
+  tauxMoyen: number;  // fraction
+  parts: number;
+  plafonnementActif: boolean;
+};
+
+export function irSummary(revenuImposable: number, couple: boolean, nbEnfants: number): IrSummary {
+  const baseParts = couple ? 2 : 1;
+  if (!(revenuImposable > 0)) {
+    return { valid: false, impot: 0, tmi: 0, tauxMoyen: 0, parts: baseParts, plafonnementActif: false };
+  }
+  const n = Math.max(0, Math.floor(nbEnfants));
+  // Enfants à charge simples (garde exclusive, non handicapés) : la règle des
+  // demi-parts est appliquée par getChildrenFiscalParts (moteur), pas ici.
+  const children: Child[] = Array.from({ length: n }, () => ({ rattached: true, custody: "full", handicap: false } as Child));
+  const childrenParts = getChildrenFiscalParts(children);
+  const parts = baseParts + childrenParts;
+  const parentIsole = !couple && childrenParts > 0; // célibataire avec enfants = case T
+  const bn = computeBaremeNet({ revenuImposable, parts, baseParts, isCouple: couple, parentIsole });
+  const mr = computeIRConcubin(revenuImposable, parts).marginalRate;
+  const tmi = bn.plafonnementActif ? bn.marginalRateReference : mr;
+  return {
+    valid: true,
+    impot: bn.bareme,
+    tmi,
+    tauxMoyen: bn.bareme / revenuImposable,
+    parts,
+    plafonnementActif: bn.plafonnementActif,
+  };
 }

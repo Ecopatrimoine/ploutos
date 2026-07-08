@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseNum, formatEur, formatPct, creditSummary, pvImmoSummary } from "../lib/accueil/quickCalc";
+import { parseNum, formatEur, formatPct, creditSummary, pvImmoSummary, irSummary } from "../lib/accueil/quickCalc";
 
 describe("parseNum — saisie tolérante", () => {
   it("espaces (milliers) + virgule décimale", () => {
@@ -99,5 +99,42 @@ describe("pvImmoSummary — consomme computePvImmobiliere", () => {
   it("invalide si un prix manque", () => {
     expect(pvImmoSummary(0, 300000, 10).valid).toBe(false);
     expect(pvImmoSummary(200000, 0, 10).valid).toBe(false);
+  });
+});
+
+describe("irSummary — consomme computeBaremeNet + computeIRConcubin + getChildrenFiscalParts", () => {
+  it("tranche 0 % (revenu faible)", () => {
+    const r = irSummary(10000, false, 0);
+    expect(r.valid).toBe(true);
+    expect(Math.round(r.impot)).toBe(0);
+    expect(r.tmi).toBe(0);
+  });
+  it("célibataire 30000 -> tranche 30 %", () => {
+    const r = irSummary(30000, false, 0);
+    expect(Math.round(r.impot)).toBe(2104);
+    expect(r.tmi).toBe(0.3);
+  });
+  it("saut de tranche à 29579 / 29580 (TMI bascule 11 % -> 30 %)", () => {
+    expect(irSummary(29579, false, 0).tmi).toBe(0.11);
+    expect(irSummary(29580, false, 0).tmi).toBe(0.3);
+  });
+  it("couple 60000 -> 2 parts", () => {
+    const r = irSummary(60000, true, 0);
+    expect(Math.round(r.impot)).toBe(4208);
+    expect(r.parts).toBe(2);
+  });
+  it("enfants -> demi-parts via getChildrenFiscalParts", () => {
+    const r = irSummary(40000, false, 2);
+    expect(r.parts).toBe(2); // 1 part de base + 2 x 0,5
+    expect(Math.round(r.impot)).toBe(1787);
+  });
+  it("plafonnement QF actif -> TMI = tranche de référence", () => {
+    const r = irSummary(150000, false, 3);
+    expect(r.plafonnementActif).toBe(true);
+    expect(r.tmi).toBe(0.41);
+    expect(Math.round(r.impot)).toBe(35618);
+  });
+  it("revenu 0 -> invalide", () => {
+    expect(irSummary(0, false, 0).valid).toBe(false);
   });
 });

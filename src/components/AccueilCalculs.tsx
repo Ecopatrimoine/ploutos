@@ -14,8 +14,9 @@ import { Landmark, Coins, Building2, Gauge, Users, Shield } from "lucide-react";
 import { BRAND, SURFACE, FIELD } from "../constants";
 import { CreditCalc } from "./calculs/CreditCalc";
 import { PvImmoCalc } from "./calculs/PvImmoCalc";
+import { IrCalc } from "./calculs/IrCalc";
 
-export type QuickCalcId = "credit" | "pvImmo";
+export type QuickCalcId = "credit" | "pvImmo" | "ir";
 
 type Tile = {
   id: QuickCalcId | null; // null => à venir (Lot 4)
@@ -27,7 +28,7 @@ type Tile = {
 // Ordre de la maquette. Les 4 tuiles à venir (id null) sont grisées.
 const TILES: Tile[] = [
   { id: "credit", name: "Crédit", desc: "Mensualité et coût total d'un emprunt à partir du capital, du taux et de la durée.", icon: Landmark },
-  { id: null, name: "Impôt sur le revenu", desc: "Barème, TMI et taux effectif à partir du revenu imposable et du nombre de parts.", icon: Coins },
+  { id: "ir", name: "Impôt sur le revenu", desc: "Barème, TMI et taux moyen à partir du revenu imposable et de la situation.", icon: Coins },
   { id: "pvImmo", name: "Plus-value immobilière", desc: "PV nette, abattements de durée, IR et prélèvements sociaux sur une cession.", icon: Building2 },
   { id: null, name: "Capacité d'endettement", desc: "Taux d'effort et mensualité maximale à partir des revenus et charges.", icon: Gauge },
   { id: null, name: "Donation & succession", desc: "Abattements par lien de parenté et droits (DMTG) sur un montant transmis.", icon: Users },
@@ -118,6 +119,7 @@ export function AccueilCalculs({ onClose, activeCalc, setActiveCalc }: Props) {
           {/* Panneaux calculettes */}
           {activeCalc === "credit" && <CreditCalc onClose={() => setActiveCalc(null)} />}
           {activeCalc === "pvImmo" && <PvImmoCalc onClose={() => setActiveCalc(null)} />}
+          {activeCalc === "ir" && <IrCalc onClose={() => setActiveCalc(null)} />}
         </div>
       </div>
     </div>
