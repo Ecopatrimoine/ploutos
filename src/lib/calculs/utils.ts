@@ -70,6 +70,15 @@ export function euro(v: unknown): string {
   }).format(n(v));
 }
 
+// Ticks d'axe (Lot 4 C3) : euros pleins par defaut ; format compact (M€ / Md€)
+// UNIQUEMENT au-dela du seuil ou l'euro complet deborderait de l'axe (montants
+// extremes hors clientele reelle ; en pratique les patrimoines restent << 100 M).
+export function euroTick(v: number): string {
+  if (v >= 1_000_000_000) return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(v / 1e9)} Md€`;
+  if (v >= 100_000_000)   return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(v / 1e6)} M€`;
+  return euro(v);
+}
+
 export function isAV(type: string): boolean {
   return AV_TYPES.includes(type);
 }
