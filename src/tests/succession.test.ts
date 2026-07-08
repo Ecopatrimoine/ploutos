@@ -750,3 +750,56 @@ describe("computeSuccession — LOT 3 périmètre et totaux", () => {
     expect(s.totalAvRights).toBeCloseTo(49500, 0)
   })
 })
+
+// ─── C5 — KPI "Net transmis aux heritiers" : perimetre heritiers vs bloc AV ──
+// AV repartie entre conjoint (heritier, exonere TEPA), enfant (heritier, taxable)
+// et un tiers (NON heritier). Le KPI ne compte que l'AV des heritiers ; le tiers
+// figure dans le bloc AV (tous beneficiaires). Voie 2 : sous-titre clarifie, pas
+// de rattachement heuristique.
+describe("computeSuccession — C5 KPI heritiers vs bloc AV (tous beneficiaires)", () => {
+  const dossierAvTiers = {
+    ...BASE_DATA,
+    placements: [{
+      name: "AV", type: "Assurance-vie fonds euros", ownership: "person1", value: "700000",
+      annualIncome: "0", taxableIncome: "0", deathValue: "700000", openDate: "2000-01-01",
+      pfuEligible: false, pfuOptOut: false, totalPremiumsNet: "700000", premiumsBefore70: "700000", premiumsAfter70: "0",
+      exemptFromSuccession: "0", ucRatio: "0", annualWithdrawal: "", annualContribution: "0", perDeductible: false,
+      beneficiaries: [
+        { name: "Marie Martin", relation: "conjoint", share: "40" },
+        { name: "Enfant Martin", relation: "enfant", share: "30" },
+        { name: "Tiers Ext", relation: "autre", share: "30" },
+      ],
+    }],
+  }
+
+  it("le tiers AV n'entre pas dans le KPI (non heritier) mais figure dans le bloc AV", () => {
+    const s = computeSuccession(BASE_SUCCESSION, dossierAvTiers)
+    expect(s.results.some(r => r.name === "Tiers Ext")).toBe(false)          // pas heritier
+    expect(s.avLines.some(l => l.beneficiary === "Tiers Ext")).toBe(true)    // present dans le bloc AV
+  })
+
+  it("conjoint beneficiaire exonere TEPA : AV rattachee et nette = pleine part", () => {
+    const s = computeSuccession(BASE_SUCCESSION, dossierAvTiers)
+    const conjoint = s.results.find(r => r.relation === "conjoint")!
+    expect(conjoint.avDuties).toBe(0)                 // exonere TEPA
+    expect(conjoint.avNetReceived).toBe(280000)       // 40 % x 700 000
+  })
+
+  it("enfant beneficiaire taxable : fiscalite AV > 0 (part 210 000 > abattement 152 500)", () => {
+    const s = computeSuccession(BASE_SUCCESSION, dossierAvTiers)
+    const enfant = s.results.find(r => r.relation === "enfant")!
+    expect(enfant.avDuties).toBeGreaterThan(0)
+  })
+
+  it("reconciliation : KPI = somme des cards heritiers ; bloc AV = heritiers + tiers", () => {
+    const s = computeSuccession(BASE_SUCCESSION, dossierAvTiers)
+    const kpi = s.results.reduce((a, r) => a + (r.partRecueFiscale - r.successionDuties + r.avNetReceived), 0)
+    const kpiCards = s.results.reduce((a, r) => a + r.netFiscal, 0)
+    expect(kpi).toBeCloseTo(kpiCards, 2)              // KPI = somme des cards
+    const heirAvNet = s.results.reduce((a, r) => a + r.avNetReceived, 0)
+    const blocAvNet = s.avLines.reduce((a, l) => a + (l.amount - l.totalTax), 0)
+    const tiers = s.avLines.find(l => l.beneficiary === "Tiers Ext")!
+    // le bloc AV depasse l'AV des heritiers d'exactement la part nette du tiers
+    expect(blocAvNet - heirAvNet).toBeCloseTo(tiers.amount - tiers.totalTax, 2)
+  })
+})
