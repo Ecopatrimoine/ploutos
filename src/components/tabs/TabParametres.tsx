@@ -4,9 +4,19 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CardAccentTop } from "../CardAccentTop";
 import { TabsContent } from "@/components/ui/tabs";
-import { Upload, Settings } from "lucide-react";
-import { BRAND } from "../../constants";
+import { Upload, Settings, RotateCcw, Undo2 } from "lucide-react";
+import { BRAND, CABINET_COLOR_DEFAULTS } from "../../constants";
 import { SectionTitle } from "../shared";
+
+// R4 — Couleurs cabinet : libellés de ROLE stables (mapping 1-1 sur les clés
+// existantes, ordre inchangé — on ne réordonne pas les valeurs stockées).
+const CABINET_COLOR_ROLES: { key: string; label: string }[] = [
+  { key: "colorNavy", label: "Couleur principale" },
+  { key: "colorSky", label: "Couleur secondaire" },
+  { key: "colorBlue", label: "Accent" },
+  { key: "colorGold", label: "Accent chaud" },
+  { key: "colorCream", label: "Fond clair" },
+];
 
 // ─── TabParametres v2 — Cabinet refondu (Lot Paramètres v2) ──────────────────
 //
@@ -29,6 +39,18 @@ const TabParametres = React.memo(function TabParametres(props: any) {
   const { cabinet, updateCabinet, logoSrc, signatureSrc, setSignatureSrc, handleLogoUpload, handleSignatureUpload } = props;
 
   const [activeTab, setActiveTab] = useState<"statuts" | "identite" | "apparence">("statuts");
+
+  // R4 — Snapshot des 5 couleurs pris a l'ouverture de la vue (montage du composant :
+  // vue autonome ET onglet intra-dossier remontent a chaque ouverture). Les modifs
+  // etant auto-sauvegardees, ce snapshot = dernier etat sauvegarde a l'ouverture.
+  const [colorSnapshot] = useState<Record<string, string>>(() => {
+    const snap: Record<string, string> = {};
+    for (const { key } of CABINET_COLOR_ROLES) snap[key] = cabinet[key];
+    return snap;
+  });
+  const colorsDirty = CABINET_COLOR_ROLES.some(({ key }) => cabinet[key] !== colorSnapshot[key]);
+  const resetColorsToSnapshot = () =>
+    CABINET_COLOR_ROLES.forEach(({ key }) => updateCabinet(key, colorSnapshot[key]));
 
   // ─── Cards détails conditionnelles + layout adaptatif ─────────────────
   const showAssurance = !!cabinet.statutCoa || !!cabinet.statutMia;
@@ -493,39 +515,56 @@ const TabParametres = React.memo(function TabParametres(props: any) {
                 </div>
               </SubCard>
 
-              {/* Card 12 — 5 couleurs cabinet (pleine largeur) */}
+              {/* Card 12 — 5 couleurs cabinet (pleine largeur) — R4 : roles, annuler, reset */}
               <SubCard fullSpan>
-                <CardHead
-                  title="Couleurs du cabinet (5 couleurs)"
-                  sub={<>Saisie de référence des couleurs cabinet. Sera utilisée par la <strong>pop-card d'impression</strong> (Dossier client, à venir) quand le toggle palette y est positionné sur « Couleurs du cabinet ». Pas de toggle ici — la saisie reste un paramètre cabinet, le choix d'usage est per-document.</>}
-                />
-                <div className="grid grid-cols-5 gap-3">
-                  {([
-                    ["colorNavy", "Navy"],
-                    ["colorSky", "Sky"],
-                    ["colorBlue", "Blue"],
-                    ["colorGold", "Or"],
-                    ["colorCream", "Cream"],
-                  ] as [string, string][]).map(([key, label]) => (
-                    <div key={key} className="flex flex-col items-center text-center">
-                      <label className="relative cursor-pointer">
-                        <div className="w-11 h-11 rounded-xl border border-[#D8D2C6] shadow-sm mb-1.5" style={{ background: cabinet[key] }} />
+                <div className="flex justify-between items-start gap-3">
+                  <CardHead
+                    title="Couleurs du cabinet (5 couleurs)"
+                    sub={<>Saisie de référence des couleurs cabinet. Sera utilisée par la <strong>pop-card d'impression</strong> (Dossier client, à venir) quand le toggle palette y est positionné sur « Couleurs du cabinet ». Pas de toggle ici — la saisie reste un paramètre cabinet, le choix d'usage est per-document.</>}
+                  />
+                  {colorsDirty && (
+                    <button
+                      onClick={resetColorsToSnapshot}
+                      title="Restaurer les couleurs telles qu'à l'ouverture"
+                      className="flex-none inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-1.5 border border-[#D8D2C6] bg-white hover:border-[#C4973D] transition-colors"
+                      style={{ color: BRAND.navy }}
+                    >
+                      <Undo2 className="h-3.5 w-3.5" /> Annuler les modifications
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-5 gap-3 mt-2">
+                  {CABINET_COLOR_ROLES.map(({ key, label }) => {
+                    const isDefault = (cabinet[key] || "").toLowerCase() === CABINET_COLOR_DEFAULTS[key].toLowerCase();
+                    return (
+                      <div key={key} className="flex flex-col items-center text-center">
+                        <label className="relative cursor-pointer">
+                          <div className="w-11 h-11 rounded-xl border border-[#D8D2C6] shadow-sm mb-1.5" style={{ background: cabinet[key] }} />
+                          <input
+                            type="color"
+                            value={cabinet[key]}
+                            onChange={e => updateCabinet(key, e.target.value)}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                          />
+                        </label>
                         <input
-                          type="color"
+                          type="text"
                           value={cabinet[key]}
                           onChange={e => updateCabinet(key, e.target.value)}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          className="w-18 text-center rounded-lg px-1 py-1 text-[11px] font-mono border border-[#E8E3D9]"
                         />
-                      </label>
-                      <input
-                        type="text"
-                        value={cabinet[key]}
-                        onChange={e => updateCabinet(key, e.target.value)}
-                        className="w-18 text-center rounded-lg px-1 py-1 text-[11px] font-mono border border-[#E8E3D9]"
-                      />
-                      <div className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-bold">{label}</div>
-                    </div>
-                  ))}
+                        <div className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-bold leading-tight">{label}</div>
+                        <button
+                          onClick={() => updateCabinet(key, CABINET_COLOR_DEFAULTS[key])}
+                          disabled={isDefault}
+                          title={isDefault ? "Déjà à la valeur par défaut" : "Réinitialiser à la charte"}
+                          className="mt-1 inline-flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-700 disabled:opacity-0 disabled:pointer-events-none transition-colors"
+                        >
+                          <RotateCcw className="h-3 w-3" /> Défaut
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </SubCard>
 
