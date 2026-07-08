@@ -5,7 +5,7 @@
 
 import { calcMonthlyPayment } from "../calculs/credit";
 import { computePvImmobiliere, type PvImmobiliereResult } from "../calculs/pvImmobiliere";
-import { computeBaremeNet, computeIRConcubin, getChildrenFiscalParts, computeTaxFromBrackets } from "../calculs/utils";
+import { computeBaremeNet, computeIRConcubin, getChildrenFiscalParts, computeTaxFromBrackets, pct } from "../calculs/utils";
 import { getDonationTaxProfile } from "../calculs/donation";
 import { computeIFI } from "../calculs/ifi";
 import { referentiels } from "../../data/prevoyance";
@@ -28,8 +28,9 @@ export function formatEur(v: number): string {
   return Number.isFinite(v) ? v.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €" : "—";
 }
 
+// Lot 5 — delegue au formateur FR unique pct() (espace insecable avant %).
 export function formatPct(frac: number): string {
-  return (frac * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " %";
+  return pct(frac);
 }
 
 // ── Crédit ────────────────────────────────────────────────────────────────────
