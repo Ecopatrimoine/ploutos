@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Upload, Plus, Trash2, Database, Settings, ArrowLeft } from "lucide-react";
+import { Download, Upload, Plus, Trash2, Database, Settings, ArrowLeft, User } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, CartesianGrid
@@ -1569,8 +1569,8 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
               })}
             </TabsList>
             <TabsList className="p-1.5" style={{ background: SURFACE.card, border: `2px solid ${SURFACE.border}`, borderRadius: 14, height: "52px", boxShadow: SURFACE.cardShadow }}>
-              <TabsTrigger value="mission" className="flex items-center justify-center px-4 font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.muted, fontSize: 12 }}>
-                👤 Dossier client
+              <TabsTrigger value="mission" className="flex items-center justify-center gap-1.5 px-4 font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.muted, fontSize: 12 }}>
+                <User className="h-4 w-4" aria-hidden="true" /> Dossier client
               </TabsTrigger>
             </TabsList>
             <TabsList className="p-1.5" style={{ background: SURFACE.card, border: `2px solid ${SURFACE.border}`, borderRadius: 14, height: "52px", boxShadow: SURFACE.cardShadow }}>

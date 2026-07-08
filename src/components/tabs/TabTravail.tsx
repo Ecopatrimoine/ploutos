@@ -7,7 +7,7 @@ import { Briefcase, ShieldCheck, Stethoscope } from "lucide-react";
 import { BRAND, SURFACE, PCS_GROUPES, PCS_CATEGORIES } from "../../constants";
 import type { PayloadTravail, PayloadTravailPair, PayloadPrevoyancePerso } from "../../types/patrimoine";
 import { isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, isIndependant } from "../../lib/calculs/utils";
-import { Field, SectionTitle } from "../shared";
+import { Field, SectionTitle, Pastille } from "../shared";
 import { BlocStatutEmployeur } from "../travail/BlocStatutEmployeur";
 import { createEmptyTravail, getPrevoyancePerso, patchPrevoyancePair, suggestStatutFromCsp } from "../../lib/prevoyance/utils";
 import { STATUTS_TNS, STATUTS_SALARIE } from "../../lib/prevoyance/constants";
@@ -195,13 +195,13 @@ const TabTravail = React.memo(function TabTravail(props: any) {
               color: isIndependant(groupe) ? BRAND.gold : BRAND.sky,
               border: `1px solid ${isIndependant(groupe) ? "rgba(227,175,100,0.3)" : "rgba(81,106,199,0.2)"}`,
             }}>
-              {isRetraite(groupe) && "🔵 Retraité — revenus de pension"}
-              {isSansActivite(groupe) && "⚪ Sans activité professionnelle"}
-              {groupe === "1" && "🟡 Indépendant — Bénéfices Agricoles (BA)"}
-              {groupe === "2" && !isProfessionLiberale(categorie) && "🟡 Indépendant — BIC (artisan / commerçant)"}
-              {isProfessionLiberale(categorie) && "🟡 Indépendant — BNC (profession libérale)"}
-              {["3","4","5","6"].includes(groupe) && !isProfessionLiberale(categorie) && isFonctionnaire(categorie) && "🟢 Fonctionnaire — salarié du secteur public (IR identique, retraite spécifique)"}
-              {["3","4","5","6"].includes(groupe) && !isProfessionLiberale(categorie) && !isFonctionnaire(categorie) && "🔵 Salarié — revenus traitement & salaires"}
+              {isRetraite(groupe) && <Pastille color={BRAND.sky}>Retraité — revenus de pension</Pastille>}
+              {isSansActivite(groupe) && <Pastille color={BRAND.muted}>Sans activité professionnelle</Pastille>}
+              {groupe === "1" && <Pastille color={BRAND.gold}>Indépendant — Bénéfices Agricoles (BA)</Pastille>}
+              {groupe === "2" && !isProfessionLiberale(categorie) && <Pastille color={BRAND.gold}>Indépendant — BIC (artisan / commerçant)</Pastille>}
+              {isProfessionLiberale(categorie) && <Pastille color={BRAND.gold}>Indépendant — BNC (profession libérale)</Pastille>}
+              {["3","4","5","6"].includes(groupe) && !isProfessionLiberale(categorie) && isFonctionnaire(categorie) && <Pastille color={BRAND.success}>Fonctionnaire — salarié du secteur public (IR identique, retraite spécifique)</Pastille>}
+              {["3","4","5","6"].includes(groupe) && !isProfessionLiberale(categorie) && !isFonctionnaire(categorie) && <Pastille color={BRAND.sky}>Salarié — revenus traitement & salaires</Pastille>}
             </div>
           )}
 
