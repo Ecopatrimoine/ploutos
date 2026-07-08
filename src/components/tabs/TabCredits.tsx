@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
-import { Plus, Trash2, Download, Upload, Settings } from "lucide-react";
+import { Plus, Trash2, Download, Upload, Settings, AlertTriangle, Check } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
@@ -114,7 +114,7 @@ const TabCredits = React.memo(function TabCredits(props: any) {
         </div>
         {loan.loanType === "familial" && (
           <div className="text-xs rounded-xl px-3 py-1.5" style={{ background: BRAND.warningBg, color: BRAND.warning, border: `1px solid ${BRAND.warningBorder}` }}>
-            ⚠️ Prêt familial : non déductible de l'IFI (art. 974 III CGI)
+            <AlertTriangle className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />Prêt familial : non déductible de l'IFI (art. 974 III CGI)
           </div>
         )}
       </CardContent>
@@ -137,7 +137,7 @@ const TabCredits = React.memo(function TabCredits(props: any) {
             <div className="text-xs" style={{ color: BRAND.muted }}>Taux d'endettement</div>
             <div className="text-xl font-black" style={{ color: BRAND.navy }}>{res.tauxPct} %</div>
             <div className="text-xs font-bold" style={{ color: over ? BRAND.danger : BRAND.success }}>
-              {over ? "⚠ Seuil HCSF : 35 %" : "✓ Sous le seuil HCSF (35 %)"}
+              {over ? <><AlertTriangle className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />Seuil HCSF : 35 %</> : <><Check className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />Sous le seuil HCSF (35 %)</>}
             </div>
           </div>
         ) : null}
