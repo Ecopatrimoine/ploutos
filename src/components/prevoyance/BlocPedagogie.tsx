@@ -19,6 +19,7 @@
 import React from "react";
 import type { ProjectionResult } from "../../lib/prevoyance/types";
 import { BRAND, SURFACE } from "../../constants";
+import { formatDureeArret } from "../../lib/calculs/utils";
 
 // Palette charte (miroir de ProjectionChart.COL — SPEC_PREVOYANCE_UI_GRAPHIQUE §5).
 const COL = {
@@ -65,7 +66,7 @@ function libelleJour(jour: number, basculeJour: number): string {
   if (jour === 0) return "le 1er jour d'arrêt";
   if (jour < 100) return `le ${jour}e jour d'arrêt`;
   if (jour < 365) return `${Math.round(jour / 30)} mois d'arrêt`;
-  return `${(jour / 365).toFixed(1)} ans d'arrêt`;
+  return `${formatDureeArret(jour)} d'arrêt`; // C3 — "18 mois d'arret" / "3 ans d'arret"
 }
 
 // ─────────────────────────────────────────────────────────────────────
