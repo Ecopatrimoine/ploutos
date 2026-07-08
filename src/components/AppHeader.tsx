@@ -33,7 +33,7 @@ export type AppHeaderProps = {
   defaultLogoSrc: string;
   clientName: string;
   setClientName: (v: string) => void;
-  autoSaveStatus: "idle" | "saving" | "saved";
+  autoSaveStatus: "idle" | "saving" | "saved" | "error";
   lastSavedAt: Date | null;
   onSave: () => void;
   onLoad: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -61,7 +61,10 @@ export function AppHeader(p: AppHeaderProps) {
   };
 
   const statutSauvegarde = composeStatutSauvegarde(p.autoSaveStatus, p.lastSavedAt, tick);
-  const statutCouleur = p.autoSaveStatus === "saved" ? "#2F7D5B" : p.cabColors.sky;
+  const statutCouleur =
+    p.autoSaveStatus === "saved" ? "#2F7D5B"
+    : p.autoSaveStatus === "error" ? "#B45309"  // ambre : etat transitoire, nouvelle tentative
+    : p.cabColors.sky;
 
   // Couleur de fallback pour blue (certains cabinets n'ont pas colorBlue)
   const cabBlue = p.cabColors.blue || p.cabColors.sky;
@@ -257,12 +260,13 @@ export function AppHeader(p: AppHeaderProps) {
 
 // ─── Helper : "il y a 2 min" / "il y a 1 h" / "à l'instant" / ── ──
 function composeStatutSauvegarde(
-  status: "idle" | "saving" | "saved",
+  status: "idle" | "saving" | "saved" | "error",
   lastSavedAt: Date | null,
   _tick: number,  // forçage ré-render via dépendance externe
 ): string {
   if (status === "saving") return "Sauvegarde en cours…";
   if (status === "saved")  return "Sauvegardé à l'instant";
+  if (status === "error")  return "Non synchronisé — nouvelle tentative…";
   if (!lastSavedAt) return "";
   const diffSec = Math.floor((Date.now() - lastSavedAt.getTime()) / 1000);
   if (diffSec < 60)       return "Sauvegardé à l'instant";

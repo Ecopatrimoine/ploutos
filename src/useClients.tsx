@@ -157,15 +157,43 @@ async function deleteFromSupabase(userId: string, clientId: string): Promise<voi
   if (error) throw error;
 }
 
-// Fusion intelligente : le plus récent updated_at gagne
-function mergeClients(local: ClientRecord[], remote: ClientRecord[]): ClientRecord[] {
+// Un dossier est "vide" tant que son payload ne porte pas de donnee metier
+// (payload.data absent ou objet vide). C'est l'etat d'un dossier fraichement cree
+// (createClient pose payload: { clientName }, sans cle data) ; le 1er autosave y
+// injecte data. Fonction pure et testable.
+export function hasClientData(record: ClientRecord | null | undefined): boolean {
+  const data = record?.payload?.data;
+  if (data == null) return false;
+  if (Array.isArray(data)) return data.length > 0;
+  if (typeof data === "object") return Object.keys(data as Record<string, unknown>).length > 0;
+  return true; // valeur data non-objet non nulle → consideree presente
+}
+
+// Departage pur entre deux versions d'un MEME dossier (meme id).
+// Regle : le plus recent (updatedAt) gagne, SAUF s'il est vide face a un non-vide
+// (un payload sans data ne supplante JAMAIS un payload avec data) ; a updatedAt
+// egal, preference au non-vide ; a defaut de critere distinctif, statu quo sur `a`.
+export function pickClientWinner(a: ClientRecord, b: ClientRecord): ClientRecord {
+  const aHas = hasClientData(a);
+  const bHas = hasClientData(b);
+  // Vide vs non-vide : le non-vide gagne, quel que soit updatedAt.
+  if (aHas !== bHas) return aHas ? a : b;
+  // Meme richesse (deux vides ou deux non-vides) : le plus recent gagne.
+  const ta = new Date(a.updatedAt).getTime();
+  const tb = new Date(b.updatedAt).getTime();
+  if (tb > ta) return b;
+  return a; // ta > tb, ou egalite → statu quo sur `a`
+}
+
+// Fusion : remote sert de base, le local (souvent porteur des saisies non encore
+// synchronisees) departage ensuite via pickClientWinner. Un record vide ne peut
+// donc jamais ecraser un record porteur de donnees.
+export function mergeClients(local: ClientRecord[], remote: ClientRecord[]): ClientRecord[] {
   const map = new Map<string, ClientRecord>();
   for (const c of remote) map.set(c.id, c);
   for (const c of local) {
     const existing = map.get(c.id);
-    if (!existing || new Date(c.updatedAt) > new Date(existing.updatedAt)) {
-      map.set(c.id, c);
-    }
+    map.set(c.id, existing ? pickClientWinner(existing, c) : c);
   }
   return [...map.values()];
 }
@@ -233,13 +261,29 @@ export function useClients(userId: string, authState = "authenticated") {
       fetchWithTimeout
         .then(async (remoteClients) => {
           if (cancelled) return;
-          const merged = mergeClients(localClients, remoteClients as ClientRecord[]);
-          setClients(merged);
-          saveClientsLocal(userId, merged);
+          // Re-lecture FRAICHE du local au moment du merge : le snapshot capture au
+          // montage (localClients) peut etre perime si un dossier a ete cree/saisi
+          // pendant que le fetch Supabase etait en vol (course load/save). On merge
+          // donc contre l'etat local courant, jamais contre l'instantane du montage.
+          const freshLocal = await loadLocal();
+          if (cancelled) return;
+          const merged = mergeClients(freshLocal, remoteClients as ClientRecord[]);
+          // Un dossier en attente de push (saisie locale non encore synchronisee) ne
+          // doit JAMAIS etre ecrase par la version remote : on force la version locale
+          // fraiche pour tout id present dans pendingRef.
+          const freshById = new Map(freshLocal.map((c) => [c.id, c]));
+          const guarded = merged.map((c) =>
+            pendingRef.current.has(c.id) && freshById.has(c.id)
+              ? (freshById.get(c.id) as ClientRecord)
+              : c,
+          );
+          setClients(guarded);
+          saveClientsLocal(userId, guarded);
 
-          // Pousser les modifications locales en attente
+          // Pousser les modifications locales en attente (version fraiche, porteuse
+          // des donnees — jamais le record vide capture au montage).
           if (pendingRef.current.size > 0) {
-            const toSync = merged.filter((c) => pendingRef.current.has(c.id));
+            const toSync = guarded.filter((c) => pendingRef.current.has(c.id));
             await Promise.all(toSync.map((c) => upsertToSupabase(userId, c)));
             await Promise.all([...deletedRef.current].map((id) => deleteFromSupabase(userId, id)));
             pendingRef.current.clear();
@@ -247,7 +291,7 @@ export function useClients(userId: string, authState = "authenticated") {
             savePendingIds(userId, pendingRef.current);
           }
 
-          console.log("[useClients] Sync success, merged:", merged.length, "clients");
+          console.log("[useClients] Sync success, merged:", guarded.length, "clients");
           if (!cancelled) setSyncStatus("synced");
         })
         .catch((err: any) => {
@@ -276,15 +320,21 @@ export function useClients(userId: string, authState = "authenticated") {
   }, []);
 
   // ── Sync arrière-plan ──
-  const syncOne = useCallback(async (uid: string, client: ClientRecord) => {
-    if (!uid) return;
+  // Retourne true si le push a effectivement abouti, false sinon. L'echec n'est PAS
+  // avale silencieusement : il est journalise, le dossier reste "pending" (donc
+  // reproposable a la synchro), et l'appelant (autosave) peut afficher un statut honnete.
+  const syncOne = useCallback(async (uid: string, client: ClientRecord): Promise<boolean> => {
+    if (!uid) return false;
     try {
       await upsertToSupabase(uid, client);
       pendingRef.current.delete(client.id);
       savePendingIds(uid, pendingRef.current);
       if (pendingRef.current.size === 0) setSyncStatus("synced");
-    } catch {
+      return true;
+    } catch (err: any) {
+      console.warn("[useClients] syncOne echec:", err?.message || err);
       setSyncStatus("pending");
+      return false;
     }
   }, []);
 
@@ -360,11 +410,18 @@ export function useClients(userId: string, authState = "authenticated") {
     });
     // Side effects HORS du setState
     setSyncStatus("pending");
-    syncOne(userId, client);
+    // Ne PAS pousser un dossier encore vide (payload.data absent) : un record vide
+    // pousse a la creation gagnerait la course au reload face a la 1re saisie. Le
+    // dossier reste marque "pending" (persist) ; le 1er autosave porteur de data le
+    // poussera via saveClient. hasClientData(client) est faux ici par construction.
+    if (hasClientData(client)) syncOne(userId, client);
     return client;
   }, [userId, persist, syncOne]);
 
-  const saveClient = useCallback((id: string, payload: ClientPayload, displayName: string) => {
+  // Retourne une promesse resolue apres la tentative de push : true si le dossier
+  // a ete effectivement synchronise, false sinon (echec reseau/serveur, ou id
+  // introuvable). Permet a l'autosave d'afficher un indicateur honnete.
+  const saveClient = useCallback((id: string, payload: ClientPayload, displayName: string): Promise<boolean> => {
     const updatedAt = new Date().toISOString();
     let updatedClient: ClientRecord | undefined;
     setClients((prev) => {
@@ -376,7 +433,8 @@ export function useClients(userId: string, authState = "authenticated") {
       return next;
     });
     // Side effects HORS du setState
-    if (updatedClient) { setSyncStatus("pending"); syncOne(userId, updatedClient); }
+    if (updatedClient) { setSyncStatus("pending"); return syncOne(userId, updatedClient); }
+    return Promise.resolve(false);
   }, [userId, persist, syncOne]);
 
   const deleteClient = useCallback((id: string) => {
