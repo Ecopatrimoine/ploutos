@@ -417,7 +417,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   // Overlay "Calculs rapides" (Lot 3) — par-dessus l'accueil uniquement.
   const [quickCalcOpen, setQuickCalcOpen] = useState(false)
   const [activeQuickCalc, setActiveQuickCalc] = useState<QuickCalcId | null>(null)
-  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   // Couleurs dynamiques tirées des paramètres cabinet
   const CAB = {
@@ -564,10 +564,18 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
         clientName, notes, data, irOptions, successionData, hypotheses, baseSnapshot, mission, recommandations, piecesJointes,
       };
       const displayName = clientName || activeClient.displayName;
-      saveClient(activeClient.id, payload as ClientPayload, displayName);
-      setAutoSaveStatus("saved");
-      setLastSavedAt(new Date());
-      setTimeout(() => setAutoSaveStatus("idle"), 2500);
+      // Indicateur honnete : on n'affiche "Sauvegarde" qu'apres resolution effective
+      // de la synchro. En cas d'echec, statut d'erreur visible (le dossier reste en
+      // attente et sera repropose a la synchro). Pas de faux "Sauvegarde".
+      void saveClient(activeClient.id, payload as ClientPayload, displayName).then((ok) => {
+        if (ok) {
+          setAutoSaveStatus("saved");
+          setLastSavedAt(new Date());
+          setTimeout(() => setAutoSaveStatus("idle"), 2500);
+        } else {
+          setAutoSaveStatus("error");
+        }
+      });
     }, 1500);
     return () => clearTimeout(timer);
   }, [data, clientName, notes, irOptions, successionData, hypotheses, baseSnapshot, mission, recommandations, piecesJointes, activeClient]);
