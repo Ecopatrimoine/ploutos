@@ -3,6 +3,7 @@
 import React from "react";
 import type { ProjectionResult } from "../../lib/prevoyance/types";
 import { BRAND, SURFACE } from "../../constants";
+import { formatDureeArret } from "../../lib/calculs/utils";
 
 type Props = {
   projection: ProjectionResult;
@@ -29,7 +30,7 @@ function libelleJour(jour: number): string {
   if (jour < 30) return `J${jour}`;
   if (jour < 365) return `${Math.round(jour / 30)} mois`;
   if (jour === 1095) return "3 ans (invalidité)";
-  return `${(jour / 365).toFixed(1)} ans`;
+  return formatDureeArret(jour); // C3 — francais naturel (18 mois, 3 ans…) au lieu de "1.0 ans"
 }
 
 function detailJour(jour: number, s: ProjectionResult["series"], i: number): string {
