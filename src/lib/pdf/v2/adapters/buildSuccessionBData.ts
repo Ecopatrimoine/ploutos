@@ -66,7 +66,11 @@ export function buildSuccessionBData(p: BuildSuccessionBDataParams): SuccessionB
 
   // Total consolidé succession + AV
   const masseSuccessoraleCivile = num(s.activeNet ?? s.netCivil ?? 0);
-  const droitsSuccession = num(s.totalRights ?? s.totalTax ?? 0);
+  // LOT 3 — droits CIVILS uniquement (totalSuccessionRights). totalRights inclut
+  // aussi les droits AV des héritiers ; or la fiscalité AV est déjà retranchée via
+  // netAuxBeneficiaires (somme sur avLines). Utiliser totalRights ici soustrairait
+  // deux fois la fiscalité AV des héritiers. Fallback conservé pour données legacy.
+  const droitsSuccession = num(s.totalSuccessionRights ?? s.totalRights ?? s.totalTax ?? 0);
   const netCivilTransmis = masseSuccessoraleCivile - droitsSuccession;
   const totalNetTransmis = netCivilTransmis + netAuxBeneficiaires;
 
