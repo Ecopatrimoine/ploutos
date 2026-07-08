@@ -1,10 +1,23 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy, Pencil, FolderOpen, Database, Cloud, CloudOff, RefreshCw } from "lucide-react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { Trash2, Copy, Pencil, FolderOpen, Folder, MoreHorizontal, LayoutGrid, List, CloudOff, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { BRAND } from "./constants";
+import { BRAND, SURFACE, FIELD } from "./constants";
+import {
+  EMPTY_CRITERIA,
+  anyCriteria,
+  draftDossierName,
+  matchesCriteria,
+  dossierName,
+  dossierMeta,
+  dossierResume,
+  formatRelativeDate,
+  formatBirthDateFr,
+  departementFrom,
+  type SearchCriteria,
+  type SortMode,
+  type DossierData,
+} from "./lib/accueil/dossierResume";
+import { AccueilHeader } from "./components/AccueilHeader";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -449,11 +462,16 @@ type ClientManagerProps = {
   colorGold: string;
   colorSky: string;
   colorCream: string;
+  colorBlue?: string;
+  conseiller?: string;
+  orias?: string;
+  onOpenParametres: () => void;
+  onOpenCalc?: () => void;
   isInstallable?: boolean;
   onInstall?: () => void;
   // Nouveaux props
   onSignOut?: () => void;
-  licence?: { type: string | null; status: string; isValid: boolean } | null;
+  licence?: { type: string | null; status: string; isValid: boolean; trialDaysLeft?: number } | null;
   userId?: string;
 };
 
@@ -472,24 +490,33 @@ export function ClientManager({
   colorGold,
   colorSky,
   colorCream,
+  colorBlue,
+  conseiller,
+  orias,
+  onOpenParametres,
+  onOpenCalc,
   isInstallable = false,
   onInstall,
   onSignOut,
   licence,
   userId = "",
 }: ClientManagerProps) {
-  const [newName, setNewName] = useState("");
+  const [criteria, setCriteria] = useState<SearchCriteria>(EMPTY_CRITERIA);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>("modif");
+  const [view, setView] = useState<"cards" | "list">("cards");
 
-  const handleCreate = () => {
-    const name = newName.trim();
-    if (!name) return;
-    onCreate(name);
-    setNewName("");
-  };
+  const setCrit = (key: keyof SearchCriteria, value: string) =>
+    setCriteria((c) => ({ ...c, [key]: value }));
+
+  // "+ Nouveau dossier" et "Créer ce dossier" : comportement de création existant
+  // (onCreate crée puis ouvre), nom pré-alimenté depuis les critères Nom/Prénom.
+  const handleNewDossier = () => onCreate(draftDossierName(criteria));
+
+  const handleReset = () => setCriteria(EMPTY_CRITERIA);
 
   const handleRenameConfirm = (id: string) => {
     const val = renameValue.trim();
@@ -498,27 +525,200 @@ export function ClientManager({
     setRenameValue("");
   };
 
+  // Fermer le menu contextuel au clic extérieur. Le clic sur le kebab et sur le
+  // menu stoppe la propagation : ce listener n'attrape que les clics "ailleurs".
+  useEffect(() => {
+    if (!openMenuId) return;
+    const close = () => setOpenMenuId(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [openMenuId]);
+
   const SURFACE_APP = "linear-gradient(135deg, #f5f0e8 0%, #fdf8f0 40%, #f0ece4 100%)";
 
-  // Indicateur de sync
-  const SyncIndicator = () => {
-    const configs: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
-      synced:  { icon: <Cloud className="h-3.5 w-3.5" />,      label: "Synchronisé",       color: "#4ade80" },
-      pending: { icon: <RefreshCw className="h-3.5 w-3.5" />,  label: "En attente",        color: "#fbbf24" },
-      offline: { icon: <CloudOff className="h-3.5 w-3.5" />,   label: "Hors ligne",        color: "#d1d5db" },
-      syncing: { icon: <RefreshCw className="h-3.5 w-3.5 animate-spin" />, label: "Synchronisation…", color: "#93c5fd" },
+  // ── État d'abonnement (R2) — source : useLicense (licence.trialDaysLeft/status) ──
+  const isTrial = licence?.type === "trial";
+  const trialDays = licence?.trialDaysLeft ?? 0;
+  const abonnementBadge = isTrial && licence?.status === "active" ? `Essai · ${trialDays} j` : undefined;
+  // Bouton Abonnement visible pour l'essai (badge) OU l'abonnement payant actif.
+  const showAbonnement =
+    !!userId && (isTrial || (licence?.type === "paid" && licence?.status === "active"));
+  // Bannière pleine largeur seulement si essai <= 5 jours restants OU expiré.
+  const showTrialBanner =
+    !!userId && isTrial && ((licence?.status === "active" && trialDays <= 5) || licence?.status === "expired");
+
+  // Action Abonnement : portail Stripe si payant, page d'abonnement sinon (essai).
+  // Les deux URLs préexistent dans le code (portail + app.ploutos-cgp.fr).
+  const handleAbonnement = async () => {
+    if (licence?.type === "paid") {
+      const res = await fetch("https://ysbgfiqsuvdwzkcsiqir.supabase.co/functions/v1/create-portal-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, return_url: window.location.origin }),
+      });
+      const data = await res.json();
+      if (data.url) window.open(data.url, "_blank");
+    } else {
+      window.open("https://app.ploutos-cgp.fr", "_blank");
+    }
+  };
+
+  // Couleurs de l'accueil v2 : custom properties posées inline depuis les tokens
+  // BRAND / SURFACE / FIELD (aucune couleur codée en dur dans index.css).
+  const accVars = {
+    ["--acc-navy" as any]: BRAND.navy,
+    ["--acc-gold" as any]: BRAND.gold,
+    ["--acc-gold-deep" as any]: FIELD.borderFocus,
+    ["--acc-muted" as any]: BRAND.muted,
+    ["--acc-inactive" as any]: BRAND.inactive,
+    ["--acc-card" as any]: SURFACE.card,
+    ["--acc-border" as any]: SURFACE.border,
+    ["--acc-field" as any]: FIELD.fill,
+    ["--acc-field-border" as any]: FIELD.border,
+    ["--acc-danger" as any]: BRAND.danger,
+    ["--acc-danger-bg" as any]: BRAND.dangerBg,
+    ["--acc-success" as any]: BRAND.success,
+    ["--acc-shadow" as any]: SURFACE.cardShadow,
+    ["--acc-shadow-hover" as any]: SURFACE.cardShadowHover,
+  } as React.CSSProperties;
+
+  const dataOf = (c: ClientRecord): DossierData => (c.payload?.data ?? {}) as DossierData;
+
+  const byRecent = (a: ClientRecord, b: ClientRecord) =>
+    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+
+  // Reprendre là où vous en étiez : 4 dossiers les plus récents (toujours, hors filtre).
+  const recents = useMemo(() => [...clients].sort(byRecent).slice(0, 4), [clients]);
+
+  // Filtre multi-critères (cumulatif) puis tri (dernière modification par défaut, ou nom A→Z).
+  const visibleClients = useMemo(() => {
+    const filtered = anyCriteria(criteria)
+      ? clients.filter((c) => matchesCriteria(dataOf(c), criteria))
+      : clients;
+    const sorted = [...filtered];
+    if (sortMode === "alpha") {
+      sorted.sort((a, b) =>
+        dossierName(dataOf(a), a.displayName).localeCompare(
+          dossierName(dataOf(b), b.displayName),
+          "fr",
+          { sensitivity: "base" },
+        ),
+      );
+    } else {
+      sorted.sort(byRecent);
+    }
+    return sorted;
+  }, [clients, criteria, sortMode]);
+
+  // Indicateur de sync (global, offline-first existant) affiché au pied de chaque carte.
+  const renderSync = () => {
+    const map: Record<string, { cls: string; label: string }> = {
+      synced:  { cls: "ok",   label: "Synchronisé" },
+      pending: { cls: "wait", label: "En attente" },
+      syncing: { cls: "wait", label: "Synchronisation…" },
+      offline: { cls: "off",  label: "Hors ligne" },
     };
-    const cfg = configs[syncStatus] ?? configs["syncing"];
+    const s = map[syncStatus] ?? map.syncing;
     return (
-      <button
-        onClick={syncNow}
-        title="Cliquer pour synchroniser"
-        className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg transition-colors hover:bg-white/20"
-        style={{ color: cfg.color }}
+      <span className={`acc-sync ${s.cls}`}>
+        <i /> {s.label}
+      </span>
+    );
+  };
+
+  const renderCard = (client: ClientRecord) => {
+    const d = dataOf(client);
+    const name = dossierName(d, client.displayName);
+    const meta = dossierMeta(d);
+    const resume = dossierResume(d);
+    const isRenaming = renamingId === client.id;
+    const isConfirming = confirmDeleteId === client.id;
+    const menuOpen = openMenuId === client.id;
+    return (
+      <div
+        key={client.id}
+        className="acc-card"
+        tabIndex={0}
+        role="button"
+        onClick={() => { if (!isRenaming && !isConfirming) onOpen(client); }}
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === " ") && !isRenaming && !isConfirming) {
+            e.preventDefault();
+            onOpen(client);
+          }
+        }}
       >
-        {cfg.icon}
-        <span>{cfg.label}</span>
-      </button>
+        <div className="acc-card-top">
+          {isRenaming ? (
+            <div className="acc-rename" onClick={(e) => e.stopPropagation()}>
+              <input
+                className="ploutos-field"
+                autoFocus
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleRenameConfirm(client.id);
+                  if (e.key === "Escape") setRenamingId(null);
+                }}
+              />
+              <button className="acc-rename-ok" onClick={() => handleRenameConfirm(client.id)}>OK</button>
+              <button className="acc-rename-cancel" onClick={() => setRenamingId(null)}>Annuler</button>
+            </div>
+          ) : (
+            <>
+              <div style={{ minWidth: 0 }}>
+                <div className="acc-card-name">{name}</div>
+                {meta && <div className="acc-card-meta">{meta}</div>}
+              </div>
+              <button
+                className="acc-kebab"
+                title="Actions du dossier"
+                aria-label="Actions du dossier"
+                onClick={(e) => { e.stopPropagation(); setOpenMenuId(menuOpen ? null : client.id); }}
+              >
+                <MoreHorizontal size={19} />
+              </button>
+            </>
+          )}
+
+          {menuOpen && !isRenaming && (
+            <div className="acc-menu" onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => { setOpenMenuId(null); onOpen(client); }}>
+                <FolderOpen /> Ouvrir
+              </button>
+              <button onClick={() => { setOpenMenuId(null); setRenamingId(client.id); setRenameValue(client.displayName); }}>
+                <Pencil /> Renommer
+              </button>
+              <button onClick={() => { setOpenMenuId(null); onDuplicate(client.id); }}>
+                <Copy /> Dupliquer (scénario)
+              </button>
+              <hr />
+              <button className="dg" onClick={() => { setOpenMenuId(null); setConfirmDeleteId(client.id); }}>
+                <Trash2 /> Supprimer…
+              </button>
+            </div>
+          )}
+        </div>
+
+        {!isRenaming && resume && <div className="acc-card-sum">{resume}</div>}
+
+        {!isRenaming && (
+          <div className="acc-card-foot">
+            {isConfirming ? (
+              <div className="acc-confirm" onClick={(e) => e.stopPropagation()}>
+                <span>Supprimer ce dossier ?</span>
+                <button className="acc-confirm-yes" onClick={() => { onDelete(client.id); setConfirmDeleteId(null); }}>Oui</button>
+                <button className="acc-confirm-no" onClick={() => setConfirmDeleteId(null)}>Non</button>
+              </div>
+            ) : (
+              <>
+                <span>Modifié {formatRelativeDate(client.updatedAt)}</span>
+                {renderSync()}
+              </>
+            )}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -542,151 +742,119 @@ export function ClientManager({
         <div style={{ position:"absolute", top:"-60px", left:"40%", width:"240px", height:"240px",
           borderRadius:"50%", background:colorGold, opacity:0.10 }} />
       </div>
-      {/* Bannière abonnement */}
-      {licence && userId && (
+      {/* Bannière abonnement (R2) — pleine largeur, essai <= 5 j / expiré ou annulation */}
+      {userId && (
         <div style={{ position:"relative", zIndex:2 }}>
-          {licence.type === "trial" && licence.status === "active" && (() => {
+          {showTrialBanner && (() => {
+            const expired = licence?.status === "expired";
             return (
               <div className="w-full text-center py-1.5 px-4 text-xs font-semibold flex items-center justify-center gap-3"
-                style={{ background: `rgba(227,175,100,0.15)`, color: colorNavy, borderBottom: `1px solid rgba(227,175,100,0.3)` }}>
-                <span>✦ Essai gratuit en cours</span>
-                <a href="https://app.ploutos-cgp.fr" className="underline font-bold">S'abonner →</a>
-              </div>
-            );
-          })()}
-          {licence.type === "paid" && licence.status === "active" && null}
-          {licence.status === "cancelling" && (() => {
-            const handlePortal = async () => {
-              const res = await fetch("https://ysbgfiqsuvdwzkcsiqir.supabase.co/functions/v1/create-portal-session", {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: userId, return_url: window.location.origin }),
-              });
-              const data = await res.json();
-              if (data.url) window.open(data.url, "_blank");
-            };
-            return (
-              <div className="w-full py-1.5 px-6 flex items-center justify-between text-xs font-semibold"
-                style={{ background: "#FEF3C7", color: "#92400E", borderBottom: "1px solid #FCD34D" }}>
-                <span>⚠️ Annulation prévue — accès maintenu jusqu'à fin de période</span>
-                <button onClick={handlePortal} className="underline font-bold">Réactiver</button>
-              </div>
-            );
-          })()}
-        </div>
-      )}
-
-      {/* Header imposant avec stats */}
-      <div style={{ position:"relative", zIndex:1, background: `linear-gradient(135deg, ${colorNavy} 0%, ${colorSky} 55%, ${colorGold} 100%)`, boxShadow:"0 4px 24px rgba(16,27,59,0.18)" }}>
-        <div className="w-full px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img src={logoSrc} alt={cabinetName} className="h-16 w-auto object-contain drop-shadow-md" />
-            <div>
-              <div className="text-white font-bold text-xl leading-tight">{cabinetName}</div>
-              <div className="text-white/60 text-xs font-medium tracking-wide mt-0.5">Gestion des dossiers clients</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <SyncIndicator />
-            {licence?.type === "paid" && licence?.status === "active" && userId && (
-              <button
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.8)" }}
-                onClick={async () => {
-                  const res = await fetch("https://ysbgfiqsuvdwzkcsiqir.supabase.co/functions/v1/create-portal-session", {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ user_id: userId, return_url: window.location.origin }),
-                  });
-                  const data = await res.json();
-                  if (data.url) window.open(data.url, "_blank");
+                style={{
+                  background: expired ? BRAND.dangerBg : BRAND.warningBg,
+                  color: expired ? BRAND.danger : BRAND.warning,
+                  borderBottom: `1px solid ${expired ? BRAND.dangerBorder : BRAND.warningBorder}`,
                 }}>
-                Abonnement
-              </button>
-            )}
-            {onSignOut && (
-              <button onClick={onSignOut}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.8)" }}>
-                Déconnexion
-              </button>
-            )}
-            {isInstallable && onInstall && (
-              <button
-                onClick={onInstall}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                style={{ background: "rgba(227,175,100,0.25)", border: "1px solid rgba(227,175,100,0.6)", color: "#E3AF64" }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                Installer l'app
-              </button>
-            )}
-          </div>
-        </div>
-        {/* Barre de stats */}
-        <div className="w-full px-6 pb-4 flex items-center gap-6" style={{ borderTop:"1px solid rgba(255,255,255,0.12)" }}>
-          <div className="flex items-center gap-2 pt-3">
-            <Database className="h-4 w-4 text-white/50" />
-            <span className="text-white font-semibold text-sm">{clients.length}</span>
-            <span className="text-white/60 text-xs">dossier{clients.length !== 1 ? "s" : ""}</span>
-          </div>
-          {clients.length > 0 && (
-            <div className="flex items-center gap-2 pt-3">
-              <span className="text-white/50 text-xs">Dernière modif. :</span>
-              <span className="text-white/80 text-xs">{
-                new Date(Math.max(...clients.map(c => new Date(c.updatedAt).getTime())))
-                  .toLocaleDateString("fr-FR", { day:"2-digit", month:"short", year:"numeric" })
-              }</span>
+                <span>
+                  {expired
+                    ? "Votre essai gratuit a expiré."
+                    : `Essai gratuit — ${trialDays} jour${trialDays > 1 ? "s" : ""} restant${trialDays > 1 ? "s" : ""}.`}
+                </span>
+                <button onClick={handleAbonnement} className="underline font-bold">S'abonner →</button>
+              </div>
+            );
+          })()}
+          {licence?.status === "cancelling" && (
+            <div className="w-full py-1.5 px-6 flex items-center justify-between text-xs font-semibold"
+              style={{ background: BRAND.warningBg, color: BRAND.warning, borderBottom: `1px solid ${BRAND.warningBorder}` }}>
+              <span>⚠️ Annulation prévue — accès maintenu jusqu'à fin de période</span>
+              <button onClick={handleAbonnement} className="underline font-bold">Réactiver</button>
             </div>
           )}
         </div>
-      </div>
+      )}
 
-      {/* Main */}
-      <div className="max-w-4xl mx-auto px-6 py-10 space-y-8" style={{ position:"relative", zIndex:1 }}>
 
-        {/* Barre de recherche */}
-        <div className="relative">
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Rechercher par nom de dossier ou nom du client…"
-            className="w-full rounded-2xl text-sm pl-10 pr-4 py-3 border shadow-sm focus:outline-none focus:ring-2"
-            style={{ borderColor:"rgba(227,175,100,0.3)", background:"rgba(255,255,255,0.97)" }}
-          />
+      {/* Main — Accueil v2 (Lot 1 + header Lot 2) */}
+      <div className="acc-root" style={{ ...accVars, position:"relative", zIndex:1, width:"100%", padding:"26px 26px 60px" }}>
+
+        {/* Header cabinet unifié (Lot 2) */}
+        <AccueilHeader
+          cabColors={{ navy: colorNavy, sky: colorSky, blue: colorBlue, gold: colorGold, cream: colorCream }}
+          cabinetName={cabinetName}
+          conseiller={conseiller}
+          orias={orias}
+          logoSrc={logoSrc}
+          onOpenCalc={onOpenCalc}
+          onOpenParametres={onOpenParametres}
+          onAbonnement={showAbonnement ? handleAbonnement : undefined}
+          abonnementBadge={abonnementBadge}
+          onSignOut={onSignOut}
+          isInstallable={isInstallable}
+          onInstall={onInstall}
+        />
+
+        {/* Reprendre là où vous en étiez — dossiers récents */}
+        {clients.length > 0 && (
+          <>
+            <div className="acc-sec-head">
+              <div className="acc-sec-title">
+                <span className="acc-sec-dot">
+                  <svg viewBox="0 0 24 24" fill="none" strokeWidth={2.2}><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15.5 14" /></svg>
+                </span>
+                Reprendre là où vous en étiez
+              </div>
+            </div>
+            <div className="acc-recents">
+              {recents.map((c) => (
+                <button key={c.id} className="acc-recent" onClick={() => onOpen(c)}>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="acc-recent-name">{dossierName(dataOf(c), c.displayName)}</div>
+                    <div className="acc-recent-when">Modifié {formatRelativeDate(c.updatedAt).toLowerCase()}</div>
+                  </div>
+                  <span className="acc-recent-chev">→</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Recherche multi-critères + Nouveau dossier */}
+        <div className="acc-search">
+          <div className="acc-fields">
+            <div className="acc-fld">
+              <label htmlFor="acc-q-nom">Nom</label>
+              <input id="acc-q-nom" className="ploutos-field acc-input" type="text" autoComplete="off"
+                placeholder="ex. Delacroix" value={criteria.nom}
+                onChange={(e) => setCrit("nom", e.target.value)} />
+            </div>
+            <div className="acc-fld">
+              <label htmlFor="acc-q-prenom">Prénom</label>
+              <input id="acc-q-prenom" className="ploutos-field acc-input" type="text" autoComplete="off"
+                placeholder="ex. Hélène" value={criteria.prenom}
+                onChange={(e) => setCrit("prenom", e.target.value)} />
+            </div>
+            <div className="acc-fld">
+              <label htmlFor="acc-q-naiss">Date de naissance</label>
+              <input id="acc-q-naiss" className="ploutos-field acc-input" type="text" autoComplete="off"
+                placeholder="même partielle : 1978, 03/1978…" value={criteria.naiss}
+                onChange={(e) => setCrit("naiss", e.target.value)} />
+            </div>
+            <div className="acc-fld">
+              <label htmlFor="acc-q-dept">Département</label>
+              <input id="acc-q-dept" className="ploutos-field acc-input" type="text" autoComplete="off"
+                placeholder="ex. 66" value={criteria.dept}
+                onChange={(e) => setCrit("dept", e.target.value)} />
+            </div>
+          </div>
+          <div className="acc-actions">
+            {anyCriteria(criteria) && (
+              <button className="acc-reset" onClick={handleReset}>Effacer</button>
+            )}
+            <button className="acc-new" onClick={handleNewDossier}>
+              <span className="acc-new-plus">+</span> Nouveau dossier
+            </button>
+          </div>
         </div>
-
-        {/* Créer un nouveau dossier */}
-        <Card className="rounded-3xl border-0 shadow-xl shadow-slate-200/60">
-          <CardContent className="p-6">
-            <div className="text-sm font-semibold mb-3" style={{ color: colorSky }}>
-              NOUVEAU DOSSIER CLIENT
-            </div>
-            <div className="flex gap-3">
-              <Input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-                placeholder="Nom du client (ex : Dupont Martin)"
-                className="rounded-xl text-sm flex-1"
-                style={{ borderColor: "rgba(227,175,100,0.3)", background: "rgba(255,255,255,0.98)" }}
-              />
-              <Button
-                onClick={handleCreate}
-                disabled={!newName.trim()}
-                className="rounded-xl px-5 font-semibold shadow-md"
-                style={{ background: colorNavy, color: "#fff" }}
-              >
-                <Plus className="h-4 w-4 mr-1.5" />
-                Créer
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Bannière hors-ligne */}
         {(syncStatus === "offline" || syncStatus === "pending") && (
@@ -706,111 +874,107 @@ export function ClientManager({
           </div>
         )}
 
-        {/* Liste des dossiers filtrée */}
-        {(() => {
-          const q = searchQuery.toLowerCase().trim();
-          const filtered = q === "" ? clients : clients.filter(c => {
-            const byName = c.displayName.toLowerCase().includes(q);
-            const p = c.payload?.data ?? {};
-            const clientFullName = ((p as any).person1FirstName ?? "") + " " + ((p as any).person1LastName ?? "");
-            const byClient = clientFullName.toLowerCase().includes(q);
-            return byName || byClient;
-          });
-          return (
-        <div className="space-y-3">
-          {clients.length === 0 ? (
-            <div className="text-center py-16 text-slate-400 text-sm">
-              Aucun dossier client. Créez-en un ci-dessus.
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-10 text-slate-400 text-sm">
-              Aucun dossier ne correspond à votre recherche.
-            </div>
-          ) : (
-            filtered.map((client) => {
-              // Indicateur ancienneté
-              const daysSince = Math.floor((Date.now() - new Date(client.updatedAt).getTime()) / 86400000);
-              const dotColor = daysSince < 7 ? "#E3AF64" : daysSince < 30 ? "#26428B" : "#94a3b8";
-              // Nom du client depuis payload
-              const p = client.payload?.data ?? {};
-              const p1First = (p as any).person1FirstName ?? "";
-              const p1Last = (p as any).person1LastName ?? "";
-              const clientName = [p1First, p1Last].filter(Boolean).join(" ");
-              const showClientName = clientName && clientName.toLowerCase() !== client.displayName.toLowerCase();
-              return (
-              <Card
-                key={client.id}
-                className="rounded-2xl border-0 shadow-md shadow-slate-100/80 hover:shadow-lg transition-shadow"
-                style={{ background: "rgba(255,255,255,0.95)" }}
+        {/* Dossiers */}
+        <div className="acc-sec-head">
+          <div className="acc-sec-title">
+            <span className="acc-sec-dot"><Folder /></span>
+            Dossiers clients <span className="acc-sec-count">({visibleClients.length})</span>
+            {(syncStatus === "pending" || syncStatus === "offline") && (
+              <button className="acc-syncbtn" onClick={syncNow} title="Synchroniser maintenant">
+                <RefreshCw /> Synchroniser
+              </button>
+            )}
+          </div>
+          <div className="acc-toolbar">
+            <select
+              className="ploutos-field acc-sort"
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as SortMode)}
+              title="Trier les dossiers"
+            >
+              <option value="modif">Tri : dernière modification</option>
+              <option value="alpha">Tri : nom A → Z</option>
+            </select>
+            <div className="acc-viewtog">
+              <button
+                className={view === "cards" ? "on" : ""}
+                onClick={() => setView("cards")}
+                title="Vue cartes"
+                aria-label="Vue cartes"
+                aria-pressed={view === "cards"}
               >
-                <CardContent className="p-4 flex items-center gap-4">
-                  {/* Indicateur ancienneté */}
-                  <div style={{ width:"4px", minHeight:"44px", borderRadius:"4px", background:dotColor, flexShrink:0 }} />
-                  <div className="flex-1 min-w-0">
-                    {renamingId === client.id ? (
-                      <div className="flex gap-2 items-center">
-                        <Input
-                          value={renameValue}
-                          onChange={(e) => setRenameValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleRenameConfirm(client.id);
-                            if (e.key === "Escape") setRenamingId(null);
-                          }}
-                          autoFocus
-                          className="rounded-lg text-sm h-8"
-                          style={{ borderColor: "rgba(227,175,100,0.4)" }}
-                        />
-                        <Button onClick={() => handleRenameConfirm(client.id)} className="rounded-lg text-xs h-8 px-3" style={{ background: colorNavy, color: "#fff" }}>OK</Button>
-                        <button onClick={() => setRenamingId(null)} className="text-xs text-slate-400 hover:text-slate-600">Annuler</button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="font-semibold text-sm truncate" style={{ color: colorNavy }}>{client.displayName}</div>
-                        {showClientName && (
-                          <div className="text-xs font-medium mt-0.5" style={{ color: colorSky }}>{clientName}</div>
-                        )}
-                        <div className="text-xs text-slate-400 mt-0.5">
-                          Modifié le {new Date(client.updatedAt).toLocaleDateString("fr-FR", {
-                            day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"
-                          })}
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {renamingId !== client.id && (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button title="Renommer" onClick={() => { setRenamingId(client.id); setRenameValue(client.displayName); }} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button title="Dupliquer" onClick={() => onDuplicate(client.id)} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500">
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
-                      {confirmDeleteId === client.id ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-red-500 font-medium">Confirmer ?</span>
-                          <button onClick={() => { onDelete(client.id); setConfirmDeleteId(null); }} className="text-xs font-semibold text-red-600 hover:text-red-800 px-2 py-0.5 rounded-lg bg-red-50">Oui</button>
-                          <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-slate-400 hover:text-slate-600">Non</button>
-                        </div>
-                      ) : (
-                        <button title="Supprimer" onClick={() => setConfirmDeleteId(client.id)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-slate-400 hover:text-red-500">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                      <Button onClick={() => onOpen(client)} className="rounded-xl px-4 h-8 text-xs font-semibold shadow-sm ml-1" style={{ background: colorNavy, color: "#fff" }}>
-                        <FolderOpen className="h-3.5 w-3.5 mr-1.5" />
-                        Ouvrir
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-            })
-          )}
+                <LayoutGrid />
+              </button>
+              <button
+                className={view === "list" ? "on" : ""}
+                onClick={() => setView("list")}
+                title="Vue liste"
+                aria-label="Vue liste"
+                aria-pressed={view === "list"}
+              >
+                <List />
+              </button>
+            </div>
+          </div>
         </div>
-          );
-        })()}
+
+        {clients.length === 0 ? (
+          <div className="acc-empty">
+            <b>Aucun dossier pour l'instant</b> — créez votre premier dossier client.<br />
+            <button className="acc-empty-btn" onClick={handleNewDossier}>
+              <span className="acc-empty-plus">+</span> Nouveau dossier
+            </button>
+          </div>
+        ) : visibleClients.length === 0 ? (
+          <div className="acc-empty">
+            Aucun dossier ne correspond à cette recherche.<br />
+            Vérifiez l'orthographe, ou créez ce dossier s'il n'existe pas encore.<br />
+            <button className="acc-empty-btn" onClick={handleNewDossier}>
+              <span className="acc-empty-plus">+</span> Créer ce dossier
+            </button>
+          </div>
+        ) : view === "list" ? (
+          <div className="acc-tablewrap">
+            <table className="acc-table">
+              <thead>
+                <tr>
+                  <th>Client</th>
+                  <th>Né(e) le</th>
+                  <th>Dépt</th>
+                  <th>Situation</th>
+                  <th>Modifié</th>
+                  <th>Sync</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleClients.map((c) => {
+                  const d = dataOf(c);
+                  return (
+                    <tr
+                      key={c.id}
+                      tabIndex={0}
+                      onClick={() => onOpen(c)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(c); }
+                      }}
+                    >
+                      <td className="tname">{dossierName(d, c.displayName)}</td>
+                      <td className="tinfo">{formatBirthDateFr(d.person1BirthDate) || "—"}</td>
+                      <td className="tinfo">{departementFrom(d.codePostal) || "—"}</td>
+                      <td className="tsum">{dossierResume(d) || "—"}</td>
+                      <td className="tdate">{formatRelativeDate(c.updatedAt)}</td>
+                      <td>{renderSync()}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="acc-grid">
+            {visibleClients.map((client) => renderCard(client))}
+          </div>
+        )}
       </div>
 
       {/* Footer citation */}

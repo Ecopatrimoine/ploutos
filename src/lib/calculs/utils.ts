@@ -476,6 +476,26 @@ export function computeTaxFromBrackets(base: number, brackets: TaxBracket[]) {
   return { tax, fill };
 }
 
+// ─── Barème IR (revenus 2025) — code ADDITIF (Lot 5b R2, exception moteur bornée) ──
+// Constante partagée + détail par tranche, pour le graphique IR des calculs rapides.
+// Les valeurs sont IDENTIQUES au barème inline de computeBaremeNet / computeIRConcubin ;
+// leur cohérence est verrouillée par le test de cohérence croisée
+// (src/tests/accueil.irBracketFill.test.ts) : somme des impôts par tranche ===
+// baremeBeforeDecote de computeBaremeNet. Aucune fonction existante n'est modifiée.
+export const IR_BAREME_BRACKETS: TaxBracket[] = [
+  { from: 0, to: 11600, rate: 0 },
+  { from: 11600, to: 29579, rate: 0.11 },
+  { from: 29579, to: 84577, rate: 0.3 },
+  { from: 84577, to: 181917, rate: 0.41 },
+  { from: 181917, to: Number.POSITIVE_INFINITY, rate: 0.45 },
+];
+
+// Détail par tranche du barème IR appliqué à un quotient (revenu imposable / parts) :
+// bornes, taux, revenu logé dans la tranche (`filled`), impôt de la tranche (`tax`).
+export function computeIrBracketFill(quotient: number): FilledBracket[] {
+  return computeTaxFromBrackets(quotient, IR_BAREME_BRACKETS).fill;
+}
+
 
 // ─── HELPERS DOMAINE ──────────────────────────────────────────────────────────
 

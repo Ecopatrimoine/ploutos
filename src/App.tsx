@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Upload, Plus, Trash2, Database, Settings } from "lucide-react";
+import { Download, Upload, Plus, Trash2, Database, Settings, ArrowLeft } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, CartesianGrid
@@ -85,6 +85,7 @@ import { TabSuccession } from "./components/tabs/TabSuccession";
 import { TabHypotheses } from "./components/tabs/TabHypotheses";
 import { TabMission } from "./components/tabs/TabMission";
 import { TabParametres } from "./components/tabs/TabParametres";
+import { AccueilCalculs, type QuickCalcId } from "./components/AccueilCalculs";
 import { TabPrevoyancePerso } from "./components/tabs/TabPrevoyancePerso";
 import { TabPrevoyanceCollective } from "./components/tabs/TabPrevoyanceCollective";
 
@@ -410,6 +411,12 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   };
   const { clients, syncStatus, syncNow, createClient, saveClient, deleteClient, duplicateClient, renameClient } = useClients(userId, authState)
   const [activeClient, setActiveClient] = useState<ClientRecord | null>(null)
+  // Vue autonome de l'accueil (hors dossier). Patron prévu pour d'autres modules
+  // (activeModule). Lot 2 : "parametres". Lot 3+ : calculettes.
+  const [activeModule, setActiveModule] = useState<null | "parametres">(null)
+  // Overlay "Calculs rapides" (Lot 3) — par-dessus l'accueil uniquement.
+  const [quickCalcOpen, setQuickCalcOpen] = useState(false)
+  const [activeQuickCalc, setActiveQuickCalc] = useState<QuickCalcId | null>(null)
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   // Couleurs dynamiques tirées des paramètres cabinet
@@ -1253,7 +1260,36 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   // Guard — Client actif
 
   if (!activeClient) {
+    // ── Vue autonome "Paramètres cabinet" (hors dossier, Lot 2) ──
+    // TabParametres ne dépend QUE de cabinet_settings (+ logo/signature) : mêmes
+    // sources et mêmes props que l'usage intra-dossier. Enveloppé dans <Tabs
+    // value="parametres"> car TabParametres rend un <TabsContent value="parametres">.
+    if (activeModule === "parametres") {
+      return (
+        <div className="fixed inset-0 overflow-y-scroll" style={{ background: SURFACE.app, scrollbarWidth: "thin", scrollbarColor: `${BRAND.sky} ${SURFACE.border}`, scrollbarGutter: "stable" }}>
+          <div className="mx-auto max-w-7xl p-6 space-y-4">
+            <button
+              onClick={() => setActiveModule(null)}
+              title="Retour à l'accueil"
+              className="acc-backbtn inline-flex items-center gap-2 rounded-xl px-4 font-semibold"
+              style={{ height: 44, background: SURFACE.card, border: `2px solid ${SURFACE.border}`, color: BRAND.navy, cursor: "pointer" }}
+            >
+              <ArrowLeft className="h-4 w-4" /> Retour à l'accueil
+            </button>
+            <Tabs value="parametres">
+              <TabParametres
+                cabinet={cabinet} updateCabinet={updateCabinet}
+                logoSrc={logoSrc} setLogoSrc={setLogoSrc}
+                signatureSrc={signatureSrc} setSignatureSrc={setSignatureSrc}
+                handleLogoUpload={handleLogoUpload} handleSignatureUpload={handleSignatureUpload}
+              />
+            </Tabs>
+          </div>
+        </div>
+      )
+    }
     return (
+      <>
       <ClientManager
         clients={clients}
         syncStatus={syncStatus}
@@ -1269,12 +1305,25 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
         colorGold={cabinet.colorGold}
         colorSky={cabinet.colorSky}
         colorCream={cabinet.colorCream}
+        colorBlue={cabinet.colorBlue}
+        conseiller={cabinet.conseiller}
+        orias={cabinet.orias}
+        onOpenParametres={() => setActiveModule("parametres")}
+        onOpenCalc={() => setQuickCalcOpen(true)}
         isInstallable={isInstallable}
         onInstall={handleInstallClick}
         onSignOut={onSignOut}
         licence={licence}
         userId={userId}
       />
+      {quickCalcOpen && (
+        <AccueilCalculs
+          onClose={() => { setQuickCalcOpen(false); setActiveQuickCalc(null); }}
+          activeCalc={activeQuickCalc}
+          setActiveCalc={setActiveQuickCalc}
+        />
+      )}
+      </>
     )
   }
 

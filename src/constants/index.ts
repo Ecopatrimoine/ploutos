@@ -59,6 +59,17 @@ export const FIELD = {
   placeholder: "#8C8678",         // gris chaud lisible
 } as const;
 
+// ─── Couleurs cabinet par défaut (charte produit) ────────────────────────────
+// Miroir EXACT des valeurs de DEFAULT_CABINET (App.tsx) — consomme par le bouton
+// de reinitialisation par couleur des Parametres cabinet (R4). Ne pas diverger.
+export const CABINET_COLOR_DEFAULTS: Record<string, string> = {
+  colorNavy: "#101B3B",
+  colorSky: "#26428B",
+  colorBlue: "#516AC7",
+  colorGold: "#E3AF64",
+  colorCream: "#FBECD7",
+};
+
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
 export const PROPERTY_TYPES = [

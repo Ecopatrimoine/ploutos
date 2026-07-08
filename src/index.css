@@ -101,4 +101,221 @@ html {
   background: #F0EDE6;
   color: #0F172A !important;
 }
+
+/* ══ Accueil v2 (Lot 1) — liste des dossiers ═══════════════════════════════════
+   Structure, espacements et rayons repris de maquette-accueil-v2-it2.html.
+   Les COULEURS ne sont jamais codées en dur ici : elles arrivent par les custom
+   properties --acc-* posées inline sur .acc-root depuis BRAND/SURFACE/FIELD
+   (src/constants). Seuls layout / espacements / rayons sont figés dans cette CSS. */
+.acc-root { max-width: 1240px; margin: 0 auto; }
+
+/* Titres de section */
+.acc-sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:12px}
+.acc-sec-title{display:flex;align-items:center;gap:11px;font-size:17px;font-weight:900;letter-spacing:.2px;color:var(--acc-navy)}
+.acc-sec-dot{width:30px;height:30px;border-radius:9px;background:var(--acc-gold);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.acc-sec-dot svg{width:16px;height:16px;stroke:var(--acc-navy)}
+.acc-sec-count{color:var(--acc-muted);font-weight:700;font-size:15px}
+
+/* Recherche multi-critères + Nouveau dossier */
+.acc-search{background:var(--acc-card);border:2px solid var(--acc-border);border-radius:14px;box-shadow:var(--acc-shadow);padding:16px 18px;margin-bottom:34px;display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
+.acc-fields{flex:1;display:grid;grid-template-columns:1.2fr 1fr .9fr .8fr;gap:12px;min-width:0;align-items:end}
+.acc-fld{display:flex;flex-direction:column;min-width:0}
+.acc-fld label{font-size:12px;font-weight:900;letter-spacing:.5px;color:var(--acc-muted);margin-bottom:6px;text-transform:uppercase}
+.acc-input{width:100%;height:46px;padding:0 13px;border-radius:11px;font-size:15px}
+.acc-actions{display:flex;gap:10px;align-items:center}
+.acc-reset{height:46px;padding:0 14px;border-radius:11px;background:var(--acc-card);border:2px solid var(--acc-border);font-family:inherit;font-size:13.5px;font-weight:700;color:var(--acc-muted);cursor:pointer;transition:border-color .15s,color .15s}
+.acc-reset:hover{border-color:var(--acc-gold);color:var(--acc-navy)}
+.acc-new{display:flex;align-items:center;gap:10px;height:46px;padding:0 22px;border-radius:11px;border:none;background:var(--acc-navy);color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s;white-space:nowrap}
+.acc-new:hover{transform:translateY(-2px);box-shadow:var(--acc-shadow-hover)}
+.acc-new:focus-visible{outline:2px solid var(--acc-gold-deep);outline-offset:2px}
+.acc-new-plus{width:22px;height:22px;border-radius:50%;background:var(--acc-gold);color:var(--acc-navy);font-weight:900;font-size:16px;display:flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0}
+
+/* Grille de cartes dossiers */
+.acc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+.acc-card{position:relative;background:var(--acc-card);border:2px solid var(--acc-border);border-left:4px solid var(--acc-gold);border-radius:14px;padding:16px 16px 13px;box-shadow:var(--acc-shadow);cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;display:flex;flex-direction:column;gap:9px}
+.acc-card:hover{transform:translateY(-3px);box-shadow:var(--acc-shadow-hover);border-color:var(--acc-gold)}
+.acc-card:focus-visible{outline:2px solid var(--acc-gold-deep);outline-offset:2px}
+.acc-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.acc-card-name{font-size:16.5px;font-weight:900;line-height:1.25;color:var(--acc-navy);overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.acc-card-meta{font-size:12.5px;color:var(--acc-muted);margin-top:3px}
+.acc-kebab{width:32px;height:32px;border-radius:9px;border:none;background:transparent;color:var(--acc-muted);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.acc-kebab:hover{background:var(--acc-field);color:var(--acc-navy)}
+.acc-kebab:focus-visible{outline:2px solid var(--acc-gold-deep)}
+.acc-card-sum{font-size:13.5px;color:var(--acc-muted);line-height:1.5}
+.acc-card-foot{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--acc-border);padding-top:10px;margin-top:auto;font-size:12.5px;color:var(--acc-muted);gap:8px}
+.acc-sync{display:flex;align-items:center;gap:6px;font-weight:700;white-space:nowrap}
+.acc-sync i{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0}
+.acc-sync.ok{color:var(--acc-success)} .acc-sync.ok i{background:var(--acc-success)}
+.acc-sync.wait{color:var(--acc-gold-deep)} .acc-sync.wait i{background:var(--acc-gold-deep)}
+.acc-sync.off{color:var(--acc-muted)} .acc-sync.off i{background:var(--acc-inactive)}
+
+/* Édition inline du nom (renommer) dans la carte */
+.acc-rename{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.acc-rename input{height:34px;border-radius:9px;padding:0 10px;font-size:14px;flex:1;min-width:120px}
+.acc-rename-ok{height:34px;padding:0 12px;border-radius:9px;border:none;background:var(--acc-navy);color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.acc-rename-cancel{background:none;border:none;font-family:inherit;font-size:13px;color:var(--acc-muted);cursor:pointer}
+
+/* Confirmation de suppression dans la carte */
+.acc-confirm{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--acc-danger);font-weight:700}
+.acc-confirm-yes{font-family:inherit;font-size:12.5px;font-weight:700;color:#fff;background:var(--acc-danger);border:none;border-radius:8px;padding:4px 10px;cursor:pointer}
+.acc-confirm-no{font-family:inherit;font-size:12.5px;color:var(--acc-muted);background:none;border:none;cursor:pointer}
+
+/* Menu contextuel (kebab) */
+.acc-menu{position:absolute;z-index:50;top:46px;right:12px;min-width:210px;background:var(--acc-card);border:2px solid var(--acc-border);border-radius:12px;box-shadow:var(--acc-shadow-hover);padding:6px}
+.acc-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:none;background:transparent;border-radius:8px;font-family:inherit;font-size:14px;font-weight:700;color:var(--acc-navy);cursor:pointer;text-align:left}
+.acc-menu button:hover{background:var(--acc-field)}
+.acc-menu button svg{width:16px;height:16px;flex-shrink:0}
+.acc-menu button.dg{color:var(--acc-danger)}
+.acc-menu button.dg:hover{background:var(--acc-danger-bg)}
+.acc-menu hr{border:none;border-top:1px solid var(--acc-border);margin:5px 4px}
+
+/* État vide (critères actifs, 0 résultat) */
+.acc-empty{margin-top:16px;padding:44px 20px;text-align:center;background:var(--acc-card);border:2px dashed var(--acc-field-border);border-radius:14px;color:var(--acc-muted);font-size:14px;line-height:1.7}
+.acc-empty b{color:var(--acc-navy)}
+.acc-empty-btn{margin-top:16px;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 18px;border-radius:11px;border:none;background:var(--acc-navy);color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:box-shadow .15s}
+.acc-empty-btn:hover{box-shadow:var(--acc-shadow)}
+.acc-empty-btn:focus-visible{outline:2px solid var(--acc-gold-deep);outline-offset:2px}
+.acc-empty-plus{color:var(--acc-gold);font-weight:900}
+
+/* Récents "Reprendre la ou vous en etiez" */
+.acc-recents{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:34px}
+.acc-recent{background:var(--acc-card);border:2px solid var(--acc-border);border-radius:14px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:var(--acc-shadow);transition:transform .15s,border-color .15s,box-shadow .15s;text-align:left}
+.acc-recent:hover{transform:translateY(-3px);border-color:var(--acc-gold);box-shadow:var(--acc-shadow-hover)}
+.acc-recent:focus-visible{outline:2px solid var(--acc-gold-deep);outline-offset:2px}
+.acc-recent-name{font-weight:900;font-size:15px;color:var(--acc-navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc-recent-when{font-size:12.5px;color:var(--acc-muted);margin-top:3px}
+.acc-recent-chev{color:var(--acc-gold-deep);font-size:18px;flex-shrink:0;transition:transform .15s}
+.acc-recent:hover .acc-recent-chev{transform:translateX(3px)}
+
+/* Bouton de synchronisation manuelle (conditionnel : sync pending/offline) */
+.acc-syncbtn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:9px;background:var(--acc-field);border:1px solid var(--acc-field-border);font-family:inherit;font-size:12.5px;font-weight:700;color:var(--acc-muted);cursor:pointer;transition:border-color .15s,color .15s}
+.acc-syncbtn:hover{border-color:var(--acc-gold);color:var(--acc-navy)}
+.acc-syncbtn:focus-visible{outline:2px solid var(--acc-gold-deep);outline-offset:2px}
+.acc-syncbtn svg{width:14px;height:14px}
+
+/* Barre d'outils des dossiers (tri + bascule de vue) */
+.acc-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.acc-sort{height:36px;padding:0 12px;border-radius:11px;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
+.acc-viewtog{display:flex;border:2px solid var(--acc-border);border-radius:11px;overflow:hidden}
+.acc-viewtog button{width:40px;height:34px;border:none;background:var(--acc-card);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.acc-viewtog button svg{width:17px;height:17px;stroke:var(--acc-muted)}
+.acc-viewtog button.on{background:var(--acc-gold)}
+.acc-viewtog button.on svg{stroke:var(--acc-navy)}
+.acc-viewtog button:focus-visible{outline:2px solid var(--acc-gold-deep);outline-offset:-2px}
+
+/* Vue liste — tableau dense (scroll horizontal si étroit) */
+.acc-tablewrap{background:var(--acc-card);border:2px solid var(--acc-border);border-radius:14px;box-shadow:var(--acc-shadow);margin-top:16px;overflow-x:auto}
+.acc-table{width:100%;border-collapse:collapse;font-size:14px}
+.acc-table thead th{text-align:left;padding:12px 16px;background:var(--acc-field);font-size:12px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:var(--acc-muted);border-bottom:1px solid var(--acc-border);white-space:nowrap}
+.acc-table tbody td{padding:12px 16px;border-bottom:1px solid var(--acc-border)}
+.acc-table tbody tr{cursor:pointer;transition:background .12s}
+.acc-table tbody tr:hover{background:var(--acc-field)}
+.acc-table tbody tr:last-child td{border-bottom:none}
+.acc-table tbody tr:focus-visible{outline:2px solid var(--acc-gold-deep);outline-offset:-2px}
+.acc-table .tname{font-weight:900;color:var(--acc-navy);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc-table .tinfo,.acc-table .tsum,.acc-table .tdate{color:var(--acc-muted);font-size:13px}
+.acc-table .tinfo,.acc-table .tdate{white-space:nowrap}
+
+@media (max-width:1020px){
+  .acc-fields{grid-template-columns:1fr 1fr}
+  .acc-grid{grid-template-columns:repeat(2,1fr)}
+  .acc-recents{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:640px){
+  .acc-grid,.acc-fields,.acc-recents{grid-template-columns:1fr}
+}
+
+/* ══ Accueil v2 (Lot 2) — header cabinet unifie ════════════════════════════════
+   Cadre gradient = couleurs cabinet (inline). Boutons/separateurs = custom
+   properties --ah-* posees inline sur .ah-frame (couleurs cabinet + tokens
+   BRAND/SURFACE/FIELD). Aucune couleur codee en dur ici. */
+.ah-frame{border-radius:18px;padding:4px;box-shadow:var(--ah-shadow);margin-bottom:26px}
+.ah-bar{background:var(--ah-cardsoft);border-radius:14px;display:flex;align-items:center;justify-content:space-between;padding:16px 24px;gap:20px;flex-wrap:wrap}
+.ah-id{display:flex;align-items:center;gap:16px;min-width:0}
+/* Logo : rendu sans rognage (contain, h max 56px, largeur auto plafonnee) */
+.ah-logo-img{height:56px;width:auto;max-width:180px;object-fit:contain;display:block;flex-shrink:0}
+/* Repli sans logo : cercle or + initiales */
+.ah-logo-fallback{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:var(--ah-navy);flex-shrink:0;box-shadow:0 0 0 3px rgba(196,151,61,.18)}
+.ah-name{font-size:22px;font-weight:900;letter-spacing:.2px;color:var(--ah-navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ah-sub{font-size:13px;color:var(--ah-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ah-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ah-sep{width:1px;height:30px;background:var(--ah-gold);opacity:.45}
+.ah-btn{display:flex;align-items:center;gap:8px;height:44px;padding:0 16px;border-radius:11px;background:var(--ah-card);border:2px solid var(--ah-border);font-family:inherit;font-size:14px;font-weight:700;color:var(--ah-navy);cursor:pointer;white-space:nowrap;transition:border-color .15s,transform .15s,box-shadow .15s}
+.ah-btn svg{width:18px;height:18px;color:var(--ah-muted)}
+.ah-btn:hover:not(:disabled){border-color:var(--ah-gold)}
+.ah-btn:hover:not(:disabled) svg{color:var(--ah-gold)}
+.ah-btn:focus-visible{outline:2px solid var(--ah-gold-deep);outline-offset:2px}
+.ah-btn:disabled{opacity:.55;cursor:not-allowed}
+.ah-calc{background:var(--ah-navy);color:#fff;border-color:var(--ah-navy)}
+.ah-calc svg,.ah-calc:hover:not(:disabled) svg{color:var(--ah-gold)}
+.ah-calc:hover:not(:disabled){transform:translateY(-1px);box-shadow:var(--ah-shadow)}
+.ah-quit svg,.ah-quit:hover:not(:disabled) svg{color:var(--ah-danger)}
+.ah-badge{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:800;background:var(--ah-gold);color:var(--ah-navy);margin-left:2px;white-space:nowrap}
+
+/* Responsive header : sous 900px, les actions passent en pleine largeur sous
+   l'identite et s'enroulent proprement (teste 1024 / 768, aucun debordement). */
+@media (max-width:900px){
+  .ah-bar{align-items:flex-start}
+  .ah-actions{width:100%}
+}
+@media (max-width:640px){
+  .ah-bar{padding:14px 16px}
+}
+
+/* Bouton "Retour a l'accueil" de la vue Parametres autonome — focus clavier visible
+   (la bordure reste inline ; seul l'outline est gere ici, non ecrasable inline). */
+.acc-backbtn:focus-visible{outline:2px solid var(--field-border-focus);outline-offset:2px}
+
+/* ══ Accueil v2 (Lot 3) — overlay "Calculs rapides" ════════════════════════════
+   Structure/espacements repris de maquette-accueil-v2-it2.html. Couleurs via
+   custom properties --qc-* posees inline sur .qc-overlay (tokens BRAND/SURFACE/
+   FIELD). Aucune couleur codee en dur. */
+.qc-overlay{position:fixed;inset:0;z-index:100;background:rgba(15,23,42,.45);display:flex;align-items:flex-start;justify-content:center;padding:60px 24px 40px;overflow-y:auto}
+.qc-modal{width:100%;max-width:980px;background:var(--qc-bg);border-radius:18px;box-shadow:0 24px 80px rgba(15,23,42,.35);padding:22px 24px 26px}
+.qc-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px}
+.qc-close{width:38px;height:38px;border-radius:11px;border:2px solid var(--qc-border);background:var(--qc-card);font-size:17px;color:var(--qc-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qc-close:hover{border-color:var(--qc-gold);color:var(--qc-navy)}
+.qc-close:focus-visible{outline:2px solid var(--qc-gold-deep);outline-offset:2px}
+.qc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.qc-tile{background:var(--qc-card);border:2px solid var(--qc-border);border-radius:14px;padding:16px;box-shadow:var(--qc-shadow);cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s;display:flex;flex-direction:column;gap:8px;text-align:left;font-family:inherit}
+.qc-tile:hover:not(:disabled){transform:translateY(-3px);border-color:var(--qc-gold);box-shadow:var(--qc-shadow-hover)}
+.qc-tile:focus-visible{outline:2px solid var(--qc-gold-deep);outline-offset:2px}
+.qc-tile.on{border-color:var(--qc-gold)}
+.qc-tile:disabled{opacity:.55;cursor:not-allowed}
+.qc-tile-head{display:flex;align-items:center;gap:12px}
+.qc-tile-ico{width:38px;height:38px;border-radius:11px;background:var(--qc-gold);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.qc-tile-ico svg{width:19px;height:19px;color:var(--qc-navy)}
+.qc-tile-name{font-size:15.5px;font-weight:900;color:var(--qc-navy)}
+.qc-tile-desc{font-size:12.5px;color:var(--qc-muted);line-height:1.5}
+.qc-tile-go{font-size:12.5px;font-weight:900;color:var(--qc-gold-deep);margin-top:auto}
+.qc-tile-soon{font-size:12.5px;font-weight:900;color:var(--qc-muted);margin-top:auto}
+.qc-panel{grid-column:1 / -1;background:var(--qc-card);border:2px solid var(--qc-gold);border-radius:14px;box-shadow:var(--qc-shadow);padding:18px 20px;color:var(--qc-navy)}
+.qc-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px}
+.qc-panel-title{display:flex;align-items:center;gap:12px;font-size:16px;font-weight:900;color:var(--qc-navy)}
+.qc-body{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:end}
+.qc-field label{display:block;font-size:12px;font-weight:900;letter-spacing:.5px;color:var(--qc-muted);margin-bottom:6px;text-transform:uppercase}
+.qc-field input,.qc-field select{width:100%;height:46px;padding:0 13px;border-radius:11px;font-size:15px;font-weight:700}
+.qc-results{display:flex;gap:14px;margin-top:16px;flex-wrap:wrap}
+.qc-kpi{flex:1;min-width:150px;background:var(--qc-cardsoft);border:1px solid var(--qc-border);border-top:3px solid var(--qc-gold);border-radius:12px;padding:12px 15px}
+.qc-kpi.navy{border-top-color:var(--qc-navy)}
+.qc-kpi-lab{font-size:11.5px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;color:var(--qc-muted)}
+.qc-kpi-val{font-size:21px;font-weight:900;margin-top:4px;color:var(--qc-navy)}
+.qc-abatt{font-size:12px;color:var(--qc-muted);margin-top:12px}
+.qc-exo{font-size:12px;font-weight:800;color:var(--qc-gold-deep);margin-top:6px}
+.qc-note{font-size:12px;color:var(--qc-muted);margin-top:12px;font-style:italic}
+/* Tableau de deroule (PV immo) — nombres alignes a droite, total en gras */
+.qc-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:16px}
+.qc-table td{padding:6px 4px;border-bottom:1px solid var(--qc-border);color:var(--qc-navy)}
+.qc-table td:last-child{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:700}
+.qc-table tr.qc-sub td{color:var(--qc-muted);font-weight:400}
+.qc-table tr.qc-sub td:last-child{font-weight:700}
+.qc-table tr.qc-total td{font-weight:900;border-top:2px solid var(--qc-navy);border-bottom:none;padding-top:10px}
+@media (max-width:1020px){
+  .qc-grid{grid-template-columns:repeat(2,1fr)}
+  .qc-body{grid-template-columns:1fr 1fr}
+}
+@media (max-width:640px){
+  .qc-grid,.qc-body{grid-template-columns:1fr}
+  .qc-results{flex-direction:column}
+}
  
