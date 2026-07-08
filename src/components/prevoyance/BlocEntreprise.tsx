@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BRAND, SURFACE } from "../../constants";
 import { Field } from "../shared";
+import { fractionEnPct, pctEnFraction } from "../../lib/calculs/utils";
 import {
   resolveSiret,
   validateSiret,
@@ -221,7 +222,7 @@ export const BlocEntreprise = React.memo(function BlocEntreprise({ value, onChan
                 className="rounded-xl whitespace-nowrap"
                 style={{ background: BRAND.navy }}
               >
-                {loading ? "…" : "Résoudre"}
+                {loading ? "…" : "Rechercher l'entreprise"}
               </Button>
             </div>
             {erreur && <div className="text-xs mt-1" style={{ color: "#B0413E" }}>{erreur}</div>}
@@ -317,14 +318,14 @@ export const BlocEntreprise = React.memo(function BlocEntreprise({ value, onChan
             <span>Santé collective en place</span>
           </label>
           {value.santeCollectiveEnPlace && (
-            <Field label="Participation employeur (0-1)">
+            <Field label="Participation employeur (%)">
               <Input
                 type="number"
-                step="0.05"
+                step={1}
                 min={0}
-                max={1}
-                value={value.participationEmployeurSante}
-                onChange={(e) => patch({ participationEmployeurSante: Number(e.target.value) || 0 })}
+                max={100}
+                value={fractionEnPct(value.participationEmployeurSante)}
+                onChange={(e) => patch({ participationEmployeurSante: pctEnFraction(Number(e.target.value) || 0) })}
                 className="rounded-xl"
               />
             </Field>

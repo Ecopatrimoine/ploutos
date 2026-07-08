@@ -75,11 +75,11 @@ export type ComparaisonBrancheVue = {
 // casse la compilation), garde-fou si une union evolue.
 
 const GARANTIE_LABEL: Record<ObligationGarantie, string> = {
-  capitalDC: "Capital deces",
-  renteEducation: "Rente education",
+  capitalDC: "Capital décès",
+  renteEducation: "Rente éducation",
   renteConjoint: "Rente de conjoint",
-  ij: "Indemnites journalieres",
-  invalidite: "Invalidite",
+  ij: "Indemnités journalières",
+  invalidite: "Invalidité",
   maintienEmployeur: "Maintien de salaire employeur",
 };
 
@@ -89,16 +89,16 @@ const GARANTIE_LABEL: Record<ObligationGarantie, string> = {
 const VERDICT_LABEL: Record<VerdictGarantie, string> = {
   conforme: "Conforme",
   insuffisant: "Insuffisant",
-  indetermine: "A etudier",
+  indetermine: "À étudier",
   non_applicable: "Non applicable",
 };
 
 const STATUT_LABEL: Record<ObligationsStatut, string> = {
-  branche_documentee: "Obligations de branche documentees",
-  donnees_incompletes: "Obligations de branche partiellement documentees",
-  aucune_obligation_assuree: "Aucune obligation de prevoyance de branche",
+  branche_documentee: "Obligations de branche documentées",
+  donnees_incompletes: "Obligations de branche partiellement documentées",
+  aucune_obligation_assuree: "Aucune obligation de prévoyance de branche",
   convention_inconnue: "Convention non reconnue",
-  idcc_absent: "Aucune convention de branche renseignee",
+  idcc_absent: "Aucune convention de branche renseignée",
 };
 
 // Statuts sans checklist exploitable -> aucune ligne (etat propre, pas de crash).
@@ -174,9 +174,9 @@ function collegeVue(
 }
 
 function tauxT1Label(t: ObligationsBranche["tauxT1Minimum"]): string {
-  if (t.taux === null) return "Taux minimal T1 a documenter";
+  if (t.taux === null) return "Taux minimal T1 à documenter";
   const base = `${String(t.taux).replace(".", ",")} % T1`;
-  return t.source === "ani_defaut" ? `${base} (plancher ANI par defaut)` : base;
+  return t.source === "ani_defaut" ? `${base} (plancher ANI par défaut)` : base;
 }
 
 export function mapBrancheEnVue(res: {

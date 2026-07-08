@@ -215,14 +215,14 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     const d = buildPrevoyanceCollData({ data, cabinet, dateLettre });
     expect(d.active).toBe(true);
     const html = pagePrevoyanceColl(t, d);
-    expect(html).toContain("Obligations de prevoyance de branche");
-    expect(html).toContain("Capital deces");
+    expect(html).toContain("Obligations de prévoyance de branche");
+    expect(html).toContain("Capital décès");
     expect(html).toContain("Verdict"); // colonne presente -> comparaison active
-    expect(html).toMatch(/Conforme|Insuffisant|A etudier/);
-    // compteurs de synthese
-    expect(html).toContain("conformes");
-    expect(html).toContain("insuffisante(s)");
-    expect(html).toContain("a etudier");
+    expect(html).toMatch(/Conforme|Insuffisant|À étudier/);
+    // compteurs de synthese (accord singulier/pluriel selon le nombre)
+    expect(html).toMatch(/\d+ conformes?/);
+    expect(html).toMatch(/\d+ insuffisantes?/);
+    expect(html).toMatch(/\d+ à étudier/);
     expect(html).not.toMatch(REGEX_ASSUREURS);
   });
 
@@ -247,7 +247,7 @@ describe("pagePrevoyanceColl — sentinelles", () => {
   it("Syntec garanties vides : bandeau 'comparaison non realisee', pas de colonne Verdict", () => {
     const d = buildPrevoyanceCollData({ data: dataDirigeant("1486", "Syntec"), cabinet, dateLettre });
     const html = pagePrevoyanceColl(t, d);
-    expect(html).toContain("comparaison non realisee");
+    expect(html).toContain("comparaison non réalisée");
     expect(html).not.toContain("Verdict");
     expect(html).not.toMatch(REGEX_ASSUREURS);
   });
@@ -257,7 +257,7 @@ describe("pagePrevoyanceColl — sentinelles", () => {
     const html = pagePrevoyanceColl(t, d);
     expect(html).not.toContain("width:210mm;height:297mm");                   // flux unique
     expect(html).toContain("Audit de conformité");                            // audit present
-    expect(html).toContain("Aucune obligation de prevoyance de branche");     // statut obligations (etat vide)
+    expect(html).toContain("Aucune obligation de prévoyance de branche");     // statut obligations (etat vide)
     expect(html).not.toContain("Obligation de branche");                      // pas de colonne -> pas de tableau
     expect(html.split("L.521-4").length - 1).toBe(1);                         // DDA une seule fois
   });

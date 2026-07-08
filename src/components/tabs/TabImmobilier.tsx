@@ -120,10 +120,10 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
         <div className="font-bold uppercase tracking-wider mb-1">Statut LMP probable</div>
         <div>
           {detectLmpTrue
-            ? `Recettes meublees du foyer ${euro(recettesMeubleesFoyer)} superieures a 23 000 € ET aux revenus d'activite du foyer (${euro(revenusActiviteFoyer)}).`
+            ? `Recettes meublées du foyer ${euro(recettesMeubleesFoyer)} supérieures à 23 000 € ET aux revenus d'activité du foyer (${euro(revenusActiviteFoyer)}).`
             : `Un bien est saisi en LMP.`}{" "}
-          Consequences non modelisees : deficit imputable au revenu global, cotisations SSI, plus-values professionnelles, exoneration IFI possible (art. 975 V CGI).{" "}
-          <strong>Modelisation LMNP conservee (sens conservateur).</strong>
+          Conséquences non modélisées : déficit imputable au revenu global, cotisations SSI, plus-values professionnelles, exonération IFI possible (art. 975 V CGI).{" "}
+          <strong>Modélisation LMNP conservée (sens conservateur).</strong>
         </div>
       </div>
     </div>
@@ -572,9 +572,9 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
             const hasOverrides = !!property.amortissementComposants && Object.keys(property.amortissementComposants).length > 0;
             const autoAmort = isSet(property.prixAcquisition) ? amortissementAuto(n(property.prixAcquisition), partTerrainFrac, n(property.valeurMobilier), property.amortissementComposants) : null;
             const amortSaisi = isSet(property.amortissementAnnuelManuel);
-            const COMPO_LABEL: Record<string, string> = { grosOeuvre: "Gros oeuvre", toiture: "Toiture", installationsTechniques: "Installations techniques", facadeEtancheite: "Facade / etancheite", agencements: "Agencements" };
+            const COMPO_LABEL: Record<string, string> = { grosOeuvre: "Gros œuvre", toiture: "Toiture", installationsTechniques: "Installations techniques", facadeEtancheite: "Façade / étanchéité", agencements: "Agencements" };
             const amortTooltip = autoAmort
-              ? "Methode par composants, durees d'usage BOFiP - convention indicative, ajustable. " +
+              ? "Méthode par composants, durées d'usage BOFiP - convention indicative, ajustable. " +
                 autoAmort.detail.map((d) => `${COMPO_LABEL[d.composant] || d.composant} ${euro(d.dotation)}`).join(" · ") +
                 (autoAmort.mobilier > 0 ? ` · Mobilier ${euro(autoAmort.mobilier)}/an (${refMeuble.amortissement.dureeMobilier} ans)` : "") +
                 `. Total ${euro(autoAmort.total)}/an. '0' saisi = aucun amortissement ; vide = ce calcul auto.`
@@ -582,69 +582,69 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
             return (
               <div className="mt-2 rounded-xl p-3 space-y-3" style={{ background: "rgba(196,151,61,0.05)", border: `1px solid ${BRAND.warningBorder}` }}>
                 <div className="text-xs font-bold uppercase tracking-wider flex items-center gap-2" style={{ color: BRAND.goldText }}>
-                  Location meublee (BIC)
+                  Location meublée (BIC)
                   {property.type === "LMP" && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: BRAND.cream, color: BRAND.goldText, border: `1px solid ${BRAND.warningBorder}` }}>LMP</span>}
                 </div>
                 <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(165px,1fr))]">
-                  <Field label="Type de location" tooltip="Chambres d'hotes = regime du tourisme classe (seuil 83 600 €, abattement 50 %).">
+                  <Field label="Type de location" tooltip="Chambres d'hôtes = régime du tourisme classé (seuil 83 600 €, abattement 50 %).">
                     <Select value={sousType} onValueChange={(v) => updateProperty(property.id, "sousType", v)}>
                       <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="longue_duree">Longue duree</SelectItem>
-                        <SelectItem value="tourisme_classe">Meuble de tourisme classe</SelectItem>
-                        <SelectItem value="tourisme_non_classe">Meuble de tourisme non classe</SelectItem>
+                        <SelectItem value="longue_duree">Longue durée</SelectItem>
+                        <SelectItem value="tourisme_classe">Meublé de tourisme classé</SelectItem>
+                        <SelectItem value="tourisme_non_classe">Meublé de tourisme non classé</SelectItem>
                       </SelectContent>
                     </Select>
                   </Field>
                   <div>
-                    <MoneyField label="Recettes annuelles" tooltip="Recettes locatives meublees encaissees sur l'annee. Preremplies depuis le loyer saisi ; modifiables." value={isSet(property.recettesAnnuelles) ? property.recettesAnnuelles : (n(property.rentGrossAnnual) > 0 ? property.rentGrossAnnual : "")} onChange={(e) => updateProperty(property.id, "recettesAnnuelles", e.target.value)} compact />
+                    <MoneyField label="Recettes annuelles" tooltip="Recettes locatives meublées encaissées sur l'année. Préremplies depuis le loyer saisi ; modifiables." value={isSet(property.recettesAnnuelles) ? property.recettesAnnuelles : (n(property.rentGrossAnnual) > 0 ? property.rentGrossAnnual : "")} onChange={(e) => updateProperty(property.id, "recettesAnnuelles", e.target.value)} compact />
                     {loyersRepris && <div className="text-[10px] mt-0.5" style={{ color: BRAND.muted }}>↩ reprise des loyers saisis</div>}
                   </div>
                   <div>
-                    <Field label="Regime fiscal" tooltip="Micro-BIC : abattement forfaitaire. Reel : charges reelles + amortissement. Au-dessus du seuil, le reel s'applique de plein droit (art. 50-0 CGI).">
+                    <Field label="Régime fiscal" tooltip="Micro-BIC : abattement forfaitaire. Réel : charges réelles + amortissement. Au-dessus du seuil, le réel s'applique de plein droit (art. 50-0 CGI).">
                       <Select value={regimeChoisi} onValueChange={(v) => updateProperty(property.id, "regimeMeuble", v)}>
                         <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="micro">Micro-BIC</SelectItem>
-                          <SelectItem value="reel">Reel</SelectItem>
+                          <SelectItem value="reel">Réel</SelectItem>
                         </SelectContent>
                       </Select>
                     </Field>
-                    {microChoisiSurSeuil && <div className="text-[10px] mt-0.5 font-semibold" style={{ color: BRAND.warning }}>Regime applique : reel</div>}
+                    {microChoisiSurSeuil && <div className="text-[10px] mt-0.5 font-semibold" style={{ color: BRAND.warning }}>Régime appliqué : réel</div>}
                   </div>
                 </div>
                 {/* Alerte 1 : seuil micro depasse (bien) */}
                 {microChoisiSurSeuil && (
                   <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}>
                     <span aria-hidden="true">🟠</span>
-                    <span>Seuil micro-BIC depasse ({euro(recettes)} &gt; {euro(seuilMicro)}) — le regime reel s'applique de plein droit (art. 50-0 CGI).</span>
+                    <span>Seuil micro-BIC dépassé ({euro(recettes)} &gt; {euro(seuilMicro)}) — le régime réel s'applique de plein droit (art. 50-0 CGI).</span>
                   </div>
                 )}
                 {/* Micro : lecture seule abattement + base estimee (live) */}
                 {regimeEffectif === "micro" && (
                   <div className="text-xs rounded-lg px-3 py-2" style={{ background: "rgba(196,151,61,0.07)", color: BRAND.muted }}>
-                    Abattement {sousType === "tourisme_non_classe" ? "30" : "50"} % : <strong>− {euro(micro.abattement)}</strong> · Base imposable estimee : <strong style={{ color: BRAND.navy }}>{euro(micro.base)}</strong> <span className="opacity-70">(+ PS 18,6 %)</span>
+                    Abattement {sousType === "tourisme_non_classe" ? "30" : "50"} % : <strong>− {euro(micro.abattement)}</strong> · Base imposable estimée : <strong style={{ color: BRAND.navy }}>{euro(micro.base)}</strong> <span className="opacity-70">(+ PS 18,6 %)</span>
                   </div>
                 )}
                 {/* Reel : charges + bloc amortissement */}
                 {regimeEffectif === "reel" && (
                   <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
-                    <MoneyField label="Charges reelles/an" tooltip="Charges deductibles hors amortissement ET hors taxe fonciere / assurance saisies ci-dessus (comptees a part, pour eviter le double-compte) : interets d'emprunt, gestion, copropriete non recuperable, comptable..." value={property.chargesReelles || ""} onChange={(e) => updateProperty(property.id, "chargesReelles", e.target.value)} compact />
+                    <MoneyField label="Charges réelles/an" tooltip="Charges déductibles hors amortissement ET hors taxe foncière / assurance saisies ci-dessus (comptées à part, pour éviter le double-compte) : intérêts d'emprunt, gestion, copropriété non récupérable, comptable..." value={property.chargesReelles || ""} onChange={(e) => updateProperty(property.id, "chargesReelles", e.target.value)} compact />
                     <MoneyField label="Prix d'acquisition" tooltip="Prix de revient de l'immeuble, base de l'amortissement par composants (hors terrain)." value={property.prixAcquisition || ""} onChange={(e) => updateProperty(property.id, "prixAcquisition", e.target.value)} compact />
-                    <Field label="Part terrain (%)" tooltip="Fraction non amortissable du prix (terrain). Defaut 15 %. Saisie en pourcentage.">
+                    <Field label="Part terrain (%)" tooltip="Fraction non amortissable du prix (terrain). Défaut 15 %. Saisie en pourcentage.">
                       <Input value={isSet(property.partTerrain) ? String(Math.round(n(property.partTerrain) * 1000) / 10) : ""} placeholder="15" onChange={(e) => { const v = e.target.value.trim(); updateProperty(property.id, "partTerrain", v === "" ? "" : String(n(v) / 100)); }} className="rounded-xl h-8 text-sm" style={{ fontWeight: 700 }} inputMode="decimal" />
                     </Field>
-                    <MoneyField label="Valeur mobilier" tooltip={`Valeur du mobilier, amorti lineairement sur ${refMeuble.amortissement.dureeMobilier} ans.`} value={property.valeurMobilier || ""} onChange={(e) => updateProperty(property.id, "valeurMobilier", e.target.value)} compact />
+                    <MoneyField label="Valeur mobilier" tooltip={`Valeur du mobilier, amorti linéairement sur ${refMeuble.amortissement.dureeMobilier} ans.`} value={property.valeurMobilier || ""} onChange={(e) => updateProperty(property.id, "valeurMobilier", e.target.value)} compact />
                     <div>
                       <MoneyField label="Amortissement annuel" tooltip={amortTooltip} value={amortSaisi ? property.amortissementAnnuelManuel : (autoAmort ? String(Math.round(autoAmort.total * 100) / 100) : "")} onChange={(e) => updateProperty(property.id, "amortissementAnnuelManuel", e.target.value)} compact />
                       <div className="flex items-center gap-2 mt-0.5">
                         {(amortSaisi || autoAmort) && (
                           <span className="text-[10px] font-semibold" style={{ color: amortSaisi ? BRAND.sky : hasOverrides ? BRAND.sky : BRAND.success }}>
-                            {amortSaisi ? "✎ saisi" : hasOverrides ? "⚙ ajuste" : "⚙ calcule"}
+                            {amortSaisi ? "✎ saisi" : hasOverrides ? "⚙ ajusté" : "⚙ calculé"}
                           </span>
                         )}
                         {isSet(property.prixAcquisition) && (
-                          <button type="button" onClick={() => setAmortModalPropertyId(property.id)} className="text-[10px] font-semibold underline" style={{ color: BRAND.sky }}>Detail</button>
+                          <button type="button" onClick={() => setAmortModalPropertyId(property.id)} className="text-[10px] font-semibold underline" style={{ color: BRAND.sky }}>Détail</button>
                         )}
                       </div>
                     </div>
@@ -664,14 +664,14 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                 {regimeEffectif === "reel" && property.dispositifFiscal === "censiBouvard" && (
                   <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}>
                     <span aria-hidden="true">🟠</span>
-                    <span>Censi-Bouvard : l'amortissement est exclu sur la fraction du prix ayant ouvert droit a la reduction (art. 199 sexvicies VII) — ajustez le plan via « Detail » ou le champ manuel.</span>
+                    <span>Censi-Bouvard : l'amortissement est exclu sur la fraction du prix ayant ouvert droit à la réduction (art. 199 sexvicies VII) — ajustez le plan via « Détail » ou le champ manuel.</span>
                   </div>
                 )}
                 {/* Alerte 3 : cotisations sociales tourisme courte duree (foyer) */}
                 {(sousType === "tourisme_classe" || sousType === "tourisme_non_classe") && recettesTourismeFoyer > refMeuble.lmp.seuilRecettes && (
                   <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}>
                     <span aria-hidden="true">🟠</span>
-                    <span>Affiliation sociale des loueurs de courte duree (art. L611-1 CSS) : cotisations sociales non modelisees.</span>
+                    <span>Affiliation sociale des loueurs de courte durée (art. L611-1 CSS) : cotisations sociales non modélisées.</span>
                   </div>
                 )}
               </div>

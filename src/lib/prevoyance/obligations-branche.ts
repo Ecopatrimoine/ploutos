@@ -137,17 +137,17 @@ function itemNonPresente(garantie: ObligationGarantie, resume: string): Obligati
 function resumeCapital(raw: Record<string, unknown>): string {
   const mode = raw.mode;
   if (mode === "situationFamiliale") {
-    return "Capital deces selon la situation familiale (conjoint / enfants a charge)";
+    return "Capital décès selon la situation familiale (conjoint / enfants à charge)";
   }
   const taux = safeNum(raw.tauxSalaireRef);
   const minP = safeNum(raw.minimumPass);
-  if (taux === null) return "Capital deces impose par la branche";
+  if (taux === null) return "Capital décès imposé par la branche";
   const min = minP !== null && minP > 0 ? ` (min ${num(minP)} PASS)` : "";
-  return `Capital deces : ${num(taux)}x salaire de reference${min}`;
+  return `Capital décès : ${num(taux)}x salaire de référence${min}`;
 }
 
 function itemCapitalDC(raw: unknown, indispoResolveur: boolean): ObligationItem {
-  if (raw == null) return itemNonPresente("capitalDC", "Capital deces : non prevu par la branche");
+  if (raw == null) return itemNonPresente("capitalDC", "Capital décès : non prévu par la branche");
   const indispo = typeof raw === "string" ? true : indispoResolveur;
   const item: ObligationItem = {
     garantie: "capitalDC",
@@ -155,7 +155,7 @@ function itemCapitalDC(raw: unknown, indispoResolveur: boolean): ObligationItem 
     source: "ccn",
     donneeIndisponible: indispo,
     resume: indispo
-      ? "Capital deces impose par la branche — montant a documenter"
+      ? "Capital décès imposé par la branche — montant à documenter"
       : resumeCapital(raw as Record<string, unknown>),
   };
   if (!indispo) {
@@ -168,7 +168,7 @@ function itemCapitalDC(raw: unknown, indispoResolveur: boolean): ObligationItem 
 }
 
 function itemRenteEducation(raw: unknown, phases: { deAge: number; aAge: number; tauxSalaireRef: number }[], indispoResolveur: boolean): ObligationItem {
-  if (raw == null) return itemNonPresente("renteEducation", "Rente education : non prevue par la branche");
+  if (raw == null) return itemNonPresente("renteEducation", "Rente éducation : non prévue par la branche");
   const indispo = typeof raw === "string" ? true : (indispoResolveur || phases.length === 0);
   const segs = phases.map((p) => `${pctFraction(p.tauxSalaireRef)} [${p.deAge}-${p.aAge} ans]`).join(", ");
   return {
@@ -176,20 +176,20 @@ function itemRenteEducation(raw: unknown, phases: { deAge: number; aAge: number;
     presente: true,
     source: "ccn",
     donneeIndisponible: indispo,
-    resume: indispo ? "Rente education imposee par la branche — bareme a documenter" : `Rente education : ${segs}`,
+    resume: indispo ? "Rente éducation imposée par la branche — barème à documenter" : `Rente éducation : ${segs}`,
     // Bareme par tranches d'age -> comparaison manuelle (jamais auto-comparee).
     ...(indispo ? {} : { comparable: { mode: "complexe" } as ObligationComparable }),
   };
 }
 
 function itemRenteConjoint(raw: unknown, conj: { montantAnnuel: number | null; dureeMaxAnnees: number | null; cumulableAvecRenteEducation: boolean; donneeIndisponible: boolean }): ObligationItem {
-  if (raw == null) return itemNonPresente("renteConjoint", "Rente conjoint : non prevue par la branche");
+  if (raw == null) return itemNonPresente("renteConjoint", "Rente conjoint : non prévue par la branche");
   const indispo = typeof raw === "string" ? true : conj.donneeIndisponible;
   let resume: string;
   if (indispo) {
-    resume = "Rente conjoint imposee par la branche — modalites a documenter";
+    resume = "Rente conjoint imposée par la branche — modalités à documenter";
   } else if (conj.cumulableAvecRenteEducation) {
-    resume = "Rente conjoint (cible reversion, cumulable avec la rente education, versee jusqu'a l'age legal)";
+    resume = "Rente conjoint (cible réversion, cumulable avec la rente éducation, versée jusqu'à l'âge légal)";
   } else {
     const duree = conj.dureeMaxAnnees != null ? ` (${num(conj.dureeMaxAnnees)} ans)` : "";
     resume = `Rente conjoint substitutive${duree}`;
@@ -208,10 +208,10 @@ function itemRenteConjoint(raw: unknown, conj: { montantAnnuel: number | null; d
 type IJResolue = { pctSalaire: number; franchise: number; plafondJours: number; paliers?: { deJour: number; aJour: number; pctSalaire: number }[] };
 
 function itemIJ(raw: unknown, ij: IJResolue | undefined): ObligationItem {
-  if (raw == null) return itemNonPresente("ij", "IJ (incapacite) : non prevues par la branche");
+  if (raw == null) return itemNonPresente("ij", "IJ (incapacité) : non prévues par la branche");
   // present mais non exploitable (TO_VERIFY string, ou objet malforme -> ij undefined).
   if (typeof raw === "string" || !ij) {
-    return { garantie: "ij", presente: true, source: "ccn", donneeIndisponible: true, resume: "IJ imposees par la branche — bareme a documenter" };
+    return { garantie: "ij", presente: true, source: "ccn", donneeIndisponible: true, resume: "IJ imposées par la branche — barème à documenter" };
   }
   let resume: string;
   let comparable: ObligationComparable;
@@ -228,11 +228,11 @@ function itemIJ(raw: unknown, ij: IJResolue | undefined): ObligationItem {
 type InvResolue = { cat1: { pctSalaire: number }; cat2: { pctSalaire: number }; cat3: { pctSalaire: number } };
 
 function itemInvalidite(raw: unknown, inv: InvResolue | undefined): ObligationItem {
-  if (raw == null) return itemNonPresente("invalidite", "Invalidite : non prevue par la branche");
+  if (raw == null) return itemNonPresente("invalidite", "Invalidité : non prévue par la branche");
   if (typeof raw === "string" || !inv) {
-    return { garantie: "invalidite", presente: true, source: "ccn", donneeIndisponible: true, resume: "Invalidite imposee par la branche — bareme a documenter" };
+    return { garantie: "invalidite", presente: true, source: "ccn", donneeIndisponible: true, resume: "Invalidité imposée par la branche — barème à documenter" };
   }
-  const resume = `Invalidite : cat1 ${pctFraction(inv.cat1.pctSalaire)}, cat2 ${pctFraction(inv.cat2.pctSalaire)}, cat3 ${pctFraction(inv.cat3.pctSalaire)}`;
+  const resume = `Invalidité : cat1 ${pctFraction(inv.cat1.pctSalaire)}, cat2 ${pctFraction(inv.cat2.pctSalaire)}, cat3 ${pctFraction(inv.cat3.pctSalaire)}`;
   return {
     garantie: "invalidite",
     presente: true,
@@ -253,7 +253,7 @@ function itemMaintien(idcc: string, college: "cadres" | "nonCadres", ref: Refere
       presente: true,
       source: "ccn",
       donneeIndisponible: false,
-      resume: `Maintien employeur CCN : ${m.paliers.length} palier(s) d'anciennete (${seuils} mois), carence ${m.carenceJours} j ; 1er palier ${prem}`,
+      resume: `Maintien employeur CCN : ${m.paliers.length} palier(s) d'ancienneté (${seuils} mois), carence ${m.carenceJours} j ; 1er palier ${prem}`,
     };
   }
   // Repli legal Mensualisation : ce n'est PAS une obligation de branche -> presente false.
@@ -262,7 +262,7 @@ function itemMaintien(idcc: string, college: "cadres" | "nonCadres", ref: Refere
     presente: false,
     source: "legal",
     donneeIndisponible: m.source === "indisponible",
-    resume: "Maintien legal (Mensualisation) en repli — aucune amelioration de branche",
+    resume: "Maintien légal (Mensualisation) en repli — aucune amélioration de branche",
   };
 }
 
@@ -308,12 +308,12 @@ function resolveTauxT1(conv: ConvLecture): TauxT1Minimum {
 function resolveSanteMinimum(conv: ConvLecture): SanteMinimumObligation {
   const sm = conv.santeMinimum;
   if (sm == null) {
-    return { presente: false, regimeBranche: null, panier: null, donneeIndisponible: false, resume: "Aucun regime sante de branche documente" };
+    return { presente: false, regimeBranche: null, panier: null, donneeIndisponible: false, resume: "Aucun régime santé de branche documenté" };
   }
   // TO_FILL (legacy) / TO_VERIFY (statut non tranche, ex. 2264) -> indisponible,
   // JAMAIS "absent" (defaut conservateur).
   if (sm.TO_FILL === true || sm.TO_VERIFY === true) {
-    return { presente: true, regimeBranche: null, panier: null, donneeIndisponible: true, resume: "Statut sante de branche a confirmer (sources a lever)" };
+    return { presente: true, regimeBranche: null, panier: null, donneeIndisponible: true, resume: "Statut santé de branche à confirmer (sources à lever)" };
   }
   // Forme flag : regimeBranche pose explicitement.
   if (typeof sm.regimeBranche === "boolean") {
@@ -323,8 +323,8 @@ function resolveSanteMinimum(conv: ConvLecture): SanteMinimumObligation {
       panier: null,
       donneeIndisponible: false,
       resume: sm.regimeBranche
-        ? "Regime sante de branche impose (au-dela du panier ANI national)"
-        : "Pas de regime sante de branche au-dela du panier ANI national",
+        ? "Régime santé de branche imposé (au-delà du panier ANI national)"
+        : "Pas de régime santé de branche au-delà du panier ANI national",
     };
     if (typeof sm.accordFondateur === "string") out.accordFondateur = sm.accordFondateur;
     if (typeof sm.organismeReference === "string") out.organismeReference = sm.organismeReference;
@@ -339,7 +339,7 @@ function resolveSanteMinimum(conv: ConvLecture): SanteMinimumObligation {
     regimeBranche: false,
     panier,
     donneeIndisponible: partIndispo,
-    resume: `Panier sante ${panier ?? "?"} (minimum national)${partIndispo ? " — participation employeur a documenter" : ""}`,
+    resume: `Panier santé ${panier ?? "?"} (minimum national)${partIndispo ? " — participation employeur à documenter" : ""}`,
   };
 }
 

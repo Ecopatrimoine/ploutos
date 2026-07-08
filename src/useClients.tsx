@@ -1147,7 +1147,7 @@ export function ClientManager({
               <thead>
                 <tr>
                   <th>Client</th>
-                  <th>Né(e) le</th>
+                  <th>Naissance</th>
                   <th>Dépt</th>
                   <th>Situation</th>
                   <th>Modifié</th>
@@ -1188,10 +1188,10 @@ export function ClientManager({
       {/* Footer citation */}
       <div className="mt-auto py-6 text-center text-xs text-slate-400" style={{ position:"relative", zIndex:1 }}>
         <p style={{ fontStyle:"italic" }}>« La richesse ne consiste pas à avoir de nombreuses possessions, mais à avoir peu de besoins. »</p>
-        <p className="mt-1">© Ploutos {new Date().getFullYear()} — Données stockées localement</p>
-        {/* Badge version : version package.json + hash de commit (Netlify) — "dev" en local. */}
+        <p className="mt-1">© Ploutos {new Date().getFullYear()} — Données synchronisées — copie locale de travail</p>
+        {/* Badge version : version package.json ("dev" en local). Hash de commit retire de l'UI (Lot 6 C2). */}
         <p className="mt-1" style={{ fontSize: 11, color: BRAND.muted }}>
-          v{__APP_VERSION__} · {__COMMIT_HASH__}
+          v{__APP_VERSION__}
         </p>
       </div>
     </div>

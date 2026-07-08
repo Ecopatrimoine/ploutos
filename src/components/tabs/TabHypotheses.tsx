@@ -64,7 +64,13 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                 <div>
                   <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Base de référence</div>
                   <div className="text-xs text-slate-500 mt-0.5">
-                    {baseSnapshot.savedAt ? `Figée le ${new Date(baseSnapshot.savedAt).toLocaleString("fr-FR")}` : "Aucune base figée"}
+                    {baseSnapshot.savedAt
+                      ? (() => {
+                          const d = new Date(baseSnapshot.savedAt);
+                          const heure = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }).replace(":", "h");
+                          return `Figée le ${d.toLocaleDateString("fr-FR")} à ${heure}`;
+                        })()
+                      : "Aucune base figée"}
                   </div>
                 </div>
                 <div className="flex gap-3 text-sm">
@@ -206,7 +212,7 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                   </div>
                 ) : (
                   <div className="rounded-xl border border-dashed px-3 py-4 text-xs text-center text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-                    Enregistre la situation courante pour comparer.
+                    Enregistrez la situation courante pour comparer.
                   </div>
                 )}
 

@@ -106,16 +106,16 @@ describe("BlocObligationsBranche — vue fusionnee (LOT 5)", () => {
     expect(screen.getByText("Insuffisant")).toBeInTheDocument();
     expect(screen.getByText("A etudier")).toBeInTheDocument();
     // synthese : 3 compteurs
-    expect(screen.getByText("0 conformes")).toBeInTheDocument();
-    expect(screen.getByText("1 insuffisante(s)")).toBeInTheDocument();
-    expect(screen.getByText("1 a etudier")).toBeInTheDocument();
+    expect(screen.getByText("0 conforme")).toBeInTheDocument();
+    expect(screen.getByText("1 insuffisante")).toBeInTheDocument();
+    expect(screen.getByText("1 à étudier")).toBeInTheDocument();
     // un SEUL tableau (plus de sections par college)
     expect(container.querySelectorAll("table").length).toBe(1);
   });
 
   it("2. pas de souscrit : bandeau 'comparaison non realisee', pas de colonnes Souscrit/Verdict", () => {
     render(<BlocObligationsBranche vue={vueSansSouscrit} />);
-    expect(screen.getByText(/comparaison non realisee/i)).toBeInTheDocument();
+    expect(screen.getByText(/comparaison non réalisée/i)).toBeInTheDocument();
     // colonnes absentes
     expect(screen.queryByText("Souscrit")).toBeNull();
     expect(screen.queryByText("Verdict")).toBeNull();
@@ -131,15 +131,15 @@ describe("BlocObligationsBranche — vue fusionnee (LOT 5)", () => {
 
   it("4. nonPrevues non vide -> note de bas (garantie non prevue + maintien deja projete)", () => {
     render(<BlocObligationsBranche vue={vueComparee} />);
-    expect(screen.getByText(/Non prevue par la branche : Rente de conjoint/)).toBeInTheDocument();
-    expect(screen.getByText(/maintien employeur est deja integre a la projection/i)).toBeInTheDocument();
+    expect(screen.getByText(/Non prévue par la branche : Rente de conjoint/)).toBeInTheDocument();
+    expect(screen.getByText(/maintien employeur est déjà intégré à la projection/i)).toBeInTheDocument();
   });
 
   it("5. ligne maintien (reference) -> mention 'reference', aucune pastille de verdict", () => {
     render(<BlocObligationsBranche vue={vueComparee} />);
     const cell = screen.getByText("Maintien de salaire employeur");
     const row = cell.closest("tr")!;
-    expect(within(row).getByText("reference")).toBeInTheDocument();
+    expect(within(row).getByText("référence")).toBeInTheDocument();
     expect(within(row).queryByText("Insuffisant")).toBeNull();
     expect(within(row).queryByText("A etudier")).toBeNull();
     expect(within(row).queryByText("Conforme")).toBeNull();

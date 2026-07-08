@@ -88,13 +88,12 @@ const TabParametres = React.memo(function TabParametres(props: any) {
   );
 
   // ─── Helper input field standard ─────────────────────────────────────
-  const Field = ({ ckKey, label, placeholder, hint, badge, disabled }: { ckKey: string; label: string; placeholder?: string; hint?: string; badge?: "new" | "preserved" | "renamed"; disabled?: boolean }) => (
+  const Field = ({ ckKey, label, placeholder, hint, badge, disabled }: { ckKey: string; label: string; placeholder?: string; hint?: string; badge?: "new" | "preserved"; disabled?: boolean }) => (
     <div>
       <Label className="text-xs font-bold tracking-wide mb-1.5 block text-slate-600">
         {label}
         {badge === "new" && <span className="ml-2 text-[9px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200 rounded px-1.5 py-0.5">nouveau</span>}
         {badge === "preserved" && <span className="ml-2 text-[9px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200 rounded px-1.5 py-0.5">existant</span>}
-        {badge === "renamed" && <span className="ml-2 text-[9px] font-bold uppercase tracking-wider bg-red-50 text-red-700 border border-red-200 rounded px-1.5 py-0.5">clé renommée</span>}
       </Label>
       <Input
         value={cabinet[ckKey] || ""}
@@ -243,7 +242,7 @@ const TabParametres = React.memo(function TabParametres(props: any) {
                 <SubCard conditional className={classFor("ass")}>
                   <CardHead
                     title="Détails assurance"
-                    sub={<>Catégories distribuées, encaissement, RCP. Inclut <code className="bg-slate-100 rounded px-1 text-[10px]">rcpMontants</code> nouveau (affiché DER + Lettre M1).</>}
+                    sub="Catégories distribuées, encaissement, montants RCP (repris dans le DER et la lettre de mission)."
                     badgeText="si COA / MIA"
                   />
                   <div className="mb-3">
@@ -258,7 +257,7 @@ const TabParametres = React.memo(function TabParametres(props: any) {
                       <ToggleRow ckKey="categAssPro" label="Risques professionnels" desc="RC pro, MRH ent., flotte" compact />
                     </div>
                     <div className="text-[10px] text-slate-500 mt-1.5">
-                      Remplace en saisie le champ texte legacy <code className="bg-slate-100 rounded px-1">categorieAssurance</code> (toujours lu en fallback affichage).
+                      Cochez les catégories d'assurance réellement distribuées.
                     </div>
                   </div>
 
@@ -377,7 +376,6 @@ const TabParametres = React.memo(function TabParametres(props: any) {
                 <div className="mt-4">
                   <Label className="text-xs font-bold tracking-wide mb-2 block text-slate-600">
                     Mode de rémunération principal
-                    <span className="ml-2 text-[9px] font-bold uppercase tracking-wider bg-red-50 text-red-700 border border-red-200 rounded px-1.5 py-0.5">clé renommée</span>
                   </Label>
                   <div className="flex gap-4 flex-wrap">
                     {([["commission", "Commission"], ["honoraire", "Honoraires"], ["mixte", "Mixte"]] as [string, string][]).map(([v, l]) => (
@@ -393,9 +391,6 @@ const TabParametres = React.memo(function TabParametres(props: any) {
                       </label>
                     ))}
                   </div>
-                  <div className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1.5 leading-snug">
-                    Saisi sous la clé canonique <code className="bg-amber-100 rounded px-1">remunerationType</code>. La clé legacy <code className="bg-amber-100 rounded px-1">remuneration</code> est maintenue en miroir automatique (rétrocompat builders).
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mt-4">
@@ -405,9 +400,6 @@ const TabParametres = React.memo(function TabParametres(props: any) {
 
                 <div className="mt-3">
                   <Field ckKey="partenaires" label="Partenaires assurance & placement" placeholder="liste libre ou « voir registre conflits d'intérêts »" />
-                  <div className="text-[10px] text-slate-500 mt-1">
-                    Déplacé depuis Coordonnées→Réglementation pour cohérence avec la transparence des conflits d'intérêts.
-                  </div>
                 </div>
 
                 {/* ─── Lot Dossier client — modèle de mission par défaut ─── */}
@@ -416,7 +408,7 @@ const TabParametres = React.memo(function TabParametres(props: any) {
                   <Field ckKey="delaiPreavis" label="Délai de préavis de résiliation" badge="new" placeholder="ex: 30 jours" />
                 </div>
                 <div className="text-[10px] text-slate-500 mt-1">
-                  Modèle par défaut appliqué à toutes les lettres de mission générées. Override per-dossier prévu plus tard (pop-card d'impression).
+                  Modèle par défaut appliqué à toutes les lettres de mission générées.
                 </div>
               </SubCard>
 

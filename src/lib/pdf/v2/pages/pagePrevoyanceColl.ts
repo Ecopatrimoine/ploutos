@@ -24,6 +24,7 @@ import {
   icones,
 } from "../primitives";
 import { compilerPageContrat, type Bloc } from "../engine/contrat";
+import { plur } from "../../../calculs/utils";
 import type { Tokens } from "../tokens";
 import type { ControleConformite, ControleStatut } from "../../../prevoyance/types";
 import type {
@@ -107,8 +108,8 @@ function verdictHTML(t: Tokens, verdict: VerdictFusionne | null, label: ValeurFu
   );
 }
 
-function compteurHTML(n: number, label: string, color: string, bg: string): string {
-  return `<span style="display:inline-block;border:1px solid ${color};border-radius:8px;padding:3px 10px;font-size:10px;font-weight:700;color:${color};background:${bg}">${n} ${label}</span>`;
+function compteurHTML(n: number, singulier: string, pluriel: string, color: string, bg: string): string {
+  return `<span style="display:inline-block;border:1px solid ${color};border-radius:8px;padding:3px 10px;font-size:10px;font-weight:700;color:${color};background:${bg}">${plur(n, singulier, pluriel)}</span>`;
 }
 
 // Section obligations fusionnees -> Bloc[] (head insécable + tableau ListeEcoulable
@@ -116,20 +117,20 @@ function compteurHTML(n: number, label: string, color: string, bg: string): stri
 // unique) -> rien a verifier cote DDA. Le tableau jadis monolithique (tableauTitresDores)
 // devient une ListeEcoulable (coupable entre lignes, thead repete + « (suite) »).
 function blocsObligations(t: Tokens, d: PrevoyanceCollPageData): Bloc[] {
-  const titreHtml = sousTitreSection(t, "Obligations de prevoyance de branche");
+  const titreHtml = sousTitreSection(t, "Obligations de prévoyance de branche");
 
   // Vue indisponible : sous-titre + message (1 bloc insécable).
   if (!d.vueObligations) {
     return [{
       kind: "insecable",
-      html: `<div style="margin-top:16px">${titreHtml}<div style="font-size:10.5px;color:${t.texteFaible};margin-top:2px">Donnees de branche indisponibles.</div></div>`,
+      html: `<div style="margin-top:16px">${titreHtml}<div style="font-size:10.5px;color:${t.texteFaible};margin-top:2px">Données de branche indisponibles.</div></div>`,
     }];
   }
 
   const vue = d.vueObligations;
   const statut = `<div style="font-size:10.5px;color:${t.texteFaible};margin-top:2px;margin-bottom:4px">${vue.statutLabel}</div>`;
   const avertissement = vue.afficherAvertissementIncomplet
-    ? `<div style="break-inside:avoid;border:1px solid ${COULEUR_SEVERITE.attention.border};border-radius:8px;background:${COULEUR_SEVERITE.attention.bg};padding:8px 12px;margin-top:6px;font-size:10px;color:${COULEUR_SEVERITE.attention.texte}">Donnees de branche partiellement documentees : verification manuelle conseillee.</div>`
+    ? `<div style="break-inside:avoid;border:1px solid ${COULEUR_SEVERITE.attention.border};border-radius:8px;background:${COULEUR_SEVERITE.attention.bg};padding:8px 12px;margin-top:6px;font-size:10px;color:${COULEUR_SEVERITE.attention.texte}">Données de branche partiellement documentées : vérification manuelle conseillée.</div>`
     : "";
 
   // Etat vide propre : aucune ligne -> statutLabel seul, pas de tableau (1 bloc).
@@ -144,15 +145,15 @@ function blocsObligations(t: Tokens, d: PrevoyanceCollPageData): Bloc[] {
   const synthese =
     vue.afficherComparaison && vue.synthese
       ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;margin-bottom:2px">` +
-        compteurHTML(vue.synthese.conformes, "conformes", "#2F7D5B", "rgba(47,125,91,0.08)") +
-        compteurHTML(vue.synthese.insuffisants, "insuffisante(s)", "#DC2626", "rgba(220,38,38,0.08)") +
-        compteurHTML(vue.synthese.aEtudier, "a etudier", "#B07A1E", "rgba(176,122,30,0.10)") +
+        compteurHTML(vue.synthese.conformes, "conforme", "conformes", "#2F7D5B", "rgba(47,125,91,0.08)") +
+        compteurHTML(vue.synthese.insuffisants, "insuffisante", "insuffisantes", "#DC2626", "rgba(220,38,38,0.08)") +
+        compteurHTML(vue.synthese.aEtudier, "à étudier", "à étudier", "#B07A1E", "rgba(176,122,30,0.10)") +
         `</div>`
       : "";
 
   // Bandeau "comparaison non realisee" si aucun souscrit (chaine miroir de l'ecran).
   const bandeau = !vue.afficherComparaison
-    ? `<div style="break-inside:avoid;border:1px solid ${t.bordureClaire};border-radius:8px;background:${t.fondTableauAlt};padding:8px 12px;margin-top:6px;font-size:10px;color:${t.texteFaible}">Aucune garantie souscrite renseignee — comparaison non realisee.</div>`
+    ? `<div style="break-inside:avoid;border:1px solid ${t.bordureClaire};border-radius:8px;background:${t.fondTableauAlt};padding:8px 12px;margin-top:6px;font-size:10px;color:${t.texteFaible}">Aucune garantie souscrite renseignée — comparaison non réalisée.</div>`
     : "";
 
   // Tableau unique -> ListeEcoulable. Colonnes selon afficherComparaison.
@@ -169,7 +170,7 @@ function blocsObligations(t: Tokens, d: PrevoyanceCollPageData): Bloc[] {
             ? [
                 { value: l.garantieLabel, bold: true },
                 { value: valeurHTML(t, l.obligation), color: t.texte },
-                { value: `<span style="font-style:italic;color:${t.texteFaible}">reference</span>` },
+                { value: `<span style="font-style:italic;color:${t.texteFaible}">référence</span>` },
                 { value: "" },
               ]
             : [
@@ -194,11 +195,11 @@ function blocsObligations(t: Tokens, d: PrevoyanceCollPageData): Bloc[] {
   // Notes de bas de section.
   const notes: string[] = [];
   if (vue.nonPrevues.length > 0) {
-    notes.push(`Non prevue par la branche : ${vue.nonPrevues.map((n) => n.garantieLabel).join(", ")}.`);
+    notes.push(`Non prévue par la branche : ${vue.nonPrevues.map((n) => n.garantieLabel).join(", ")}.`);
   }
   // Decision David : la note maintien s'affiche des qu'une ligne estReference existe.
   if (vue.lignes.some((l) => l.estReference)) {
-    notes.push("Le maintien employeur est deja integre a la projection (Prevoyance personnelle).");
+    notes.push("Le maintien employeur est déjà intégré à la projection (Prévoyance personnelle).");
   }
   const notesHTML =
     notes.length > 0

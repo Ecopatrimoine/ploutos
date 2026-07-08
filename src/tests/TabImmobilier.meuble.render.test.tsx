@@ -61,38 +61,38 @@ function renderImmo(property: any) {
 describe("TabImmobilier — section Location meublee", () => {
   it("Location nue : AUCUNE section meublee", () => {
     renderImmo(mkProp({ type: "Location nue" }));
-    expect(screen.queryByText("Location meublee (BIC)")).toBeNull();
+    expect(screen.queryByText("Location meublée (BIC)")).toBeNull();
   });
 
   it("LMNP : section presente + champs sousType/recettes/regime + reprise des loyers", () => {
     renderImmo(mkProp({ type: "LMNP", rentGrossAnnual: "12000" }));
-    expect(screen.getByText("Location meublee (BIC)")).toBeTruthy();
+    expect(screen.getByText("Location meublée (BIC)")).toBeTruthy();
     expect(screen.getByText("Type de location")).toBeTruthy();
     expect(screen.getByText("Recettes annuelles")).toBeTruthy();
-    expect(screen.getByText("Regime fiscal")).toBeTruthy();
+    expect(screen.getByText("Régime fiscal")).toBeTruthy();
     expect(screen.getByText(/reprise des loyers saisis/)).toBeTruthy();
   });
 
   it("LMNP micro eligible : lecture seule abattement + base estimee", () => {
     renderImmo(mkProp({ type: "LMNP", rentGrossAnnual: "12000" }));
-    expect(screen.getByText(/Base imposable estimee/)).toBeTruthy();
+    expect(screen.getByText(/Base imposable estimée/)).toBeTruthy();
     // Pas de bloc reel en micro.
     expect(screen.queryByText("Prix d'acquisition")).toBeNull();
   });
 
   it("LMNP micro choisi AU-DESSUS du seuil : badge reel + alerte seuil + bloc reel", () => {
     renderImmo(mkProp({ type: "LMNP", regimeMeuble: "micro", recettesAnnuelles: "90000" }));
-    expect(screen.getByText("Regime applique : reel")).toBeTruthy();
-    expect(screen.getByText(/Seuil micro-BIC depasse/)).toBeTruthy();
+    expect(screen.getByText("Régime appliqué : réel")).toBeTruthy();
+    expect(screen.getByText(/Seuil micro-BIC dépassé/)).toBeTruthy();
     expect(screen.getByText("Prix d'acquisition")).toBeTruthy(); // reel de plein droit
   });
 
   it("LMNP reel + prix saisi : bloc amortissement + badge calcule", () => {
     renderImmo(mkProp({ type: "LMNP", regimeMeuble: "reel", recettesAnnuelles: "20000", prixAcquisition: "300000" }));
-    expect(screen.getByText("Charges reelles/an")).toBeTruthy();
+    expect(screen.getByText("Charges réelles/an")).toBeTruthy();
     expect(screen.getByText("Amortissement annuel")).toBeTruthy();
     expect(screen.getByText("Part terrain (%)")).toBeTruthy();
-    expect(screen.getByText(/calcule/)).toBeTruthy();
+    expect(screen.getByText(/calculé/)).toBeTruthy();
   });
 
   it("LMNP reel + amortissement manuel : badge saisi", () => {
@@ -104,12 +104,12 @@ describe("TabImmobilier — section Location meublee", () => {
     renderImmo(mkProp({ type: "LMP", rentGrossAnnual: "12000" }));
     expect(screen.getByText("Statut LMP probable")).toBeTruthy();
     // La section meublee s'affiche aussi pour un LMP (meme circuit BIC).
-    expect(screen.getByText("Location meublee (BIC)")).toBeTruthy();
+    expect(screen.getByText("Location meublée (BIC)")).toBeTruthy();
   });
 
   it("Tourisme non classe recettes > 23000 : alerte cotisations sociales courte duree", () => {
     renderImmo(mkProp({ type: "LMNP", sousType: "tourisme_non_classe", regimeMeuble: "reel", recettesAnnuelles: "30000" }));
-    expect(screen.getByText(/Affiliation sociale des loueurs de courte duree/)).toBeTruthy();
+    expect(screen.getByText(/Affiliation sociale des loueurs de courte durée/)).toBeTruthy();
   });
 
   // ── Lot 1bis point B : epuration du doublon ──
@@ -126,7 +126,7 @@ describe("TabImmobilier — section Location meublee", () => {
   // ── Lot 1bis point A : modal Detail amortissement ──
   it("LMNP reel + prix saisi : bouton 'Detail' de l'amortissement present", () => {
     renderImmo(mkProp({ type: "LMNP", regimeMeuble: "reel", recettesAnnuelles: "20000", prixAcquisition: "300000" }));
-    expect(screen.getByText("Detail")).toBeTruthy();
+    expect(screen.getByText("Détail")).toBeTruthy();
   });
 
   // ── Lot 1bis amendement : garde-fou Censi-Bouvard x amortissement ──
