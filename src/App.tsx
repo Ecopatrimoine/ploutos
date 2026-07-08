@@ -409,7 +409,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       return next;
     });
   };
-  const { clients, syncStatus, syncNow, createClient, saveClient, deleteClient, duplicateClient, renameClient } = useClients(userId, authState)
+  const { clients, syncStatus, syncNow, createClient, saveClient, deleteClient, duplicateClient, renameClient, deleteError, dismissDeleteError } = useClients(userId, authState)
   const [activeClient, setActiveClient] = useState<ClientRecord | null>(null)
   // Vue autonome de l'accueil (hors dossier). Patron prévu pour d'autres modules
   // (activeModule). Lot 2 : "parametres". Lot 3+ : calculettes.
@@ -1305,6 +1305,8 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
         onOpen={handleOpenClient}
         onCreate={handleCreateClient}
         onDelete={deleteClient}
+        deleteError={deleteError}
+        dismissDeleteError={dismissDeleteError}
         onDuplicate={(id) => { const c = duplicateClient(id); if (c) handleOpenClient(c) }}
         onRename={renameClient}
         logoSrc={logoSrc}
