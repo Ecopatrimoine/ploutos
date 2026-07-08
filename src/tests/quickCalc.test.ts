@@ -214,6 +214,40 @@ describe("prevoyanceSummary — briques dédiées CARMF / CIPAV / CARPIMKO", () 
   });
 });
 
+describe("prevoyanceSummary — regimes generiques (CPAM / SSI / MSA / FONCTION_PUBLIQUE)", () => {
+  it("CPAM (salaries) : IJ plafonnee, invalidite cat2, capital forfaitaire", () => {
+    const r = prevoyanceSummary("CPAM", 40000, 40);
+    expect(r.valid).toBe(true);
+    expect(r.ijJour).toBeCloseTo(41.95, 2);          // plafond ijMaxJournaliere
+    expect(Math.round(r.invaliditeAn)).toBe(20000);  // 40000/12 x 0,50 x 12
+    expect(Math.round(r.capitalDeces)).toBe(4009);
+  });
+  it("SSI (independants) : IJ = RAAM/730, capital 9612 (actif)", () => {
+    const r = prevoyanceSummary("SSI", 36500, 48);
+    expect(r.ijJour).toBeCloseTo(50, 2);             // 36500 / 730
+    expect(Math.round(r.invaliditeAn)).toBe(18250);
+    expect(Math.round(r.capitalDeces)).toBe(9612);
+  });
+  it("MSA (agricole) : IJ forfaitaire (palier a 30 j), independante du revenu", () => {
+    const r = prevoyanceSummary("MSA", 30000, 50);
+    expect(r.ijJour).toBeCloseTo(34.66, 2);          // 2e palier (> 28 j)
+    // IJ identique quel que soit le revenu (forfaitaire)
+    expect(prevoyanceSummary("MSA", 80000, 50).ijJour).toBeCloseTo(34.66, 2);
+    expect(Math.round(r.capitalDeces)).toBe(4009);
+  });
+  it("FONCTION_PUBLIQUE : plein traitement (90 % a 30 j), capital = remuneration", () => {
+    const r = prevoyanceSummary("FONCTION_PUBLIQUE", 40000, 45);
+    expect(r.ijJour).toBeCloseTo(98.63, 2);          // (40000/365) x 0,90
+    expect(Math.round(r.invaliditeAn)).toBe(20000);
+    expect(Math.round(r.capitalDeces)).toBe(40000);  // taux 1,0 sur la remuneration
+  });
+  it("revenu 0 -> invalide (chaque regime)", () => {
+    for (const c of ["CPAM", "SSI", "MSA", "FONCTION_PUBLIQUE"] as const) {
+      expect(prevoyanceSummary(c, 0, 45).valid).toBe(false);
+    }
+  });
+});
+
 describe("ifiSummary — consomme computeIFI (barème + décote + abattement 30 % RP)", () => {
   it("sous le seuil (1,2 M) -> non assujetti, IFI 0", () => {
     const r = ifiSummary(1200000, 0);

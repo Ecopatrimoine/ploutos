@@ -1,7 +1,8 @@
-// ─── Calculette Prévoyance obligatoire — Lot 4 ──────────────────────────────
-// Consomme prevoyanceSummary -> briques dédiées CARMF / CIPAV / CARPIMKO (moteur).
-// Périmètre : 3 caisses libérales à briques pures isolables (verdict étape 0) ;
-// les caisses forfaitaires (IJ non exportée) sont reportées.
+// ─── Calculette Prévoyance obligatoire — Lot 4 / régimes étendus Lot 5b R3 ────
+// Consomme prevoyanceSummary : régimes génériques CPAM / SSI / MSA / FONCTION_
+// PUBLIQUE (fonctions pures exportées + EntreePerso minimal) + briques dédiées
+// CARMF / CIPAV / CARPIMKO. Les 7 caisses forfaitaires à IJ non exportée restent
+// reportées.
 
 import React, { useState } from "react";
 import { Shield } from "lucide-react";
@@ -9,8 +10,8 @@ import { parseNum, formatEur, prevoyanceSummary, PREVOYANCE_CAISSES, type Prevoy
 import { BRAND } from "../../constants";
 
 export function PrevoyanceCalc({ onClose }: { onClose: () => void }) {
-  const [caisse, setCaisse] = useState<PrevoyanceCaisse>("CARMF");
-  const [revenu, setRevenu] = useState("80 000");
+  const [caisse, setCaisse] = useState<PrevoyanceCaisse>("CPAM");
+  const [revenu, setRevenu] = useState("40 000");
   const [age, setAge] = useState("45");
 
   const r = prevoyanceSummary(caisse, parseNum(revenu), parseNum(age));
@@ -35,7 +36,7 @@ export function PrevoyanceCalc({ onClose }: { onClose: () => void }) {
           </select>
         </div>
         <div className="qc-field">
-          <label htmlFor="qc-prev-rev">Revenu annuel (BNC)</label>
+          <label htmlFor="qc-prev-rev">Revenu annuel</label>
           <input id="qc-prev-rev" className="ploutos-field" inputMode="numeric" value={revenu} onChange={(e) => setRevenu(e.target.value)} />
         </div>
         <div className="qc-field">
@@ -62,10 +63,10 @@ export function PrevoyanceCalc({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="qc-abatt">
-        Profil retenu : affiliation ancienne (hors carence), invalidité totale, célibataire sans enfant.
+        Profil retenu : invalidité totale (catégorie 2), IJ à 30 jours d'arrêt, célibataire sans enfant.
       </div>
       <div className="qc-note">
-        Régime obligatoire seul, hors contrats facultatifs. Caisses libérales à briques dédiées (CARMF, CIPAV, CARPIMKO) ; les autres caisses nécessitent un dossier.
+        Régime obligatoire seul, hors convention collective et contrats facultatifs — étude complète dans un dossier.
       </div>
     </div>
   );

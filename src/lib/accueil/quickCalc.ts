@@ -12,7 +12,11 @@ import { referentiels } from "../../data/prevoyance";
 import { computeIjCarmfJournaliere, pensionInvaliditeTotaleAnnuelle, capitalDecesCarmf } from "../prevoyance/carmf";
 import { ijCipavPhase1Journaliere, pensionInvaliditeCipavAnnuelle, capitalDecesCipav } from "../prevoyance/cipav";
 import { ijCarpimkoPhase1Journaliere, renteInvaliditeCarpimkoAnnuelle, capitalDecesCarpimko } from "../prevoyance/carpimko";
-import type { Child, CarmfConfig, CipavConfig, CarpimkoConfig, FilledBracket } from "../../types/patrimoine";
+import { buildPlafondVariables } from "../prevoyance/formula";
+import { computeIJObligatoireJournaliere, computeInvalObligatoireMensuel } from "../prevoyance/projection";
+import { resolveCapitauxDeces } from "../prevoyance/capitaux-deces";
+import type { EntreePerso } from "../prevoyance/types";
+import type { Child, CarmfConfig, CipavConfig, CarpimkoConfig, FilledBracket, CodeCaisse } from "../../types/patrimoine";
 
 // Saisie tolérante : espaces (séparateurs de milliers) + virgule décimale.
 export function parseNum(s: string): number {
@@ -176,13 +180,59 @@ export function ifiSummary(patrimoineNet: number, residencePrincipale: number): 
 // dédiées produisant IJ + invalidité + capital décès directement (les caisses
 // forfaitaires n'exposent PAS l'IJ complète -> reportées). On CONSOMME ces briques
 // avec un profil par défaut simple ; aucune valeur réglementaire recalculée.
-export type PrevoyanceCaisse = "CARMF" | "CIPAV" | "CARPIMKO";
+export type PrevoyanceCaisse =
+  | "CARMF" | "CIPAV" | "CARPIMKO"                        // caisses libérales à briques dédiées
+  | "CPAM" | "SSI" | "MSA" | "FONCTION_PUBLIQUE";        // régimes génériques (Lot 5b R3)
 
 export const PREVOYANCE_CAISSES: { value: PrevoyanceCaisse; label: string }[] = [
+  { value: "CPAM", label: "CPAM (salariés du privé)" },
+  { value: "SSI", label: "SSI (artisans / commerçants)" },
+  { value: "MSA", label: "MSA (exploitants agricoles)" },
+  { value: "FONCTION_PUBLIQUE", label: "Fonction publique (titulaire)" },
   { value: "CARMF", label: "CARMF (médecins)" },
   { value: "CIPAV", label: "CIPAV (professions libérales)" },
   { value: "CARPIMKO", label: "CARPIMKO (auxiliaires médicaux)" },
 ];
+
+// Régimes génériques : IJ + invalidité (cat2) + capital décès via les fonctions
+// pures exportées du moteur, avec un EntreePerso minimal (aucun dossier). tns =>
+// revenu porté par revenuTNSAnnuel ; sinon salaireBrutAnnuel.
+const GENERIC_CAISSES: Record<string, { statutPro: EntreePerso["statutPro"]; tns: boolean }> = {
+  CPAM: { statutPro: "salarie_cadre", tns: false },
+  SSI: { statutPro: "tns_commercant", tns: true },
+  MSA: { statutPro: "tns_liberal", tns: true },
+  FONCTION_PUBLIQUE: { statutPro: "fonctionnaire", tns: false },
+};
+
+// EntreePerso minimal (10 champs requis) pour les régimes génériques.
+function genericEntree(code: CodeCaisse, cfg: { statutPro: EntreePerso["statutPro"]; tns: boolean }, revenuAnnuel: number, age: number): EntreePerso {
+  return {
+    age, ageRetraite: 64, statutPro: cfg.statutPro, caisse: code,
+    idccCCN: null, ancienneteMois: 24,
+    salaireBrutAnnuel: cfg.tns ? 0 : revenuAnnuel,
+    salaireNetMensuel: 0,
+    revenuTNSAnnuel: cfg.tns ? revenuAnnuel : 0,
+    contratsIndividuels: [], couvertureCollective: null,
+  };
+}
+
+function genericPrevoyance(code: string, revenuAnnuel: number, age: number): PrevoyanceSummary {
+  const cfg = GENERIC_CAISSES[code];
+  const caisseRef = (referentiels.caisses as any).caisses[code];
+  const entree = genericEntree(code as CodeCaisse, cfg, revenuAnnuel, age);
+  const vars = buildPlafondVariables(referentiels);
+  // IJ représentative à 30 jours d'arrêt (post-carence, dans le palier principal).
+  const ijJour = computeIJObligatoireJournaliere(30, caisseRef, entree, vars) ?? 0;
+  // Invalidité totale = catégorie 2. Base : salaire brut mensuel (salariés/FP) ou
+  // revenu TNS mensuel (indépendants/agricoles).
+  const invalMensuel = computeInvalObligatoireMensuel(
+    caisseRef, "cat2",
+    cfg.tns ? 0 : revenuAnnuel / 12,
+    cfg.tns ? revenuAnnuel / 12 : 0,
+  ) ?? 0;
+  const capital = resolveCapitauxDeces(caisseRef, entree).capital ?? 0;
+  return { valid: true, ijJour, invaliditeAn: invalMensuel * 12, capitalDeces: capital };
+}
 
 export type PrevoyanceSummary = {
   valid: boolean;
@@ -196,6 +246,8 @@ export type PrevoyanceSummary = {
 export function prevoyanceSummary(caisse: PrevoyanceCaisse, revenuAnnuel: number, age: number): PrevoyanceSummary {
   const invalid = { valid: false, ijJour: 0, invaliditeAn: 0, capitalDeces: 0 };
   if (!(revenuAnnuel > 0) || !(age > 0)) return invalid;
+
+  if (caisse in GENERIC_CAISSES) return genericPrevoyance(caisse, revenuAnnuel, age);
 
   if (caisse === "CARMF") {
     const cfg: CarmfConfig = {
