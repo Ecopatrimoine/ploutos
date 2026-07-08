@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import { Shield } from "lucide-react";
 import { parseNum, formatEur, prevoyanceSummary, PREVOYANCE_CAISSES, type PrevoyanceCaisse } from "../../lib/accueil/quickCalc";
+import { BRAND } from "../../constants";
 
 export function PrevoyanceCalc({ onClose }: { onClose: () => void }) {
   const [caisse, setCaisse] = useState<PrevoyanceCaisse>("CARMF");
@@ -43,16 +44,18 @@ export function PrevoyanceCalc({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
+      {/* Comparaison visuelle des 3 prestations (accents distincts, style MetricCard) —
+          pas de barre commune : les unités diffèrent (€/jour, €/an, € unique). */}
       <div className="qc-results">
-        <div className="qc-kpi navy">
+        <div className="qc-kpi" style={{ borderTopColor: BRAND.navy }}>
           <div className="qc-kpi-lab">Indemnité journalière</div>
           <div className="qc-kpi-val">{r.valid ? `${formatEur(r.ijJour)} / jour` : "—"}</div>
         </div>
-        <div className="qc-kpi">
+        <div className="qc-kpi" style={{ borderTopColor: BRAND.sky }}>
           <div className="qc-kpi-lab">Invalidité totale</div>
           <div className="qc-kpi-val">{r.valid ? `${formatEur(r.invaliditeAn)} / an` : "—"}</div>
         </div>
-        <div className="qc-kpi">
+        <div className="qc-kpi" style={{ borderTopColor: BRAND.gold }}>
           <div className="qc-kpi-lab">Capital décès</div>
           <div className="qc-kpi-val">{r.valid ? formatEur(r.capitalDeces) : "—"}</div>
         </div>

@@ -5,7 +5,7 @@
 import React, { useState } from "react";
 import { Users } from "lucide-react";
 import { parseNum, formatEur, dmtgSummary } from "../../lib/accueil/quickCalc";
-import { DONATION_RELATIONS } from "../../constants";
+import { DONATION_RELATIONS, BRAND } from "../../constants";
 
 export function DmtgCalc({ onClose }: { onClose: () => void }) {
   const [montant, setMontant] = useState("100 000");
@@ -57,6 +57,37 @@ export function DmtgCalc({ onClose }: { onClose: () => void }) {
           <div className="qc-kpi-val">{kpi(r.netTransmis)}</div>
         </div>
       </div>
+
+      {r.valid && (() => {
+        // Répartition du montant transmis (somme = montant) : abattement (non taxé)
+        // + net après droits + droits. Patron div-bar de la restitution succession.
+        const total = r.abattementApplique + r.baseTaxable;
+        const netApresDroits = Math.max(0, r.baseTaxable - r.droits);
+        const pct = (v: number) => (total > 0 ? `${(v / total) * 100}%` : "0%");
+        const segs = [
+          { label: "Abattement", value: r.abattementApplique, color: BRAND.inactive },
+          { label: "Net après droits", value: netApresDroits, color: BRAND.success },
+          { label: "Droits (DMTG)", value: r.droits, color: BRAND.danger },
+        ];
+        return (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: ".5px", textTransform: "uppercase", color: "var(--qc-muted)", marginBottom: 8 }}>
+              Répartition du montant transmis
+            </div>
+            <div style={{ display: "flex", height: 20, borderRadius: 6, overflow: "hidden", background: "var(--qc-cardsoft)" }}>
+              {segs.map((s, i) => (s.value > 0 ? <div key={i} style={{ width: pct(s.value), background: s.color }} title={`${s.label} : ${formatEur(s.value)}`} /> : null))}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 8, fontSize: 12, color: "var(--qc-muted)" }}>
+              {segs.map((s, i) => (
+                <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <i style={{ width: 10, height: 10, borderRadius: 2, background: s.color, display: "inline-block" }} />
+                  {s.label} — {formatEur(s.value)}
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="qc-note">
         Abattement plein — hors donations antérieures de moins de 15 ans et cas particuliers.
