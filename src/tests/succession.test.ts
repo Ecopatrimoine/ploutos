@@ -667,3 +667,86 @@ describe("computeSuccession — source unique valeur fiscale dérivée", () => {
     expect(comp).toBe("")
   })
 })
+
+// ─── LOT 3 — Totaux succession : périmètre PER / AV consolidée / démembrement ──
+// C1 double comptage démembrement dans la cascade ; C2 fiscalité AV consolidée
+// sur tous les bénéficiaires ; C3 PER hors actif successoral civil.
+describe("computeSuccession — LOT 3 périmètre et totaux", () => {
+
+  // Placement complet (même structure que les fixtures ci-dessus)
+  const mkPlacement = (over: Record<string, any>) => ({
+    name: "P", type: "PEA", ownership: "person1", value: "0",
+    annualIncome: "0", taxableIncome: "0", deathValue: "0",
+    openDate: "2010-01-01", pfuEligible: true, pfuOptOut: false,
+    totalPremiumsNet: "0", premiumsBefore70: "0", premiumsAfter70: "0",
+    exemptFromSuccession: "0", ucRatio: "0", annualWithdrawal: "", annualContribution: "0",
+    perDeductible: false, beneficiaries: [], ...over,
+  })
+
+  // ── C1 — démembrement : NP fiscale + US fiscal = 100 % de l'actif, jamais 2× ──
+  it("C1 : sum(partRecueFiscale) = activeNet (NP + US fiscaux = 100 %, pas ~2×)", () => {
+    const s = computeSuccession({ ...BASE_SUCCESSION, spouseOption: "legal_usufruct_total" }, BASE_DATA)
+    const sumFiscal = s.results.reduce((a, r) => a + r.partRecueFiscale, 0)
+    expect(sumFiscal).toBeCloseTo(s.activeNet, 0)                 // 336 000 = activeNet
+    // Ancien total (shadow) : somme des netReceived économiques → sur-compte le
+    // démembrement (NP pleine valeur + US pleine valeur ≈ 1,9× l'actif).
+    const sumNetReceived = s.results.reduce((a, r) => a + r.netReceived, 0)
+    expect(sumNetReceived).toBeGreaterThan(s.activeNet * 1.5)     // ≈ 646 766
+    // Cascade corrigée (netFiscal) : sans AV, net = actif − droits succession.
+    const sumNetFiscal = s.results.reduce((a, r) => a + r.netFiscal, 0)
+    expect(sumNetFiscal).toBeCloseTo(s.activeNet - s.totalSuccessionRights, 0)
+    expect(sumNetFiscal).toBeLessThanOrEqual(s.activeNet)
+  })
+
+  // ── C3 — PER hors actif successoral civil (art. L.132-12 C.assur / L.224-1 CMF) ──
+  it("C3 : le PER ne compte pas dans l'actif — activeNet identique avec/sans PER", () => {
+    const avecPER = computeSuccession(BASE_SUCCESSION, { ...BASE_DATA, placements: [
+      mkPlacement({ name: "Mon PER", type: "PER assurantiel", value: "139000", deathValue: "139000", premiumsBefore70: "139000" }),
+    ] })
+    const sans = computeSuccession(BASE_SUCCESSION, BASE_DATA)
+    expect(avecPER.activeNet).toBe(sans.activeNet)
+    expect(avecPER.furnitureForfait).toBe(sans.furnitureForfait)       // ni dans le forfait 5 %
+    expect(avecPER.placementLines.some(l => l.name === "Mon PER" && l.netEstateValue > 0)).toBe(false)
+  })
+
+  it("C3 : PER 139 000 vs même montant en compte-titres → delta actif = 139 000 × 1,05", () => {
+    const per = computeSuccession(BASE_SUCCESSION, { ...BASE_DATA, placements: [
+      mkPlacement({ name: "PER", type: "PER assurantiel", value: "139000", deathValue: "139000", premiumsBefore70: "139000" }),
+    ] })
+    const titres = computeSuccession(BASE_SUCCESSION, { ...BASE_DATA, placements: [
+      mkPlacement({ name: "PEA", type: "PEA", value: "139000", deathValue: "139000" }),
+    ] })
+    // Le compte-titres entre dans l'actif (base + forfait mobilier 5 %), le PER non.
+    expect(titres.activeNet - per.activeNet).toBeCloseTo(139000 * 1.05, 0)   // 145 950
+  })
+
+  // ── C2 — fiscalité AV consolidée : bénéficiaire non-héritier compté ──
+  it("C2 : bénéficiaire AV non-héritier → totalAvRights = somme avLines (ancien héritiers-seuls = 0)", () => {
+    const s = computeSuccession(BASE_SUCCESSION, { ...BASE_DATA, placements: [
+      mkPlacement({
+        name: "AV", type: "Assurance-vie fonds euros", value: "400000", deathValue: "400000",
+        totalPremiumsNet: "400000", premiumsBefore70: "400000",
+        beneficiaries: [{ name: "Sophie Concubin", relation: "autre", share: "100" }],
+      }),
+    ] })
+    const consolidated = s.avLines.reduce((a, l) => a + l.before70Tax + l.after70Tax, 0)
+    const heirsOnly = s.results.reduce((a, r) => a + r.avDuties, 0)
+    expect(s.totalAvRights).toBeCloseTo(consolidated, 2)      // source unique = avLines
+    expect(s.totalAvRights).toBeCloseTo(49500, 0)            // (400 000 − 152 500) × 20 %
+    expect(heirsOnly).toBe(0)                                // le concubin n'est pas héritier…
+    expect(s.totalAvRights).toBeGreaterThan(heirsOnly)       // …mais sa fiscalité AV est bien comptée
+  })
+
+  it("C2 non-régression : bénéficiaire héritier → totalAvRights = somme des avDuties héritiers", () => {
+    const s = computeSuccession(BASE_SUCCESSION, { ...BASE_DATA, placements: [
+      mkPlacement({
+        name: "AV", type: "Assurance-vie fonds euros", value: "400000", deathValue: "400000",
+        totalPremiumsNet: "400000", premiumsBefore70: "400000",
+        beneficiaries: [{ name: "Enfant Martin", relation: "enfant", share: "100" }],
+      }),
+    ] })
+    const heirsOnly = s.results.reduce((a, r) => a + r.avDuties, 0)
+    expect(s.totalAvRights).toBeCloseTo(heirsOnly, 2)
+    expect(s.totalAvRights).toBeCloseTo(49500, 0)
+  })
+})

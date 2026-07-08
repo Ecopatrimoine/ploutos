@@ -882,10 +882,16 @@ export function computeSuccession(successionData: SuccessionData, data: Patrimon
       : placement.ownership === deceasedKey ? 1 : 0;
     return {
       name: placement.name || placement.type,
-      netEstateValue: belongsToDeceased && !isAV(placement.type) ? value * baseShare : 0,
+      // C3 (Lot 3) — PER hors masse successorale civile : art. L.132-12 C. assurances
+      // par renvoi art. L.224-1 CMF (PER assurantiel). Comme l'AV, le PER (tous types,
+      // cf. isPERType) est traité côté 990I / 757B via le pool avContracts ci-dessous ;
+      // il ne doit donc PAS être compté dans l'actif successoral civil (sinon il serait
+      // compté deux fois : actif civil + 990I/757B).
+      netEstateValue: belongsToDeceased && !isAV(placement.type) && !isPERType(placement.type) ? value * baseShare : 0,
       note: !belongsToDeceased ? "Placement hors succession du défunt"
         : isAV(placement.type) ? "Assurance-vie hors actif successoral classique"
-          : placement.ownership === "common" ? "Part communautaire retenue" : "Placement propre retenu",
+          : isPERType(placement.type) ? "PER hors actif successoral civil (régime 990I/757B)"
+            : placement.ownership === "common" ? "Part communautaire retenue" : "Placement propre retenu",
     };
   });
 
@@ -1614,7 +1620,11 @@ export function computeSuccession(successionData: SuccessionData, data: Patrimon
     rentesSurvieAnnuelles,
     totalRights: results.reduce((s, r) => s + r.duties, 0),
     totalSuccessionRights: results.reduce((s, r) => s + r.successionDuties, 0),
-    totalAvRights: results.reduce((s, r) => s + r.avDuties, 0),
+    // C2 (Lot 3) — Fiscalité AV consolidée : somme sur TOUTES les avLines (990I + 757B),
+    // pas seulement r.avDuties des héritiers. Un bénéficiaire AV non-héritier (concubin,
+    // tiers…) n'apparaît pas dans results ; sa fiscalité AV n'était donc pas comptée.
+    // avLines couvre tous les bénéficiaires → source unique de vérité (UI + PDF).
+    totalAvRights: avLines.reduce((s, l) => s + l.before70Tax + l.after70Tax, 0),
     collectedPropertyEstate, placementsSuccession, propertyLines, placementLines, avLines, results,
     graphReferenceName: reference?.name || "Aucun héritier taxable",
     graphReferenceTitle: reference?.graphTitle || "Aucun barème applicable",

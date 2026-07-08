@@ -505,7 +505,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
           />
         </div>
         <MetricCard label="Droits de succession" value={euro(succession.totalSuccessionRights)} hint="Droits calculés par héritier après abattements légaux et barème progressif" accent="red" />
-        <MetricCard label="Net transmis aux héritiers" value={euro(totalNet)} hint="Total net après droits de succession et fiscalité AV" accent="green" />
+        <MetricCard label="Net transmis aux héritiers (succession + AV)" value={euro(totalNet)} hint="Total net après droits de succession et fiscalité AV" accent="green" />
       </div>
 
       {/* ── Cartes héritiers 3 colonnes cliquables ── */}
@@ -726,7 +726,11 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
         const activeNet = succession.activeNet;
         const totalDroits = succession.totalSuccessionRights;
         const totalAvTax = succession.totalAvRights;
-        const totalNet = visibleHeirs.reduce((s: number, r: any) => s + r.netReceived, 0);
+        // C1 (Lot 3) — Total net aux héritiers : somme du netFiscal moteur
+        // (partRecueFiscale − droits + avNetReceived), cohérent avec le KPI (:71/:508).
+        // Ne PAS sommer r.netReceived (valeurs économiques brutes : en démembrement,
+        // NP pleine valeur + US pleine valeur comptent l'actif ~2×).
+        const totalNet = visibleHeirs.reduce((s: number, r: any) => s + r.netFiscal, 0);
         const avCapital = succession.avLines.reduce((s: number, l: any) => s + l.amount, 0);
 
         return (
@@ -792,7 +796,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                       { label: "Fiscalité AV", value: -totalAvTax, color: BRAND.warning, bar: totalAvTax / total },
                       { label: "Net AV", value: netAv, color: BRAND.success, bar: netAv / total, separator: true },
                     ] : []),
-                    { label: "Total net transmis", value: totalNet, color: BRAND.navy, bar: totalNet / total, total: true },
+                    { label: "Total net transmis aux héritiers", value: totalNet, color: BRAND.navy, bar: totalNet / total, total: true },
                   ];
                   return (
                     <div className="space-y-2">
@@ -857,7 +861,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                   {[
                     { label: "Capital total", value: euro(cap), color: BRAND.navy },
                     { label: "Fiscalité totale", value: (tax990 + tax757) > 0 ? "−" + euro(tax990 + tax757) : "Exonéré", color: (tax990 + tax757) > 0 ? BRAND.warning : BRAND.success },
-                    { label: "Net transmis", value: euro(netAv), color: BRAND.success },
+                    { label: "Net transmis — assurances-vie (tous bénéficiaires)", value: euro(netAv), color: BRAND.success },
                   ].map((k, i) => (
                     <div key={i} style={{ background: SURFACE.app, borderRadius: "10px", padding: "10px 12px", textAlign: "center" }}>
                       <div style={{ fontSize: "11px", color: BRAND.muted, marginBottom: "4px" }}>{k.label}</div>
@@ -1135,7 +1139,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                     <div>
                       {([
                         { label: "Quotité NP reçue", value: Math.round(heir.nueFraction * 100) + "% de l'actif", hint: null },
-                        { label: "Coefficient Duvergier", value: Math.round(npPct * 100) + "%", hint: "Valorisation fiscale de la NP selon l'âge de l'usufruitier" },
+                        { label: "Barème fiscal de l'usufruit — art. 669 CGI", value: Math.round(npPct * 100) + "%", hint: "Valorisation fiscale de la NP selon l'âge de l'usufruitier" },
                         { label: "Valeur taxable NP", value: euro(heir.nueValue), color: BRAND.navy, bold: true, hint: "Valeur économique × coefficient Duvergier → base taxable" },
                         { label: "Valeur PP au décès de l'usufruitier", value: euro(heir.nueRawValue), color: BRAND.success, bold: true, hint: "Récupère la pleine propriété sans droits supplémentaires" },
                       ] as any[]).map((row, i) => (
@@ -1160,7 +1164,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                     <div style={{ marginTop: heir.nueRawValue > 0 ? "10px" : "0" }}>
                       {([
                         { label: "Quotité US reçue", value: Math.round(heir.usufructFraction * 100) + "% de l'actif", hint: null },
-                        { label: "Coefficient Duvergier", value: Math.round(usPct * 100) + "%", hint: "Valorisation fiscale de l'usufruit selon l'âge de l'usufruitier" },
+                        { label: "Barème fiscal de l'usufruit — art. 669 CGI", value: Math.round(usPct * 100) + "%", hint: "Valorisation fiscale de l'usufruit selon l'âge de l'usufruitier" },
                         { label: "Valeur de l'usufruit reçu", value: euro(heir.usufructFiscalValue), color: BRAND.navy, bold: true, hint: "Valeur PP × quotité × coefficient Duvergier" },
                       ] as any[]).map((row, i) => (
                         <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "5px 0", borderBottom: "1px solid rgba(81,106,199,0.1)" }}>
