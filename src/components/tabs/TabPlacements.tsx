@@ -10,7 +10,7 @@ import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Settings, Check, Lock, BarChart3, ClipboardList, AlertTriangle } from "lucide-react";
 import { confirmRemove } from "../../lib/confirmRemove";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
-import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, ALL_PLACEMENTS, labelPlacement, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA, SOUS_TYPES_DEFISC_DEDIES, DISPOSITIFS_FINANCIERS_LABELS } from "../../constants";
+import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, ALL_PLACEMENTS, PLACEMENT_TYPES_BY_FAMILY, PLACEMENT_FAMILIES, FAMILY_COLORS, labelPlacement, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA, SOUS_TYPES_DEFISC_DEDIES, DISPOSITIFS_FINANCIERS_LABELS } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, isUCorCapi, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName, dispositifsFinanciersPourType, reductionFinanciereCard } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
@@ -18,12 +18,13 @@ import { computeExpositionMarche } from "../../lib/calculs/exposition";
 import { referentiels } from "../../data/prevoyance";
 import { PlacementPickerModal } from "../PlacementPickerModal";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
+import { ContinuerCollecte } from "../collecte/densite";
 
 
 // ── TabPlacements ─────────────────────────────────────────────────────────────────────
 const TabPlacements = React.memo(function TabPlacements(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
-  const { data, addPlacement, updatePlacementStr, updatePlacementBool, removePlacement, addPlacementBeneficiary, updatePlacementBeneficiary, removePlacementBeneficiary, importFamilyBeneficiaries, setField, setData, ownerOptions, ir, irOptions, person1, person2 } = props;
+  const { data, addPlacement, updatePlacementStr, updatePlacementBool, removePlacement, addPlacementBeneficiary, updatePlacementBeneficiary, removePlacementBeneficiary, importFamilyBeneficiaries, setField, setData, ownerOptions, ir, irOptions, person1, person2, setCollecteSubTab } = props;
 
   // Modale d'ajout de placement (pivot UI). Etat local ; le focus revient au
   // bouton d'ouverture a la fermeture.
@@ -103,15 +104,36 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
 
   <PlacementPickerModal open={addModalOpen} onClose={closeAddModal} onPick={pickPlacement} />
   {data.placements.length === 0 && <div className="border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>Aucun placement saisi. Cliquez « Ajouter un placement » pour commencer.</div>}
+  {/* Legende des liserés categoriels (Lot 10e) — pastille + libellé de la famille */}
+  {data.placements.length > 0 && (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-semibold px-1">
+      <span className="uppercase tracking-wide" style={{ color: BRAND.muted }}>Familles :</span>
+      {PLACEMENT_FAMILIES.map((f) => (
+        <span key={f.value} className="inline-flex items-center gap-1.5">
+          <span className="inline-block rounded-sm" style={{ width: 4, height: 12, background: FAMILY_COLORS[f.value].solid }} aria-hidden="true" />
+          <span style={{ color: FAMILY_COLORS[f.value].solid }}>{f.label}</span>
+        </span>
+      ))}
+    </div>
+  )}
   {data.placements.map((placement, index) => {
     const fiscal = placementFiscalSummary(placement.type);
     const totalShare = placement.beneficiaries.reduce((s, b) => s + n(b.share), 0);
     const shareOverflow = totalShare > 100.0001;
     const isAVType = isAV(placement.type);
     const isCash = isCashPlacement(placement.type);
+    // Liseré catégoriel (Lot 10e) : couleur de la FAMILLE de placement (jeton existant
+    // FAMILY_COLORS) ; le libellé de la famille est TOUJOURS ecrit (jamais couleur seule).
+    const famVal = Object.keys(PLACEMENT_TYPES_BY_FAMILY).find((f) => PLACEMENT_TYPES_BY_FAMILY[f].includes(placement.type));
+    const famColor = (famVal ? FAMILY_COLORS[famVal] : undefined)?.solid ?? BRAND.muted;
+    const famLabel = PLACEMENT_FAMILIES.find((f) => f.value === famVal)?.label ?? "Autre";
     return (
-      <Card key={placement.id} className="border " style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+      <Card key={placement.id} className="border " style={{ borderColor: SURFACE.border, borderLeft: `4px solid ${famColor}`, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
         <CardContent className="p-4 space-y-2">
+          {/* Categorie (liseré Lot 10e) — libellé de la famille ecrit en toutes lettres */}
+          <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ color: famColor }}>
+            <span className="inline-block h-2 w-2 rounded-full" style={{ background: famColor }} aria-hidden="true" />{famLabel}
+          </div>
           {/* Ligne identité + suppression compacte */}
           <div className="flex items-end gap-2">
             <div className="flex-1 grid gap-2 grid-cols-[1fr_1.8fr_0.9fr_1fr]">
@@ -597,6 +619,8 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
     );
   })()}
 
+  {/* Bouton discret « Continuer -> Credits » (Lot 10e) */}
+  {setCollecteSubTab && <ContinuerCollecte label="Crédits" onClick={() => setCollecteSubTab("credits")} />}
 </TabsContent>
 
   );
