@@ -1669,6 +1669,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
             saveHypothesis={saveHypothesis} loadHypothesis={loadHypothesis} clearHypothesis={clearHypothesis}
             addDonation={addDonation} updateDonation={updateDonation} removeDonation={removeDonation}
             notes={notes} setNotes={setNotes}
+            setField={setField}
             person1={person1} person2={person2}
           />
 

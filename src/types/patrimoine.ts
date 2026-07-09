@@ -752,6 +752,10 @@ export type PayloadPrevoyance = {
   p1: PayloadPrevoyancePerso;
   p2: PayloadPrevoyancePerso | null;
   collective?: PayloadPrevoyanceCollective | null;
+  // LOT 10c — seuils d'analyse réglables par dossier (fractions 0-1). Optionnels :
+  // défauts sûrs (0,9 / 0,5) pour les dossiers existants, aucune migration.
+  cibleCouverture?: number; // objectif de revenu de remplacement (défaut 0,9)
+  seuilCritique?: number;   // seuil de couverture critique (défaut 0,5)
 };
 
 // ── Rente PER (sortie en rente — onglet Revenus) ─────────────────────────
