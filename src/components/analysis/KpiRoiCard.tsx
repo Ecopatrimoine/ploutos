@@ -9,10 +9,11 @@ import { HelpTooltip } from "../shared";
 
 export type KpiRoiLine = {
   label: string;
-  value: string;        // montant formaté (déjà en euros)
+  value: string;        // montant formaté (déjà en euros), ou « — » pour une ligne muted
   detail?: string;      // sous-libellé discret (ex. « foncier 17,2 % · meublé 18,6 % »)
   tooltip?: string;     // aide pédagogique sur le libellé
   negative?: boolean;   // ligne en négatif (ex. décote, réduction) : rendue « − X », muted
+  muted?: boolean;      // ligne inactive/grisée (ex. décote non applicable) : value telle quelle, grisée
 };
 
 // A2 (addendum 10b) : le ROUGE est réservé aux alertes — un total (impôt, etc.) n'en
@@ -43,12 +44,12 @@ export function KpiRoiCard({ title, amount, accent = BRAND.navy, lines, note, to
           {lines.map((l, i) => (
             <div key={i} className="flex items-baseline justify-between gap-3">
               <div className="min-w-0">
-                <div className="font-semibold flex items-center" style={{ color: BRAND.navy, fontSize: 13 }}>
+                <div className="font-semibold flex items-center" style={{ color: l.muted ? BRAND.muted : BRAND.navy, fontSize: 13 }}>
                   {l.label}{l.tooltip && <HelpTooltip text={l.tooltip} label={l.label} />}
                 </div>
                 {l.detail && <div className="text-[10.5px]" style={{ color: BRAND.muted }}>{l.detail}</div>}
               </div>
-              <div className="font-bold shrink-0" style={{ color: l.negative ? BRAND.muted : BRAND.navy, fontSize: 13 }}>
+              <div className="font-bold shrink-0" style={{ color: (l.negative || l.muted) ? BRAND.muted : BRAND.navy, fontSize: 13 }}>
                 {l.negative ? `− ${l.value}` : l.value}
               </div>
             </div>

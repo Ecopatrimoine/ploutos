@@ -11,10 +11,11 @@ import { Plus, Trash2, Download, Upload, Settings, FileText, Database, AlertTria
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
-import { n, euro, plur, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
+import { n, euro, pct, plur, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge, EmptyState } from "../shared";
-import { SectionAccordion } from "../analysis";
+import { KpiRoiCard, SectionAccordion, type KpiRoiLine } from "../analysis";
+import { buildIfiRoiCard } from "../../lib/analysis/ifiPresentation";
 import { ifiEstVide } from "../../lib/gardefous";
 
 
@@ -23,9 +24,16 @@ const TabIFI = React.memo(function TabIFI(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
   const { data, ifi, onGoToCollecte, person1, person2 } = props;
 
-  // A3 (addendum 10b) : l'acte 1 IFI garde ses KPI d'origine (décision David : pas de
-  // carte-roi pour l'IFI). Seuls les accordéons (acte 3) et le barème (acte 2) sont Lot 10b.
-  const depasse = ifi.netTaxable >= 1300000;
+  // A (addendum 2, Lot 10b) : l'acte 1 IFI adopte la grammaire de l'IR — carte-roi
+  // « IFI dû » (barème − décote, réconciliée) + contexte (actif net, tranche marginale,
+  // taux moyen, seuil). ZÉRO recalcul moteur.
+  const roi = buildIfiRoiCard(ifi);
+  const roiLines: KpiRoiLine[] = roi.lines.map((l) => (
+    l.placeholder
+      ? { label: l.label, value: "—", detail: l.detail, tooltip: l.tooltip, muted: true }
+      : { label: l.label, value: euro(Math.abs(l.value)), detail: l.detail, tooltip: l.tooltip, negative: l.negative }
+  ));
+  const depasse = ifi.netTaxable > 1300000; // exigible = strictement au-delà du seuil
 
   return (
 <TabsContent value="ifi" className="space-y-4">
@@ -39,36 +47,63 @@ const TabIFI = React.memo(function TabIFI(props: any) {
         </EmptyState>
       ) : (<>
 
-      {/* ══ ACTE 1 — L'ESSENTIEL ══ (A3) KPI d'origine + indicateur de proximité du seuil. */}
-      <div className="grid gap-3 md:grid-cols-4">
-        <MetricCard label="Actif net taxable IFI" value={euro(ifi.netTaxable)} hint="Valeur brute des biens − passif déductible − abattement RP 30 %" accent="navy" />
-        <MetricCard label="IFI brut" value={euro(ifi.grossIfi)} hint="IFI calculé par le barème progressif avant décote" accent="gold" />
-        <MetricCard label="Décote" value={euro(ifi.decote)} hint="Réduction appliquée si l'actif net taxable est entre 1,3 M€ et 1,4 M€. Calcul : 17 500 − 1,25 % × actif net" accent="green" />
-        <MetricCard label="IFI net dû" value={euro(ifi.ifi)} hint="IFI brut − décote. Exigible uniquement si l'actif net taxable dépasse 1 300 000 €" accent="red" />
-      </div>
-
-      {/* Indicateur de proximité seuil IFI */}
-      <div className="border p-4" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow, background: SURFACE.card }}>
-        <div className="flex justify-between text-xs mb-2" style={{ color: BRAND.muted }}>
-          <span>0 €</span>
-          <span style={{ color: depasse ? BRAND.danger : BRAND.muted, fontWeight: 700 }}>Seuil IFI : 1 300 000 €</span>
-        </div>
-        <div style={{ height: 8, background: SURFACE.border, borderRadius: 4, overflow: "hidden", position: "relative" }}>
-          <div style={{
-            width: `${Math.min(100, ifi.netTaxable / 1300000 * 100)}%`,
-            height: "100%",
-            background: depasse
-              ? `linear-gradient(90deg, ${BRAND.gold}, ${BRAND.danger})`
-              : `linear-gradient(90deg, ${BRAND.success}, ${BRAND.gold})`,
-            borderRadius: 4,
-            transition: "width 0.3s",
-          }} />
-          {!depasse && <div style={{ position: "absolute", right: 0, top: -2, bottom: -2, width: 2, background: BRAND.danger }} />}
-        </div>
-        <div className="mt-2 text-xs font-bold" style={{ color: depasse ? BRAND.danger : BRAND.success }}>
-          {depasse
-            ? <><AlertTriangle className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />Seuil IFI dépassé de {euro(ifi.netTaxable - 1300000)}</>
-            : `↓ ${euro(1300000 - ifi.netTaxable)} sous le seuil — pas d'IFI`}
+      {/* ══ ACTE 1 — L'ESSENTIEL ══ Carte-roi « IFI dû » (gauche, dominant, style neutre)
+           + contexte (actif net taxable, tranche marginale / taux moyen, seuil) à droite. */}
+      <div className="grid gap-4 md:grid-cols-[1.35fr_1fr] items-stretch">
+        <KpiRoiCard
+          title="IFI dû"
+          amount={euro(roi.total)}
+          lines={roiLines}
+          tooltip="IFI net dû = IFI au barème − décote. Exigible uniquement au-delà de 1 300 000 € d'actif net taxable."
+          note={roi.belowThreshold ? "Patrimoine sous le seuil de 1,3 M€ — non imposable cette année." : undefined}
+        />
+        {/* Contexte — 3 étages : actif net taxable, puis tranche marginale / taux moyen, puis seuil. */}
+        <div className="flex flex-col gap-3">
+          <div className="rounded-2xl px-4 py-3 flex-1 flex flex-col justify-center" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
+            <div className="text-[11px] font-bold uppercase tracking-wider flex items-center" style={{ color: BRAND.muted }}>
+              Actif net taxable
+              <HelpTooltip text="Valeur brute des biens immobiliers − passif déductible − abattement de 30 % sur la résidence principale." label="Actif net taxable" />
+            </div>
+            <div className="font-black mt-1" style={{ color: BRAND.navy, fontSize: 24, lineHeight: 1.05 }}>{euro(ifi.netTaxable)}</div>
+            <div className="text-[11px] mt-0.5" style={{ color: BRAND.muted }}>abattement RP 30 % déduit</div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl px-4 py-3 flex flex-col justify-center" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
+              <div className="text-[11px] font-bold uppercase tracking-wider flex items-center" style={{ color: BRAND.muted }}>
+                Tranche marginale
+                <HelpTooltip text="Taux de la tranche du barème IFI atteinte par votre actif net taxable." label="Tranche marginale" />
+              </div>
+              <div className="font-black mt-1" style={{ color: BRAND.navy, fontSize: 20 }}>{`${(roi.marginalRate * 100).toLocaleString("fr-FR", { maximumFractionDigits: 3 })} %`}</div>
+            </div>
+            <div className="rounded-2xl px-4 py-3 flex flex-col justify-center" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
+              <div className="text-[11px] font-bold uppercase tracking-wider flex items-center" style={{ color: BRAND.muted }}>
+                Taux moyen IFI
+                <HelpTooltip text="IFI dû rapporté à l'actif net taxable." label="Taux moyen IFI" />
+              </div>
+              <div className="font-black mt-1" style={{ color: BRAND.navy, fontSize: 20 }}>{pct(roi.tauxMoyen, 2)}</div>
+            </div>
+          </div>
+          {/* Seuil d'imposition + jauge compacte */}
+          <div className="rounded-2xl px-4 py-3" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
+            <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: BRAND.muted }}>Seuil d'imposition 1 300 000 €</div>
+            <div className="mt-2" style={{ height: 8, background: SURFACE.border, borderRadius: 4, overflow: "hidden", position: "relative" }}>
+              <div style={{
+                width: `${Math.min(100, ifi.netTaxable / 1300000 * 100)}%`,
+                height: "100%",
+                background: depasse
+                  ? `linear-gradient(90deg, ${BRAND.gold}, ${BRAND.danger})`
+                  : `linear-gradient(90deg, ${BRAND.success}, ${BRAND.gold})`,
+                borderRadius: 4,
+                transition: "width 0.3s",
+              }} />
+              {!depasse && <div style={{ position: "absolute", right: 0, top: -2, bottom: -2, width: 2, background: BRAND.danger }} />}
+            </div>
+            <div className="mt-2 text-xs font-bold" style={{ color: depasse ? BRAND.danger : BRAND.success }}>
+              {depasse
+                ? <><AlertTriangle className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />Seuil dépassé de {euro(ifi.netTaxable - 1300000)}</>
+                : `Non atteint — marge de ${euro(1300000 - ifi.netTaxable)}`}
+            </div>
+          </div>
         </div>
       </div>
 
