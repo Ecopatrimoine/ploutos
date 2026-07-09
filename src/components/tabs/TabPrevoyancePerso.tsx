@@ -68,6 +68,17 @@ const pctInt = (frac: number) => `${Math.round(frac * 100)} %`;
 
 type Vue = "p1" | "p2" | "les_deux";
 
+// A1-bis — placement EXPLICITE des rangées (≥900px) : chaque section d'une colonne va
+// dans SA piste (row-start N) et SA colonne (col-start C). Deux colonnes -> rangées
+// homologues partagées -> alignées. Classes LITTÉRALES (le scanner Tailwind les voit ;
+// pas d'interpolation). Sous 900px : inactives -> empilement DOM (P1 puis P2).
+const ROW_START = [
+  "min-[900px]:row-start-1", "min-[900px]:row-start-2", "min-[900px]:row-start-3",
+  "min-[900px]:row-start-4", "min-[900px]:row-start-5", "min-[900px]:row-start-6",
+  "min-[900px]:row-start-7",
+];
+const COL_START: Record<1 | 2, string> = { 1: "min-[900px]:col-start-1", 2: "min-[900px]:col-start-2" };
+
 const TabPrevoyancePerso = React.memo(function TabPrevoyancePerso({
   data,
   setField,
@@ -89,7 +100,7 @@ const TabPrevoyancePerso = React.memo(function TabPrevoyancePerso({
   const [vue, setVue] = React.useState<Vue>("les_deux");
   const vueEff: Vue = hasP2 ? vue : "p1";
 
-  const renderColonne = (which: "p1" | "p2", entree: EntreePerso, aligned: boolean) => (
+  const renderColonne = (which: "p1" | "p2", entree: EntreePerso, col?: 1 | 2) => (
     <ColonnePerso
       key={which}
       label={which === "p1" ? person1 : person2}
@@ -98,7 +109,7 @@ const TabPrevoyancePerso = React.memo(function TabPrevoyancePerso({
       onChangePrevoyance={(patch) => patchPrevoyance(which, patch)}
       cible={which}
       data={data}
-      aligned={aligned}
+      col={col}
     />
   );
 
@@ -137,17 +148,17 @@ const TabPrevoyancePerso = React.memo(function TabPrevoyancePerso({
           {!entreeP1Base ? (
             <EtatVide onGoToTravail={onGoToTravail} />
           ) : vueEff === "les_deux" && entreeP2Base ? (
-            // A1 (addendum) : grille par RANGÉES partagées (subgrid) — chaque colonne
-            // occupe les 7 pistes de l'onglet, si bien que les rangées homologues
-            // (en-têtes, actes 1, frises, …) s'alignent quelle que soit leur hauteur.
-            <div className="grid gap-6 min-[900px]:grid-cols-2 min-[900px]:[grid-template-rows:repeat(7,auto)]">
-              {renderColonne("p1", entreeP1Base, true)}
-              {renderColonne("p2", entreeP2Base, true)}
+            // A1-bis : chaque section reçoit un placement de grille EXPLICITE (row-start/
+            // col-start) -> les rangées homologues des 2 colonnes partagent la même piste
+            // et s'alignent quelle que soit la hauteur. Sous 900px : empilement P1 puis P2.
+            <div className="grid gap-x-6 gap-y-4 min-[900px]:grid-cols-2 items-start">
+              {renderColonne("p1", entreeP1Base, 1)}
+              {renderColonne("p2", entreeP2Base, 2)}
             </div>
           ) : vueEff === "p2" && entreeP2Base ? (
-            <div className="max-w-5xl mx-auto">{renderColonne("p2", entreeP2Base, false)}</div>
+            <div className="max-w-5xl mx-auto">{renderColonne("p2", entreeP2Base)}</div>
           ) : (
-            <div className="max-w-5xl mx-auto">{renderColonne("p1", entreeP1Base, false)}</div>
+            <div className="max-w-5xl mx-auto">{renderColonne("p1", entreeP1Base)}</div>
           )}
         </CardContent>
       </Card>
@@ -196,12 +207,13 @@ type ColonneProps = {
   onChangePrevoyance: (patch: Partial<PayloadPrevoyancePerso>) => void;
   cible: "p1" | "p2";
   data: PatrimonialData;
-  // true en vue « Les deux » : la colonne devient un subgrid de 7 pistes pour aligner
-  // ses rangées avec l'autre colonne (les cellules s'étirent à la hauteur de la piste).
-  aligned?: boolean;
+  // Défini en vue « Les deux » (1 = colonne gauche, 2 = droite) : chaque section reçoit
+  // un placement de grille explicite (row-start i, col-start col) pour aligner les
+  // rangées homologues. Absent en vue simple -> empilement classique.
+  col?: 1 | 2;
 };
 
-function ColonnePerso({ label, entreeBase, prevoyancePerso, onChangePrevoyance, cible, data, aligned }: ColonneProps) {
+function ColonnePerso({ label, entreeBase, prevoyancePerso, onChangePrevoyance, cible, data, col }: ColonneProps) {
   // ── Configs caisse (identique à l'existant) : config persistée + situation
   // familiale VIVANTE injectée depuis le foyer, mémoïsées pour l'identité de réf. ──
   const estCarmf = entreeBase.caisse === "CARMF";
@@ -267,9 +279,9 @@ function ColonnePerso({ label, entreeBase, prevoyancePerso, onChangePrevoyance, 
     { label: "Couverture au palier durable", value: fmtEuroMois(besoin.couvertureDurable), detail: `dès le ${besoin.durableMois}e mois · ${pctInt(besoin.couvertureDurablePct)}`, negative: true },
   ];
 
-  return (
-    <div className={aligned ? "space-y-4 min-[900px]:space-y-0 min-[900px]:grid min-[900px]:row-span-[7] min-[900px]:[grid-template-rows:subgrid] min-[900px]:gap-6" : "space-y-4"}>
-      {/* ══ EN-TÊTE ══ bande d'infos + contrôles de scénario/invalidité/TPT */}
+  const sections: React.ReactNode[] = [
+    /* ══ EN-TÊTE ══ bande d'infos + contrôles de scénario/invalidité/TPT */
+    (
       <div className="rounded-xl p-4 space-y-3" style={{ background: SURFACE.cardSoft, border: `1px solid ${SURFACE.border}` }}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div className="font-bold text-base" style={{ color: BRAND.navy }}>{label}</div>
@@ -320,8 +332,9 @@ function ColonnePerso({ label, entreeBase, prevoyancePerso, onChangePrevoyance, 
           </div>
         )}
       </div>
-
-      {/* ══ ACTE 1 — L'ESSENTIEL ══ besoin (carte-roi) + date critique + vigilance */}
+    ),
+    /* ══ ACTE 1 — L'ESSENTIEL ══ besoin (carte-roi) + date critique + vigilance */
+    (
       <div className="grid gap-4 min-[900px]:grid-cols-[1.4fr_1fr] items-stretch">
         <KpiRoiCard
           title={`Besoin de couverture minimum — ${label}`}
@@ -335,8 +348,9 @@ function ColonnePerso({ label, entreeBase, prevoyancePerso, onChangePrevoyance, 
           <VigilanceCard rows={vigilance} />
         </div>
       </div>
-
-      {/* ══ ACTE 2 — QUI VERSE QUOI ══ frise (inchangée) + bascule Graphique | Tableau € */}
+    ),
+    /* ══ ACTE 2 — QUI VERSE QUOI ══ frise (inchangée) + bascule Graphique | Tableau € */
+    (
       <div className="rounded-xl p-4" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}>
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Qui verse quoi, et jusqu'à quand — {label}</div>
@@ -359,18 +373,21 @@ function ColonnePerso({ label, entreeBase, prevoyancePerso, onChangePrevoyance, 
           ? <TableauEuroPayeurs projection={projection} />
           : <ProjectionChart projection={projection} codeCaisse={entree.caisse} publicCaisse={publicCaisse} />}
       </div>
-
-      {/* Constats compressés (une ligne dépliable) */}
+    ),
+    /* Constats compressés (une ligne dépliable) */
+    (
       <div className="space-y-2">
         <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Constats et pistes</div>
         <BlocConstatsCompacts constats={constats} />
       </div>
-
-      {/* ══ ACTE 3 — POUR ALLER PLUS LOIN ══ (accordéons fermés) */}
+    ),
+    /* ══ ACTE 3 — POUR ALLER PLUS LOIN ══ (accordéons fermés) */
+    (
       <SectionAccordion title="Comprendre les mécanismes" summary="Lecture pédagogique du RDV : légende, jauge, ruptures, encarts (carence, maintien…)">
         <BlocPedagogie projection={projection} />
       </SectionAccordion>
-
+    ),
+    (
       <SectionAccordion title="Détail des contrats" summary="Couverture collective, contrats individuels et capitaux / rentes décès">
         <div className="space-y-4">
           <div className="flex items-start gap-1.5 rounded-xl px-3 py-2 text-xs" style={{ background: SURFACE.cardSoft, border: `1px solid ${SURFACE.border}`, color: BRAND.muted }}>
@@ -386,7 +403,8 @@ function ColonnePerso({ label, entreeBase, prevoyancePerso, onChangePrevoyance, 
           </div>
         </div>
       </SectionAccordion>
-
+    ),
+    (
       <SectionAccordion title="Régime obligatoire de la caisse" summary={entree.caisse ? `${entree.caisse}${publicCaisse ? ` · ${publicCaisse}` : ""}` : "Régime non précisé"}>
         <div className="text-sm space-y-1.5" style={{ color: BRAND.muted }}>
           <div className="flex justify-between"><span>Caisse d'affiliation</span><strong style={{ color: BRAND.navy }}>{entree.caisse ?? "—"}</strong></div>
@@ -398,8 +416,21 @@ function ColonnePerso({ label, entreeBase, prevoyancePerso, onChangePrevoyance, 
           )}
         </div>
       </SectionAccordion>
-    </div>
-  );
+    ),
+  ];
+
+  // Vue « Les deux » : placement de grille explicite (rangées homologues alignées).
+  if (col) {
+    return (
+      <>
+        {sections.map((s, i) => (
+          <div key={i} className={`${COL_START[col]} ${ROW_START[i]}`}>{s}</div>
+        ))}
+      </>
+    );
+  }
+  // Vue simple : empilement classique.
+  return <div className="space-y-4">{sections.map((s, i) => <React.Fragment key={i}>{s}</React.Fragment>)}</div>;
 }
 
 // ── Cartes contextuelles de l'acte 1 ─────────────────────────────────────────
