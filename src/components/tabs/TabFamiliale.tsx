@@ -17,6 +17,8 @@ import type { Child, Property, Placement, PatrimonialData, IrOptions, Succession
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
+import { AdresseAutocomplete } from "../collecte/AdresseAutocomplete";
+import { ContinuerCollecte } from "../collecte/densite";
 
 // Barriere douce (B1) : au-dela de 25 ans, un enfant est de-rattache automatiquement
 // a la saisie de sa date de naissance. SENS UNIQUE (jamais de re-rattachement auto),
@@ -29,7 +31,7 @@ export function doitDeRattacher(iso: string): boolean {
 // ── TabFamiliale ─────────────────────────────────────────────────────────────────────
 const TabFamiliale = React.memo(function TabFamiliale(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
-  const { data, setField, addChild, updateChild, removeChild, person1, person2 } = props;
+  const { data, setField, addChild, updateChild, removeChild, person1, person2, setCollecteSubTab } = props;
   const addChildDebounced = useDebouncedAction(addChild); // Lot 8 C2 — anti double-clic
   // Foyer mono-adulte (celibataire) : un seul parent -> le choix de parente enfant
   // n'a pas de sens. On masque le selecteur et on affiche un libelle statique.
@@ -40,21 +42,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
   <Card className="border-0" style={{ borderRadius: 20 }}>
     <CardHeader><SectionTitle icon={Users} title="Données familiales" subtitle="Identité, situation du couple et enfants à charge" /></CardHeader>
     <CardContent className="space-y-6">
-  {/* ─── Lot Dossier client — Coordonnées du foyer (adresse postale) ──
-       Utilisée par la fiche conseil DDA (bandeau identité client) et par
-       les pages de contact des documents réglementaires. ─── */}
-  <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-    <div className="text-xs font-black uppercase tracking-widest" style={{ color: BRAND.navy }}>Coordonnées du foyer</div>
-    <div className="grid gap-3 grid-cols-4">
-      <div className="col-span-2">
-        <Field label="Adresse"><Input value={data.adresse || ""} onChange={(e) => setField("adresse", e.target.value)} placeholder="ex : 12 rue des Lilas" className="rounded-xl" /></Field>
-      </div>
-      <Field label="Code postal"><Input value={data.codePostal || ""} onChange={(e) => setField("codePostal", e.target.value)} placeholder="66000" className="rounded-xl" /></Field>
-      <Field label="Ville"><Input value={data.ville || ""} onChange={(e) => setField("ville", e.target.value)} placeholder="Perpignan" className="rounded-xl" /></Field>
-    </div>
-  </div>
-
-  {/* Deux personnes côte à côte */}
+  {/* Deux personnes côte à côte — IDENTITE EN PREMIER (C-ADRESSE, Lot 10e) */}
   <div className="grid gap-4 md:grid-cols-2">
     {/* Personne 1 */}
     <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
@@ -143,6 +131,28 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
       </Field>
     </div>
   </div>
+  {/* Coordonnées du foyer — JUSTE APRES l'identite (C-ADRESSE, Lot 10e). Adresse avec
+       autocompletion BAN (non bloquant, saisie manuelle intacte). Utilisee par la fiche
+       conseil DDA et les pages de contact des documents reglementaires. */}
+  <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+    <div className="text-xs font-black uppercase tracking-widest" style={{ color: BRAND.navy }}>Coordonnées du foyer</div>
+    <div className="grid gap-3 grid-cols-4">
+      <div className="col-span-2">
+        <Field label="Adresse">
+          <AdresseAutocomplete
+            value={data.adresse || ""}
+            onChange={(v) => setField("adresse", v)}
+            onSelect={(a) => { setField("adresse", a.adresse); setField("codePostal", a.codePostal); setField("ville", a.ville); }}
+            placeholder="ex : 12 rue des Lilas"
+            className="rounded-xl"
+          />
+        </Field>
+      </div>
+      <Field label="Code postal"><Input value={data.codePostal || ""} onChange={(e) => setField("codePostal", e.target.value)} placeholder="66000" className="rounded-xl" /></Field>
+      <Field label="Ville"><Input value={data.ville || ""} onChange={(e) => setField("ville", e.target.value)} placeholder="Perpignan" className="rounded-xl" /></Field>
+    </div>
+  </div>
+
   {/* Situation couple sur une ligne (4 champs) */}
   <div className="grid gap-4 md:grid-cols-4">
     <Field label="Situation de couple">
@@ -275,6 +285,9 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
       );
     })}
   </div>
+
+  {/* Bouton discret « Continuer -> Travail » (Lot 10e) */}
+  {setCollecteSubTab && <ContinuerCollecte label="Travail" onClick={() => setCollecteSubTab("travail")} />}
     </CardContent>
   </Card>
 </TabsContent>
