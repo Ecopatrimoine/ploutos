@@ -4,7 +4,7 @@
 // réductions FINANCIÈRES (libellé court) et la ligne d'écrêtement double enveloppe.
 import { describe, it, expect, vi } from "vitest";
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { Tabs } from "../components/ui/tabs";
 import { computeIR } from "../lib/calculs/ir";
 import { EMPTY_CHARGES_DETAIL } from "../constants";
@@ -61,6 +61,8 @@ describe("TabIR — trio réductions financières (Lot 3)", () => {
   it("une réduction SOFICA apparaît avec son libellé court", () => {
     const sofica = plac({ id: "s", defiscalisation: { dispositif: "sofica", montantSouscrit: "18000", dateInvestissement: "2026-06-01", tauxSofica: "48" } });
     renderWith({ ...BASE, salary1: "100000", placements: [sofica] });
+    // Lot 10b : le bloc réductions est rangé dans l'accordéon §1 (fermé) — on l'ouvre.
+    fireEvent.click(screen.getByText("Décomposition du calcul"));
     expect(screen.getByText(/dispositifs fiscaux/i)).toBeTruthy();
     expect(screen.getByText("Réduction SOFICA")).toBeTruthy();
   });
@@ -68,6 +70,8 @@ describe("TabIR — trio réductions financières (Lot 3)", () => {
   it("l'écrêtement double enveloppe s'affiche (2 Pinel + SOFICA, communs saturés)", () => {
     const sofica = plac({ id: "s", defiscalisation: { dispositif: "sofica", montantSouscrit: "18000", dateInvestissement: "2026-06-01", tauxSofica: "48" } });
     renderWith({ ...BASE, salary1: "200000", properties: [pinel("pa"), pinel("pb")], placements: [sofica] });
+    // Lot 10b : ouvrir l'accordéon §1 « Décomposition du calcul » (fermé par défaut).
+    fireEvent.click(screen.getByText("Décomposition du calcul"));
     expect(screen.getByText(/Plafonnement des niches/)).toBeTruthy();
     expect(screen.getByText(/2\s*640\s*€\s*non imputés/)).toBeTruthy();
   });

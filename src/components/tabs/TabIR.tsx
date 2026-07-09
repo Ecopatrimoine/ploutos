@@ -11,9 +11,11 @@ import { Plus, Trash2, Download, Upload, Settings, FileText, Database, AlertTria
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA, SEUIL_MICRO_FONCIER } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
-import { n, euro, pct, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName, labelDispositifReduction } from "../../lib/calculs/utils";
+import { n, euro, pct, plur, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName, labelDispositifReduction } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge, EmptyState } from "../shared";
+import { KpiRoiCard, SectionAccordion, type KpiRoiLine } from "../analysis";
+import { buildIrRoiCard } from "../../lib/analysis/irPresentation";
 import { irEstVide } from "../../lib/gardefous";
 import { computeTmiView } from "../../lib/calculs/tmiEffective";
 
@@ -29,6 +31,14 @@ const TabIR = React.memo(function TabIR(props: any) {
   const tmiView = computeTmiView(ir, isCouple);
   // Lot 9 C1 — etat vide si AUCUN revenu saisi (barriere douce, non bloquante).
   const irVide = irEstVide(ir);
+
+  // Lot 10b — carte-roi « Impôt total du foyer » : décomposition réconciliée à finalIR
+  // (barème net = résidu). ZÉRO recalcul, agrégats moteur seuls.
+  const roi = buildIrRoiCard(ir);
+  const roiLines: KpiRoiLine[] = roi.lines.map((l) => ({ label: l.label, value: euro(l.value), detail: l.detail, tooltip: l.tooltip }));
+  const activeName = concubinPerson === 1 ? person1 : (person2 || "Personne 2");
+  const roiTitle = ir.isConcubin ? "IR cumulé — 2 foyers" : "Impôt total du foyer";
+  const revenuLabel = ir.isConcubin ? `Revenu net — foyer ${activeName}` : "Revenu net global";
 
   return (
 <TabsContent value="ir" className="space-y-4">
@@ -88,8 +98,6 @@ const TabIR = React.memo(function TabIR(props: any) {
         </div>
       )}
 
-      {/* KPIs principaux sur une ligne */}
-      {/* Note concubinage */}
       {/* Note concubinage + switch personne */}
       {ir.isConcubin && (
         <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
@@ -187,45 +195,54 @@ const TabIR = React.memo(function TabIR(props: any) {
           </span>
         </div>
       )}
-      <div className="grid gap-3 md:grid-cols-4">
-        <MetricCard
-          label={ir.isConcubin ? "IR cumulé 2 foyers" : "IR total"}
-          value={euro(ir.finalIR)}
-          hint={ir.isConcubin
-            ? "Somme des 2 foyers fiscaux (concubinage). Voir détail par foyer ci-dessus."
-            : "Barème progressif + PFU + prélèvements sociaux fonciers"}
-          accent="red"
+
+      {/* ══ ACTE 1 — L'ESSENTIEL ══ Carte-roi « impôt total » (gauche, dominant) +
+           contexte « revenu net · parts / TMI / taux moyen » (droite). Les anciens
+           KPI-vitrine disparaissent : leurs textes migrent en tooltips (carte-roi) et
+           en accordéons (Acte 3). */}
+      <div className="grid gap-4 md:grid-cols-[1.35fr_1fr] items-stretch">
+        <KpiRoiCard
+          title={roiTitle}
+          amount={euro(ir.finalIR)}
+          accent={BRAND.danger}
+          lines={roiLines}
+          tooltip={ir.isConcubin
+            ? "Somme des impôts des 2 foyers fiscaux (concubinage). Détail par foyer ci-dessus."
+            : "Impôt total du foyer, tout compris : barème progressif net des réductions, PFU et prélèvements sociaux. Chaque ligne y contribue et la somme égale ce total."}
+          note={ir.finalIR <= 0 ? "Aucun impôt dû cette année sur les revenus saisis." : undefined}
         />
-        <MetricCard
-          label={ir.isConcubin ? `Revenu net du foyer ${concubinPerson === 1 ? person1 : (person2 || "Personne 2")}` : "Revenu net global"}
-          value={euro(ir.revenuNetGlobal)}
-          hint={ir.isConcubin
-            ? "Revenu net imposable du foyer fiscal sélectionné. Bascule via le switch ci-dessus."
-            : "Salaires + revenus fonciers + pensions, après déductions"}
-          accent="navy"
-        />
-        <MetricCard
-          label={ir.isConcubin ? `TMI ${concubinPerson === 1 ? person1 : (person2 || "Personne 2")}` : "TMI"}
-          value={`${Math.round(tmiView.tmiAffichee * 100)} %`}
-          hint={ir.isConcubin
-            ? "TMI du foyer sélectionné. Chaque concubin a son propre quotient et son propre TMI."
-            : "Taux Marginal d'Imposition : tranche du barème sur le quotient"}
-          sousTexte={tmiView.sousTexteCard}
-          accent="gold"
-        />
-        <MetricCard
-          label={ir.isConcubin ? `Taux moyen ${concubinPerson === 1 ? person1 : (person2 || "Personne 2")}` : "Taux moyen"}
-          value={pct(ir.averageRate, 1)}
-          hint={ir.isConcubin
-            ? "Taux moyen du foyer sélectionné (IR foyer / revenu net foyer)."
-            : "IR total / revenu net imposable. Taux effectif réellement supporté"}
-          accent="blue"
-        />
+        {/* Contexte */}
+        <div className="rounded-2xl px-5 py-4 flex flex-col justify-center gap-3" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-wider flex items-center" style={{ color: BRAND.muted }}>
+              {revenuLabel}
+              <HelpTooltip text={ir.isConcubin ? "Revenu net imposable du foyer fiscal sélectionné (bascule via le switch ci-dessus)." : "Salaires + revenus fonciers + pensions + BNC/BIC, après déductions (frais pro, PER, charges)."} label={revenuLabel} />
+            </div>
+            <div className="font-black mt-1" style={{ color: BRAND.navy, fontSize: 26, lineHeight: 1.05 }}>{euro(ir.revenuNetGlobal)}</div>
+            <div className="text-[11px] mt-0.5" style={{ color: BRAND.muted }}>· {plur(ir.parts, "part")}</div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 border-t pt-3" style={{ borderColor: SURFACE.border }}>
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wider flex items-center" style={{ color: BRAND.muted }}>
+                TMI
+                <HelpTooltip text="Taux Marginal d'Imposition : tranche du barème atteinte par le quotient familial. Sous plafonnement du QF, la tranche réelle de référence s'affiche." label="TMI" />
+              </div>
+              <div className="font-black mt-1" style={{ color: BRAND.navy, fontSize: 20 }}>{Math.round(tmiView.tmiAffichee * 100)} %</div>
+              {tmiView.sousTexteCard && <div className="text-[10.5px] mt-0.5 font-semibold" style={{ color: BRAND.goldText }}>{tmiView.sousTexteCard}</div>}
+            </div>
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wider flex items-center" style={{ color: BRAND.muted }}>
+                Taux moyen
+                <HelpTooltip text="Impôt total rapporté au revenu net imposable : le taux effectivement supporté." label="Taux moyen" />
+              </div>
+              <div className="font-black mt-1" style={{ color: BRAND.navy, fontSize: 20 }}>{pct(ir.averageRate, 1)}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Encart « votre taux marginal réel » (Lot C) — miroir de l'encart PDF, sous le trio KPI.
-          Absent en normal ; en divergence = mini-calcul ; forfaitaire = mention PFU courte.
-          Source : computeTmiView (helper partagé écran/PDF). */}
+      {/* Encart « votre taux marginal réel » (Lot C) — visible UNIQUEMENT quand le moteur
+          le détecte (plafonnement QF / décote / frontière). Absent sinon. */}
       {tmiView.encart && (
         <div className="flex items-start gap-2 rounded-xl px-3 py-2 text-xs" style={{ background: BRAND.warningBg, color: BRAND.navy, border: `1px solid ${BRAND.warningBorder}`, borderLeft: `3px solid ${BRAND.gold}` }}>
           <BarChart3 className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
@@ -243,201 +260,7 @@ const TabIR = React.memo(function TabIR(props: any) {
         </div>
       )}
 
-      {/* Gauge TMI — position dans les 5 tranches */}
-      <div className="border p-3" style={{ borderColor: SURFACE.border, borderRadius: 14, background: SURFACE.card, boxShadow: SURFACE.cardShadow }}>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.muted }}>Position dans le barème IR</span>
-          <span className="text-xs font-black" style={{ color: BRAND.navy }}>TMI {Math.round(tmiView.tmiAffichee * 100)} %</span>
-        </div>
-        {/* Lot C2 révisé : sous plafonnement, la position suit le barème de référence (tmiAffichee). */}
-        {ir.plafonnementQfActif && (
-          <div className="text-xs mb-2" style={{ color: BRAND.goldText }}>Position au barème de référence (plafonnement du QF actif).</div>
-        )}
-        <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden" }}>
-          {([{ rate: 0, color: "#166534" }, { rate: 0.11, color: "#22c55e" }, { rate: 0.30, color: BRAND.gold }, { rate: 0.41, color: "#f97316" }, { rate: 0.45, color: BRAND.danger }] as const).map((t, i) => (
-            <div key={i} style={{ flex: 1, background: t.color, position: "relative", opacity: tmiView.tmiAffichee >= t.rate ? 1 : 0.2 }}>
-              {tmiView.tmiAffichee === t.rate && <div style={{ position: "absolute", top: -2, right: 0, width: 3, height: 12, background: BRAND.navy, borderRadius: 2 }} />}
-            </div>
-          ))}
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, marginTop: 3 }}>
-          {([0, 0.11, 0.30, 0.41, 0.45] as const).map((rate, i) => (
-            <span key={i} style={{ fontWeight: tmiView.tmiAffichee === rate ? 900 : 400, color: tmiView.tmiAffichee === rate ? BRAND.navy : BRAND.muted }}>
-              {Math.round(rate * 100)} %
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Détail horizontal — en concubin, PFU et PS foncier reflètent le foyer sélectionné */}
-      {(() => {
-        const irAny = ir as any;
-        const foyerLabel = ir.isConcubin ? ` ${concubinPerson === 1 ? person1 : (person2 || "Personne 2")}` : "";
-        // PFU
-        const pfuValue = ir.isConcubin
-          ? (concubinPerson === 1 ? irAny.totalPFU1 : irAny.totalPFU2) || 0
-          : (ir.totalPFU || 0);
-        const pfuHintBase = "Prélèvement Forfaitaire Unique de 31,4 % depuis 2026 (12,8 % IR + 18,6 % PS) sur les revenus de capitaux mobiliers et plus-values.";
-        const pfuHint = ir.isConcubin
-          ? `${pfuHintBase} Foyer sélectionné uniquement. Total des 2 foyers : ${euro((irAny.totalPFU1 || 0) + (irAny.totalPFU2 || 0))}.`
-          : pfuHintBase;
-        // PS foncier
-        const psValue = ir.isConcubin
-          ? (concubinPerson === 1 ? irAny.foncierPS1 : irAny.foncierPS2) || 0
-          : (ir.foncierSocialLevy || 0);
-        const psHintBase = "Prélèvements sociaux 17,2 % sur les revenus fonciers nets imposables (CSG 9,2 % + CRDS 0,5 % + PSOL 7,5 %). Ne s'applique pas en cas de déficit foncier.";
-        const psHint = ir.isConcubin
-          ? `${psHintBase} Foyer sélectionné uniquement. Total des 2 foyers : ${euro((irAny.foncierPS1 || 0) + (irAny.foncierPS2 || 0))}.`
-          : psHintBase;
-        return (
-          <div className="grid gap-3 md:grid-cols-4">
-            <MetricCard label="Barème progressif" value={euro(ir.bareme)} hint="IR calculé par tranches sur le quotient familial, avant PFU et réductions" accent="gold" />
-            <MetricCard label={`PFU${foyerLabel}`} value={euro(pfuValue)} hint={pfuHint} accent="gold" />
-            <MetricCard label={`PS foncier${foyerLabel}`} value={euro(psValue)} hint={psHint} accent="blue" />
-            <MetricCard
-              label={`Quotient familial${foyerLabel}`}
-              value={euro(ir.quotient)}
-              hint={(() => {
-                const partsTxt = `${ir.parts.toLocaleString("fr-FR")} ${ir.parts >= 2 ? "parts" : "part"}`;
-                const base = `${partsTxt} — Revenu net divisé par le nombre de parts.`;
-                const plaf = ir.quotientFamilialCapAdjustment > 0
-                  ? ` Plafonnement QF actif : +${euro(ir.quotientFamilialCapAdjustment)} d'IR (avantage retenu ${euro(Math.min(ir.qfBenefit, ir.qfCap))} sur ${euro(ir.qfCap)} maximum par demi-part supplémentaire).`
-                  : "";
-                return base + plaf;
-              })()}
-              accent="navy"
-            />
-          </div>
-        );
-      })()}
-
-      {/* Options frais + régime foncier — 2 personnes + 1 col régime côte à côte */}
-      <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-        <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Options de calcul</div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {/* P1 */}
-          <div className="space-y-3">
-            <div className="text-xs font-medium text-slate-500">{person1}</div>
-            {(isIndependant(data.person1PcsGroupe) || isProfessionLiberale(data.person1Csp)) ? (
-              <div className="rounded-xl px-3 py-2 text-xs text-slate-400" style={{ background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)" }}>
-                Indépendant — les frais pro sont inclus dans le bénéfice imposable (micro ou réel), pas dans les frais salariaux.
-              </div>
-            ) : (
-            <Field label="Mode de frais" tooltip="Abattement 10 % : déduction forfaitaire de 10 % du salaire brut (min. 504 €, max. 14 426 €). Frais réels : déduction des frais professionnels réels justifiés (transport, repas, etc.). Choisir frais réels si le montant dépasse 10 % du salaire.">
-              <Select value={irOptions.expenseMode1} onValueChange={(v: "standard" | "actual") => setIrOptions((prev) => ({ ...prev, expenseMode1: v }))}>
-                <SelectTrigger className="rounded-xl bg-white border border-slate-300 shadow-sm"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="standard">Abattement 10 %</SelectItem><SelectItem value="actual">Frais réels</SelectItem></SelectContent>
-              </Select>
-            </Field>
-            )}
-            {!isIndependant(data.person1PcsGroupe) && !isProfessionLiberale(data.person1Csp) && irOptions.expenseMode1 === "actual" && (
-              <div className="grid gap-2 grid-cols-2">
-                <MoneyField label="Km professionnels" tooltip="Nombre de kilomètres parcourus à titre professionnel avec votre véhicule personnel. Multipliés par le barème kilométrique fiscal selon la puissance du véhicule." value={irOptions.km1} onChange={(e) => setIrOptions((prev) => ({ ...prev, km1: e.target.value }))} />
-                <MoneyField label="CV fiscal" tooltip="Puissance fiscale du véhicule en chevaux-vapeur (CV). Détermine le barème kilométrique applicable : ex. 5 CV = 0,548 €/km jusqu'à 5 000 km." value={irOptions.cv1} onChange={(e) => setIrOptions((prev) => ({ ...prev, cv1: e.target.value }))} />
-                <MoneyField label="Nb repas" tooltip="Nombre de repas pris hors domicile pour raison professionnelle. Chaque repas est déductible pour la différence entre son coût réel et la valeur d'un repas à domicile (~5 €)." value={irOptions.mealCount1} onChange={(e) => setIrOptions((prev) => ({ ...prev, mealCount1: e.target.value }))} />
-                <MoneyField label="€ / repas" tooltip="Coût moyen d'un repas professionnel. La fraction déductible est : coût réel − valeur repas domicile (environ 5,20 € en 2024)." value={irOptions.mealUnit1} onChange={(e) => setIrOptions((prev) => ({ ...prev, mealUnit1: e.target.value }))} />
-                <div className="col-span-2"><MoneyField label="Autres frais" tooltip="Autres frais professionnels réels : abonnement transport, fournitures, formation, cotisations syndicales, etc. À justifier en cas de contrôle." value={irOptions.other1} onChange={(e) => setIrOptions((prev) => ({ ...prev, other1: e.target.value }))} /></div>
-                <div className="col-span-2 rounded-lg bg-white/70 px-3 py-2 text-xs text-slate-600">
-                  IK : <strong>{euro(computeKilometricAllowance(n(irOptions.km1), n(irOptions.cv1)))}</strong> · Repas : <strong>{euro(n(irOptions.mealCount1) * n(irOptions.mealUnit1))}</strong>
-                </div>
-              </div>
-            )}
-          </div>
-          {/* P2 */}
-          <div className="space-y-3">
-            <div className="text-xs font-medium text-slate-500">{person2}</div>
-            {(isIndependant(data.person2PcsGroupe) || isProfessionLiberale(data.person2Csp)) ? (
-              <div className="rounded-xl px-3 py-2 text-xs text-slate-400" style={{ background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)" }}>
-                Indépendant — les frais pro sont inclus dans le bénéfice imposable (micro ou réel), pas dans les frais salariaux.
-              </div>
-            ) : (
-            <Field label="Mode de frais" tooltip="Abattement 10 % : déduction forfaitaire de 10 % du salaire brut (min. 504 €, max. 14 426 €). Frais réels : déduction des frais professionnels réels justifiés (transport, repas, etc.). Choisir frais réels si le montant dépasse 10 % du salaire.">
-              <Select value={irOptions.expenseMode2} onValueChange={(v: "standard" | "actual") => setIrOptions((prev) => ({ ...prev, expenseMode2: v }))}>
-                <SelectTrigger className="rounded-xl bg-white border border-slate-300 shadow-sm"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="standard">Abattement 10 %</SelectItem><SelectItem value="actual">Frais réels</SelectItem></SelectContent>
-              </Select>
-            </Field>
-            )}
-            {!isIndependant(data.person2PcsGroupe) && !isProfessionLiberale(data.person2Csp) && irOptions.expenseMode2 === "actual" && (
-              <div className="grid gap-2 grid-cols-2">
-                <MoneyField label="Km professionnels" tooltip="Nombre de kilomètres parcourus à titre professionnel avec votre véhicule personnel. Multipliés par le barème kilométrique fiscal selon la puissance du véhicule." value={irOptions.km2} onChange={(e) => setIrOptions((prev) => ({ ...prev, km2: e.target.value }))} />
-                <MoneyField label="CV fiscal" tooltip="Puissance fiscale du véhicule en chevaux-vapeur (CV). Détermine le barème kilométrique applicable : ex. 5 CV = 0,548 €/km jusqu'à 5 000 km." value={irOptions.cv2} onChange={(e) => setIrOptions((prev) => ({ ...prev, cv2: e.target.value }))} />
-                <MoneyField label="Nb repas" tooltip="Nombre de repas pris hors domicile pour raison professionnelle. Chaque repas est déductible pour la différence entre son coût réel et la valeur d'un repas à domicile (~5 €)." value={irOptions.mealCount2} onChange={(e) => setIrOptions((prev) => ({ ...prev, mealCount2: e.target.value }))} />
-                <MoneyField label="€ / repas" tooltip="Coût moyen d'un repas professionnel. La fraction déductible est : coût réel − valeur repas domicile (environ 5,20 € en 2024)." value={irOptions.mealUnit2} onChange={(e) => setIrOptions((prev) => ({ ...prev, mealUnit2: e.target.value }))} />
-                <div className="col-span-2"><MoneyField label="Autres frais" tooltip="Autres frais professionnels réels : abonnement transport, fournitures, formation, cotisations syndicales, etc. À justifier en cas de contrôle." value={irOptions.other2} onChange={(e) => setIrOptions((prev) => ({ ...prev, other2: e.target.value }))} /></div>
-                <div className="col-span-2 rounded-lg bg-white/70 px-3 py-2 text-xs text-slate-600">
-                  IK : <strong>{euro(computeKilometricAllowance(n(irOptions.km2), n(irOptions.cv2)))}</strong> · Repas : <strong>{euro(n(irOptions.mealCount2) * n(irOptions.mealUnit2))}</strong>
-                </div>
-              </div>
-            )}
-          </div>
-          {/* Foncier */}
-          <div className="space-y-3">
-            <div className="text-xs font-medium text-slate-500">Revenus fonciers</div>
-            <Field label="Régime foncier" tooltip="Micro-foncier : abattement forfaitaire de 30 % si revenus fonciers bruts < 15 000 €/an. Régime réel : déduction des charges réelles (intérêts, travaux, assurance…). Le régime réel est souvent plus avantageux en présence d'un emprunt.">
-              <Select value={irOptions.foncierRegime} onValueChange={(v: "micro" | "real") => setIrOptions((prev) => ({ ...prev, foncierRegime: v }))}>
-                <SelectTrigger className="rounded-xl bg-white border border-slate-300 shadow-sm"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="micro">Micro-foncier (30 %)</SelectItem><SelectItem value="real">Régime réel</SelectItem></SelectContent>
-              </Select>
-            </Field>
-            {/* Comparaison micro vs réel — lit le moteur (foncierChargesTotal inclut l'amortissement Jeanbrun) */}
-            {ir.foncierBrut > 0 && (() => {
-              const irAny2: any = ir;
-              const chargesTotal = irAny2.foncierChargesTotal ?? ir.foncierCharges; // inclut Jeanbrun (exposé par ir.ts)
-              const jeanbrunRetenu = irAny2.jeanbrunRetenu ?? 0;
-              const microVal = Math.max(0, ir.foncierBrut * 0.7);
-              const reelVal = Math.max(0, ir.foncierBrut - chargesTotal - ir.foncierInterests);
-              const isMicro = irOptions.foncierRegime === "micro";
-              // Éligibilité micro-foncier (art. 32) : brut <= seuil ET aucun dispositif exigeant le réel.
-              // Réutilise dispositifsFiscaux exposé (statuts incompatibles micro + jeanbrun/locavantages actifs).
-              const df: any = ir.dispositifsFiscaux;
-              const dispositifExigeReel = !!df && (
-                (df.statuts || []).some((s: any) => s.statut === "incompatible")
-                || (df.jeanbrun && df.jeanbrun.parBien && df.jeanbrun.parBien.length > 0)
-                || (df.reductions || []).some((r: any) => String(r.id).startsWith("locavantages"))
-              );
-              const microDisponible = ir.foncierBrut <= SEUIL_MICRO_FONCIER && !dispositifExigeReel;
-              const motifIndispo = ir.foncierBrut > SEUIL_MICRO_FONCIER
-                ? `indisponible : revenus bruts > ${euro(SEUIL_MICRO_FONCIER)}`
-                : "indisponible : dispositif exigeant le régime réel";
-              const diff = microVal - reelVal;
-              return (
-                <div className="space-y-2">
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                    <div style={{
-                      background: microDisponible && isMicro ? BRAND.cream : SURFACE.app,
-                      border: `1.5px solid ${microDisponible && isMicro ? BRAND.gold : SURFACE.border}`,
-                      borderRadius: 10, padding: "10px", textAlign: "center", opacity: microDisponible ? 1 : 0.5,
-                    }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: microDisponible && isMicro ? BRAND.goldText : BRAND.muted, textTransform: "uppercase", letterSpacing: "0.5px" }}>Micro-foncier</div>
-                      <div style={{ fontSize: 20, fontWeight: 900, color: BRAND.navy, marginTop: 4 }}>{euro(microVal)}</div>
-                      <div style={{ fontSize: 10, color: BRAND.muted }}>{microDisponible ? "imposable" : motifIndispo}</div>
-                    </div>
-                    <div style={{
-                      background: !isMicro ? BRAND.cream : SURFACE.app,
-                      border: `1.5px solid ${!isMicro ? BRAND.gold : SURFACE.border}`,
-                      borderRadius: 10, padding: "10px", textAlign: "center",
-                    }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: !isMicro ? BRAND.goldText : BRAND.muted, textTransform: "uppercase", letterSpacing: "0.5px" }}>Régime réel</div>
-                      <div style={{ fontSize: 20, fontWeight: 900, color: BRAND.navy, marginTop: 4 }}>{euro(reelVal)}</div>
-                      <div style={{ fontSize: 10, color: BRAND.muted }}>imposable</div>
-                      {jeanbrunRetenu > 0 && <div style={{ fontSize: 10, color: BRAND.muted, marginTop: 2 }}>dont amortissement Jeanbrun − {euro(jeanbrunRetenu)}</div>}
-                    </div>
-                  </div>
-                  {microDisponible && Math.abs(diff) > 10 && (
-                    <div style={{ fontSize: 11, fontWeight: 700, textAlign: "center", color: diff > 0 ? BRAND.success : BRAND.danger }}>
-                      {diff > 0
-                        ? <><Lightbulb className="h-3.5 w-3.5 inline-block align-middle mr-1" aria-hidden="true" />Le réel ferait économiser {euro(diff)} de base imposable</>
-                        : <><Lightbulb className="h-3.5 w-3.5 inline-block align-middle mr-1" aria-hidden="true" />Le micro est plus avantageux de {euro(-diff)}</>}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-      </div>
-
+      {/* ══ ACTE 2 — CE QUI SE PASSE ══ Remplissage des tranches + comparatif micro/réel foncier. */}
       {/* Barème (Lot C mirror B3) : étiquettes impôt/logés + réconciliation (helper partagé) ;
           bascule sur le calcul de référence (2 parts) quand le QF est plafonné — barres ET
           calcul sur le MÊME référentiel, jamais mélangés. */}
@@ -458,108 +281,180 @@ const TabIR = React.memo(function TabIR(props: any) {
         );
       })()}
 
-      {/* ── Waterfall fiscal ── */}
-      {ir.revenuNetGlobal > 0 && (() => {
-        // Revenus bruts = salaires + BNC/BIC + pensions + foncier brut + placements
-        const revenusTotal = ir.salaries + ir.foncierBrut + (ir.taxablePlacements || 0);
-        // Détail déductions : frais pro (abatt 10% ou réels) + PER + autres charges
-        const fraisPro = ir.retainedExpenses || 0;
-        const autresDeductions = ir.deductibleCharges || 0;
-        const totalDeductions = fraisPro + autresDeductions;
-        const steps = [
-          { label: "Revenus bruts", value: revenusTotal, color: BRAND.navy, type: "add" as const },
-          ...(fraisPro > 0 ? [{ label: "Frais pro / abatt. 10%", value: fraisPro, color: "#E3AF64", type: "ded" as const }] : []),
-          ...(autresDeductions > 0 ? [{ label: "Versements PER & déd.", value: autresDeductions, color: "#C4A882", type: "ded" as const }] : []),
-          { label: "Rev. net imposable", value: ir.revenuNetGlobal, color: BRAND.sky, type: "total" as const },
-          { label: "Barème progressif", value: ir.bareme || 0, color: BRAND.danger, type: "tax" as const },
-          ...(ir.foncierSocialLevy > 0 ? [{ label: "Prél. sociaux foncier", value: ir.foncierSocialLevy, color: "#f97316", type: "tax" as const }] : []),
-          ...(ir.totalPFU > 0 ? [{ label: "PFU placements", value: ir.totalPFU, color: "#f97316", type: "tax" as const }] : []),
-          ...(ir.avRachatImpot > 0 ? [{ label: "Fiscalité AV rachat", value: ir.avRachatImpot, color: "#f97316", type: "tax" as const }] : []),
-          { label: "IR total dû", value: ir.finalIR, color: "#b91c1c", type: "result" as const },
-        ];
-        const maxVal = Math.max(...steps.map(s => Math.abs(s.value)));
-        return (
-          <div className="p-4 border" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-            <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: BRAND.sky }}>Décomposition du calcul fiscal</div>
-            <div className="space-y-2">
-              {steps.map((step, i) => {
-                const pct = maxVal > 0 ? step.value / maxVal * 100 : 0;
-                const isDed = step.type === "ded";
-                const isTax = step.type === "tax";
-                const isResult = step.type === "result";
-                const isTotal = step.type === "total";
+      {/* Comparatif micro vs réel foncier (avec sélecteur de régime) — comportement conservé */}
+      {ir.foncierBrut > 0 && (
+        <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+          <div className="flex flex-col md:flex-row md:items-end gap-3">
+            <div className="md:w-64">
+              <Field label="Régime foncier" tooltip="Micro-foncier : abattement forfaitaire de 30 % si revenus fonciers bruts < 15 000 €/an. Régime réel : déduction des charges réelles (intérêts, travaux, assurance…). Le régime réel est souvent plus avantageux en présence d'un emprunt.">
+                <Select value={irOptions.foncierRegime} onValueChange={(v: "micro" | "real") => setIrOptions((prev) => ({ ...prev, foncierRegime: v }))}>
+                  <SelectTrigger className="rounded-xl bg-white border border-slate-300 shadow-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="micro">Micro-foncier (30 %)</SelectItem><SelectItem value="real">Régime réel</SelectItem></SelectContent>
+                </Select>
+              </Field>
+            </div>
+            <div className="flex-1">
+              {/* Comparaison micro vs réel — lit le moteur (foncierChargesTotal inclut l'amortissement Jeanbrun) */}
+              {(() => {
+                const irAny2: any = ir;
+                const chargesTotal = irAny2.foncierChargesTotal ?? ir.foncierCharges; // inclut Jeanbrun (exposé par ir.ts)
+                const jeanbrunRetenu = irAny2.jeanbrunRetenu ?? 0;
+                const microVal = Math.max(0, ir.foncierBrut * 0.7);
+                const reelVal = Math.max(0, ir.foncierBrut - chargesTotal - ir.foncierInterests);
+                const isMicro = irOptions.foncierRegime === "micro";
+                // Éligibilité micro-foncier (art. 32) : brut <= seuil ET aucun dispositif exigeant le réel.
+                const df: any = ir.dispositifsFiscaux;
+                const dispositifExigeReel = !!df && (
+                  (df.statuts || []).some((s: any) => s.statut === "incompatible")
+                  || (df.jeanbrun && df.jeanbrun.parBien && df.jeanbrun.parBien.length > 0)
+                  || (df.reductions || []).some((r: any) => String(r.id).startsWith("locavantages"))
+                );
+                const microDisponible = ir.foncierBrut <= SEUIL_MICRO_FONCIER && !dispositifExigeReel;
+                const motifIndispo = ir.foncierBrut > SEUIL_MICRO_FONCIER
+                  ? `indisponible : revenus bruts > ${euro(SEUIL_MICRO_FONCIER)}`
+                  : "indisponible : dispositif exigeant le régime réel";
+                const diff = microVal - reelVal;
                 return (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className="text-xs font-medium w-36 shrink-0 text-right" style={{ color: isDed ? "#92400e" : isTax ? "#c2410c" : "#94a3b8" }}>{step.label}</div>
-                    <div className="flex-1 flex items-center gap-2">
-                      <div className="flex-1 h-6 rounded-lg overflow-hidden relative" style={{ background: "#f1f5f9" }}>
-                        <div className="h-full rounded-lg transition-all" style={{
-                          width: `${pct}%`,
-                          background: step.color,
-                          opacity: isDed ? 0.55 : isTax ? 0.8 : 1,
-                        }} />
+                  <div className="space-y-2">
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                      <div style={{
+                        background: microDisponible && isMicro ? BRAND.cream : SURFACE.app,
+                        border: `1.5px solid ${microDisponible && isMicro ? BRAND.gold : SURFACE.border}`,
+                        borderRadius: 10, padding: "10px", textAlign: "center", opacity: microDisponible ? 1 : 0.5,
+                      }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: microDisponible && isMicro ? BRAND.goldText : BRAND.muted, textTransform: "uppercase", letterSpacing: "0.5px" }}>Micro-foncier</div>
+                        <div style={{ fontSize: 20, fontWeight: 900, color: BRAND.navy, marginTop: 4 }}>{euro(microVal)}</div>
+                        <div style={{ fontSize: 10, color: BRAND.muted }}>{microDisponible ? "imposable" : motifIndispo}</div>
                       </div>
-                      <div className="text-xs font-bold w-24 shrink-0" style={{ color: step.color }}>
-                        {isDed ? `− ${euro(step.value)}` : euro(step.value)}
+                      <div style={{
+                        background: !isMicro ? BRAND.cream : SURFACE.app,
+                        border: `1.5px solid ${!isMicro ? BRAND.gold : SURFACE.border}`,
+                        borderRadius: 10, padding: "10px", textAlign: "center",
+                      }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: !isMicro ? BRAND.goldText : BRAND.muted, textTransform: "uppercase", letterSpacing: "0.5px" }}>Régime réel</div>
+                        <div style={{ fontSize: 20, fontWeight: 900, color: BRAND.navy, marginTop: 4 }}>{euro(reelVal)}</div>
+                        <div style={{ fontSize: 10, color: BRAND.muted }}>imposable</div>
+                        {jeanbrunRetenu > 0 && <div style={{ fontSize: 10, color: BRAND.muted, marginTop: 2 }}>dont amortissement Jeanbrun − {euro(jeanbrunRetenu)}</div>}
                       </div>
                     </div>
+                    {microDisponible && Math.abs(diff) > 10 && (
+                      <div style={{ fontSize: 11, fontWeight: 700, textAlign: "center", color: diff > 0 ? BRAND.success : BRAND.danger }}>
+                        {diff > 0
+                          ? <><Lightbulb className="h-3.5 w-3.5 inline-block align-middle mr-1" aria-hidden="true" />Le réel ferait économiser {euro(diff)} de base imposable</>
+                          : <><Lightbulb className="h-3.5 w-3.5 inline-block align-middle mr-1" aria-hidden="true" />Le micro est plus avantageux de {euro(-diff)}</>}
+                      </div>
+                    )}
                   </div>
                 );
-              })}
+              })()}
             </div>
           </div>
-        );
-      })()}
+        </div>
+      )}
 
-      {/* ── Réductions & dispositifs fiscaux (immobiliers + financiers Lot 3) ── */}
-      {(() => {
-        const df: any = ir.dispositifsFiscaux;
-        if (!df) return null;
-        const reducDispositifs = (df.reductions || []).filter((r: any) => r.id !== "forfait_scolaire" && r.impute > 0);
-        const jeanbrunRetenu = df.jeanbrun ? df.jeanbrun.parBien.reduce((s: number, p: any) => s + p.montantRetenu, 0) : 0;
-        const statutsNonOk = df.statuts || [];
-        const ecretementNiches = n(df.ecretementNiches);
-        const ecretementCommun = n(df.ecretementCommun);
-        const ecretementMajore = n(df.ecretementMajore);
-        if (reducDispositifs.length === 0 && jeanbrunRetenu <= 0 && statutsNonOk.length === 0 && ecretementNiches <= 0) return null;
-        const totalReductions = reducDispositifs.reduce((s: number, r: any) => s + n(r.impute), 0);
-        return (
-          <div className="p-4 border mt-4" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-            <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: BRAND.sky }}>Réductions &amp; dispositifs fiscaux</div>
-            <div className="space-y-1 text-xs">
-              {reducDispositifs.map((r: any, i: number) => (
-                <div key={`r${i}`} className="flex justify-between"><span style={{ color: BRAND.muted }}>Réduction {labelDispositifReduction(r.id)}</span><span className="font-bold" style={{ color: "#0F766E" }}>− {euro(r.impute)}</span></div>
-              ))}
-              {reducDispositifs.length > 1 && (
-                <div className="flex justify-between pt-1 mt-1" style={{ borderTop: `1px solid ${SURFACE.border}` }}>
-                  <span className="font-semibold" style={{ color: BRAND.navy }}>Total réductions imputées</span>
-                  <span className="font-bold" style={{ color: "#0F766E" }}>− {euro(totalReductions)}</span>
+      {/* ══ ACTE 3 — LES MASSES ══ (accordéons fermés, résumé chiffré visible) */}
+
+      {/* §1 — Décomposition additive complète du calcul (waterfall + réductions) */}
+      {(ir.revenuNetGlobal > 0 || ir.dispositifsFiscaux) && (
+        <SectionAccordion title="Décomposition du calcul" summary={`des revenus bruts à l'impôt total dû (${euro(ir.finalIR)})`}>
+          {/* Waterfall fiscal */}
+          {ir.revenuNetGlobal > 0 && (() => {
+            const revenusTotal = ir.salaries + ir.foncierBrut + (ir.taxablePlacements || 0);
+            const fraisPro = ir.retainedExpenses || 0;
+            const autresDeductions = ir.deductibleCharges || 0;
+            const steps = [
+              { label: "Revenus bruts", value: revenusTotal, color: BRAND.navy, type: "add" as const },
+              ...(fraisPro > 0 ? [{ label: "Frais pro / abatt. 10%", value: fraisPro, color: "#E3AF64", type: "ded" as const }] : []),
+              ...(autresDeductions > 0 ? [{ label: "Versements PER & déd.", value: autresDeductions, color: "#C4A882", type: "ded" as const }] : []),
+              { label: "Rev. net imposable", value: ir.revenuNetGlobal, color: BRAND.sky, type: "total" as const },
+              { label: "Barème progressif", value: ir.bareme || 0, color: BRAND.danger, type: "tax" as const },
+              ...(ir.foncierSocialLevy > 0 ? [{ label: "Prél. sociaux foncier", value: ir.foncierSocialLevy, color: "#f97316", type: "tax" as const }] : []),
+              ...(ir.totalPFU > 0 ? [{ label: "PFU placements", value: ir.totalPFU, color: "#f97316", type: "tax" as const }] : []),
+              ...(ir.avRachatImpot > 0 ? [{ label: "Fiscalité AV rachat", value: ir.avRachatImpot, color: "#f97316", type: "tax" as const }] : []),
+              { label: "IR total dû", value: ir.finalIR, color: "#b91c1c", type: "result" as const },
+            ];
+            const maxVal = Math.max(...steps.map(s => Math.abs(s.value)));
+            return (
+              <div className="p-4 border" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+                <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: BRAND.sky }}>Décomposition du calcul fiscal</div>
+                <div className="space-y-2">
+                  {steps.map((step, i) => {
+                    const pctW = maxVal > 0 ? step.value / maxVal * 100 : 0;
+                    const isDed = step.type === "ded";
+                    const isTax = step.type === "tax";
+                    return (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className="text-xs font-medium w-36 shrink-0 text-right" style={{ color: isDed ? "#92400e" : isTax ? "#c2410c" : "#94a3b8" }}>{step.label}</div>
+                        <div className="flex-1 flex items-center gap-2">
+                          <div className="flex-1 h-6 rounded-lg overflow-hidden relative" style={{ background: "#f1f5f9" }}>
+                            <div className="h-full rounded-lg transition-all" style={{
+                              width: `${pctW}%`,
+                              background: step.color,
+                              opacity: isDed ? 0.55 : isTax ? 0.8 : 1,
+                            }} />
+                          </div>
+                          <div className="text-xs font-bold w-24 shrink-0" style={{ color: step.color }}>
+                            {isDed ? `− ${euro(step.value)}` : euro(step.value)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
-              {jeanbrunRetenu > 0 && (
-                <div className="flex justify-between"><span style={{ color: BRAND.muted }}>Amortissement Jeanbrun (déduit du foncier)</span><span className="font-bold" style={{ color: "#0F766E" }}>− {euro(jeanbrunRetenu)}{df.jeanbrun.ecretement > 0 ? ` (écrêté ${euro(df.jeanbrun.ecretement)})` : ""}</span></div>
-              )}
-              {ecretementNiches > 0 && (
-                <div className="flex justify-between items-center">
-                  <span className="flex items-center gap-1" style={{ color: BRAND.warning }}>
-                    Plafonnement des niches (art. 200-0 A)
-                    <HelpTooltip text={`Cumul des réductions au-delà du plafond global des niches (art. 200-0 A CGI).\nEnveloppe commune 10 000 € : ${euro(ecretementCommun)} écrêtés.\nEnveloppe majorée 18 000 € (outre-mer / SOFICA) : ${euro(ecretementMajore)} écrêtés.\nLa fraction écrêtée est définitivement perdue (pas de report).`} />
-                  </span>
-                  <span className="font-bold" style={{ color: BRAND.warning }}>− {euro(ecretementNiches)} non imputés</span>
-                </div>
-              )}
-            </div>
-            {statutsNonOk.length > 0 && (
-              <div className="mt-2 text-[11px]" style={{ color: BRAND.muted }}>
-                {statutsNonOk.map((s: any, i: number) => <div key={`s${i}`}><AlertTriangle className="h-3.5 w-3.5 inline-block align-middle mr-1" aria-hidden="true" />{s.dispositif} — {s.motif}</div>)}
               </div>
-            )}
-          </div>
-        );
-      })()}
+            );
+          })()}
 
-      {/* ── Location meublee (BIC) — PUR AFFICHAGE des sorties moteur (ir.meubleDetail),
-           aucun recalcul local (lecon KPI endettement). Par bien puis total. ── */}
+          {/* Réductions & dispositifs fiscaux (immobiliers + financiers Lot 3) */}
+          {(() => {
+            const df: any = ir.dispositifsFiscaux;
+            if (!df) return null;
+            const reducDispositifs = (df.reductions || []).filter((r: any) => r.id !== "forfait_scolaire" && r.impute > 0);
+            const jeanbrunRetenu = df.jeanbrun ? df.jeanbrun.parBien.reduce((s: number, p: any) => s + p.montantRetenu, 0) : 0;
+            const statutsNonOk = df.statuts || [];
+            const ecretementNiches = n(df.ecretementNiches);
+            const ecretementCommun = n(df.ecretementCommun);
+            const ecretementMajore = n(df.ecretementMajore);
+            if (reducDispositifs.length === 0 && jeanbrunRetenu <= 0 && statutsNonOk.length === 0 && ecretementNiches <= 0) return null;
+            const totalReductions = reducDispositifs.reduce((s: number, r: any) => s + n(r.impute), 0);
+            return (
+              <div className="p-4 border mt-4" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+                <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: BRAND.sky }}>Réductions &amp; dispositifs fiscaux</div>
+                <div className="space-y-1 text-xs">
+                  {reducDispositifs.map((r: any, i: number) => (
+                    <div key={`r${i}`} className="flex justify-between"><span style={{ color: BRAND.muted }}>Réduction {labelDispositifReduction(r.id)}</span><span className="font-bold" style={{ color: "#0F766E" }}>− {euro(r.impute)}</span></div>
+                  ))}
+                  {reducDispositifs.length > 1 && (
+                    <div className="flex justify-between pt-1 mt-1" style={{ borderTop: `1px solid ${SURFACE.border}` }}>
+                      <span className="font-semibold" style={{ color: BRAND.navy }}>Total réductions imputées</span>
+                      <span className="font-bold" style={{ color: "#0F766E" }}>− {euro(totalReductions)}</span>
+                    </div>
+                  )}
+                  {jeanbrunRetenu > 0 && (
+                    <div className="flex justify-between"><span style={{ color: BRAND.muted }}>Amortissement Jeanbrun (déduit du foncier)</span><span className="font-bold" style={{ color: "#0F766E" }}>− {euro(jeanbrunRetenu)}{df.jeanbrun.ecretement > 0 ? ` (écrêté ${euro(df.jeanbrun.ecretement)})` : ""}</span></div>
+                  )}
+                  {ecretementNiches > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="flex items-center gap-1" style={{ color: BRAND.warning }}>
+                        Plafonnement des niches (art. 200-0 A)
+                        <HelpTooltip text={`Cumul des réductions au-delà du plafond global des niches (art. 200-0 A CGI).\nEnveloppe commune 10 000 € : ${euro(ecretementCommun)} écrêtés.\nEnveloppe majorée 18 000 € (outre-mer / SOFICA) : ${euro(ecretementMajore)} écrêtés.\nLa fraction écrêtée est définitivement perdue (pas de report).`} />
+                      </span>
+                      <span className="font-bold" style={{ color: BRAND.warning }}>− {euro(ecretementNiches)} non imputés</span>
+                    </div>
+                  )}
+                </div>
+                {statutsNonOk.length > 0 && (
+                  <div className="mt-2 text-[11px]" style={{ color: BRAND.muted }}>
+                    {statutsNonOk.map((s: any, i: number) => <div key={`s${i}`}><AlertTriangle className="h-3.5 w-3.5 inline-block align-middle mr-1" aria-hidden="true" />{s.dispositif} — {s.motif}</div>)}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </SectionAccordion>
+      )}
+
+      {/* §2 — Location meublée / LMNP (PUR AFFICHAGE des sorties moteur ir.meubleDetail) */}
       {(() => {
         const detail: any[] = (ir as any).meubleDetail || [];
         if (detail.length === 0) return null;
@@ -567,45 +462,204 @@ const TabIR = React.memo(function TabIR(props: any) {
         const ps = n((ir as any).meubleSocialLevy);
         const SOUS_LABEL: Record<string, string> = { longue_duree: "Longue durée", tourisme_classe: "Tourisme classé", tourisme_non_classe: "Tourisme non classé" };
         return (
-          <div className="p-4 border mt-4" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-            <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: BRAND.goldText }}>Location meublée (BIC)</div>
-            <div className="space-y-2 text-xs">
-              {detail.map((d: any, i: number) => (
-                <div key={d.idBien || i} className="rounded-lg p-2" style={{ background: "rgba(196,151,61,0.05)", border: `1px solid ${SURFACE.border}` }}>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-bold" style={{ color: BRAND.navy }}>{d.nom}</span>
-                    <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: BRAND.goldText }}>{d.regime === "micro" ? "Micro-BIC" : "Réel"} · {SOUS_LABEL[d.sousType] || d.sousType}</span>
+          <SectionAccordion title="Location meublée / LMNP" summary={`base imposable ${euro(totalBase)}${ps > 0 ? ` · PS ${euro(ps)}` : ""}`}>
+            <div className="p-4 border" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+              <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: BRAND.goldText }}>Location meublée (BIC)</div>
+              <div className="space-y-2 text-xs">
+                {detail.map((d: any, i: number) => (
+                  <div key={d.idBien || i} className="rounded-lg p-2" style={{ background: "rgba(196,151,61,0.05)", border: `1px solid ${SURFACE.border}` }}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold" style={{ color: BRAND.navy }}>{d.nom}</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: BRAND.goldText }}>{d.regime === "micro" ? "Micro-BIC" : "Réel"} · {SOUS_LABEL[d.sousType] || d.sousType}</span>
+                    </div>
+                    <div className="space-y-0.5" style={{ color: BRAND.muted }}>
+                      <div className="flex justify-between"><span>Recettes</span><strong>{euro(d.recettes)}</strong></div>
+                      {d.regime === "micro" ? (
+                        <div className="flex justify-between"><span>Abattement{d.abattement <= 305 && d.recettes > 0 ? " (plancher 305 €)" : ""}</span><strong>− {euro(d.abattement)}</strong></div>
+                      ) : (
+                        <>
+                          <div className="flex justify-between"><span>Charges retenues</span><strong>− {euro(d.chargesRetenues)}</strong></div>
+                          {d.amortDeductible > 0 && <div className="flex justify-between"><span>Amortissement déduit</span><strong>− {euro(d.amortDeductible)}</strong></div>}
+                          {d.ard > 0 && <div className="flex justify-between"><span style={{ color: BRAND.sky }}>Amortissement en report (ARD)</span><span style={{ color: BRAND.sky }}>{euro(d.ard)} <span className="opacity-70">· report illimité, art. 39 C</span></span></div>}
+                          {d.deficitReportable > 0 && <div className="flex justify-between"><span style={{ color: BRAND.warning }}>Déficit</span><span style={{ color: BRAND.warning }}>{euro(d.deficitReportable)} <span className="opacity-70">· non imputable au revenu global, art. 156 I-1 ter</span></span></div>}
+                        </>
+                      )}
+                      <div className="flex justify-between pt-0.5" style={{ borderTop: `1px solid ${SURFACE.border}` }}><span className="font-semibold" style={{ color: BRAND.navy }}>Base imposable</span><strong style={{ color: BRAND.navy }}>{euro(d.base)}</strong></div>
+                    </div>
                   </div>
-                  <div className="space-y-0.5" style={{ color: BRAND.muted }}>
-                    <div className="flex justify-between"><span>Recettes</span><strong>{euro(d.recettes)}</strong></div>
-                    {d.regime === "micro" ? (
-                      <div className="flex justify-between"><span>Abattement{d.abattement <= 305 && d.recettes > 0 ? " (plancher 305 €)" : ""}</span><strong>− {euro(d.abattement)}</strong></div>
-                    ) : (
-                      <>
-                        <div className="flex justify-between"><span>Charges retenues</span><strong>− {euro(d.chargesRetenues)}</strong></div>
-                        {d.amortDeductible > 0 && <div className="flex justify-between"><span>Amortissement déduit</span><strong>− {euro(d.amortDeductible)}</strong></div>}
-                        {d.ard > 0 && <div className="flex justify-between"><span style={{ color: BRAND.sky }}>Amortissement en report (ARD)</span><span style={{ color: BRAND.sky }}>{euro(d.ard)} <span className="opacity-70">· report illimité, art. 39 C</span></span></div>}
-                        {d.deficitReportable > 0 && <div className="flex justify-between"><span style={{ color: BRAND.warning }}>Déficit</span><span style={{ color: BRAND.warning }}>{euro(d.deficitReportable)} <span className="opacity-70">· non imputable au revenu global, art. 156 I-1 ter</span></span></div>}
-                      </>
-                    )}
-                    <div className="flex justify-between pt-0.5" style={{ borderTop: `1px solid ${SURFACE.border}` }}><span className="font-semibold" style={{ color: BRAND.navy }}>Base imposable</span><strong style={{ color: BRAND.navy }}>{euro(d.base)}</strong></div>
+                ))}
+                <div className="flex justify-between pt-1" style={{ borderTop: `1px solid ${SURFACE.border}` }}>
+                  <span className="font-semibold" style={{ color: BRAND.navy }}>Base imposable meublée (total foyer)</span>
+                  <strong style={{ color: BRAND.navy }}>{euro(totalBase)}</strong>
+                </div>
+                {ps > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-1" style={{ color: BRAND.muted }}>Prélèvements sociaux revenus du patrimoine (LFSS 2026)<HelpTooltip text="PS 18,6 % sur le bénéfice meublé (revenus du patrimoine, LFSS 2026 — art. L136-8 CSS). Distinct du foncier nu à 17,2 %." /></span>
+                    <strong style={{ color: BRAND.danger }}>{euro(ps)}</strong>
+                  </div>
+                )}
+              </div>
+            </div>
+          </SectionAccordion>
+        );
+      })()}
+
+      {/* §3 — Traitements, salaires et frais professionnels */}
+      <SectionAccordion title="Traitements, salaires et frais professionnels" summary="mode de frais par personne (abattement 10 % ou frais réels)">
+        <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* P1 */}
+            <div className="space-y-3">
+              <div className="text-xs font-medium text-slate-500">{person1}</div>
+              {(isIndependant(data.person1PcsGroupe) || isProfessionLiberale(data.person1Csp)) ? (
+                <div className="rounded-xl px-3 py-2 text-xs text-slate-400" style={{ background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)" }}>
+                  Indépendant — les frais pro sont inclus dans le bénéfice imposable (micro ou réel), pas dans les frais salariaux.
+                </div>
+              ) : (
+              <Field label="Mode de frais" tooltip="Abattement 10 % : déduction forfaitaire de 10 % du salaire brut (min. 504 €, max. 14 426 €). Frais réels : déduction des frais professionnels réels justifiés (transport, repas, etc.). Choisir frais réels si le montant dépasse 10 % du salaire.">
+                <Select value={irOptions.expenseMode1} onValueChange={(v: "standard" | "actual") => setIrOptions((prev) => ({ ...prev, expenseMode1: v }))}>
+                  <SelectTrigger className="rounded-xl bg-white border border-slate-300 shadow-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="standard">Abattement 10 %</SelectItem><SelectItem value="actual">Frais réels</SelectItem></SelectContent>
+                </Select>
+              </Field>
+              )}
+              {!isIndependant(data.person1PcsGroupe) && !isProfessionLiberale(data.person1Csp) && irOptions.expenseMode1 === "actual" && (
+                <div className="grid gap-2 grid-cols-2">
+                  <MoneyField label="Km professionnels" tooltip="Nombre de kilomètres parcourus à titre professionnel avec votre véhicule personnel. Multipliés par le barème kilométrique fiscal selon la puissance du véhicule." value={irOptions.km1} onChange={(e) => setIrOptions((prev) => ({ ...prev, km1: e.target.value }))} />
+                  <MoneyField label="CV fiscal" tooltip="Puissance fiscale du véhicule en chevaux-vapeur (CV). Détermine le barème kilométrique applicable : ex. 5 CV = 0,548 €/km jusqu'à 5 000 km." value={irOptions.cv1} onChange={(e) => setIrOptions((prev) => ({ ...prev, cv1: e.target.value }))} />
+                  <MoneyField label="Nb repas" tooltip="Nombre de repas pris hors domicile pour raison professionnelle. Chaque repas est déductible pour la différence entre son coût réel et la valeur d'un repas à domicile (~5 €)." value={irOptions.mealCount1} onChange={(e) => setIrOptions((prev) => ({ ...prev, mealCount1: e.target.value }))} />
+                  <MoneyField label="€ / repas" tooltip="Coût moyen d'un repas professionnel. La fraction déductible est : coût réel − valeur repas domicile (environ 5,20 € en 2024)." value={irOptions.mealUnit1} onChange={(e) => setIrOptions((prev) => ({ ...prev, mealUnit1: e.target.value }))} />
+                  <div className="col-span-2"><MoneyField label="Autres frais" tooltip="Autres frais professionnels réels : abonnement transport, fournitures, formation, cotisations syndicales, etc. À justifier en cas de contrôle." value={irOptions.other1} onChange={(e) => setIrOptions((prev) => ({ ...prev, other1: e.target.value }))} /></div>
+                  <div className="col-span-2 rounded-lg bg-white/70 px-3 py-2 text-xs text-slate-600">
+                    IK : <strong>{euro(computeKilometricAllowance(n(irOptions.km1), n(irOptions.cv1)))}</strong> · Repas : <strong>{euro(n(irOptions.mealCount1) * n(irOptions.mealUnit1))}</strong>
                   </div>
                 </div>
-              ))}
-              <div className="flex justify-between pt-1" style={{ borderTop: `1px solid ${SURFACE.border}` }}>
-                <span className="font-semibold" style={{ color: BRAND.navy }}>Base imposable meublée (total foyer)</span>
-                <strong style={{ color: BRAND.navy }}>{euro(totalBase)}</strong>
-              </div>
-              {ps > 0 && (
-                <div className="flex justify-between items-center">
-                  <span className="flex items-center gap-1" style={{ color: BRAND.muted }}>Prélèvements sociaux revenus du patrimoine (LFSS 2026)<HelpTooltip text="PS 18,6 % sur le bénéfice meublé (revenus du patrimoine, LFSS 2026 — art. L136-8 CSS). Distinct du foncier nu à 17,2 %." /></span>
-                  <strong style={{ color: BRAND.danger }}>{euro(ps)}</strong>
+              )}
+            </div>
+            {/* P2 */}
+            <div className="space-y-3">
+              <div className="text-xs font-medium text-slate-500">{person2}</div>
+              {(isIndependant(data.person2PcsGroupe) || isProfessionLiberale(data.person2Csp)) ? (
+                <div className="rounded-xl px-3 py-2 text-xs text-slate-400" style={{ background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)" }}>
+                  Indépendant — les frais pro sont inclus dans le bénéfice imposable (micro ou réel), pas dans les frais salariaux.
+                </div>
+              ) : (
+              <Field label="Mode de frais" tooltip="Abattement 10 % : déduction forfaitaire de 10 % du salaire brut (min. 504 €, max. 14 426 €). Frais réels : déduction des frais professionnels réels justifiés (transport, repas, etc.). Choisir frais réels si le montant dépasse 10 % du salaire.">
+                <Select value={irOptions.expenseMode2} onValueChange={(v: "standard" | "actual") => setIrOptions((prev) => ({ ...prev, expenseMode2: v }))}>
+                  <SelectTrigger className="rounded-xl bg-white border border-slate-300 shadow-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="standard">Abattement 10 %</SelectItem><SelectItem value="actual">Frais réels</SelectItem></SelectContent>
+                </Select>
+              </Field>
+              )}
+              {!isIndependant(data.person2PcsGroupe) && !isProfessionLiberale(data.person2Csp) && irOptions.expenseMode2 === "actual" && (
+                <div className="grid gap-2 grid-cols-2">
+                  <MoneyField label="Km professionnels" tooltip="Nombre de kilomètres parcourus à titre professionnel avec votre véhicule personnel. Multipliés par le barème kilométrique fiscal selon la puissance du véhicule." value={irOptions.km2} onChange={(e) => setIrOptions((prev) => ({ ...prev, km2: e.target.value }))} />
+                  <MoneyField label="CV fiscal" tooltip="Puissance fiscale du véhicule en chevaux-vapeur (CV). Détermine le barème kilométrique applicable : ex. 5 CV = 0,548 €/km jusqu'à 5 000 km." value={irOptions.cv2} onChange={(e) => setIrOptions((prev) => ({ ...prev, cv2: e.target.value }))} />
+                  <MoneyField label="Nb repas" tooltip="Nombre de repas pris hors domicile pour raison professionnelle. Chaque repas est déductible pour la différence entre son coût réel et la valeur d'un repas à domicile (~5 €)." value={irOptions.mealCount2} onChange={(e) => setIrOptions((prev) => ({ ...prev, mealCount2: e.target.value }))} />
+                  <MoneyField label="€ / repas" tooltip="Coût moyen d'un repas professionnel. La fraction déductible est : coût réel − valeur repas domicile (environ 5,20 € en 2024)." value={irOptions.mealUnit2} onChange={(e) => setIrOptions((prev) => ({ ...prev, mealUnit2: e.target.value }))} />
+                  <div className="col-span-2"><MoneyField label="Autres frais" tooltip="Autres frais professionnels réels : abonnement transport, fournitures, formation, cotisations syndicales, etc. À justifier en cas de contrôle." value={irOptions.other2} onChange={(e) => setIrOptions((prev) => ({ ...prev, other2: e.target.value }))} /></div>
+                  <div className="col-span-2 rounded-lg bg-white/70 px-3 py-2 text-xs text-slate-600">
+                    IK : <strong>{euro(computeKilometricAllowance(n(irOptions.km2), n(irOptions.cv2)))}</strong> · Repas : <strong>{euro(n(irOptions.mealCount2) * n(irOptions.mealUnit2))}</strong>
+                  </div>
                 </div>
               )}
             </div>
           </div>
+        </div>
+      </SectionAccordion>
+
+      {/* §4 — PFU et prélèvements sociaux : détail ligne à ligne */}
+      {(() => {
+        const irAny = ir as any;
+        const pfuBaseTot = n(ir.pfuBase) + n(irAny.perInteretsPFU);
+        const pfuMontant = n(ir.totalPFU);
+        const foncierBase = n(irAny.taxableFonciers);
+        const foncierPS = n(ir.foncierSocialLevy);
+        const meubleBase = n(irAny.beneficeMeuble);
+        const meublePS = n(irAny.meubleSocialLevy);
+        const perPS = n(irAny.perRentesPS);
+        const avRachat = n(ir.avRachatImpot);
+        const somme = pfuMontant + foncierPS + meublePS + perPS + avRachat;
+        if (somme <= 0.005) return null;
+        type Row = { label: string; base?: number; taux: string; montant: number };
+        const rows: Row[] = [];
+        if (pfuMontant > 0) rows.push({ label: "PFU — capitaux mobiliers & plus-values", base: pfuBaseTot, taux: "31,4 % (12,8 % IR + 18,6 % PS)", montant: pfuMontant });
+        if (foncierPS > 0) rows.push({ label: "Prélèvements sociaux foncier nu", base: foncierBase, taux: "17,2 %", montant: foncierPS });
+        if (meublePS > 0) rows.push({ label: "Prélèvements sociaux location meublée", base: meubleBase, taux: "18,6 %", montant: meublePS });
+        if (perPS > 0) rows.push({ label: "Prélèvements sociaux rentes PER", taux: "18,6 %", montant: perPS });
+        if (avRachat > 0) rows.push({ label: "Fiscalité rachat assurance-vie", taux: "forfait / barème + PS", montant: avRachat });
+        return (
+          <SectionAccordion title="PFU et prélèvements sociaux" summary={`total ${euro(somme)}`}>
+            <div className="p-4 border" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+              <div className="space-y-2 text-xs">
+                {rows.map((r, i) => (
+                  <div key={i} className="flex items-baseline justify-between gap-3 pb-2" style={{ borderBottom: i < rows.length - 1 ? `1px solid ${SURFACE.border}` : "none" }}>
+                    <div className="min-w-0">
+                      <div className="font-semibold" style={{ color: BRAND.navy }}>{r.label}</div>
+                      <div className="text-[10.5px]" style={{ color: BRAND.muted }}>
+                        {r.base != null ? `base ${euro(r.base)} · ` : ""}{r.taux}
+                      </div>
+                    </div>
+                    <div className="font-bold shrink-0" style={{ color: BRAND.danger }}>{euro(r.montant)}</div>
+                  </div>
+                ))}
+                <div className="flex justify-between pt-1">
+                  <span className="font-semibold" style={{ color: BRAND.navy }}>Total PFU + prélèvements sociaux</span>
+                  <strong style={{ color: BRAND.navy }}>{euro(somme)}</strong>
+                </div>
+              </div>
+            </div>
+          </SectionAccordion>
         );
       })()}
+
+      {/* §5 — Quotient familial : mécanique détaillée */}
+      <SectionAccordion title="Quotient familial" summary={`${plur(ir.parts, "part")} · quotient ${euro(ir.quotient)}`}>
+        <div className="space-y-3">
+          <div className="p-4 border" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+            <div className="text-xs space-y-1" style={{ color: BRAND.muted }}>
+              <div className="flex justify-between"><span>Revenu net imposable</span><strong style={{ color: BRAND.navy }}>{euro(ir.revenuNetGlobal)}</strong></div>
+              <div className="flex justify-between"><span>Nombre de parts</span><strong style={{ color: BRAND.navy }}>{plur(ir.parts, "part")}</strong></div>
+              <div className="flex justify-between pt-1 mt-1" style={{ borderTop: `1px solid ${SURFACE.border}` }}><span className="font-semibold" style={{ color: BRAND.navy }}>Quotient familial (revenu ÷ parts)</span><strong style={{ color: BRAND.navy }}>{euro(ir.quotient)}</strong></div>
+              {ir.quotientFamilialCapAdjustment > 0 && (
+                <div className="flex justify-between items-start pt-1 mt-1" style={{ borderTop: `1px solid ${SURFACE.border}` }}>
+                  <span className="flex items-center gap-1" style={{ color: BRAND.warning }}>
+                    Plafonnement du QF
+                    <HelpTooltip text={`Avantage de quotient familial plafonné : +${euro(ir.quotientFamilialCapAdjustment)} d'IR (avantage retenu ${euro(Math.min(ir.qfBenefit, ir.qfCap))} sur ${euro(ir.qfCap)} maximum par demi-part supplémentaire).`} />
+                  </span>
+                  <strong style={{ color: BRAND.warning }}>+ {euro(ir.quotientFamilialCapAdjustment)}</strong>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Gauge TMI — position dans les 5 tranches */}
+          <div className="border p-3" style={{ borderColor: SURFACE.border, borderRadius: 14, background: SURFACE.card, boxShadow: SURFACE.cardShadow }}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.muted }}>Position dans le barème IR</span>
+              <span className="text-xs font-black" style={{ color: BRAND.navy }}>TMI {Math.round(tmiView.tmiAffichee * 100)} %</span>
+            </div>
+            {/* Lot C2 révisé : sous plafonnement, la position suit le barème de référence (tmiAffichee). */}
+            {ir.plafonnementQfActif && (
+              <div className="text-xs mb-2" style={{ color: BRAND.goldText }}>Position au barème de référence (plafonnement du QF actif).</div>
+            )}
+            <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden" }}>
+              {([{ rate: 0, color: "#166534" }, { rate: 0.11, color: "#22c55e" }, { rate: 0.30, color: BRAND.gold }, { rate: 0.41, color: "#f97316" }, { rate: 0.45, color: BRAND.danger }] as const).map((t, i) => (
+                <div key={i} style={{ flex: 1, background: t.color, position: "relative", opacity: tmiView.tmiAffichee >= t.rate ? 1 : 0.2 }}>
+                  {tmiView.tmiAffichee === t.rate && <div style={{ position: "absolute", top: -2, right: 0, width: 3, height: 12, background: BRAND.navy, borderRadius: 2 }} />}
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, marginTop: 3 }}>
+              {([0, 0.11, 0.30, 0.41, 0.45] as const).map((rate, i) => (
+                <span key={i} style={{ fontWeight: tmiView.tmiAffichee === rate ? 900 : 400, color: tmiView.tmiAffichee === rate ? BRAND.navy : BRAND.muted }}>
+                  {Math.round(rate * 100)} %
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </SectionAccordion>
     </CardContent>
   </Card>
   </>)}
