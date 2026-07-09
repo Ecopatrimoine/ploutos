@@ -106,3 +106,13 @@ export function buildTicksTemps(projection: ProjectionResult, maxJour: number): 
 
   return [...niveau1, ...niveau2].sort((a, b) => a.x - b.x);
 }
+
+// SOURCE UNIQUE de l'axe temps consommée PAR LE COMPOSANT (ProjectionChart) ET par la
+// liste de preuve (test) : même fenêtrage (3 ans jusqu'à la bascule / vue complète
+// jusqu'à la retraite), même maxJour, même buildTicksTemps. La preuve = la production.
+export function axeTemps(projection: ProjectionResult, vueComplete: boolean): { maxJour: number; maxX: number; ticks: TickTemps[] } {
+  const bascule = projection.basculeInvaliditeJour || 0;
+  const visibles = projection.axe.filter((a) => vueComplete || a.jour <= bascule);
+  const maxJour = visibles.length ? visibles[visibles.length - 1].jour : bascule;
+  return { maxJour, maxX: compress(maxJour), ticks: buildTicksTemps(projection, maxJour) };
+}

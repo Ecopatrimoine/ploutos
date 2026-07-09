@@ -32,7 +32,7 @@ import { AlertTriangle } from "lucide-react";
 import { HelpTooltip } from "../shared";
 import { formatDureeArret } from "../../lib/calculs/utils";
 import { ETAGES, PAYEUR_COLORS, couleurEtage } from "../../lib/presentation/payeurs";
-import { compress, buildTicksTemps, labelTooltipTemps, type TickTemps } from "../../lib/presentation/echelleTemps";
+import { compress, axeTemps, labelTooltipTemps, type TickTemps } from "../../lib/presentation/echelleTemps";
 
 type Props = {
   projection: ProjectionResult;
@@ -190,12 +190,10 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
   // On filtre les points affichés — les données calculées sont intactes.
   const data = vueComplete ? dataComplete : dataComplete.filter((d) => d.jour <= bascule);
 
-  // A4 / C2 — axe numérique compressé. Ticks : NIVEAU 1 = chaque rupture de la frise
-  // (libellée, décalage vertical si collision) ; NIVEAU 2 = repères discrets. Le tooltip
-  // donne la double lecture (jour + conversion).
-  const maxJourVisible = data.length ? data[data.length - 1].jour : bascule;
-  const maxX = compress(maxJourVisible);
-  const ticks = buildTicksTemps(projection, maxJourVisible);
+  // A4 / C2 / C3a — axe numérique compressé via la SOURCE UNIQUE axeTemps (même code
+  // que la liste de preuve). Ticks : NIVEAU 1 = chaque rupture de la frise (libellée,
+  // décalage vertical si collision) ; NIVEAU 2 = repères discrets ; tooltip = double lecture.
+  const { maxJour: maxJourVisible, maxX, ticks } = axeTemps(projection, vueComplete);
   const tickXs = ticks.map((t) => t.x);
   const tickMeta = new Map(ticks.map((t) => [t.x, t]));
   const labelParX = new Map(dataComplete.map((d) => [d.x, labelTooltipTemps(d.jour)]));

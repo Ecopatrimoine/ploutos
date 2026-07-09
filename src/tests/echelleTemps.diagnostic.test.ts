@@ -5,7 +5,8 @@ import { describe, it, expect } from "vitest";
 import { projeterArretMaladie } from "../lib/prevoyance/projection";
 import { referentiels } from "../data/prevoyance";
 import type { EntreePerso, ProjectionResult } from "../lib/prevoyance/types";
-import { compress, buildTicksTemps } from "../lib/presentation/echelleTemps";
+import { axeTemps } from "../lib/presentation/echelleTemps";
+import type { ScenarioArret } from "../types/patrimoine";
 
 const davidSSI: EntreePerso = {
   age: 44, ageRetraite: 64, statutPro: "tns_artisan", caisse: "SSI",
@@ -19,35 +20,39 @@ const erikaCPAM: EntreePerso = {
   revenuTNSAnnuel: 0, nbEnfantsACharge: 0, contratsIndividuels: [], couvertureCollective: null,
 } as unknown as EntreePerso;
 
-function listeTicks(nom: string, proj: ProjectionResult, maxJour: number) {
-  const maxX = compress(maxJour) || 1;
-  const ticks = buildTicksTemps(proj, maxJour);
-  const lignes = ticks.map((t) => `  N${t.niveau}${t.ligne ? "'" : " "} J${String(t.jour).padStart(4)}  "${t.label}"  @ ${((t.x / maxX) * 100).toFixed(1).padStart(5)} %`);
+// La preuve utilise EXACTEMENT la fonction de production axeTemps (même que le rendu).
+function listeTicks(nom: string, proj: ProjectionResult, vueComplete: boolean) {
+  const { maxX, ticks } = axeTemps(proj, vueComplete);
+  const lignes = ticks.map((t) => `  N${t.niveau}${t.ligne ? "'" : " "} J${String(t.jour).padStart(4)}  "${t.label}"  @ ${((t.x / (maxX || 1)) * 100).toFixed(1).padStart(5)} %`);
   // eslint-disable-next-line no-console
-  console.log(`\n=== TICKS ${nom} (maxJour=${maxJour}) ===\n${lignes.join("\n")}`);
+  console.log(`\n=== ${nom} (${vueComplete ? "vue complète" : "vue 3 ans"}) ===\n${lignes.join("\n")}`);
   return ticks;
 }
 
-describe("A4-bis DIAGNOSTIC — ticks David (SSI) / Erika (CPAM)", () => {
-  it("liste les ticks (vue 3 ans = jusqu'à la bascule) et (vue complète)", () => {
-    const pD = projeterArretMaladie(davidSSI, "cat2", referentiels, "ald");
-    const pE = projeterArretMaladie(erikaCPAM, "cat2", referentiels, "ald");
-
-    // eslint-disable-next-line no-console
-    console.log(`\nDAVID SSI : bascule=${pD.basculeInvaliditeJour} retraite=${pD.finProjectionJour} ref=${Math.round(pD.revenuReferenceMensuel)}`);
-    listeTicks("DAVID SSI — vue 3 ans", pD, pD.basculeInvaliditeJour);
-    listeTicks("DAVID SSI — vue complète", pD, pD.finProjectionJour);
-
-    // eslint-disable-next-line no-console
-    console.log(`\nERIKA CPAM : bascule=${pE.basculeInvaliditeJour} retraite=${pE.finProjectionJour} ref=${Math.round(pE.revenuReferenceMensuel)}`);
-    listeTicks("ERIKA CPAM — vue 3 ans", pE, pE.basculeInvaliditeJour);
-    listeTicks("ERIKA CPAM — vue complète", pE, pE.finProjectionJour);
-
-    // Diagnostic : au moins un jalon niveau 1 (rupture) dans chaque vue 3 ans, tous libellés.
-    const tD = buildTicksTemps(pD, pD.basculeInvaliditeJour);
-    const tE = buildTicksTemps(pE, pE.basculeInvaliditeJour);
-    expect(tD.some((t) => t.niveau === 1)).toBe(true);
-    expect(tE.some((t) => t.niveau === 1)).toBe(true);
-    expect(tD.filter((t) => t.niveau === 1).every((t) => t.label.length > 0)).toBe(true); // aucune muette
+describe("DIAGNOSTIC ticks — même code que le rendu (axeTemps), 2 personnes × 2 scénarios × 2 vues", () => {
+  it("génère la liste de preuve et vérifie la rupture fin-IJ (J365 « 1 an ») en maladie ordinaire", () => {
+    const cas = [["DAVID SSI", davidSSI], ["ERIKA CPAM", erikaCPAM]] as const;
+    const scenarios: ScenarioArret[] = ["ald", "maladie_ordinaire"];
+    for (const [nom, e] of cas) {
+      for (const sc of scenarios) {
+        const p = projeterArretMaladie(e, "cat2", referentiels, sc);
+        // eslint-disable-next-line no-console
+        console.log(`\n### ${nom} — scénario ${sc} (bascule ${p.basculeInvaliditeJour} · retraite ${p.finProjectionJour} · réf ${Math.round(p.revenuReferenceMensuel)})`);
+        listeTicks(nom, p, false);
+        listeTicks(nom, p, true);
+      }
+    }
+    // C3a — en maladie ordinaire, la fin des IJ (365 j = palier « 1 an » de la frise)
+    // est bien un tick niveau 1 « 1 an » pour les DEUX personnes (via axeTemps de production).
+    for (const [, e] of cas) {
+      const p = projeterArretMaladie(e, "cat2", referentiels, "maladie_ordinaire");
+      const t = axeTemps(p, false).ticks.find((x) => x.jour === 365);
+      expect(t).toBeDefined();
+      expect(t!.label).toBe("1 an");
+      expect(t!.niveau).toBe(1);
+    }
+    // En ALD, pas de rupture à 365 (IJ jusqu'à 3 ans) — cohérent avec l'écran.
+    const pAld = projeterArretMaladie(davidSSI, "cat2", referentiels, "ald");
+    expect(axeTemps(pAld, false).ticks.find((x) => x.jour === 365)).toBeUndefined();
   });
 });
