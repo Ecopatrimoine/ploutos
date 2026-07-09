@@ -1,5 +1,5 @@
 declare const __ANTHROPIC_KEY__: string;
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -419,6 +419,10 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const [activeQuickCalc, setActiveQuickCalc] = useState<QuickCalcId | null>(null)
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
+  // N11 (B) — baseline du payload a l'ouverture d'un dossier : sert a ne PAS re-ecrire
+  // a la simple ouverture (etat hydrate, aucune edition) et a ne sauvegarder que sur un
+  // vrai changement de contenu. { id: dossier courant, payload: JSON.stringify serialise }.
+  const autoSaveBaselineRef = useRef<{ id: string | null; payload: string }>({ id: null, payload: "" })
   // Couleurs dynamiques tirées des paramètres cabinet
   const CAB = {
     navy: cabinet.colorNavy,
@@ -564,19 +568,38 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const [piecesJointes, setPiecesJointes] = useState<PieceJointe[]>([]);
 
   // ── Autosave ──
+  // N11 (B) — ne PAS ecrire a la simple OUVERTURE d'un dossier. Ouvrir hydrate l'etat
+  // (aucune edition utilisateur) : re-enregistrer alors rafraichit l'horodatage de la
+  // note chargee et elargit la fenetre de course avec la synchro de fond (une suppression
+  // ulterieure peut ressusciter). handleOpenClient/handleCreateClient posent tout l'etat
+  // de facon synchrone (React batch) -> l'effet voit l'etat hydrate en UNE passe : on y
+  // pose une "baseline" et on ne sauvegarde que si le contenu a REELLEMENT change depuis.
+  // Effet de bord vertueux : on n'ecrit plus les slices d'un dossier absentes du payload
+  // charge (pas de fuite inter-dossier a l'ouverture).
   useEffect(() => {
     if (!activeClient) return;
+    const payload = {
+      clientName, notes, data, irOptions, successionData, hypotheses, baseSnapshot, mission, recommandations, piecesJointes,
+    };
+    const serialized = JSON.stringify(payload);
+    // Ouverture / changement de dossier : poser la baseline, ne rien sauvegarder.
+    if (autoSaveBaselineRef.current.id !== activeClient.id) {
+      autoSaveBaselineRef.current = { id: activeClient.id, payload: serialized };
+      setAutoSaveStatus("idle");
+      return;
+    }
+    // Aucun changement depuis la derniere sauvegarde/baseline -> ne pas re-ecrire.
+    if (serialized === autoSaveBaselineRef.current.payload) return;
+
     setAutoSaveStatus("saving");
     const timer = setTimeout(() => {
-      const payload = {
-        clientName, notes, data, irOptions, successionData, hypotheses, baseSnapshot, mission, recommandations, piecesJointes,
-      };
       const displayName = clientName || activeClient.displayName;
       // Indicateur honnete : on n'affiche "Sauvegarde" qu'apres resolution effective
       // de la synchro. En cas d'echec, statut d'erreur visible (le dossier reste en
       // attente et sera repropose a la synchro). Pas de faux "Sauvegarde".
       void saveClient(activeClient.id, payload as ClientPayload, displayName).then((ok) => {
         if (ok) {
+          autoSaveBaselineRef.current = { id: activeClient.id, payload: serialized };
           setAutoSaveStatus("saved");
           setLastSavedAt(new Date());
           setTimeout(() => setAutoSaveStatus("idle"), 2500);

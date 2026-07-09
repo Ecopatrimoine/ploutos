@@ -11,7 +11,7 @@ import { describe, it, expect, vi } from "vitest";
 
 vi.mock("@/lib/supabase", () => ({ supabase: {} }));
 
-import { pickClientWinner, hasClientData, mergeClients, resolveLoadedNotes, type ClientRecord, type ClientPayload } from "../useClients";
+import { pickClientWinner, hasClientData, mergeClients, reconcileSyncResult, resolveLoadedNotes, type ClientRecord, type ClientPayload } from "../useClients";
 
 const T_OLD = "2026-01-01T00:00:00.000Z";
 const T_NEW = "2026-01-02T00:00:00.000Z";
@@ -144,5 +144,58 @@ describe("resolveLoadedNotes — la chaîne vide est une valeur légitime (N11)"
     expect(hasClientData({ payload: sansData } as ClientRecord)).toBe(false);
     expect(resolveLoadedNotes(sansData, "note en cours")).toBe("note en cours");
     expect(resolveLoadedNotes(null, "note en cours")).toBe("note en cours");
+  });
+});
+
+// LOT 10d N11 (correctif synchro) — la synchro de fond ne doit JAMAIS écraser une
+// édition de premier plan plus récente. C'est LA cause racine prouvée du symptôme
+// « la note effacée revient au reload » : l'effet de synchro écrivait un instantané
+// remote périmé par-dessus une suppression de note plus récente (et la re-poussait au
+// serveur). reconcileSyncResult re-départage chaque enregistrement contre l'état courant.
+function recNotes(id: string, updatedAt: string, notes: string): ClientRecord {
+  return {
+    id,
+    displayName: "Dossier " + id,
+    createdAt: T_OLD,
+    updatedAt,
+    payload: { clientName: "Dupont", data: { person1FirstName: "Jean" }, notes },
+  };
+}
+
+describe("reconcileSyncResult — la synchro de fond n'écrase pas une édition de premier plan plus récente (N11)", () => {
+  it("RÉGRESSION N11 : une suppression de note (locale, plus récente) résiste au résultat de synchro périmé", () => {
+    const syncResult = [recNotes("P", T_OLD, "ancienne note")]; // instantané remote périmé (texte)
+    const prev = [recNotes("P", T_NEW, "")];                    // suppression de premier plan, plus récente
+    const out = reconcileSyncResult(syncResult, prev, new Set());
+    expect(out).toHaveLength(1);
+    expect(out[0].payload.notes).toBe(""); // la suppression gagne — la note ne ressuscite pas
+  });
+
+  it("une vraie mise à jour remote plus récente s'applique (l'anti-course ne bloque pas les updates légitimes)", () => {
+    const syncResult = [recNotes("P", T_NEW, "note du serveur")];
+    const prev = [recNotes("P", T_OLD, "vieille note locale")];
+    const out = reconcileSyncResult(syncResult, prev, new Set());
+    expect(out[0].payload.notes).toBe("note du serveur");
+  });
+
+  it("un dossier créé en premier plan pendant la synchro (absent du résultat) est conservé", () => {
+    const syncResult = [recNotes("A", T_OLD, "x")];
+    const prev = [recNotes("A", T_OLD, "x"), recNotes("B", T_NEW, "nouveau")];
+    const out = reconcileSyncResult(syncResult, prev, new Set());
+    expect(out.map((c) => c.id).sort()).toEqual(["A", "B"]);
+  });
+
+  it("un tombstone n'est jamais ressuscité (même présent dans le résultat de synchro)", () => {
+    const syncResult = [recNotes("A", T_NEW, "x"), recNotes("DEL", T_NEW, "y")];
+    const prev = [recNotes("A", T_OLD, "x")];
+    const out = reconcileSyncResult(syncResult, prev, new Set(["DEL"]));
+    expect(out.map((c) => c.id)).toEqual(["A"]);
+  });
+
+  it("L1 préservé : un enregistrement de synchro SANS data ne supplante pas un prev AVEC data, même plus récent", () => {
+    const syncVide = { id: "P", displayName: "d", createdAt: T_OLD, updatedAt: T_NEW, payload: { clientName: "x" } } as ClientRecord;
+    const prevData = recNotes("P", T_OLD, "contenu");
+    const out = reconcileSyncResult([syncVide], [prevData], new Set());
+    expect(hasClientData(out[0])).toBe(true); // le porteur de données gagne, quel que soit updatedAt
   });
 });
