@@ -385,32 +385,35 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                           const notary = don.assetType === "property" ? computeNotaryFees(result.donatedValue) : null;
                           return (
                             <>
-                              <div className="grid grid-cols-2 gap-1">
-                                <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-                                  <div className="text-slate-400">Valeur transmise</div>
-                                  <div className="font-semibold" style={{ color: BRAND.navy }}>{euro(result.donatedValue)}</div>
+                              {/* H3-bis — libellé (secondaire, 11px) AU-DESSUS de la valeur
+                                   (pleine couleur, même à 0 €). Valeur transmise | Droits
+                                   sur une rangée alignée. */}
+                              <div className="grid grid-cols-2 gap-1.5">
+                                <div className="rounded-lg border px-2.5 py-2" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 12 }}>
+                                  <div className="text-[11px]" style={{ color: BRAND.muted }}>Valeur transmise</div>
+                                  <div className="font-bold text-sm mt-0.5" style={{ color: BRAND.navy }}>{euro(result.donatedValue)}</div>
                                 </div>
-                                <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-                                  <div className="text-slate-400">Droits donation</div>
-                                  <div className="font-semibold text-amber-600">{euro(result.totalDonationTax)}</div>
+                                <div className="rounded-lg border px-2.5 py-2" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 12 }}>
+                                  <div className="text-[11px]" style={{ color: BRAND.muted }}>Droits donation</div>
+                                  <div className="font-bold text-sm mt-0.5" style={{ color: BRAND.warning }}>{euro(result.totalDonationTax)}</div>
                                 </div>
                               </div>
                               {notary && (
-                                <div className="rounded-lg px-2 py-2" style={{ background: "rgba(81,106,199,0.04)", border: "0.5px solid rgba(81,106,199,0.2)" }}>
-                                  <div style={{ fontSize: "11px", fontWeight: 600, color: "#516AC7", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>Frais de notaire</div>
-                                  <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "2px 8px" }}>
+                                <div className="rounded-lg px-2.5 py-2" style={{ background: "rgba(81,106,199,0.04)", border: "1px solid rgba(81,106,199,0.2)" }}>
+                                  <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: BRAND.sky, marginBottom: 6 }}>Frais de notaire</div>
+                                  <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "3px 12px", alignItems: "baseline" }}>
                                     {[
                                       ["Émoluments TTC", euro(notary.emolumentsTTC)],
                                       ["Sécurité immobilière", euro(notary.securiteImmobiliere)],
                                       ["Débours (forfait)", euro(notary.debours)],
                                     ].map(([label, val], i) => (
                                       <React.Fragment key={i}>
-                                        <span style={{ fontSize: "11px", color: "#64748b" }}>{label}</span>
-                                        <span style={{ fontSize: "11px", color: "#101B3B", textAlign: "right" }}>{val}</span>
+                                        <span className="text-[11px]" style={{ color: BRAND.muted }}>{label}</span>
+                                        <span className="text-[11px] tabular-nums" style={{ color: BRAND.navy, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{val}</span>
                                       </React.Fragment>
                                     ))}
-                                    <span style={{ fontSize: "12px", fontWeight: 700, color: "#516AC7", borderTop: "0.5px solid rgba(81,106,199,0.2)", paddingTop: "4px", marginTop: "2px" }}>Total</span>
-                                    <span style={{ fontSize: "12px", fontWeight: 700, color: "#516AC7", borderTop: "0.5px solid rgba(81,106,199,0.2)", paddingTop: "4px", marginTop: "2px", textAlign: "right" }}>{euro(notary.total)}</span>
+                                    <span className="text-xs font-bold" style={{ color: BRAND.sky, borderTop: `1px solid rgba(81,106,199,0.2)`, paddingTop: 4, marginTop: 2 }}>Total</span>
+                                    <span className="text-xs font-bold tabular-nums" style={{ color: BRAND.sky, borderTop: `1px solid rgba(81,106,199,0.2)`, paddingTop: 4, marginTop: 2, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{euro(notary.total)}</span>
                                   </div>
                                 </div>
                               )}
@@ -424,8 +427,8 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                           <div className="rounded-lg p-2 text-center flex flex-col"
                             style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)" }}>
                             <div className="font-semibold text-red-600 text-xs mb-0.5">Décès &lt; 15 ans</div>
-                            <div className="text-slate-500 text-xs">Rappel fiscal</div>
-                            <div className="font-bold text-xs mt-1" style={{ color: BRAND.navy }}>
+                            <div className="text-[11px]" style={{ color: BRAND.muted }}>Rappel fiscal</div>
+                            <div className="font-bold text-sm mt-1" style={{ color: BRAND.navy }}>
                               {euro(result.before15.totalCost)}
                             </div>
                             <div className="text-xs mt-auto pt-0.5" style={{ color: result.before15.additionalSuccessionTax > 0 ? "#ef4444" : BRAND.muted }}>
@@ -437,8 +440,8 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                           <div className="rounded-lg p-2 text-center flex flex-col"
                             style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)" }}>
                             <div className="font-semibold text-emerald-600 text-xs mb-0.5">Décès &gt; 15 ans</div>
-                            <div className="text-slate-500 text-xs">Aucun rappel</div>
-                            <div className="font-bold text-xs mt-1" style={{ color: BRAND.navy }}>
+                            <div className="text-[11px]" style={{ color: BRAND.muted }}>Aucun rappel</div>
+                            <div className="font-bold text-sm mt-1" style={{ color: BRAND.navy }}>
                               {euro(result.after15.totalCost)}
                             </div>
                             <div className="text-xs text-emerald-500 mt-auto pt-0.5">Abattements rechargés</div>
