@@ -322,7 +322,11 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                 )}
 
                 {/* ── Simulations donation ── */}
-                <div className="border-t pt-3 space-y-2" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+                {/* Correctif 10d-final : séparateur PLAT (le borderRadius+boxShadow hérités
+                     arrondissaient le coin haut-gauche -> le « S » du titre, à x=0, dépassait
+                     le coin arrondi et paraissait tronqué). Bandeau titre+bouton dans le
+                     padding standard de la card, aligné sur les autres en-têtes. */}
+                <div className="border-t pt-3 space-y-2" style={{ borderColor: SURFACE.border }}>
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>
                       Simulations donation
