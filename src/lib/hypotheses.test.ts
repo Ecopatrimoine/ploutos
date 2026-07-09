@@ -44,3 +44,17 @@ describe("buildHypothesisDifferenceLines — alignement des actifs", () => {
     expect(propLines(lines).length).toBeGreaterThan(0);
   });
 });
+
+// LOT 10d H1 — le badge « À jour »/« changé depuis » = (diff dossier courant vs capturé
+// est vide). On teste la mécanique exacte utilisée par le badge : aucune différence -> à jour.
+describe("badge de capture — À jour vs modifié (même diff que le badge)", () => {
+  const capture = data([prop("p1", { name: "A", value: "100000" })]);
+  it("dossier identique à la capture -> aucune différence -> À JOUR", () => {
+    const courant = data([prop("p1", { name: "A", value: "100000" })]);
+    expect(buildHypothesisDifferenceLines(courant, ir, capture, ir).length === 0).toBe(true);
+  });
+  it("dossier modifié depuis la capture -> différences -> MODIFIÉ", () => {
+    const courant = data([prop("p1", { name: "A", value: "180000" })]); // valeur changée
+    expect(buildHypothesisDifferenceLines(courant, ir, capture, ir).length === 0).toBe(false);
+  });
+});

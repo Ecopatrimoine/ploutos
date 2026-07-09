@@ -5,7 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardAccentTop } from "../CardAccentTop";
 import { TabsContent } from "@/components/ui/tabs";
-import { Plus, Trash2, Download, Upload, Pencil, X, Gift } from "lucide-react";
+import { Plus, Trash2, Download, Upload, Pencil, X, Gift, MoreVertical, Check, AlertTriangle, Camera } from "lucide-react";
+import { confirmRemove } from "../../lib/confirmRemove";
 import { BRAND, SURFACE, labelPlacement, DONATION_RELATIONS } from "../../constants";
 import type { DonationItem, DonationHeir, Hypothesis, DifferenceLine, PayloadPrevoyance } from "../../types/patrimoine";
 import { n, euro, deepClone, getDemembrementPercentages, fractionEnPct, pctEnFraction } from "../../lib/calculs/utils";
@@ -20,6 +21,55 @@ import { membresFamille } from "../../lib/prevoyance/membres-famille";
 
 // DONATION_RELATIONS centralise dans constants (Lot C) — valeurs donation 2026
 // corrigees (petit-enfant 31 865, tiers 0) alignees sur getDonationTaxProfile.
+
+// LOT 10d H1 — menu kebab d'un slot capturé : Supprimer relégué ici (confirmation
+// portée par confirmRemove). Dropdown fermé au clic extérieur (backdrop transparent).
+function SlotKebab({ onDelete }: { onDelete: () => void }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="relative shrink-0">
+      <button type="button" aria-label="Plus d'actions" aria-haspopup="menu" aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="h-8 w-8 rounded-xl flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A67F32]"
+        style={{ color: BRAND.muted, background: "transparent", border: `1px solid ${SURFACE.border}`, cursor: "pointer" }}>
+        <MoreVertical className="h-4 w-4" aria-hidden="true" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden="true" />
+          <div role="menu" className="absolute right-0 mt-1 z-50 rounded-xl py-1" style={{ background: "#fff", border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow, minWidth: 150 }}>
+            <button type="button" role="menuitem" onClick={() => { setOpen(false); onDelete(); }}
+              className="w-full text-left px-3 py-1.5 text-xs flex items-center gap-2"
+              style={{ color: BRAND.danger, background: "transparent", border: "none", cursor: "pointer" }}>
+              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> Supprimer
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Badge d'état de capture : « À jour » (vert) si le dossier n'a pas changé depuis la
+// capture, sinon « Le dossier a changé depuis » (ambre). Mécanique de diff réutilisée.
+function BadgeCapture({ aJour }: { aJour: boolean }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold"
+      style={aJour
+        ? { background: BRAND.successBg, color: BRAND.success, border: `1px solid ${BRAND.successBorder}` }
+        : { background: BRAND.warningBg, color: BRAND.warning, border: `1px solid ${BRAND.warningBorder}` }}>
+      {aJour ? <Check className="h-3 w-3" aria-hidden="true" /> : <AlertTriangle className="h-3 w-3" aria-hidden="true" />}
+      {aJour ? "À jour" : "Le dossier a changé depuis"}
+    </span>
+  );
+}
+
+// Horodatage capture au format Lot 6 : « Capturée le 26/03/2026 à 20h16 ».
+function libelleCapture(savedAt: string): string {
+  const d = new Date(savedAt);
+  const heure = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }).replace(":", "h");
+  return `Capturée le ${d.toLocaleDateString("fr-FR")} à ${heure}`;
+}
 
 // ── TabHypotheses ─────────────────────────────────────────────────────────────
 const TabHypotheses = React.memo(function TabHypotheses(props: any) {
@@ -68,6 +118,27 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
   return (
     <TabsContent value="hypotheses">
       <div className="space-y-4">
+
+        {/* H2 — Paramètres du dossier (en tête d'onglet) : seuils prévoyance (10c) et tout
+             futur paramètre. Card sobre, tooltips conservés. */}
+        <Card className="border-0 shadow-md relative overflow-hidden" style={{ borderRadius: 14, background: SURFACE.cardSoft }}>
+          <CardAccentTop />
+          <CardContent className="px-5 py-4 space-y-3">
+            <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Paramètres du dossier</div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Cible de couverture prévoyance (%)" tooltip="Objectif de revenu de remplacement en cas d'arrêt de travail. Le « besoin de couverture minimum » (onglet Prévoyance) = cette cible × revenu de référence − couverture au palier durable. Défaut : 90 %.">
+                <Input type="number" min={50} max={120} value={fractionEnPct(cibleCouverture)}
+                  onChange={(e) => patchSeuilsPrevoyance({ cibleCouverture: pctEnFraction(Number(e.target.value) || 0) })}
+                  className="rounded-xl" />
+              </Field>
+              <Field label="Seuil critique prévoyance (%)" tooltip="Niveau de couverture sous lequel la situation devient critique. La « date critique » (onglet Prévoyance) est le premier jalon où la couverture totale passe sous ce seuil. Défaut : 50 %.">
+                <Input type="number" min={10} max={90} value={fractionEnPct(seuilCritique)}
+                  onChange={(e) => patchSeuilsPrevoyance({ seuilCritique: pctEnFraction(Number(e.target.value) || 0) })}
+                  className="rounded-xl" />
+              </Field>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Base de référence */}
         <Card className="border-0 shadow-md relative overflow-hidden" style={{ borderRadius: 14, background: SURFACE.cardSoft }}>
@@ -139,71 +210,70 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
           </div>
         </div>
 
-        {/* Hypothèses de prévoyance (LOT 10c) — seuils d'analyse réglables par dossier,
-             consommés par l'onglet Prévoyance (besoin de couverture, date critique). */}
-        <Card className="border-0 shadow-md relative overflow-hidden" style={{ borderRadius: 14, background: SURFACE.cardSoft }}>
-          <CardAccentTop />
-          <CardContent className="px-5 py-4 space-y-3">
-            <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Hypothèses de prévoyance</div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Cible de couverture (%)" tooltip="Objectif de revenu de remplacement en cas d'arrêt de travail. Le « besoin de couverture minimum » (onglet Prévoyance) = cette cible × revenu de référence − couverture au palier durable. Défaut : 90 %.">
-                <Input type="number" min={50} max={120} value={fractionEnPct(cibleCouverture)}
-                  onChange={(e) => patchSeuilsPrevoyance({ cibleCouverture: pctEnFraction(Number(e.target.value) || 0) })}
-                  className="rounded-xl" />
-              </Field>
-              <Field label="Seuil critique (%)" tooltip="Niveau de couverture sous lequel la situation devient critique. La « date critique » (onglet Prévoyance) est le premier jalon où la couverture totale passe sous ce seuil. Défaut : 50 %.">
-                <Input type="number" min={10} max={90} value={fractionEnPct(seuilCritique)}
-                  onChange={(e) => patchSeuilsPrevoyance({ seuilCritique: pctEnFraction(Number(e.target.value) || 0) })}
-                  className="rounded-xl" />
-              </Field>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 3 cartes hypothèses */}
+        {/* 3 cartes hypothèses (H1 — machine à états par slot : VIDE / CAPTURÉ) */}
         <div className="grid gap-4 md:grid-cols-3">
-          {hypothesisResults.map((item: any) => (
-            <Card key={item.hypothesis.id} className="border " style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+          {hypothesisResults.map((item: any) => {
+            const h = item.hypothesis;
+            const estCapture = !!h.savedAt;
+            // Badge : le dossier a-t-il changé depuis la capture ? (diff current vs capturé,
+            // même mécanique que « Aucune différence détectée vs la base »).
+            const aJour = estCapture && buildHypothesisDifferenceLines(data, irOptions, h.data, h.irOptions).length === 0;
+            return (
+            <Card key={h.id} className="border " style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
               <CardContent className="p-4 space-y-3">
 
-                {/* Nom + boutons */}
+                {/* En-tête : nom + kebab (Supprimer) si capturé */}
                 <div className="flex items-center gap-2">
                   <Input
-                    value={item.hypothesis.name}
-                    onChange={(e) => renameHypothesis(item.hypothesis.id, e.target.value)}
+                    value={h.name}
+                    onChange={(e) => renameHypothesis(h.id, e.target.value)}
                     className="h-8 flex-1 rounded-xl text-sm font-semibold"
                     style={{ color: BRAND.navy }}
                   />
-                  <Button className="h-8 w-8 rounded-xl p-0" style={{ background: BRAND.navy }}
-                    onClick={() => saveHypothesis(item.hypothesis.id)} title="Enregistrer">
-                    <Download className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="outline" className="h-8 w-8 rounded-xl p-0"
-                    onClick={() => loadHypothesis(item.hypothesis.id)} disabled={!item.hypothesis.data} title="Charger">
-                    <Upload className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="outline" className="h-8 w-8 rounded-xl p-0"
-                    onClick={() => clearHypothesis(item.hypothesis.id)} title="Effacer">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  {estCapture && <SlotKebab onDelete={() => confirmRemove(true, "cette hypothèse", () => clearHypothesis(h.id))} />}
                 </div>
 
+                {estCapture ? (
+                  <>
+                    {/* Horodatage + badge d'état */}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs" style={{ color: BRAND.muted }}>{libelleCapture(h.savedAt)}</span>
+                      <BadgeCapture aJour={aJour} />
+                    </div>
+                    {/* Actions en toutes lettres */}
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" className="h-8 rounded-xl px-3 text-xs gap-1.5" style={{ color: BRAND.navy }}
+                        onClick={() => saveHypothesis(h.id)}>
+                        <Download className="h-3.5 w-3.5" /> Actualiser la capture
+                      </Button>
+                      <Button className="h-8 rounded-xl px-3 text-xs gap-1.5" style={{ background: BRAND.navy }}
+                        onClick={() => { if (window.confirm("Charger cette hypothèse remplacera la situation actuelle du dossier. Capturez d'abord la situation actuelle dans un autre emplacement si vous voulez la conserver. Charger ?")) loadHypothesis(h.id); }}>
+                        <Upload className="h-3.5 w-3.5" /> Charger dans le dossier
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  /* Slot VIDE : un seul grand CTA (l'invite devient le bouton). */
+                  <button
+                    type="button"
+                    onClick={() => saveHypothesis(h.id)}
+                    className="w-full rounded-xl px-4 py-3 text-sm font-bold flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#A67F32]"
+                    style={{ background: BRAND.navy, color: "#fff", border: "none", cursor: "pointer" }}
+                  >
+                    <Camera className="h-4 w-4" aria-hidden="true" /> Capturer la situation actuelle
+                  </button>
+                )}
+
                 <Field label="Hypothèse">
-                  <Textarea value={item.hypothesis.notes}
-                    onChange={(e) => updateHypothesisNotes(item.hypothesis.id, e.target.value)}
+                  <Textarea value={h.notes}
+                    onChange={(e) => updateHypothesisNotes(h.id, e.target.value)}
                     className="rounded-xl min-h-[64px] text-sm" />
                 </Field>
                 <Field label="Objectifs">
-                  <Textarea value={item.hypothesis.objective || ""}
-                    onChange={(e) => updateHypothesisObjective(item.hypothesis.id, e.target.value)}
+                  <Textarea value={h.objective || ""}
+                    onChange={(e) => updateHypothesisObjective(h.id, e.target.value)}
                     className="rounded-xl min-h-[64px] text-sm" />
                 </Field>
-
-                <div className="text-xs text-slate-400">
-                  {item.hypothesis.savedAt
-                    ? `Capturée : ${new Date(item.hypothesis.savedAt).toLocaleString("fr-FR")}`
-                    : "Aucune capture."}
-                </div>
 
                 {item.ir && item.ifi && item.succession ? (
                   <div className="space-y-2">
@@ -291,9 +361,13 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                         style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
                         <div className="flex items-center justify-between">
                           <div className="font-semibold" style={{ color: BRAND.navy }}>
-                            {don.donationType === "dismembered" ? "NP " : "PP "}
-                            {result.assetLabel}
-                            {n(don.sharePercent) < 100 ? ` (${don.sharePercent}%)` : ""}
+                            {/* H3 — libellé explicite (plus de « NP — ») */}
+                            {(() => {
+                              const bien = result.assetLabel && result.assetLabel !== "—" ? result.assetLabel : (don.freeLabel || "bien");
+                              const nature = don.donationType === "dismembered" ? "Nue-propriété" : "Pleine propriété";
+                              return `${nature} — ${bien}`;
+                            })()}
+                            {n(don.sharePercent) < 100 ? ` (${don.sharePercent} %)` : ""}
                           </div>
                           <div className="flex gap-1">
                             <button className="text-slate-400 hover:text-sky-600 px-1" aria-label="Modifier la donation"
@@ -344,28 +418,30 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                           );
                         })()}
 
-                        <div className="grid grid-cols-2 gap-1">
-                          <div className="rounded-lg p-2 text-center"
+                        {/* H3 — cards Décès à hauteur égale (grid stretch + flex-col ;
+                             note de bas alignée via mt-auto, aucune ligne conditionnelle). */}
+                        <div className="grid grid-cols-2 gap-1 items-stretch">
+                          <div className="rounded-lg p-2 text-center flex flex-col"
                             style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)" }}>
                             <div className="font-semibold text-red-600 text-xs mb-0.5">Décès &lt; 15 ans</div>
                             <div className="text-slate-500 text-xs">Rappel fiscal</div>
                             <div className="font-bold text-xs mt-1" style={{ color: BRAND.navy }}>
                               {euro(result.before15.totalCost)}
                             </div>
-                            {result.before15.additionalSuccessionTax > 0 && (
-                              <div className="text-xs text-red-500">
-                                +{euro(result.before15.additionalSuccessionTax)} succ.
-                              </div>
-                            )}
+                            <div className="text-xs mt-auto pt-0.5" style={{ color: result.before15.additionalSuccessionTax > 0 ? "#ef4444" : BRAND.muted }}>
+                              {result.before15.additionalSuccessionTax > 0
+                                ? `+${euro(result.before15.additionalSuccessionTax)} succ.`
+                                : "sans surcoût succession"}
+                            </div>
                           </div>
-                          <div className="rounded-lg p-2 text-center"
+                          <div className="rounded-lg p-2 text-center flex flex-col"
                             style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)" }}>
                             <div className="font-semibold text-emerald-600 text-xs mb-0.5">Décès &gt; 15 ans</div>
                             <div className="text-slate-500 text-xs">Aucun rappel</div>
                             <div className="font-bold text-xs mt-1" style={{ color: BRAND.navy }}>
                               {euro(result.after15.totalCost)}
                             </div>
-                            <div className="text-xs text-emerald-500">Abattements rechargés</div>
+                            <div className="text-xs text-emerald-500 mt-auto pt-0.5">Abattements rechargés</div>
                           </div>
                         </div>
                       </div>
@@ -375,7 +451,8 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
 
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
 
         {/* Notes de synthèse — relogées ici depuis l'onglet Rapport client supprimé */}
