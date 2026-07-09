@@ -13,22 +13,30 @@ import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PL
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
 import { n, euro, pct, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName, labelDispositifReduction } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
-import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
+import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge, EmptyState } from "../shared";
+import { irEstVide } from "../../lib/gardefous";
 import { computeTmiView } from "../../lib/calculs/tmiEffective";
 
 
 // ── TabIR ─────────────────────────────────────────────────────────────────────
 const TabIR = React.memo(function TabIR(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
-  const { data, ir, irOptions, setIrOptions, concubinPerson, setConcubinPerson, setChargesDialogOpen, person1, person2 } = props;
+  const { data, ir, irOptions, setIrOptions, concubinPerson, setConcubinPerson, setChargesDialogOpen, onGoToCollecte, person1, person2 } = props;
 
   // Lot C (mirror B2/B3) — restitution « taux marginal réel » via le helper de vue PARTAGÉ
   // (même source que le PDF, aucun recalcul local). isCouple = marié/pacsé (baseParts).
   const isCouple = data.coupleStatus === "married" || data.coupleStatus === "pacs";
   const tmiView = computeTmiView(ir, isCouple);
+  // Lot 9 C1 — etat vide si AUCUN revenu saisi (barriere douce, non bloquante).
+  const irVide = irEstVide(ir);
 
   return (
 <TabsContent value="ir" className="space-y-4">
+  {irVide ? (
+    <EmptyState title="Aucun revenu saisi" ctaLabel="Compléter l'onglet Revenus" onCta={() => onGoToCollecte?.("revenus")}>
+      L'impôt sur le revenu se calcule à partir de vos revenus. Renseignez salaires, pensions, BNC/BIC, revenus fonciers ou mobiliers dans <strong>Collecte patrimoniale → Revenus</strong> (et l'activité dans <strong>Travail</strong>) — la base imposable, le barème, le quotient familial et le PFU s'afficheront ensuite automatiquement.
+    </EmptyState>
+  ) : (<>
   <Card className="rounded-3xl border-0 shadow-xl shadow-slate-200/60 relative overflow-hidden">
     <CardAccentTop />
     <CardHeader><SectionTitle icon={FileText} title="Impôt sur le revenu" subtitle="Base imposable, barème, quotient familial et PFU." /></CardHeader>
@@ -600,6 +608,7 @@ const TabIR = React.memo(function TabIR(props: any) {
       })()}
     </CardContent>
   </Card>
+  </>)}
 </TabsContent>
 
   );

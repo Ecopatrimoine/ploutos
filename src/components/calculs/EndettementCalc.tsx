@@ -6,8 +6,8 @@ import { Gauge, X } from "lucide-react";
 import { parseNum, formatEur, formatPct, endettementSummary, HCSF_TAUX_EFFORT_MAX } from "../../lib/accueil/quickCalc";
 
 export function EndettementCalc({ onClose }: { onClose: () => void }) {
-  const [revenus, setRevenus] = useState("4 000");
-  const [charges, setCharges] = useState("800");
+  const [revenus, setRevenus] = useState("");
+  const [charges, setCharges] = useState("");
   const [projet, setProjet] = useState("");
 
   const r = endettementSummary(parseNum(revenus), parseNum(charges), parseNum(projet));
@@ -26,11 +26,11 @@ export function EndettementCalc({ onClose }: { onClose: () => void }) {
       <div className="qc-body">
         <div className="qc-field">
           <label htmlFor="qc-end-rev">Revenus nets mensuels du foyer</label>
-          <input id="qc-end-rev" className="ploutos-field" inputMode="numeric" value={revenus} onChange={(e) => setRevenus(e.target.value)} />
+          <input id="qc-end-rev" className="ploutos-field" inputMode="numeric" placeholder="ex. 4 000" value={revenus} onChange={(e) => setRevenus(e.target.value)} />
         </div>
         <div className="qc-field">
           <label htmlFor="qc-end-cha">Charges de crédits en cours (mensuel)</label>
-          <input id="qc-end-cha" className="ploutos-field" inputMode="numeric" value={charges} onChange={(e) => setCharges(e.target.value)} />
+          <input id="qc-end-cha" className="ploutos-field" inputMode="numeric" placeholder="ex. 800" value={charges} onChange={(e) => setCharges(e.target.value)} />
         </div>
         <div className="qc-field">
           <label htmlFor="qc-end-pro">Mensualité du projet (optionnel)</label>

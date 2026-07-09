@@ -8,7 +8,7 @@ import { parseNum, formatEur, formatPct, ifiSummary } from "../../lib/accueil/qu
 import { BracketFillChart } from "../shared";
 
 export function IfiCalc({ onClose }: { onClose: () => void }) {
-  const [patrimoine, setPatrimoine] = useState("2 000 000");
+  const [patrimoine, setPatrimoine] = useState("");
   const [rp, setRp] = useState("");
 
   const r = ifiSummary(parseNum(patrimoine), parseNum(rp));
@@ -26,7 +26,7 @@ export function IfiCalc({ onClose }: { onClose: () => void }) {
       <div className="qc-body">
         <div className="qc-field">
           <label htmlFor="qc-ifi-pat">Patrimoine immobilier net (après dettes)</label>
-          <input id="qc-ifi-pat" className="ploutos-field" inputMode="numeric" value={patrimoine} onChange={(e) => setPatrimoine(e.target.value)} />
+          <input id="qc-ifi-pat" className="ploutos-field" inputMode="numeric" placeholder="ex. 2 000 000" value={patrimoine} onChange={(e) => setPatrimoine(e.target.value)} />
         </div>
         <div className="qc-field">
           <label htmlFor="qc-ifi-rp">dont résidence principale (optionnel)</label>

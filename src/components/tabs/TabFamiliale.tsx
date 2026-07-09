@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
-import { Plus, Trash2, Download, Upload, Settings, Users, Accessibility, Check, X } from "lucide-react";
+import { Plus, Trash2, Download, Upload, Settings, Users, Accessibility, Check, X, AlertTriangle } from "lucide-react";
 import { confirmRemove } from "../../lib/confirmRemove";
+import { alerteRattachementEnfant } from "../../lib/gardefous";
 import { useDebouncedAction } from "../../hooks/useDebouncedAction";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
@@ -179,8 +180,13 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
       <Button variant="outline" className="h-8 rounded-xl px-3 text-sm" onClick={addChildDebounced}><Plus className="mr-1.5 h-3.5 w-3.5" />Ajouter</Button>
     </div>
     {data.childrenData.length === 0 && <div className="text-sm" style={{ color: BRAND.muted }}>Aucun enfant saisi.</div>}
-    {data.childrenData.map((child, index) => (
-      <div key={index} className="grid gap-3 border p-4 md:grid-cols-[1fr_1fr_1.2fr_1.3fr_1fr_1fr_1fr_auto_auto]" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+    {data.childrenData.map((child, index) => {
+      // Lot 9 C3 — alerte DOUCE (non bloquante) sur un rattachement inhabituel.
+      // Le calcul IR reste INCHANGE : on signale, on n'exclut jamais l'enfant.
+      const alerteRattachement = alerteRattachementEnfant(child, getAgeFromBirthDate(child.birthDate));
+      return (
+      <React.Fragment key={index}>
+      <div className="grid gap-3 border p-4 md:grid-cols-[1fr_1fr_1.2fr_1.3fr_1fr_1fr_1fr_auto_auto]" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
         <Field label="Prénom"><Input value={child.firstName} onChange={(e) => updateChild(index, "firstName", e.target.value)} className="rounded-xl" /></Field>
         <Field label="Nom"><Input value={child.lastName} onChange={(e) => updateChild(index, "lastName", e.target.value)} className="rounded-xl" /></Field>
         <Field label="Date de naissance">
@@ -259,7 +265,15 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
         </Field>
         <div className="flex items-end"><Button variant="outline" aria-label="Supprimer l'enfant" className="h-9 w-9 rounded-xl p-0" onClick={() => confirmRemove(!!(child.firstName || child.lastName || child.birthDate), "l'enfant", () => removeChild(index))}><Trash2 className="h-4 w-4" /></Button></div>
       </div>
-    ))}
+      {alerteRattachement && (
+        <div className="rounded-xl px-3 py-2 text-xs flex items-start gap-1.5 -mt-1.5" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: "#7C4A04" }}>
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
+          <span>{alerteRattachement}</span>
+        </div>
+      )}
+      </React.Fragment>
+      );
+    })}
   </div>
     </CardContent>
   </Card>

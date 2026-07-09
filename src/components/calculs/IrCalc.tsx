@@ -10,7 +10,7 @@ import { computeIrBracketFill } from "../../lib/calculs/utils";
 import { BracketFillChart } from "../shared";
 
 export function IrCalc({ onClose }: { onClose: () => void }) {
-  const [revenu, setRevenu] = useState("35 000");
+  const [revenu, setRevenu] = useState("");
   const [couple, setCouple] = useState(false);
   const [enfants, setEnfants] = useState("0");
 
@@ -29,7 +29,7 @@ export function IrCalc({ onClose }: { onClose: () => void }) {
       <div className="qc-body">
         <div className="qc-field">
           <label htmlFor="qc-ir-rev">Revenu net imposable (annuel)</label>
-          <input id="qc-ir-rev" className="ploutos-field" inputMode="numeric" value={revenu} onChange={(e) => setRevenu(e.target.value)} />
+          <input id="qc-ir-rev" className="ploutos-field" inputMode="numeric" placeholder="ex. 35 000" value={revenu} onChange={(e) => setRevenu(e.target.value)} />
         </div>
         <div className="qc-field">
           <label htmlFor="qc-ir-sit">Situation</label>

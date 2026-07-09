@@ -1,5 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
+import { ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -196,6 +197,33 @@ export function SectionTitle({ icon: Icon, title, subtitle }: { icon: React.Comp
         <div className="text-lg font-black" style={{ color: BRAND.navy }}>{title}</div>
         <div className="text-xs" style={{ color: BRAND.muted }}>{subtitle}</div>
       </div>
+    </div>
+  );
+}
+
+// État vide informatif (Lot 9 C1) : quand un onglet d'analyse n'a pas les
+// données minimales, on remplace le tableau de zéros par une phrase guidante
+// + un CTA vers le sous-onglet de collecte manquant. BARRIÈRE DOUCE : informatif,
+// jamais bloquant, l'onglet reste accessible. La NAVIGATION est confiée à
+// l'appelant via `onCta` (état de navigation React réel — cf. addendum Lot 9 :
+// le clic DOM ne gérait pas la double bascule onglet principal + sous-onglet).
+export function EmptyState({ title, children, ctaLabel, onCta }: {
+  title: string; children: React.ReactNode; ctaLabel?: string; onCta?: () => void;
+}) {
+  return (
+    <div className="rounded-xl p-6 text-sm" style={{ background: SURFACE.cardSoft, border: `1px dashed ${SURFACE.border}`, color: BRAND.muted }}>
+      <div className="font-bold mb-2" style={{ color: BRAND.navy }}>{title}</div>
+      <p className="mb-3">{children}</p>
+      {onCta && ctaLabel && (
+        <button
+          type="button"
+          onClick={onCta}
+          className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#A67F32]"
+          style={{ background: BRAND.navy, color: "#fff", border: "none", cursor: "pointer" }}
+        >
+          <ArrowRight className="h-4 w-4" aria-hidden="true" /> {ctaLabel}
+        </button>
+      )}
     </div>
   );
 }

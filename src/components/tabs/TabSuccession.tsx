@@ -20,7 +20,8 @@ import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PL
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
-import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
+import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge, EmptyState } from "../shared";
+import { successionEstVide } from "../../lib/gardefous";
 import { BlocCapitauxDeces } from "../succession/BlocCapitauxDeces";
 import { DonationPasseeModal } from "../succession/DonationPasseeModal";
 import { patchPrevoyancePair } from "../../lib/prevoyance/utils";
@@ -41,7 +42,7 @@ function getInitials(name: string) {
 
 // ── TabSuccession ─────────────────────────────────────────────────────────────
 const TabSuccession = React.memo(function TabSuccession(props: any) {
-  const { data, setField, successionData, setSuccessionData, succession, activeDonations, syncCollectedHeirs, getFamilyMembers, importFamilyToTestament, addTestamentHeir, updateTestamentHeir, removeTestamentHeir, addLegsPrecisItem, addLegsPrecisItemFree, addLegsPrecisItemResidual, updateLegsPrecisItem, removeLegsPrecisItem, addLegataire, updateLegataire, removeLegataire, addContrepartieLegataire, updateContrepartieLegataire, removeContrepartieLegataire, addContrepartie, updateContrepartie, removeContrepartie, addContrepartieGlobal, updateContrepartieGlobal, removeContrepartieGlobal, addContrepartieWithBalance, removeContrepartieWithBalance, legsPickerOpen, setLegsPickerOpen, addFamilyMemberToLegsGlobal, addFamilyMemberToLegsPrecis, loanModalPropertyId, setLoanModalPropertyId, addLoan, updateLoan, removeLoan, effectiveSpouseOption, spouseOptions, person1, person2 } = props;
+  const { onGoToCollecte, data, setField, successionData, setSuccessionData, succession, activeDonations, syncCollectedHeirs, getFamilyMembers, importFamilyToTestament, addTestamentHeir, updateTestamentHeir, removeTestamentHeir, addLegsPrecisItem, addLegsPrecisItemFree, addLegsPrecisItemResidual, updateLegsPrecisItem, removeLegsPrecisItem, addLegataire, updateLegataire, removeLegataire, addContrepartieLegataire, updateContrepartieLegataire, removeContrepartieLegataire, addContrepartie, updateContrepartie, removeContrepartie, addContrepartieGlobal, updateContrepartieGlobal, removeContrepartieGlobal, addContrepartieWithBalance, removeContrepartieWithBalance, legsPickerOpen, setLegsPickerOpen, addFamilyMemberToLegsGlobal, addFamilyMemberToLegsPrecis, loanModalPropertyId, setLoanModalPropertyId, addLoan, updateLoan, removeLoan, effectiveSpouseOption, spouseOptions, person1, person2 } = props;
 
   const [selectedHeir, setSelectedHeir] = React.useState<number | null>(null);
   const [editingDon, setEditingDon] = React.useState<number | null>(null); // registre donations (pivot E2)
@@ -82,9 +83,16 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
 
   // Total net transmis — utilise les valeurs fiscales dérivées du moteur (source unique).
   const totalNet = visibleHeirs.reduce((s: number, r: any) => s + (r.partRecueFiscale - r.successionDuties + (r.avNetReceived || 0)), 0);
+  // Lot 9 C1 — etat vide si aucun patrimoine a transmettre (barriere douce, non bloquante).
+  const successionVide = successionEstVide(data);
 
   return (
 <TabsContent value="succession" className="space-y-4">
+  {successionVide ? (
+    <EmptyState title="Aucun patrimoine à transmettre" ctaLabel="Compléter le patrimoine" onCta={() => onGoToCollecte?.("immobilier")}>
+      L'analyse successorale répartit votre patrimoine entre les héritiers et estime les droits de mutation. Renseignez vos biens et placements dans <strong>Collecte patrimoniale → Immobilier / Placements</strong> et la composition du foyer dans <strong>Données familiales</strong> — la dévolution, les abattements et les droits s'afficheront ensuite automatiquement.
+    </EmptyState>
+  ) : (<>
   <Card className="rounded-3xl border-0 shadow-xl shadow-slate-200/60 relative overflow-hidden">
     <CardAccentTop />
     <CardHeader><SectionTitle icon={FileText} title="Succession" subtitle="Actif successoral, assurance-vie et droits par héritier." /></CardHeader>
@@ -1284,7 +1292,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
       </div>
     );
   })()}
-
+  </>)}
 </TabsContent>
   );
 });

@@ -12,8 +12,8 @@ import { ProjectionChart } from "../prevoyance/ProjectionChart";
 
 export function PrevoyanceCalc({ onClose }: { onClose: () => void }) {
   const [caisse, setCaisse] = useState<PrevoyanceCaisse>("CPAM");
-  const [revenu, setRevenu] = useState("40 000");
-  const [age, setAge] = useState("45");
+  const [revenu, setRevenu] = useState("");
+  const [age, setAge] = useState("");
 
   const r = prevoyanceSummary(caisse, parseNum(revenu), parseNum(age));
   const proj = prevoyanceProjection(caisse, parseNum(revenu), parseNum(age));
@@ -39,11 +39,11 @@ export function PrevoyanceCalc({ onClose }: { onClose: () => void }) {
         </div>
         <div className="qc-field">
           <label htmlFor="qc-prev-rev">Revenu annuel</label>
-          <input id="qc-prev-rev" className="ploutos-field" inputMode="numeric" value={revenu} onChange={(e) => setRevenu(e.target.value)} />
+          <input id="qc-prev-rev" className="ploutos-field" inputMode="numeric" placeholder="ex. 40 000" value={revenu} onChange={(e) => setRevenu(e.target.value)} />
         </div>
         <div className="qc-field">
           <label htmlFor="qc-prev-age">Âge</label>
-          <input id="qc-prev-age" className="ploutos-field" inputMode="numeric" value={age} onChange={(e) => setAge(e.target.value)} />
+          <input id="qc-prev-age" className="ploutos-field" inputMode="numeric" placeholder="ex. 45" value={age} onChange={(e) => setAge(e.target.value)} />
         </div>
       </div>
 
