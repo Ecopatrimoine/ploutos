@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Settings, AlertTriangle, BarChart3, TrendingUp, CreditCard, Gift, Pencil, Check, X } from "lucide-react";
+import { confirmRemove } from "../../lib/confirmRemove";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_GROUPS, PROPERTY_GROUP_COLORS, PROPERTY_RIGHTS, DISPOSITIFS_FISCAUX, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan, DismemberCounterpart } from "../../types/patrimoine";
@@ -218,7 +219,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
               </span>
             );
           })()}
-          <Button variant="outline" className="h-8 w-8 shrink-0 rounded-xl p-0 mb-0.5" onClick={() => removeProperty(property.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+          <Button variant="outline" aria-label="Supprimer le bien" className="h-8 w-8 shrink-0 rounded-xl p-0 mb-0.5" onClick={() => confirmRemove(!!(property.name || property.value || property.rentGrossAnnual), "le bien", () => removeProperty(property.id))}><Trash2 className="h-3.5 w-3.5" /></Button>
         </div>
         {/* ── Dispositif fiscal (natures locatives éligibles) — SAISIE SEULE, aucun
              calcul branché (Lot D). Pattern conditionnel impératif (comme démembrement /
@@ -772,7 +773,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                       <Field label={extIdx === 0 ? "% parts" : undefined}>
                         <Input type="number" value={ext.sharePercent} onChange={(e) => updateExternal(extIdx, "sharePercent", e.target.value)} placeholder="0" className="h-8 text-sm rounded-lg text-right" />
                       </Field>
-                      <Button onClick={() => removeExternal(extIdx)} variant="outline" className="h-8 w-8 rounded-lg p-0" title="Supprimer">
+                      <Button onClick={() => removeExternal(extIdx)} variant="outline" aria-label="Supprimer l'intervenant exterieur" className="h-8 w-8 rounded-lg p-0" title="Supprimer">
                         <Trash2 className="h-3.5 w-3.5" style={{ color: BRAND.danger }} />
                       </Button>
                     </div>

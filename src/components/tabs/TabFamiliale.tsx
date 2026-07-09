@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Settings, Users, Accessibility, Check, X } from "lucide-react";
+import { confirmRemove } from "../../lib/confirmRemove";
+import { useDebouncedAction } from "../../hooks/useDebouncedAction";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
@@ -27,6 +29,7 @@ export function doitDeRattacher(iso: string): boolean {
 const TabFamiliale = React.memo(function TabFamiliale(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
   const { data, setField, addChild, updateChild, removeChild, person1, person2 } = props;
+  const addChildDebounced = useDebouncedAction(addChild); // Lot 8 C2 — anti double-clic
   // Foyer mono-adulte (celibataire) : un seul parent -> le choix de parente enfant
   // n'a pas de sens. On masque le selecteur et on affiche un libelle statique.
   const isMonoAdulte = data.coupleStatus === "single";
@@ -173,7 +176,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
   <div className="space-y-3">
     <div className="flex items-center justify-between">
       <h3 className="font-semibold" style={{ color: BRAND.navy }}>Enfants</h3>
-      <Button variant="outline" className="h-8 rounded-xl px-3 text-sm" onClick={addChild}><Plus className="mr-1.5 h-3.5 w-3.5" />Ajouter</Button>
+      <Button variant="outline" className="h-8 rounded-xl px-3 text-sm" onClick={addChildDebounced}><Plus className="mr-1.5 h-3.5 w-3.5" />Ajouter</Button>
     </div>
     {data.childrenData.length === 0 && <div className="text-sm" style={{ color: BRAND.muted }}>Aucun enfant saisi.</div>}
     {data.childrenData.map((child, index) => (
@@ -254,7 +257,7 @@ const TabFamiliale = React.memo(function TabFamiliale(props: any) {
             </SelectContent>
           </Select>
         </Field>
-        <div className="flex items-end"><Button variant="outline" className="h-9 w-9 rounded-xl p-0" onClick={() => removeChild(index)}><Trash2 className="h-4 w-4" /></Button></div>
+        <div className="flex items-end"><Button variant="outline" aria-label="Supprimer l'enfant" className="h-9 w-9 rounded-xl p-0" onClick={() => confirmRemove(!!(child.firstName || child.lastName || child.birthDate), "l'enfant", () => removeChild(index))}><Trash2 className="h-4 w-4" /></Button></div>
       </div>
     ))}
   </div>
