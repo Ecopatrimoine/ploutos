@@ -34,20 +34,25 @@ export type IfiRoi = {
   lines: IfiRoiLine[];    // invariant : Σ lines.value === total
   belowThreshold: boolean; // actif net taxable ≤ 1,3 M€ : IFI non exigible
   marginalRate: number;   // taux de la tranche IFI active (barème)
-  tauxMoyen: number;      // IFI dû / actif net taxable (0 si base nulle)
+  tauxMoyen: number;      // IFI dû / patrimoine total net — mise en perspective (0 si base nulle)
 };
 
 const SEUIL_IFI = 1_300_000;
 const PLAFOND_DECOTE = 1_400_000;
 const EPS = 0.005;
 
-export function buildIfiRoiCard(ifi: IfiLike): IfiRoi {
+// opts.patrimoineNet (bilan actif − dettes) : dénominateur du taux moyen, pour mettre
+// l'IFI en perspective du patrimoine TOTAL net (retour David). Fallback : actif net
+// taxable si non fourni ou ≤ 0.
+export function buildIfiRoiCard(ifi: IfiLike, opts?: { patrimoineNet?: number }): IfiRoi {
   const total = n(ifi.ifi);
   const gross = n(ifi.grossIfi);
   const decote = n(ifi.decote);
   const netTaxable = n(ifi.netTaxable);
   const belowThreshold = netTaxable <= SEUIL_IFI;
-  const tauxMoyen = netTaxable > 0 ? total / netTaxable : 0;
+  const patrimoineNet = n(opts?.patrimoineNet);
+  const baseTauxMoyen = patrimoineNet > 0 ? patrimoineNet : netTaxable;
+  const tauxMoyen = baseTauxMoyen > 0 ? total / baseTauxMoyen : 0;
   const marginalRate = (() => {
     const bf = ifi.bracketFill || [];
     const cur = bf.find((s) => netTaxable <= s.to) || bf[bf.length - 1];

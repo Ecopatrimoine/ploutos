@@ -16,6 +16,7 @@ import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyP
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge, EmptyState } from "../shared";
 import { KpiRoiCard, SectionAccordion, type KpiRoiLine } from "../analysis";
 import { buildIfiRoiCard } from "../../lib/analysis/ifiPresentation";
+import { computePatrimoineNet } from "../../lib/calculs/patrimoine";
 import { ifiEstVide } from "../../lib/gardefous";
 
 
@@ -27,7 +28,10 @@ const TabIFI = React.memo(function TabIFI(props: any) {
   // A (addendum 2, Lot 10b) : l'acte 1 IFI adopte la grammaire de l'IR — carte-roi
   // « IFI dû » (barème − décote, réconciliée) + contexte (actif net, tranche marginale,
   // taux moyen, seuil). ZÉRO recalcul moteur.
-  const roi = buildIfiRoiCard(ifi);
+  // Taux moyen IFI rapporté au patrimoine TOTAL net (bilan actif − dettes), pour mise
+  // en perspective — même formule que le bilan endettement (computePatrimoineNet).
+  const patrimoineNet = computePatrimoineNet(data).patrimoineNet;
+  const roi = buildIfiRoiCard(ifi, { patrimoineNet });
   const roiLines: KpiRoiLine[] = roi.lines.map((l) => (
     l.placeholder
       ? { label: l.label, value: "—", detail: l.detail, tooltip: l.tooltip, muted: true }
@@ -78,9 +82,10 @@ const TabIFI = React.memo(function TabIFI(props: any) {
             <div className="rounded-2xl px-4 py-3 flex flex-col justify-center" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
               <div className="text-[11px] font-bold uppercase tracking-wider flex items-center" style={{ color: BRAND.muted }}>
                 Taux moyen IFI
-                <HelpTooltip text="IFI dû rapporté à l'actif net taxable." label="Taux moyen IFI" />
+                <HelpTooltip text="IFI dû rapporté à votre patrimoine TOTAL net (immobilier + financier − dettes), pour le mettre en perspective." label="Taux moyen IFI" />
               </div>
               <div className="font-black mt-1" style={{ color: BRAND.navy, fontSize: 20 }}>{pct(roi.tauxMoyen, 2)}</div>
+              {patrimoineNet > 0 && <div className="text-[10.5px] mt-0.5" style={{ color: BRAND.muted }}>sur {euro(patrimoineNet)} nets</div>}
             </div>
           </div>
           {/* Seuil d'imposition + jauge compacte */}

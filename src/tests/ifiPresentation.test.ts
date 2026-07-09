@@ -46,11 +46,15 @@ describe("buildIfiRoiCard — carte-roi IFI (addendum 2, Lot 10b)", () => {
     expect(roi.lines).toHaveLength(0);
   });
 
-  it("taux moyen = ifi / actif net taxable (2 décimales de présentation)", () => {
-    const roi = buildIfiRoiCard({ netTaxable: 2_000_000, grossIfi: 8_190, decote: 0, ifi: 8_190, bracketFill: BRACKETS });
-    expect(roi.tauxMoyen).toBeCloseTo(8_190 / 2_000_000, 6); // ~0,41 %
+  it("taux moyen = ifi / patrimoine TOTAL net (mise en perspective)", () => {
+    const ifi: IfiLike = { netTaxable: 2_000_000, grossIfi: 8_190, decote: 0, ifi: 8_190, bracketFill: BRACKETS };
+    // patrimoine net (immobilier + financier − dettes) plus large que l'actif IFI taxable
+    const roi = buildIfiRoiCard(ifi, { patrimoineNet: 3_500_000 });
+    expect(roi.tauxMoyen).toBeCloseTo(8_190 / 3_500_000, 6); // ~0,23 % (dilué par le patrimoine total)
+    // fallback sur l'actif net taxable si patrimoine net non fourni
+    expect(buildIfiRoiCard(ifi).tauxMoyen).toBeCloseTo(8_190 / 2_000_000, 6);
     // base nulle -> pas de division par zéro
-    expect(buildIfiRoiCard({ netTaxable: 0, ifi: 0 }).tauxMoyen).toBe(0);
+    expect(buildIfiRoiCard({ netTaxable: 0, ifi: 0 }, { patrimoineNet: 0 }).tauxMoyen).toBe(0);
   });
 
   it("tranche marginale absente si bracketFill non fourni (fallback 0)", () => {
