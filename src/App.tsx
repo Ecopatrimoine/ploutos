@@ -540,6 +540,14 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const [popcardOpen, setPopcardOpen] = useState(false);
   // Dialog détail charges
   const [chargesDialogOpen, setChargesDialogOpen] = useState<1|2|null>(null);
+  // Lot 9 addendum — navigation par ETAT (onglets controles) : les CTA des empty
+  // states basculent l'onglet principal ET le sous-onglet collecte en une action.
+  const [mainTab, setMainTab] = useState("collecte");
+  const [collecteSubTab, setCollecteSubTab] = useState("famille");
+  const goToCollecteSub = useCallback((sub: string) => {
+    setMainTab("collecte");
+    setCollecteSubTab(sub);
+  }, []);
   const [chargesPdfLoading, setChargesPdfLoading] = useState(false);
   const [exportFallbackContent, setExportFallbackContent] = useState("");
   const [exportFallbackFileName, setExportFallbackFileName] = useState("");
@@ -1556,7 +1564,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
         </Dialog>
 
         {/* ── Navigation ── */}
-        <Tabs defaultValue="collecte" className="space-y-6">
+        <Tabs value={mainTab} onValueChange={setMainTab} className="space-y-6">
           <div className="flex gap-2" style={{ alignItems: "stretch" }}>
             <TabsList className="flex-1 grid grid-cols-7 p-1.5" style={{ background: SURFACE.card, border: `2px solid ${SURFACE.border}`, borderRadius: 14, height: "52px", boxShadow: SURFACE.cardShadow }}>
               {(["collecte", "ir", "ifi", "succession", "prevoyance", "prevoyance-coll", "hypotheses"] as const).map((tab) => {
@@ -1586,7 +1594,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
               <CardAccentTop />
               <CardHeader><SectionTitle icon={Database} title="Collecte patrimoniale" subtitle="Données familiales, travail, revenus, immobilier et placements." /></CardHeader>
               <CardContent>
-                <Tabs defaultValue="famille" className="space-y-6">
+                <Tabs value={collecteSubTab} onValueChange={setCollecteSubTab} className="space-y-6">
                   <TabsList className="grid w-full grid-cols-6 p-1" style={{ background: SURFACE.border, borderRadius: 12 }}>
                     {["famille", "travail", "revenus", "immobilier", "placements", "credits"].map((tab) => {
                       const labels: Record<string, string> = { famille: "Données familiales", travail: "Travail", revenus: "Revenus", immobilier: "Immobilier", placements: "Placements", credits: "Crédits" };
@@ -1605,13 +1613,14 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
           </TabsContent>
 
           {/* ════ IR ════ */}
-          <TabIR data={data} ir={ir} irOptions={irOptions} setIrOptions={setIrOptions} concubinPerson={concubinPerson} setConcubinPerson={setConcubinPerson} setChargesDialogOpen={setChargesDialogOpen} person1={person1} person2={person2} />
+          <TabIR data={data} ir={ir} irOptions={irOptions} setIrOptions={setIrOptions} concubinPerson={concubinPerson} setConcubinPerson={setConcubinPerson} setChargesDialogOpen={setChargesDialogOpen} onGoToCollecte={goToCollecteSub} person1={person1} person2={person2} />
 
           {/* ════ IFI ════ */}
-          <TabIFI data={data} ifi={ifi} person1={person1} person2={person2} />
+          <TabIFI data={data} ifi={ifi} onGoToCollecte={goToCollecteSub} person1={person1} person2={person2} />
 
           {/* ════ SUCCESSION ════ */}
           <TabSuccession
+            onGoToCollecte={goToCollecteSub}
             activeDonations={activeDonations}
             data={data} setField={setField} successionData={successionData} setSuccessionData={setSuccessionData}
             succession={succession} syncCollectedHeirs={syncCollectedHeirs} getFamilyMembers={getFamilyMembers}
@@ -1638,13 +1647,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
             setField={setField}
             person1={person1}
             person2={person2}
-            onGoToTravail={() => {
-              // Active l'onglet principal "Collecte" puis le sous-onglet "Travail".
-              document.getElementById("main-tab-collecte")?.click();
-              requestAnimationFrame(() => {
-                document.getElementById("sub-tab-travail")?.click();
-              });
-            }}
+            onGoToTravail={() => goToCollecteSub("travail")}
           />
 
           {/* ════ PRÉVOYANCE COLLECTIVE ════ */}

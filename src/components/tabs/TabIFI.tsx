@@ -20,7 +20,7 @@ import { ifiEstVide } from "../../lib/gardefous";
 // ── TabIFI ─────────────────────────────────────────────────────────────────────
 const TabIFI = React.memo(function TabIFI(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
-  const { data, ifi, person1, person2 } = props;
+  const { data, ifi, onGoToCollecte, person1, person2 } = props;
 
   return (
 <TabsContent value="ifi" className="space-y-4">
@@ -29,7 +29,7 @@ const TabIFI = React.memo(function TabIFI(props: any) {
     <CardHeader><SectionTitle icon={FileText} title="IFI — Impôt sur la Fortune Immobilière" subtitle="Assiette, passif déductible, décote et barème progressif." /></CardHeader>
     <CardContent className="space-y-4">
       {ifiEstVide(ifi) ? (
-        <EmptyState title="Aucun bien immobilier saisi" ctaLabel="Compléter l'onglet Immobilier" ctaSubTab="immobilier">
+        <EmptyState title="Aucun bien immobilier saisi" ctaLabel="Compléter l'onglet Immobilier" onCta={() => onGoToCollecte?.("immobilier")}>
           L'IFI se calcule sur votre patrimoine immobilier net taxable. Renseignez vos biens dans <strong>Collecte patrimoniale → Immobilier</strong> — l'assiette, le passif déductible, la décote et le barème progressif s'afficheront ensuite automatiquement.
         </EmptyState>
       ) : (<>

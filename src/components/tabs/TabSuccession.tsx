@@ -42,7 +42,7 @@ function getInitials(name: string) {
 
 // ── TabSuccession ─────────────────────────────────────────────────────────────
 const TabSuccession = React.memo(function TabSuccession(props: any) {
-  const { data, setField, successionData, setSuccessionData, succession, activeDonations, syncCollectedHeirs, getFamilyMembers, importFamilyToTestament, addTestamentHeir, updateTestamentHeir, removeTestamentHeir, addLegsPrecisItem, addLegsPrecisItemFree, addLegsPrecisItemResidual, updateLegsPrecisItem, removeLegsPrecisItem, addLegataire, updateLegataire, removeLegataire, addContrepartieLegataire, updateContrepartieLegataire, removeContrepartieLegataire, addContrepartie, updateContrepartie, removeContrepartie, addContrepartieGlobal, updateContrepartieGlobal, removeContrepartieGlobal, addContrepartieWithBalance, removeContrepartieWithBalance, legsPickerOpen, setLegsPickerOpen, addFamilyMemberToLegsGlobal, addFamilyMemberToLegsPrecis, loanModalPropertyId, setLoanModalPropertyId, addLoan, updateLoan, removeLoan, effectiveSpouseOption, spouseOptions, person1, person2 } = props;
+  const { onGoToCollecte, data, setField, successionData, setSuccessionData, succession, activeDonations, syncCollectedHeirs, getFamilyMembers, importFamilyToTestament, addTestamentHeir, updateTestamentHeir, removeTestamentHeir, addLegsPrecisItem, addLegsPrecisItemFree, addLegsPrecisItemResidual, updateLegsPrecisItem, removeLegsPrecisItem, addLegataire, updateLegataire, removeLegataire, addContrepartieLegataire, updateContrepartieLegataire, removeContrepartieLegataire, addContrepartie, updateContrepartie, removeContrepartie, addContrepartieGlobal, updateContrepartieGlobal, removeContrepartieGlobal, addContrepartieWithBalance, removeContrepartieWithBalance, legsPickerOpen, setLegsPickerOpen, addFamilyMemberToLegsGlobal, addFamilyMemberToLegsPrecis, loanModalPropertyId, setLoanModalPropertyId, addLoan, updateLoan, removeLoan, effectiveSpouseOption, spouseOptions, person1, person2 } = props;
 
   const [selectedHeir, setSelectedHeir] = React.useState<number | null>(null);
   const [editingDon, setEditingDon] = React.useState<number | null>(null); // registre donations (pivot E2)
@@ -89,7 +89,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
   return (
 <TabsContent value="succession" className="space-y-4">
   {successionVide ? (
-    <EmptyState title="Aucun patrimoine à transmettre" ctaLabel="Compléter le patrimoine" ctaSubTab="immobilier">
+    <EmptyState title="Aucun patrimoine à transmettre" ctaLabel="Compléter le patrimoine" onCta={() => onGoToCollecte?.("immobilier")}>
       L'analyse successorale répartit votre patrimoine entre les héritiers et estime les droits de mutation. Renseignez vos biens et placements dans <strong>Collecte patrimoniale → Immobilier / Placements</strong> et la composition du foyer dans <strong>Données familiales</strong> — la dévolution, les abattements et les droits s'afficheront ensuite automatiquement.
     </EmptyState>
   ) : (<>

@@ -204,23 +204,20 @@ export function SectionTitle({ icon: Icon, title, subtitle }: { icon: React.Comp
 // État vide informatif (Lot 9 C1) : quand un onglet d'analyse n'a pas les
 // données minimales, on remplace le tableau de zéros par une phrase guidante
 // + un CTA vers le sous-onglet de collecte manquant. BARRIÈRE DOUCE : informatif,
-// jamais bloquant, l'onglet reste accessible. Navigation via clic DOM sur les
-// ids d'onglets (même mécanisme que onGoToTravail de la prévoyance).
-export function EmptyState({ title, children, ctaLabel, ctaSubTab }: {
-  title: string; children: React.ReactNode; ctaLabel?: string; ctaSubTab?: string;
+// jamais bloquant, l'onglet reste accessible. La NAVIGATION est confiée à
+// l'appelant via `onCta` (état de navigation React réel — cf. addendum Lot 9 :
+// le clic DOM ne gérait pas la double bascule onglet principal + sous-onglet).
+export function EmptyState({ title, children, ctaLabel, onCta }: {
+  title: string; children: React.ReactNode; ctaLabel?: string; onCta?: () => void;
 }) {
-  const goTo = () => {
-    document.getElementById("main-tab-collecte")?.click();
-    requestAnimationFrame(() => { document.getElementById(`sub-tab-${ctaSubTab}`)?.click(); });
-  };
   return (
     <div className="rounded-xl p-6 text-sm" style={{ background: SURFACE.cardSoft, border: `1px dashed ${SURFACE.border}`, color: BRAND.muted }}>
       <div className="font-bold mb-2" style={{ color: BRAND.navy }}>{title}</div>
       <p className="mb-3">{children}</p>
-      {ctaSubTab && ctaLabel && (
+      {onCta && ctaLabel && (
         <button
           type="button"
-          onClick={goTo}
+          onClick={onCta}
           className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#A67F32]"
           style={{ background: BRAND.navy, color: "#fff", border: "none", cursor: "pointer" }}
         >

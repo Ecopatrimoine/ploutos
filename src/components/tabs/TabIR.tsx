@@ -21,7 +21,7 @@ import { computeTmiView } from "../../lib/calculs/tmiEffective";
 // ── TabIR ─────────────────────────────────────────────────────────────────────
 const TabIR = React.memo(function TabIR(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
-  const { data, ir, irOptions, setIrOptions, concubinPerson, setConcubinPerson, setChargesDialogOpen, person1, person2 } = props;
+  const { data, ir, irOptions, setIrOptions, concubinPerson, setConcubinPerson, setChargesDialogOpen, onGoToCollecte, person1, person2 } = props;
 
   // Lot C (mirror B2/B3) — restitution « taux marginal réel » via le helper de vue PARTAGÉ
   // (même source que le PDF, aucun recalcul local). isCouple = marié/pacsé (baseParts).
@@ -33,7 +33,7 @@ const TabIR = React.memo(function TabIR(props: any) {
   return (
 <TabsContent value="ir" className="space-y-4">
   {irVide ? (
-    <EmptyState title="Aucun revenu saisi" ctaLabel="Compléter l'onglet Revenus" ctaSubTab="revenus">
+    <EmptyState title="Aucun revenu saisi" ctaLabel="Compléter l'onglet Revenus" onCta={() => onGoToCollecte?.("revenus")}>
       L'impôt sur le revenu se calcule à partir de vos revenus. Renseignez salaires, pensions, BNC/BIC, revenus fonciers ou mobiliers dans <strong>Collecte patrimoniale → Revenus</strong> (et l'activité dans <strong>Travail</strong>) — la base imposable, le barème, le quotient familial et le PFU s'afficheront ensuite automatiquement.
     </EmptyState>
   ) : (<>
