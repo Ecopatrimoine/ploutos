@@ -5,7 +5,7 @@
 // regime, sans recalcul. Meme harnais que TabIR.foncier-card.render.test.tsx.
 import { describe, it, expect, vi } from "vitest";
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { Tabs } from "../components/ui/tabs";
 import { computeIR } from "../lib/calculs/ir";
 import { EMPTY_CHARGES_DETAIL } from "../constants";
@@ -61,6 +61,8 @@ describe("TabIR — bloc Location meublee (BIC)", () => {
 
   it("micro : recettes / abattement / base + PS 18,6 % revenus du patrimoine", () => {
     renderTabIR([prop({ type: "LMNP", rentGrossAnnual: "12000" })]);
+    // Lot 10b : le bloc LMNP est rangé dans l'accordéon §2 (fermé) — on l'ouvre.
+    fireEvent.click(screen.getByText("Location meublée / LMNP"));
     expect(screen.getByText("Location meublée (BIC)")).toBeTruthy();
     expect(screen.getByText(/Micro-BIC/)).toBeTruthy();
     expect(screen.getByText("Abattement")).toBeTruthy();
@@ -70,6 +72,8 @@ describe("TabIR — bloc Location meublee (BIC)", () => {
 
   it("reel deficitaire : ARD (art. 39 C) + deficit non imputable (art. 156 I-1 ter)", () => {
     renderTabIR([prop({ type: "LMNP", regimeMeuble: "reel", recettesAnnuelles: "10000", chargesReelles: "13000", amortissementAnnuelManuel: "5000" })]);
+    // Lot 10b : ouvrir l'accordéon §2 « Location meublée / LMNP » (fermé par défaut).
+    fireEvent.click(screen.getByText("Location meublée / LMNP"));
     expect(screen.getByText(/Amortissement en report \(ARD\)/)).toBeTruthy();
     expect(screen.getByText(/report illimité, art. 39 C/)).toBeTruthy();
     expect(screen.getByText(/non imputable au revenu global, art. 156 I-1 ter/)).toBeTruthy();
