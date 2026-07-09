@@ -44,12 +44,6 @@ export type AppHeaderProps = {
 export function AppHeader(p: AppHeaderProps) {
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(p.clientName);
-  const [tick, setTick] = useState(0);   // ré-render toutes les 30 s pour rafraîchir "il y a X"
-
-  useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 30_000);
-    return () => clearInterval(id);
-  }, []);
 
   useEffect(() => { setDraftName(p.clientName); }, [p.clientName]);
 
@@ -60,12 +54,6 @@ export function AppHeader(p: AppHeaderProps) {
     setEditingName(false);
   };
 
-  const statutSauvegarde = composeStatutSauvegarde(p.autoSaveStatus, p.lastSavedAt, tick);
-  const statutCouleur =
-    p.autoSaveStatus === "saved" ? "#2F7D5B"
-    : p.autoSaveStatus === "error" ? "#B45309"  // ambre : etat transitoire, nouvelle tentative
-    : p.cabColors.sky;
-
   // Couleur de fallback pour blue (certains cabinets n'ont pas colorBlue)
   const cabBlue = p.cabColors.blue || p.cabColors.sky;
 
@@ -74,40 +62,8 @@ export function AppHeader(p: AppHeaderProps) {
   // épaisseur du liseré, puis un inner avec le fond clair.
   const LISERE_EPAISSEUR = 8; // px — itéré : 6 → 12 → 8 selon retours user
 
-  // Icône-bouton générique (style cohérent + tooltip) — agrandi à 44px
-  const BORDER_REPOS = `${p.cabColors.navy}40`;   // navy 25 % opacité — visible au repos
-  const IconBtn = ({ onClick, label, children }: {
-    onClick?: () => void; label: string; children: React.ReactNode;
-  }) => (
-    <button
-      onClick={onClick}
-      title={label}
-      aria-label={label}
-      style={{
-        display: "inline-flex", alignItems: "center", justifyContent: "center",
-        width: 44, height: 44, borderRadius: 12,
-        border: `2px solid ${BORDER_REPOS}`,
-        background: "transparent",
-        color: p.cabColors.navy, cursor: "pointer",
-        transition: "background 0.15s ease, border-color 0.15s ease, transform 0.1s ease",
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.background = `${p.cabColors.gold}26`;
-        e.currentTarget.style.borderColor = p.cabColors.gold;
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.background = "transparent";
-        e.currentTarget.style.borderColor = BORDER_REPOS;
-      }}
-    >
-      {children}
-    </button>
-  );
-
-  // Séparateur vertical or
-  const Sep = () => (
-    <div style={{ width: 1, height: 28, background: `${p.cabColors.gold}66`, margin: "0 8px" }} />
-  );
+  // Border au repos (navy 25 %) — passe aux IconBtn (composants module, Lot 8 C4).
+  const BORDER_REPOS = `${p.cabColors.navy}40`;
 
   return (
     <div style={{
@@ -190,25 +146,20 @@ export function AppHeader(p: AppHeaderProps) {
               marginTop: 6, fontFamily: "'Lato', system-ui, sans-serif",
               fontWeight: 500, letterSpacing: "0.01em",
             }}>
-              Dossier patrimonial{statutSauvegarde && (
-                <>
-                  {" · "}
-                  <span style={{ color: statutCouleur, fontWeight: 600 }}>{statutSauvegarde}</span>
-                </>
-              )}
+              Dossier patrimonial<StatutSauvegarde status={p.autoSaveStatus} lastSavedAt={p.lastSavedAt} colorSky={p.cabColors.sky} />
             </div>
           </div>
         </div>
 
         {/* ─── Actions à droite ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-          <IconBtn onClick={p.onBackToDossiers} label="Retour à la liste des dossiers">
+          <IconBtn onClick={p.onBackToDossiers} label="Retour à la liste des dossiers" borderRepos={BORDER_REPOS} colorNavy={p.cabColors.navy} colorGold={p.cabColors.gold}>
             <ArrowLeft className="h-5 w-5" />
           </IconBtn>
 
-          <Sep />
+          <Sep colorGold={p.cabColors.gold} />
 
-          <IconBtn onClick={p.onSave} label="Sauvegarder le dossier">
+          <IconBtn onClick={p.onSave} label="Sauvegarder le dossier" borderRepos={BORDER_REPOS} colorNavy={p.cabColors.navy} colorGold={p.cabColors.gold}>
             {p.autoSaveStatus === "saving" ? (
               <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
@@ -235,7 +186,7 @@ export function AppHeader(p: AppHeaderProps) {
             <input type="file" accept="application/json" className="hidden" onChange={p.onLoad} />
           </label>
 
-          <Sep />
+          <Sep colorGold={p.cabColors.gold} />
 
           {/* HelpMenu light : cercle or 44px (synchro avec autres boutons) */}
           <HelpMenu
@@ -247,9 +198,9 @@ export function AppHeader(p: AppHeaderProps) {
             theme="light"
           />
 
-          <Sep />
+          <Sep colorGold={p.cabColors.gold} />
 
-          <IconBtn onClick={p.onSignOut} label="Déconnexion">
+          <IconBtn onClick={p.onSignOut} label="Déconnexion" borderRepos={BORDER_REPOS} colorNavy={p.cabColors.navy} colorGold={p.cabColors.gold}>
             <LogOut className="h-5 w-5" />
           </IconBtn>
         </div>
@@ -273,4 +224,51 @@ function composeStatutSauvegarde(
   if (diffSec < 3600)     return `Sauvegardé il y a ${Math.floor(diffSec / 60)} min`;
   if (diffSec < 86400)    return `Sauvegardé il y a ${Math.floor(diffSec / 3600)} h`;
   return `Sauvegardé le ${lastSavedAt.toLocaleDateString("fr-FR")}`;
+}
+
+// ─── Sous-composants MODULE (Lot 8 C4) : identite stable entre les rendus du
+// header -> plus de remount des boutons. Couleurs/handlers passes en props.
+function IconBtn({ onClick, label, borderRepos, colorNavy, colorGold, children }: {
+  onClick?: () => void; label: string; borderRepos: string; colorNavy: string; colorGold: string; children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      style={{
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        width: 44, height: 44, borderRadius: 12,
+        border: `2px solid ${borderRepos}`,
+        background: "transparent",
+        color: colorNavy, cursor: "pointer",
+        transition: "background 0.15s ease, border-color 0.15s ease, transform 0.1s ease",
+      }}
+      onMouseEnter={e => { e.currentTarget.style.background = `${colorGold}26`; e.currentTarget.style.borderColor = colorGold; }}
+      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = borderRepos; }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Sep({ colorGold }: { colorGold: string }) {
+  return <div style={{ width: 1, height: 28, background: `${colorGold}66`, margin: "0 8px" }} />;
+}
+
+// "Sauvegardé il y a X min" ISOLE : porte son propre setInterval 30 s, donc
+// seul ce sous-composant se re-rend au tick — le header garde une identite DOM
+// stable (plus de remount des enfants toutes les 30 s).
+function StatutSauvegarde({ status, lastSavedAt, colorSky }: {
+  status: "idle" | "saving" | "saved" | "error"; lastSavedAt: Date | null; colorSky: string;
+}) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const texte = composeStatutSauvegarde(status, lastSavedAt, tick);
+  if (!texte) return null;
+  const couleur = status === "saved" ? "#2F7D5B" : status === "error" ? "#B45309" : colorSky;
+  return <>{" · "}<span style={{ color: couleur, fontWeight: 600 }}>{texte}</span></>;
 }

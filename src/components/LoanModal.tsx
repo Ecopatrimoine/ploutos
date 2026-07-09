@@ -1,4 +1,5 @@
 import { Plus, Trash2, CreditCard, Ruler, AlertTriangle, Info, X } from "lucide-react";
+import { confirmRemove } from "../lib/confirmRemove";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateFr } from "@/components/ui/DateFr";
@@ -8,6 +9,7 @@ import { BRAND, SURFACE, labelPlacement } from "../constants";
 import type { PatrimonialData, Loan } from "../types/patrimoine";
 import { euro, n, isAV, isPERType } from "../lib/calculs/utils";
 import { resolveLoanValuesMulti, resolveOneLoan } from "../lib/calculs/credit";
+import { useEscapeToClose } from "../hooks/useEscapeToClose";
 
 interface LoanModalProps {
   loanModalPropertyId: string | null;
@@ -21,6 +23,7 @@ interface LoanModalProps {
 }
 
 export function LoanModal({ loanModalPropertyId, setLoanModalPropertyId, data, addLoan, updateLoan, removeLoan, person1, person2 }: LoanModalProps) {
+  useEscapeToClose(() => setLoanModalPropertyId(null), loanModalPropertyId !== null);
   if (loanModalPropertyId === null) return null;
   const prop = data.properties.find((p) => p.id === loanModalPropertyId);
   if (!prop) return null;
@@ -84,7 +87,7 @@ export function LoanModal({ loanModalPropertyId, setLoanModalPropertyId, data, a
                       </span>
                     )}
                   </div>
-                  <Button variant="outline" className="h-7 w-7 rounded-xl p-0" onClick={() => removeLoan(loanModalPropertyId, loan.id)}>
+                  <Button variant="outline" aria-label="Supprimer le credit" className="h-7 w-7 rounded-xl p-0" onClick={() => confirmRemove(!!(loan.amount || loan.rate || loan.duration || loan.capitalRemaining), "le credit", () => removeLoan(loanModalPropertyId, loan.id))}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>

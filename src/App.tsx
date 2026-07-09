@@ -1562,19 +1562,19 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
               {(["collecte", "ir", "ifi", "succession", "prevoyance", "prevoyance-coll", "hypotheses"] as const).map((tab) => {
                 const labels: Record<string, string> = { collecte: "Collecte patrimoniale", ir: "Impôt sur le revenu", ifi: "IFI", succession: "Succession", prevoyance: "Prévoyance perso.", "prevoyance-coll": "Prévoyance coll.", hypotheses: "Hypothèses" };
                 return (
-                  <TabsTrigger key={tab} value={tab} id={`main-tab-${tab}`} className="flex items-center justify-center px-4 text-center font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.muted, fontSize: 12 }}>
+                  <TabsTrigger key={tab} value={tab} id={`main-tab-${tab}`} className="flex items-center justify-center min-w-0 px-2 text-center font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.tabInactive, fontSize: 12 }}>
                     {labels[tab]}
                   </TabsTrigger>
                 );
               })}
             </TabsList>
             <TabsList className="p-1.5" style={{ background: SURFACE.card, border: `2px solid ${SURFACE.border}`, borderRadius: 14, height: "52px", boxShadow: SURFACE.cardShadow }}>
-              <TabsTrigger value="mission" className="flex items-center justify-center gap-1.5 px-4 font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.muted, fontSize: 12 }}>
+              <TabsTrigger value="mission" className="flex items-center justify-center gap-1.5 px-4 font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.tabInactive, fontSize: 12 }}>
                 <User className="h-4 w-4" aria-hidden="true" /> Dossier client
               </TabsTrigger>
             </TabsList>
             <TabsList className="p-1.5" style={{ background: SURFACE.card, border: `2px solid ${SURFACE.border}`, borderRadius: 14, height: "52px", boxShadow: SURFACE.cardShadow }}>
-              <TabsTrigger value="parametres" title="Paramètres cabinet" className="flex items-center justify-center px-3 font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.muted }}>
+              <TabsTrigger value="parametres" title="Paramètres cabinet" className="flex items-center justify-center px-3 font-bold transition-all" style={{ height: "100%", borderRadius: 10, color: BRAND.tabInactive }}>
                 <Settings className="h-5 w-5" />
               </TabsTrigger>
             </TabsList>
@@ -1590,7 +1590,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
                   <TabsList className="grid w-full grid-cols-6 p-1" style={{ background: SURFACE.border, borderRadius: 12 }}>
                     {["famille", "travail", "revenus", "immobilier", "placements", "credits"].map((tab) => {
                       const labels: Record<string, string> = { famille: "Données familiales", travail: "Travail", revenus: "Revenus", immobilier: "Immobilier", placements: "Placements", credits: "Crédits" };
-                      return <TabsTrigger key={tab} value={tab} id={`sub-tab-${tab}`} className="px-3 py-2 font-bold transition-all data-[state=active]:shadow-md" style={{ borderRadius: 8, color: BRAND.muted, fontSize: 12 }}>{labels[tab]}</TabsTrigger>;
+                      return <TabsTrigger key={tab} value={tab} id={`sub-tab-${tab}`} className="px-3 py-2 font-bold transition-all data-[state=active]:shadow-md" style={{ borderRadius: 8, color: BRAND.tabInactive, fontSize: 12 }}>{labels[tab]}</TabsTrigger>;
                     })}
                   </TabsList>
                   <TabFamiliale data={data} setField={setField} addChild={addChild} updateChild={updateChild} removeChild={removeChild} person1={person1} person2={person2} />

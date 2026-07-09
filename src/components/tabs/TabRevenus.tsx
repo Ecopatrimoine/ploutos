@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Settings, FileText, Database, Lightbulb, AlertTriangle, Check } from "lucide-react";
+import { useDebouncedAction } from "../../hooks/useDebouncedAction";
+import { confirmRemove } from "../../lib/confirmRemove";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, EMPTY_CHARGES_COURANTES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
@@ -23,6 +25,7 @@ import { ChargesModal } from "../ChargesModal";
 const TabRevenus = React.memo(function TabRevenus(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
   const { data, setField, setData, setChargesDialogOpen, irOptions, setIrOptions, ir, person1, person2 } = props;
+  const addPerRente = useDebouncedAction(() => setData(prev => ({ ...prev, perRentes: [...(prev.perRentes || []), { owner: "person1", annualAmount: "", ageAtFirst: "" }] }))); // Lot 8 C2 — anti double-clic
 
   // ── Madelin (Lot B4) : bénéfice imposable + versements PER par personne, pour
   // alimenter le bloc de synthèse Madelin (lecture/affichage ; le bloc se masque
@@ -447,7 +450,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
       <div className="flex items-center justify-between">
         <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Rentes PER — Phase de rente</div>
         <Button variant="outline" className="h-7 rounded-xl px-3 text-xs"
-          onClick={() => setData(prev => ({ ...prev, perRentes: [...(prev.perRentes || []), { owner: "person1", annualAmount: "", ageAtFirst: "" }] }))}>
+          onClick={addPerRente}>
           <Plus className="mr-1 h-3 w-3" />Ajouter une rente
         </Button>
       </div>
@@ -478,7 +481,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
                 <Input type="number" min="18" max="100" placeholder="ex: 65" value={rente.ageAtFirst} onChange={(e) => setData(prev => ({ ...prev, perRentes: prev.perRentes.map((r, i) => i === ri ? { ...r, ageAtFirst: e.target.value } : r) }))} className="rounded-xl h-8 text-sm" />
               </Field>
               <div className="flex items-end pb-0.5">
-                <Button variant="outline" className="h-8 w-8 rounded-xl p-0" onClick={() => setData(prev => ({ ...prev, perRentes: prev.perRentes.filter((_, i) => i !== ri) }))}>
+                <Button variant="outline" aria-label="Supprimer la rente" className="h-8 w-8 rounded-xl p-0" onClick={() => confirmRemove(!!(rente.annualAmount || rente.ageAtFirst), "la rente", () => setData(prev => ({ ...prev, perRentes: prev.perRentes.filter((_, i) => i !== ri) })))}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>

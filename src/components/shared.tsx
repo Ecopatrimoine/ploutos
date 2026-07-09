@@ -11,7 +11,7 @@ import { BRAND, SURFACE, CHART_COLORS } from "../constants";
 import { euro, euroTick } from "../lib/calculs/utils";
 import type { FilledBracket, DifferenceLine } from "../types/patrimoine";
 
-export function HelpTooltip({ text }: { text: string }) {
+export function HelpTooltip({ text, label }: { text: string; label?: string }) {
   const [pos, setPos] = React.useState<{ x: number; y: number } | null>(null);
   const btnRef = React.useRef<HTMLButtonElement>(null);
 
@@ -30,7 +30,7 @@ export function HelpTooltip({ text }: { text: string }) {
         onFocus={show} onBlur={hide}
         className="inline-flex items-center justify-center rounded-full text-[10px] font-bold leading-none transition-colors ml-1"
         style={{ width: 15, height: 15, background: BRAND.cream, color: BRAND.goldText, border: `1px solid ${SURFACE.border}`, cursor: "help", flexShrink: 0 }}
-        tabIndex={-1} aria-label="Aide">?</button>
+        tabIndex={-1} aria-label={label ? `Aide — ${label}` : "Aide"}>?</button>
       {pos && typeof document !== "undefined" && createPortal(
         <span style={{
           position: "fixed",
@@ -70,7 +70,7 @@ export function Field({ label, children, tooltip, reserveLabel }: { label: strin
         className={`text-xs font-bold flex gap-0.5 ${reserveLabel ? "items-start min-h-[3rem]" : "items-center"}`}
         style={{ color: BRAND.muted }}
       >
-        {label}{tooltip && <HelpTooltip text={tooltip} />}
+        {label}{tooltip && <HelpTooltip text={tooltip} label={label} />}
       </Label>
       {children}
     </div>

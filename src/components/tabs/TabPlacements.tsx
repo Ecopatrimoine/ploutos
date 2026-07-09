@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Settings, Check, Lock, BarChart3, ClipboardList, AlertTriangle } from "lucide-react";
+import { confirmRemove } from "../../lib/confirmRemove";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, ALL_PLACEMENTS, labelPlacement, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA, SOUS_TYPES_DEFISC_DEDIES, DISPOSITIFS_FINANCIERS_LABELS } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
@@ -141,7 +142,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
                 </span>
               );
             })()}
-            <Button variant="outline" className="h-8 w-8 shrink-0 rounded-xl p-0 mb-0.5" onClick={() => removePlacement(placement.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+            <Button variant="outline" aria-label="Supprimer le placement" className="h-8 w-8 shrink-0 rounded-xl p-0 mb-0.5" onClick={() => confirmRemove(!!(placement.name || placement.value), "le placement", () => removePlacement(placement.id))}><Trash2 className="h-3.5 w-3.5" /></Button>
           </div>
 
           {/* Badges fiscaux + nantissement */}
@@ -544,7 +545,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
                     </Select>
                   </Field>
                   <MoneyField label="% part" value={beneficiary.share} onChange={(e) => updatePlacementBeneficiary(index, bIndex, "share", e.target.value)} compact />
-                  <Button variant="outline" className="h-8 w-8 rounded-xl p-0" onClick={() => removePlacementBeneficiary(index, bIndex)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  <Button variant="outline" aria-label="Supprimer le beneficiaire" className="h-8 w-8 rounded-xl p-0" onClick={() => confirmRemove(!!(beneficiary.name || beneficiary.share), "le beneficiaire", () => removePlacementBeneficiary(index, bIndex))}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               ))}
             </div>
