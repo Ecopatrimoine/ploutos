@@ -8,7 +8,7 @@ import { parseNum, formatEur, dmtgSummary } from "../../lib/accueil/quickCalc";
 import { DONATION_RELATIONS, BRAND } from "../../constants";
 
 export function DmtgCalc({ onClose }: { onClose: () => void }) {
-  const [montant, setMontant] = useState("100 000");
+  const [montant, setMontant] = useState("");
   const [relation, setRelation] = useState("enfant");
 
   const r = dmtgSummary(parseNum(montant), relation);
@@ -27,7 +27,7 @@ export function DmtgCalc({ onClose }: { onClose: () => void }) {
       <div className="qc-body">
         <div className="qc-field">
           <label htmlFor="qc-dmtg-mnt">Montant transmis</label>
-          <input id="qc-dmtg-mnt" className="ploutos-field" inputMode="numeric" value={montant} onChange={(e) => setMontant(e.target.value)} />
+          <input id="qc-dmtg-mnt" className="ploutos-field" inputMode="numeric" placeholder="ex. 100 000" value={montant} onChange={(e) => setMontant(e.target.value)} />
         </div>
         <div className="qc-field" style={{ gridColumn: "span 2" }}>
           <label htmlFor="qc-dmtg-rel">Lien de parenté</label>

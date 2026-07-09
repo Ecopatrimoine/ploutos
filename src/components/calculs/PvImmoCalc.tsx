@@ -8,9 +8,9 @@ import { Building2, X } from "lucide-react";
 import { parseNum, formatEur, formatPct, pvImmoSummary } from "../../lib/accueil/quickCalc";
 
 export function PvImmoCalc({ onClose }: { onClose: () => void }) {
-  const [acq, setAcq] = useState("200 000");
-  const [cession, setCession] = useState("300 000");
-  const [duree, setDuree] = useState("10");
+  const [acq, setAcq] = useState("");
+  const [cession, setCession] = useState("");
+  const [duree, setDuree] = useState("");
 
   const prixCession = parseNum(cession);
   const r = pvImmoSummary(parseNum(acq), prixCession, parseNum(duree));
@@ -29,15 +29,15 @@ export function PvImmoCalc({ onClose }: { onClose: () => void }) {
       <div className="qc-body">
         <div className="qc-field">
           <label htmlFor="qc-pv-acq">Prix d'acquisition</label>
-          <input id="qc-pv-acq" className="ploutos-field" inputMode="numeric" value={acq} onChange={(e) => setAcq(e.target.value)} />
+          <input id="qc-pv-acq" className="ploutos-field" inputMode="numeric" placeholder="ex. 200 000" value={acq} onChange={(e) => setAcq(e.target.value)} />
         </div>
         <div className="qc-field">
           <label htmlFor="qc-pv-cess">Prix de cession</label>
-          <input id="qc-pv-cess" className="ploutos-field" inputMode="numeric" value={cession} onChange={(e) => setCession(e.target.value)} />
+          <input id="qc-pv-cess" className="ploutos-field" inputMode="numeric" placeholder="ex. 300 000" value={cession} onChange={(e) => setCession(e.target.value)} />
         </div>
         <div className="qc-field">
           <label htmlFor="qc-pv-duree">Durée de détention (années)</label>
-          <input id="qc-pv-duree" className="ploutos-field" inputMode="numeric" value={duree} onChange={(e) => setDuree(e.target.value)} />
+          <input id="qc-pv-duree" className="ploutos-field" inputMode="numeric" placeholder="ex. 10" value={duree} onChange={(e) => setDuree(e.target.value)} />
         </div>
       </div>
 

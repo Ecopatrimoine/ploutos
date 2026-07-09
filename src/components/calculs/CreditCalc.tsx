@@ -6,9 +6,9 @@ import { Landmark, X } from "lucide-react";
 import { parseNum, formatEur, creditSummary } from "../../lib/accueil/quickCalc";
 
 export function CreditCalc({ onClose }: { onClose: () => void }) {
-  const [capital, setCapital] = useState("250 000");
-  const [taux, setTaux] = useState("3,4");
-  const [duree, setDuree] = useState("20");
+  const [capital, setCapital] = useState("");
+  const [taux, setTaux] = useState("");
+  const [duree, setDuree] = useState("");
 
   const r = creditSummary(parseNum(capital), parseNum(taux), parseNum(duree));
   const kpi = (v: number, suffix = "") => (r.valid ? `${formatEur(v)}${suffix}` : "—");
@@ -26,15 +26,15 @@ export function CreditCalc({ onClose }: { onClose: () => void }) {
       <div className="qc-body">
         <div className="qc-field">
           <label htmlFor="qc-cap">Capital emprunté</label>
-          <input id="qc-cap" className="ploutos-field" inputMode="numeric" value={capital} onChange={(e) => setCapital(e.target.value)} />
+          <input id="qc-cap" className="ploutos-field" inputMode="numeric" placeholder="ex. 250 000" value={capital} onChange={(e) => setCapital(e.target.value)} />
         </div>
         <div className="qc-field">
           <label htmlFor="qc-taux">Taux annuel (%)</label>
-          <input id="qc-taux" className="ploutos-field" inputMode="decimal" value={taux} onChange={(e) => setTaux(e.target.value)} />
+          <input id="qc-taux" className="ploutos-field" inputMode="decimal" placeholder="ex. 3,4" value={taux} onChange={(e) => setTaux(e.target.value)} />
         </div>
         <div className="qc-field">
           <label htmlFor="qc-duree">Durée (années)</label>
-          <input id="qc-duree" className="ploutos-field" inputMode="numeric" value={duree} onChange={(e) => setDuree(e.target.value)} />
+          <input id="qc-duree" className="ploutos-field" inputMode="numeric" placeholder="ex. 20" value={duree} onChange={(e) => setDuree(e.target.value)} />
         </div>
       </div>
 
