@@ -17,6 +17,7 @@ import { euro } from "../../lib/calculs/utils";
 import { membresFamille } from "../../lib/prevoyance/membres-famille";
 import { mapMembreToDonationRelation, getDonationTaxProfile } from "../../lib/calculs/donation";
 import type { PatrimonialData, DonationPassee } from "../../types/patrimoine";
+import { useEscapeToClose } from "../../hooks/useEscapeToClose";
 
 type Props = {
   open: boolean;
@@ -29,6 +30,7 @@ type Props = {
 };
 
 export function DonationPasseeModal({ open, donation, data, person1, person2, upd, onClose }: Props) {
+  useEscapeToClose(onClose, open);
   if (!open || !donation) return null;
   const don = donation;
   // Relation deduite vis-a-vis du DONATEUR (E1) : N = donateur, PAS le deces simule.

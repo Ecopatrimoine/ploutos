@@ -13,6 +13,8 @@ import { CardAccentTop } from "../CardAccentTop";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Settings, FileText, Database, Ruler, Landmark, AlertTriangle, Check, X } from "lucide-react";
+import { useEscapeToClose } from "../../hooks/useEscapeToClose";
+import { useDebouncedAction } from "../../hooks/useDebouncedAction";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, labelPlacement, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, DONATION_RELATIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
@@ -45,6 +47,17 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
   const [editingDon, setEditingDon] = React.useState<number | null>(null); // registre donations (pivot E2)
   const [showActifModal, setShowActifModal] = React.useState(false);
   const [showAvModal, setShowAvModal] = React.useState(false);
+
+  // Lot 8 C1 — Echap ferme chaque modale maison de l'onglet succession.
+  useEscapeToClose(() => setLegsPickerOpen(null), legsPickerOpen !== null);
+  useEscapeToClose(() => setShowAvModal(false), showAvModal);
+  useEscapeToClose(() => setShowActifModal(false), showActifModal);
+  useEscapeToClose(() => setSelectedHeir(null), selectedHeir !== null);
+
+  // Lot 8 C2 — anti double-clic sur les ajouts de legs precis.
+  const addLegsPrecisItemD = useDebouncedAction(addLegsPrecisItem);
+  const addLegsPrecisItemFreeD = useDebouncedAction(addLegsPrecisItemFree);
+  const addLegsPrecisItemResidualD = useDebouncedAction(addLegsPrecisItemResidual);
 
   // Biens concernés par une donation
   const donatedAssetNames = React.useMemo(() => {
@@ -296,9 +309,9 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                 <div className="text-xs text-slate-500 mt-0.5">Chaque bien peut être réparti entre plusieurs légataires</div>
               </div>
               <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" className="h-8 rounded-xl px-3 text-xs" onClick={addLegsPrecisItem}><Plus className="mr-1.5 h-3.5 w-3.5" />Bien de la collecte</Button>
-                <Button variant="outline" className="h-8 rounded-xl px-3 text-xs" onClick={addLegsPrecisItemFree}><Plus className="mr-1.5 h-3.5 w-3.5" />Bien libre</Button>
-                <Button variant="outline" className="h-8 rounded-xl px-3 text-xs" style={{ borderColor: BRAND.gold, color: BRAND.gold }} onClick={addLegsPrecisItemResidual}><Plus className="mr-1.5 h-3.5 w-3.5" />Reste du patrimoine</Button>
+                <Button variant="outline" className="h-8 rounded-xl px-3 text-xs" onClick={addLegsPrecisItemD}><Plus className="mr-1.5 h-3.5 w-3.5" />Bien de la collecte</Button>
+                <Button variant="outline" className="h-8 rounded-xl px-3 text-xs" onClick={addLegsPrecisItemFreeD}><Plus className="mr-1.5 h-3.5 w-3.5" />Bien libre</Button>
+                <Button variant="outline" className="h-8 rounded-xl px-3 text-xs" style={{ borderColor: BRAND.gold, color: BRAND.gold }} onClick={addLegsPrecisItemResidualD}><Plus className="mr-1.5 h-3.5 w-3.5" />Reste du patrimoine</Button>
               </div>
             </div>
             {migratedItems.length === 0 && <div className="text-sm text-slate-500 text-center py-4">Aucun bien défini. Ajoutez un bien ci-dessus.</div>}

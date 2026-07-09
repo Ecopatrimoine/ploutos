@@ -1,6 +1,7 @@
 import React from "react";
 import { BRAND, SURFACE } from "../constants";
 import { X } from "lucide-react";
+import { useEscapeToClose } from "../hooks/useEscapeToClose";
 
 // Modale d'ajout d'actif générique et 100% data-driven (placements OU biens).
 // Même squelette que LoanModal (overlay sombre + carte blanche + en-tête titre/
@@ -26,13 +27,20 @@ interface Props {
 export function AssetPickerModal({ open, title, groups, onClose, onPick }: Props) {
   const panelRef = React.useRef<HTMLDivElement>(null);
 
+  useEscapeToClose(onClose, open);
   React.useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    panelRef.current?.focus(); // focus le panneau a l'ouverture
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+    if (open) panelRef.current?.focus(); // focus le panneau a l'ouverture
+  }, [open]);
+
+  // Lot 8 C2 — un seul ajout par ouverture : un double-clic rapide sur une
+  // tuile (avant que le parent ne ferme la modale) ne cree qu'une ligne.
+  const pickedRef = React.useRef(false);
+  React.useEffect(() => { if (open) pickedRef.current = false; }, [open]);
+  const handlePick = (value: string) => {
+    if (pickedRef.current) return;
+    pickedRef.current = true;
+    onPick(value);
+  };
 
   if (!open) return null;
 
@@ -79,7 +87,7 @@ export function AssetPickerModal({ open, title, groups, onClose, onPick }: Props
                     key={item.value}
                     type="button"
                     title={`Ajouter : ${item.label}`}
-                    onClick={() => onPick(item.value)}
+                    onClick={() => handlePick(item.value)}
                     className="text-left rounded-xl border px-3 py-2 text-sm font-medium transition-colors hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#26428B]"
                     style={{ background: group.color.fill, borderColor: group.color.solid, color: group.color.solid }}
                   >
