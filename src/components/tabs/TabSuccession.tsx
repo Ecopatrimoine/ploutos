@@ -208,11 +208,11 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                 </div>
                 {heir.propertyRight === "usufruct" && age && dePercent && (
                   <div className="text-xs rounded-xl px-3 py-1.5" style={{ background: "rgba(81,106,199,0.06)", color: BRAND.sky }}>
-                    <Ruler className="h-3.5 w-3.5 inline-block" aria-hidden="true" /> Barème Duvergier — âge {age} ans : US = <strong>{Math.round(dePercent.usufruct * 100)}%</strong> / NP = <strong>{Math.round(dePercent.nuePropriete * 100)}%</strong>
+                    <Ruler className="h-3.5 w-3.5 inline-block" aria-hidden="true" /> Barème fiscal (art. 669 CGI) — âge {age} ans : US = <strong>{Math.round(dePercent.usufruct * 100)}%</strong> / NP = <strong>{Math.round(dePercent.nuePropriete * 100)}%</strong>
                   </div>
                 )}
                 {heir.propertyRight === "usufruct" && !heir.birthDate && (
-                  <div className="text-xs px-1" style={{ color: BRAND.warning }}><AlertTriangle className="h-3.5 w-3.5 inline-block" aria-hidden="true" /> Date de naissance requise pour le barème Duvergier</div>
+                  <div className="text-xs px-1" style={{ color: BRAND.warning }}><AlertTriangle className="h-3.5 w-3.5 inline-block" aria-hidden="true" /> Date de naissance requise pour le barème fiscal (art. 669 CGI)</div>
                 )}
                 {(isUS || isNP) && (
                   <div className="rounded-xl border p-2.5 space-y-2" style={{ borderColor: SURFACE.border, background: "rgba(255,255,255,0.6)" }}>
@@ -362,7 +362,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                             <Button variant="outline" className="h-8 w-8 rounded-xl p-0 mb-0.5" onClick={() => removeLegataire(itemIdx, legIdx)}><Trash2 className="h-3.5 w-3.5" /></Button>
                           </div>
                           <div className="flex items-center gap-3 flex-wrap">
-                            <Field label="Date de naissance" tooltip={isDismembered ? "Requise pour le barème Duvergier." : "Optionnelle."}>
+                            <Field label="Date de naissance" tooltip={isDismembered ? "Requise pour le barème fiscal (art. 669 CGI)." : "Optionnelle."}>
                               <DateFr value={leg.heirBirthDate} onChange={(iso) => updateLegataire(itemIdx, legIdx, "heirBirthDate", iso || "")} className="rounded-xl h-8 text-sm w-44" />
                             </Field>
                             {assetValue > 0 && (
@@ -601,18 +601,19 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
           : (data.person2BirthDate ? getAgeFromBirthDate(data.person2BirthDate) : null);
         return (
           <SectionAccordion title="Épargne hors succession" summary={`${avCapital > 0 ? `${euro(avNet)} net AV` : ""}${avCapital > 0 && perTotal > 0 ? " · " : ""}${perTotal > 0 ? `${euro(perTotal)} PER` : ""}`}>
-            {/* A3 — AV + PER fusionnés en UNE card à deux zones séparées par une oblique
-                (marine AV à gauche, or PER à droite). Repli responsive : séparation verticale
-                sous 900px, empilement sous 600px. Contenus inchangés. */}
-            <div className="rounded-2xl overflow-hidden flex flex-col min-[600px]:flex-row" style={{ border: "1px solid rgba(227,175,100,0.4)", boxShadow: "0 2px 12px rgba(16,27,59,0.07)" }}>
-              {/* Zone AV (marine, gauche) — oblique à droite en desktop */}
+            {/* A5/A6 — AV + PER fusionnés : BANDEAU supérieur en dégradé incliné marine→or
+                (bord lisse, ambiances conservées), hauteur d'en-tête uniforme (min-h commune),
+                l'encart « régime fiscal » PER descend dans le corps, aligné avec la rangée AV.
+                Repli : empilement sous 600px (chaque zone garde sa couleur pleine). */}
+            <div className="rounded-2xl overflow-hidden relative flex flex-col min-[600px]:flex-row min-[600px]:items-stretch" style={{ border: "1px solid rgba(227,175,100,0.4)", boxShadow: "0 2px 12px rgba(16,27,59,0.07)", background: SURFACE.card }}>
+              {/* Bandeau dégradé incliné (desktop uniquement) — bord lisse garanti par le fondu 47→53 % */}
+              {avCapital > 0 && perTotal > 0 && (
+                <div className="hidden min-[600px]:block absolute top-0 left-0 right-0 pointer-events-none" style={{ height: 88, zIndex: 0, background: `linear-gradient(100deg, ${BRAND.navy} 0%, ${BRAND.navy} 47%, ${BRAND.gold} 53%, ${BRAND.gold} 100%)` }} />
+              )}
+              {/* Zone AV (marine) */}
               {avCapital > 0 && (
-                <div
-                  onClick={() => setShowAvModal(true)}
-                  className={`flex-1 cursor-pointer ${avCapital > 0 && perTotal > 0 ? "min-[900px]:[clip-path:polygon(0_0,100%_0,calc(100%-28px)_100%,0_100%)]" : ""}`}
-                  style={{ background: SURFACE.card }}
-                >
-                  <div style={{ background: `linear-gradient(120deg, ${BRAND.navy} 0%, ${BRAND.navyLight} 100%)`, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div onClick={() => setShowAvModal(true)} className="flex-1 cursor-pointer flex flex-col relative" style={{ zIndex: 1 }}>
+                  <div className={`flex items-center justify-between bg-[#0F172A] ${perTotal > 0 ? "min-[600px]:bg-transparent" : ""}`} style={{ minHeight: 88, padding: "14px 18px" }}>
                     <div>
                       <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "11px", fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase" }}>Assurances-vie</div>
                       <div style={{ color: "#fff", fontSize: "20px", fontWeight: 700, marginTop: "2px" }}>{euro(avCapital)}</div>
@@ -620,10 +621,10 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                     <div style={{ textAlign: "right" }}>
                       <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "11px" }}>Net transmis</div>
                       <div style={{ color: avNet >= avCapital * 0.85 ? "#86efac" : "#fcd34d", fontSize: "16px", fontWeight: 700 }}>{euro(avNet)}</div>
-                      <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: "6px", padding: "3px 8px", fontSize: "11px", color: "rgba(255,255,255,0.8)", marginTop: "4px", display: "inline-block" }}>Voir le détail ↗</div>
+                      <div style={{ background: "rgba(255,255,255,0.18)", borderRadius: "6px", padding: "3px 8px", fontSize: "11px", color: "#fff", marginTop: "4px", display: "inline-block" }}>Voir le détail ↗</div>
                     </div>
                   </div>
-                  <div style={{ padding: "12px 18px", display: "flex", gap: "0" }}>
+                  <div className="flex-1" style={{ padding: "12px 18px", display: "flex", gap: "0", background: SURFACE.card }}>
                     {[
                       { label: "Capital", value: euro(avCapital), color: BRAND.navy },
                       { label: "Fiscalité 990I", value: avTax990I > 0 ? "−" + euro(avTax990I) : "Exonéré", color: avTax990I > 0 ? BRAND.warning : BRAND.success },
@@ -637,17 +638,14 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                   </div>
                 </div>
               )}
-              {/* Zone PER (or, droite) — oblique à gauche (chevauche l'AV) en desktop */}
+              {/* Zone PER (or) */}
               {perTotal > 0 && (
-                <div
-                  className={`flex-1 ${avCapital > 0 && perTotal > 0 ? "min-[900px]:-ml-[28px] min-[900px]:[clip-path:polygon(28px_0,100%_0,100%_100%,0_100%)]" : ""}`}
-                  style={{ background: SURFACE.card }}
-                >
-                  <div style={{ background: `linear-gradient(120deg, ${BRAND.gold} 0%, #D5A350 100%)`, padding: "14px 18px 14px 30px" }}>
-                    <div style={{ color: "rgba(255,255,255,0.75)", fontSize: "11px", fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase" }}>Plan Épargne Retraite</div>
+                <div className="flex-1 flex flex-col relative" style={{ zIndex: 1 }}>
+                  <div className={`flex flex-col justify-center bg-[#C4973D] ${avCapital > 0 ? "min-[600px]:bg-transparent" : ""}`} style={{ minHeight: 88, padding: "14px 18px" }}>
+                    <div style={{ color: "rgba(255,255,255,0.85)", fontSize: "11px", fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase" }}>Plan Épargne Retraite</div>
                     <div style={{ color: "#fff", fontSize: "20px", fontWeight: 700, marginTop: "2px" }}>{euro(perTotal)}</div>
                   </div>
-                  <div style={{ padding: "12px 16px 12px 30px" }}>
+                  <div className="flex-1" style={{ padding: "12px 18px", background: SURFACE.card }}>
                     <div style={{ fontSize: "11px", color: BRAND.muted, marginBottom: "8px" }}>Régime fiscal au décès</div>
                     <div style={{
                       borderRadius: "8px", padding: "8px 10px",
@@ -1043,7 +1041,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                       {([
                         { label: "Quotité NP reçue", value: Math.round(heir.nueFraction * 100) + "% de l'actif", hint: null },
                         { label: "Barème fiscal de l'usufruit — art. 669 CGI", value: Math.round(npPct * 100) + "%", hint: "Valorisation fiscale de la NP selon l'âge de l'usufruitier" },
-                        { label: "Valeur taxable NP", value: euro(heir.nueValue), color: BRAND.navy, bold: true, hint: "Valeur économique × coefficient Duvergier → base taxable" },
+                        { label: "Valeur taxable NP", value: euro(heir.nueValue), color: BRAND.navy, bold: true, hint: "Valeur économique × coefficient (art. 669 CGI) → base taxable" },
                         { label: "Valeur PP au décès de l'usufruitier", value: euro(heir.nueRawValue), color: BRAND.success, bold: true, hint: "Récupère la pleine propriété sans droits supplémentaires" },
                       ] as any[]).map((row, i) => (
                         <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "5px 0", borderBottom: "1px solid rgba(81,106,199,0.1)" }}>
@@ -1068,7 +1066,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                       {([
                         { label: "Quotité US reçue", value: Math.round(heir.usufructFraction * 100) + "% de l'actif", hint: null },
                         { label: "Barème fiscal de l'usufruit — art. 669 CGI", value: Math.round(usPct * 100) + "%", hint: "Valorisation fiscale de l'usufruit selon l'âge de l'usufruitier" },
-                        { label: "Valeur de l'usufruit reçu", value: euro(heir.usufructFiscalValue), color: BRAND.navy, bold: true, hint: "Valeur PP × quotité × coefficient Duvergier" },
+                        { label: "Valeur de l'usufruit reçu", value: euro(heir.usufructFiscalValue), color: BRAND.navy, bold: true, hint: "Valeur PP × quotité × coefficient (art. 669 CGI)" },
                       ] as any[]).map((row, i) => (
                         <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "5px 0", borderBottom: "1px solid rgba(81,106,199,0.1)" }}>
                           <div>
@@ -1092,7 +1090,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                   // Biens en PP si présents
                   ...(heir.grossReceived > 0 ? [{ label: "Biens en pleine propriété", value: euro(heir.grossReceived), hint: "Part de l'actif successoral reçue en PP", separator: false }] : []),
                   // NP si présente
-                  ...(heir.nueRawValue > 0 ? [{ label: "Valeur taxable NP", value: euro(heir.nueValue), hint: "Valeur économique NP × coefficient Duvergier", separator: false }] : []),
+                  ...(heir.nueRawValue > 0 ? [{ label: "Valeur taxable NP", value: euro(heir.nueValue), hint: "Valeur économique NP × coefficient (art. 669 CGI)", separator: false }] : []),
                   // Sous-total si les deux sont présents
                   ...(heir.grossReceived > 0 && heir.nueRawValue > 0 ? [{ label: "Total base brute", value: euro(baseRecue), hint: null, separator: true }] : []),
                   { label: "Abattement légal", value: "−" + euro(abattementAffiche), color: BRAND.success, hint: abattementDetail },
