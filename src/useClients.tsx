@@ -210,6 +210,18 @@ export function hasClientData(record: ClientRecord | null | undefined): boolean 
   return true; // valeur data non-objet non nulle → consideree presente
 }
 
+// LOT 10d N11 — résolution des Notes de synthèse au CHARGEMENT d'un dossier.
+// Bug corrigé : `if (payload.notes) setNotes(...)` traitait la chaîne VIDE comme une
+// absence (règle L1 « payload vide » appliquée au niveau CHAMP au lieu du niveau
+// DOSSIER) -> une suppression volontaire était ignorée et l'ancienne note ressuscitait.
+// Règle correcte : la protection L1 est de niveau dossier (un payload SANS data ne
+// supplante pas -> on garde la note courante) ; pour un VRAI dossier (avec data), une
+// note vide "" est une valeur légitime -> on l'applique. Pure & testable.
+export function resolveLoadedNotes(payload: ClientPayload | null | undefined, currentNotes: string): string {
+  if (!hasClientData({ payload } as ClientRecord)) return currentNotes; // L1 : ne pas écraser
+  return typeof payload?.notes === "string" ? payload.notes : "";
+}
+
 // Departage pur entre deux versions d'un MEME dossier (meme id).
 // Regle : le plus recent (updatedAt) gagne, SAUF s'il est vide face a un non-vide
 // (un payload sans data ne supplante JAMAIS un payload avec data) ; a updatedAt
@@ -239,6 +251,37 @@ export function mergeClients(local: ClientRecord[], remote: ClientRecord[]): Cli
   return [...map.values()];
 }
 
+// N11 — anti-ecrasement de la synchro de fond par une edition de premier plan.
+// La synchro de fond calcule son resultat a partir d'un INSTANTANE remote capture au
+// montage (fetch en vol) + un freshLocal relu ensuite. Entre ce calcul et l'ecriture
+// dans le state, une edition de premier plan (typiquement la SUPPRESSION d'une note)
+// peut avoir atterri : ecrire l'instantane brut ecraserait alors cette edition, plus
+// recente, par une version perimee (et la re-pousserait au serveur -> la note ressuscite).
+// On re-departage donc chaque enregistrement de la synchro contre l'etat local COURANT
+// (prev) via pickClientWinner : un enregistrement de la synchro ne remplace prev que
+// s'il GAGNE (jamais une version plus ancienne n'ecrase une plus recente). Les dossiers
+// presents dans prev mais absents de la synchro (crees en premier plan pendant la
+// synchro) sont conserves ; les tombstones sont exclus. Pure & testable.
+export function reconcileSyncResult(
+  syncResult: ClientRecord[],
+  prev: ClientRecord[],
+  deletedIds: Set<string>,
+): ClientRecord[] {
+  const prevById = new Map(prev.map((c) => [c.id, c]));
+  const byId = new Map<string, ClientRecord>();
+  for (const c of syncResult) {
+    if (deletedIds.has(c.id)) continue; // tombstone : ne pas ressusciter (C3)
+    const cur = prevById.get(c.id);
+    byId.set(c.id, cur ? pickClientWinner(c, cur) : c);
+  }
+  // Dossiers presents en local courant mais absents de la synchro (crees en premier plan
+  // pendant qu'elle etait en vol) : les conserver, hors tombstones.
+  for (const c of prev) {
+    if (!byId.has(c.id) && !deletedIds.has(c.id)) byId.set(c.id, c);
+  }
+  return [...byId.values()];
+}
+
 // ─── HOOK PRINCIPAL ───────────────────────────────────────────────────────────
 
 export function useClients(userId: string, authState = "authenticated") {
@@ -259,21 +302,25 @@ export function useClients(userId: string, authState = "authenticated") {
     } catch { /* ignore */ }
   }, []);
 
+  // Lecture du local PERSISTE (localStorage web / IPC Electron). Partage entre le
+  // chargement initial ET syncNow : toute synchro doit merger contre le local persiste
+  // (porteur des editions/suppressions de premier plan deja ecrites), JAMAIS contre un
+  // etat React eventuellement vide au tout debut d'un reload — sinon mergeClients([],
+  // remote) adopte le remote perime en bloc et ecrase la suppression locale (bug N11).
+  const loadLocal = useCallback(async (): Promise<ClientRecord[]> => {
+    if (isElectron && electronAPI) {
+      const data = await electronAPI.readClients(userId).catch(() => []);
+      return Array.isArray(data) ? data : [];
+    }
+    return loadClientsLocal(userId);
+  }, [userId]);
+
   // ── Chargement initial ──
   useEffect(() => {
     if (!userId) { setClients([]); setSyncStatus("offline"); return; }
 
     pendingRef.current = loadPendingIds(userId);
     deletedRef.current = loadDeletedIds(userId); // tombstones persistes (C3)
-
-    // 1. Charger local immédiatement
-    const loadLocal = async () => {
-      if (isElectron && electronAPI) {
-        const data = await electronAPI.readClients(userId).catch(() => []);
-        return Array.isArray(data) ? data : [];
-      }
-      return loadClientsLocal(userId);
-    };
 
     let cancelled = false; // éviter les mises à jour si le composant est démonté
 
@@ -328,14 +375,32 @@ export function useClients(userId: string, authState = "authenticated") {
                 ? (freshById.get(c.id) as ClientRecord)
                 : c,
             );
-          setClients(guarded);
-          saveClientsLocal(userId, guarded);
+          // N11 anti-course : re-departage le resultat de la synchro contre l'etat React
+          // COURANT (prev). Une edition de premier plan atterrie entre-temps (ex :
+          // suppression de note, plus recente) n'est JAMAIS ecrasee par l'instantane
+          // remote perime. Meme garde que syncNow (merge contre prev), qui manquait ici.
+          setClients((prev) => {
+            const reconciled = reconcileSyncResult(guarded, prev, deletedRef.current);
+            saveClientsLocal(userId, reconciled);
+            return reconciled;
+          });
 
-          // Pousser les upserts en attente (version fraiche, porteuse des donnees).
+          // Laisser React committer avant de pousser les pending.
+          await Promise.resolve();
+
+          // Pousser les upserts en attente — sur la base d'une RELECTURE fraiche du local
+          // (porteuse d'une edition de premier plan deja persistee, ex : suppression de
+          // note), re-departagee contre le resultat de synchro : on ne pousse jamais une
+          // version perimee qui ferait ressusciter une suppression cote serveur.
           if (pendingRef.current.size > 0) {
-            const toSync = guarded.filter((c) => pendingRef.current.has(c.id));
+            const freshest = await loadLocal();
+            const reconciledForPush = reconcileSyncResult(guarded, freshest, deletedRef.current);
+            const byId = new Map(reconciledForPush.map((c) => [c.id, c]));
+            const toSync = [...pendingRef.current]
+              .map((id) => byId.get(id))
+              .filter((c): c is ClientRecord => !!c);
             await Promise.all(toSync.map((c) => upsertToSupabase(userId, c)));
-            pendingRef.current.clear();
+            for (const c of toSync) pendingRef.current.delete(c.id);
             savePendingIds(userId, pendingRef.current);
           }
           // Rejouer les suppressions en attente (tombstones) — INDEPENDANT du pending.
@@ -407,24 +472,35 @@ export function useClients(userId: string, authState = "authenticated") {
     try {
       const remoteClients = await fetchFromSupabase(userId);
 
-      // Un seul setState pour merger — on capture prev dans une ref pour la suite.
-      // Filtrer les tombstones : un dossier supprime localement (suppression serveur
-      // non confirmee) ne doit pas ressusciter du remote (C3).
-      let mergedSnapshot: ClientRecord[] = [];
+      // Merger contre le local PERSISTE (jamais contre un prev React eventuellement vide
+      // en tout debut de reload), puis reconcilier contre l'etat React courant pour ne
+      // pas perdre une edition encore plus fraiche. Filtrer les tombstones (C3). Sans
+      // cette base persistee, mergeClients([], remote) adopterait le remote perime en
+      // bloc et ferait ressusciter une suppression de note (N11).
+      const freshLocal = await loadLocal();
+      const merged = mergeClients(freshLocal, remoteClients).filter((c) => !deletedRef.current.has(c.id));
       setClients((prev) => {
-        mergedSnapshot = mergeClients(prev, remoteClients).filter((c) => !deletedRef.current.has(c.id));
-        saveClientsLocal(userId, mergedSnapshot);
-        return mergedSnapshot;
+        const reconciled = reconcileSyncResult(merged, prev, deletedRef.current);
+        saveClientsLocal(userId, reconciled);
+        return reconciled;
       });
 
       // Laisser React flusher le state avant de pousser les pending
       await Promise.resolve();
 
-      const toSync = mergedSnapshot.filter((c) => pendingRef.current.has(c.id));
+      // Pousser les pending sur une relecture fraiche du local (reconciliee), et ne
+      // retirer du pending QUE les ids reellement pousses (une edition arrivee entre-temps
+      // reste pending pour la prochaine synchro).
+      const freshest = await loadLocal();
+      const reconciledForPush = reconcileSyncResult(merged, freshest, deletedRef.current);
+      const byId = new Map(reconciledForPush.map((c) => [c.id, c]));
+      const toSync = [...pendingRef.current]
+        .map((id) => byId.get(id))
+        .filter((c): c is ClientRecord => !!c);
       if (toSync.length > 0) {
         await Promise.all(toSync.map((c) => upsertToSupabase(userId, c)));
       }
-      pendingRef.current.clear();
+      for (const c of toSync) pendingRef.current.delete(c.id);
       savePendingIds(userId, pendingRef.current);
 
       // Rejouer les suppressions ; ne lever un tombstone que si la ligne a bien
@@ -484,19 +560,27 @@ export function useClients(userId: string, authState = "authenticated") {
   // introuvable). Permet a l'autosave d'afficher un indicateur honnete.
   const saveClient = useCallback((id: string, payload: ClientPayload, displayName: string): Promise<boolean> => {
     const updatedAt = new Date().toISOString();
-    let updatedClient: ClientRecord | undefined;
+    // Construire l'enregistrement a pousser de facon SYNCHRONE (depuis le state courant),
+    // et NON depuis l'updater setClients : ce dernier peut etre differe par React quand le
+    // fiber a une mise a jour en attente ("eager state"), auquel cas `updatedClient` etait
+    // encore undefined au moment du test -> syncOne n'etait jamais appele et la sauvegarde
+    // (ex : suppression de note) ne partait pas au serveur (elle attendait la prochaine
+    // synchro). On garde le createdAt de l'existant ; a defaut, nouveau dossier.
+    const existing = clients.find((c) => c.id === id);
+    const updatedClient: ClientRecord = existing
+      ? { ...existing, payload, displayName, updatedAt }
+      : { id, displayName, createdAt: updatedAt, updatedAt, payload };
     setClients((prev) => {
       const next = prev.map((c) =>
         c.id === id ? { ...c, payload, displayName, updatedAt } : c
       );
       persist(userId, next, id);
-      updatedClient = next.find((c) => c.id === id);
       return next;
     });
     // Side effects HORS du setState
-    if (updatedClient) { setSyncStatus("pending"); return syncOne(userId, updatedClient); }
-    return Promise.resolve(false);
-  }, [userId, persist, syncOne]);
+    setSyncStatus("pending");
+    return syncOne(userId, updatedClient);
+  }, [userId, persist, syncOne, clients]);
 
   // Retrait local d'un dossier (+ purge pending ; tombstone si suppression serveur
   // pas encore confirmee). saveClientsLocal ecrit le localStorage sans le dossier.
