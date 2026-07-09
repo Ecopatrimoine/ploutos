@@ -204,25 +204,25 @@ const TabIR = React.memo(function TabIR(props: any) {
         <KpiRoiCard
           title={roiTitle}
           amount={euro(ir.finalIR)}
-          accent={BRAND.danger}
           lines={roiLines}
           tooltip={ir.isConcubin
             ? "Somme des impôts des 2 foyers fiscaux (concubinage). Détail par foyer ci-dessus."
             : "Impôt total du foyer, tout compris : barème progressif net des réductions, PFU et prélèvements sociaux. Chaque ligne y contribue et la somme égale ce total."}
           note={ir.finalIR <= 0 ? "Aucun impôt dû cette année sur les revenus saisis." : undefined}
         />
-        {/* Contexte */}
-        <div className="rounded-2xl px-5 py-4 flex flex-col justify-center gap-3" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
-          <div>
+        {/* Contexte (A1) — 3 sous-cards distinctes : revenu net au-dessus, puis TMI et
+             taux moyen côte à côte. La colonne s'étire (stretch) à la hauteur de la carte-roi. */}
+        <div className="flex flex-col gap-3">
+          <div className="rounded-2xl px-4 py-3 flex-1 flex flex-col justify-center" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
             <div className="text-[11px] font-bold uppercase tracking-wider flex items-center" style={{ color: BRAND.muted }}>
               {revenuLabel}
               <HelpTooltip text={ir.isConcubin ? "Revenu net imposable du foyer fiscal sélectionné (bascule via le switch ci-dessus)." : "Salaires + revenus fonciers + pensions + BNC/BIC, après déductions (frais pro, PER, charges)."} label={revenuLabel} />
             </div>
-            <div className="font-black mt-1" style={{ color: BRAND.navy, fontSize: 26, lineHeight: 1.05 }}>{euro(ir.revenuNetGlobal)}</div>
+            <div className="font-black mt-1" style={{ color: BRAND.navy, fontSize: 24, lineHeight: 1.05 }}>{euro(ir.revenuNetGlobal)}</div>
             <div className="text-[11px] mt-0.5" style={{ color: BRAND.muted }}>· {plur(ir.parts, "part")}</div>
           </div>
-          <div className="grid grid-cols-2 gap-3 border-t pt-3" style={{ borderColor: SURFACE.border }}>
-            <div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl px-4 py-3 flex flex-col justify-center" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
               <div className="text-[11px] font-bold uppercase tracking-wider flex items-center" style={{ color: BRAND.muted }}>
                 TMI
                 <HelpTooltip text="Taux Marginal d'Imposition : tranche du barème atteinte par le quotient familial. Sous plafonnement du QF, la tranche réelle de référence s'affiche." label="TMI" />
@@ -230,7 +230,7 @@ const TabIR = React.memo(function TabIR(props: any) {
               <div className="font-black mt-1" style={{ color: BRAND.navy, fontSize: 20 }}>{Math.round(tmiView.tmiAffichee * 100)} %</div>
               {tmiView.sousTexteCard && <div className="text-[10.5px] mt-0.5 font-semibold" style={{ color: BRAND.goldText }}>{tmiView.sousTexteCard}</div>}
             </div>
-            <div>
+            <div className="rounded-2xl px-4 py-3 flex flex-col justify-center" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
               <div className="text-[11px] font-bold uppercase tracking-wider flex items-center" style={{ color: BRAND.muted }}>
                 Taux moyen
                 <HelpTooltip text="Impôt total rapporté au revenu net imposable : le taux effectivement supporté." label="Taux moyen" />

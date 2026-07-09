@@ -14,8 +14,7 @@ import type { Child, Property, Placement, PatrimonialData, IrOptions, Succession
 import { n, euro, plur, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge, EmptyState } from "../shared";
-import { KpiRoiCard, SectionAccordion, type KpiRoiLine } from "../analysis";
-import { buildIfiRoiCard } from "../../lib/analysis/ifiPresentation";
+import { SectionAccordion } from "../analysis";
 import { ifiEstVide } from "../../lib/gardefous";
 
 
@@ -24,11 +23,8 @@ const TabIFI = React.memo(function TabIFI(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
   const { data, ifi, onGoToCollecte, person1, person2 } = props;
 
-  // Carte-roi (Lot 10b) — décomposition « IFI barème − décote » réconciliée (ZÉRO recalcul).
-  const roi = buildIfiRoiCard(ifi);
-  const roiLines: KpiRoiLine[] = roi.lines.map((l) => ({
-    label: l.label, value: euro(Math.abs(l.value)), detail: l.detail, tooltip: l.tooltip, negative: l.negative,
-  }));
+  // A3 (addendum 10b) : l'acte 1 IFI garde ses KPI d'origine (décision David : pas de
+  // carte-roi pour l'IFI). Seuls les accordéons (acte 3) et le barème (acte 2) sont Lot 10b.
   const depasse = ifi.netTaxable >= 1300000;
 
   return (
@@ -43,47 +39,36 @@ const TabIFI = React.memo(function TabIFI(props: any) {
         </EmptyState>
       ) : (<>
 
-      {/* ══ ACTE 1 — L'ESSENTIEL ══ Carte-roi « IFI dû » (gauche, dominant) + contexte
-           « patrimoine net taxable » et proximité du seuil 1,3 M€ (droite). */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <KpiRoiCard
-          title="IFI dû"
-          amount={euro(roi.total)}
-          accent={BRAND.danger}
-          lines={roiLines}
-          tooltip="IFI net dû = IFI au barème − décote. Exigible uniquement au-delà de 1 300 000 € d'actif net taxable."
-          note={roi.belowThreshold ? "Patrimoine sous le seuil de 1,3 M€ — IFI non exigible cette année." : undefined}
-        />
-        {/* Contexte : patrimoine net taxable + proximité du seuil */}
-        <div className="rounded-2xl px-5 py-4 flex flex-col justify-center" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
-          <div className="text-[11px] font-bold uppercase tracking-wider flex items-center" style={{ color: BRAND.muted }}>
-            Patrimoine net taxable
-            <HelpTooltip text="Valeur brute des biens immobiliers − passif déductible − abattement de 30 % sur la résidence principale." label="Patrimoine net taxable" />
-          </div>
-          <div className="font-black mt-1" style={{ color: BRAND.navy, fontSize: 28, lineHeight: 1.05 }}>{euro(ifi.netTaxable)}</div>
-          <div className="mt-3 pt-3 border-t" style={{ borderColor: SURFACE.border }}>
-            <div className="flex justify-between text-xs mb-2" style={{ color: BRAND.muted }}>
-              <span>0 €</span>
-              <span style={{ color: depasse ? BRAND.danger : BRAND.muted, fontWeight: 700 }}>Seuil IFI : 1 300 000 €</span>
-            </div>
-            <div style={{ height: 8, background: SURFACE.border, borderRadius: 4, overflow: "hidden", position: "relative" }}>
-              <div style={{
-                width: `${Math.min(100, ifi.netTaxable / 1300000 * 100)}%`,
-                height: "100%",
-                background: depasse
-                  ? `linear-gradient(90deg, ${BRAND.gold}, ${BRAND.danger})`
-                  : `linear-gradient(90deg, ${BRAND.success}, ${BRAND.gold})`,
-                borderRadius: 4,
-                transition: "width 0.3s",
-              }} />
-              {!depasse && <div style={{ position: "absolute", right: 0, top: -2, bottom: -2, width: 2, background: BRAND.danger }} />}
-            </div>
-            <div className="mt-2 text-xs font-bold" style={{ color: depasse ? BRAND.danger : BRAND.success }}>
-              {depasse
-                ? <><AlertTriangle className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />Seuil IFI dépassé de {euro(ifi.netTaxable - 1300000)}</>
-                : `↓ ${euro(1300000 - ifi.netTaxable)} sous le seuil — pas d'IFI`}
-            </div>
-          </div>
+      {/* ══ ACTE 1 — L'ESSENTIEL ══ (A3) KPI d'origine + indicateur de proximité du seuil. */}
+      <div className="grid gap-3 md:grid-cols-4">
+        <MetricCard label="Actif net taxable IFI" value={euro(ifi.netTaxable)} hint="Valeur brute des biens − passif déductible − abattement RP 30 %" accent="navy" />
+        <MetricCard label="IFI brut" value={euro(ifi.grossIfi)} hint="IFI calculé par le barème progressif avant décote" accent="gold" />
+        <MetricCard label="Décote" value={euro(ifi.decote)} hint="Réduction appliquée si l'actif net taxable est entre 1,3 M€ et 1,4 M€. Calcul : 17 500 − 1,25 % × actif net" accent="green" />
+        <MetricCard label="IFI net dû" value={euro(ifi.ifi)} hint="IFI brut − décote. Exigible uniquement si l'actif net taxable dépasse 1 300 000 €" accent="red" />
+      </div>
+
+      {/* Indicateur de proximité seuil IFI */}
+      <div className="border p-4" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow, background: SURFACE.card }}>
+        <div className="flex justify-between text-xs mb-2" style={{ color: BRAND.muted }}>
+          <span>0 €</span>
+          <span style={{ color: depasse ? BRAND.danger : BRAND.muted, fontWeight: 700 }}>Seuil IFI : 1 300 000 €</span>
+        </div>
+        <div style={{ height: 8, background: SURFACE.border, borderRadius: 4, overflow: "hidden", position: "relative" }}>
+          <div style={{
+            width: `${Math.min(100, ifi.netTaxable / 1300000 * 100)}%`,
+            height: "100%",
+            background: depasse
+              ? `linear-gradient(90deg, ${BRAND.gold}, ${BRAND.danger})`
+              : `linear-gradient(90deg, ${BRAND.success}, ${BRAND.gold})`,
+            borderRadius: 4,
+            transition: "width 0.3s",
+          }} />
+          {!depasse && <div style={{ position: "absolute", right: 0, top: -2, bottom: -2, width: 2, background: BRAND.danger }} />}
+        </div>
+        <div className="mt-2 text-xs font-bold" style={{ color: depasse ? BRAND.danger : BRAND.success }}>
+          {depasse
+            ? <><AlertTriangle className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />Seuil IFI dépassé de {euro(ifi.netTaxable - 1300000)}</>
+            : `↓ ${euro(1300000 - ifi.netTaxable)} sous le seuil — pas d'IFI`}
         </div>
       </div>
 
