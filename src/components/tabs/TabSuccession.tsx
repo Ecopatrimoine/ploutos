@@ -608,12 +608,13 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
             <div className="rounded-2xl overflow-hidden relative flex flex-col min-[600px]:flex-row min-[600px]:items-stretch" style={{ border: "1px solid rgba(227,175,100,0.4)", boxShadow: "0 2px 12px rgba(16,27,59,0.07)", background: SURFACE.card }}>
               {/* Bandeau dégradé incliné (desktop uniquement) — bord lisse garanti par le fondu 47→53 % */}
               {avCapital > 0 && perTotal > 0 && (
-                <div className="hidden min-[600px]:block absolute top-0 left-0 right-0 pointer-events-none" style={{ height: 88, zIndex: 0, background: `linear-gradient(100deg, ${BRAND.navy} 0%, ${BRAND.navy} 47%, ${BRAND.gold} 53%, ${BRAND.gold} 100%)` }} />
+                <div className="hidden min-[600px]:block absolute top-0 left-0 right-0 pointer-events-none" style={{ height: 88, zIndex: 0, background: `linear-gradient(100deg, ${BRAND.navy} 0%, ${BRAND.navy} 62%, ${BRAND.gold} 71%, ${BRAND.gold} 100%)` }} />
               )}
               {/* Zone AV (marine) */}
               {avCapital > 0 && (
-                <div onClick={() => setShowAvModal(true)} className="flex-1 cursor-pointer flex flex-col relative" style={{ zIndex: 1 }}>
-                  <div className={`flex items-center justify-between bg-[#0F172A] ${perTotal > 0 ? "min-[600px]:bg-transparent" : ""}`} style={{ minHeight: 88, padding: "14px 18px" }}>
+                <div onClick={() => setShowAvModal(true)} className="flex-[2] cursor-pointer flex flex-col relative" style={{ zIndex: 1 }}>
+                  {/* pr-[12%] en desktop : la fin du texte (net transmis + détails) s'arrête AVANT le début du dégradé */}
+                  <div className={`flex items-center justify-between px-[18px] py-[14px] bg-[#0F172A] ${perTotal > 0 ? "min-[600px]:bg-transparent min-[600px]:pr-[12%]" : ""}`} style={{ minHeight: 88 }}>
                     <div>
                       <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "11px", fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase" }}>Assurances-vie</div>
                       <div style={{ color: "#fff", fontSize: "20px", fontWeight: 700, marginTop: "2px" }}>{euro(avCapital)}</div>
@@ -641,11 +642,11 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
               {/* Zone PER (or) */}
               {perTotal > 0 && (
                 <div className="flex-1 flex flex-col relative" style={{ zIndex: 1 }}>
-                  <div className={`flex flex-col justify-center bg-[#C4973D] ${avCapital > 0 ? "min-[600px]:bg-transparent" : ""}`} style={{ minHeight: 88, padding: "14px 18px" }}>
+                  <div className={`flex flex-col justify-center px-[18px] py-[14px] bg-[#C4973D] ${avCapital > 0 ? "min-[600px]:bg-transparent min-[600px]:pl-[11%]" : ""}`} style={{ minHeight: 88 }}>
                     <div style={{ color: "rgba(255,255,255,0.85)", fontSize: "11px", fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase" }}>Plan Épargne Retraite</div>
                     <div style={{ color: "#fff", fontSize: "20px", fontWeight: 700, marginTop: "2px" }}>{euro(perTotal)}</div>
                   </div>
-                  <div className="flex-1" style={{ padding: "12px 18px", background: SURFACE.card }}>
+                  <div className={`flex-1 px-[18px] py-[12px] ${avCapital > 0 ? "min-[600px]:pl-[11%]" : ""}`} style={{ background: SURFACE.card }}>
                     <div style={{ fontSize: "11px", color: BRAND.muted, marginBottom: "8px" }}>Régime fiscal au décès</div>
                     <div style={{
                       borderRadius: "8px", padding: "8px 10px",
