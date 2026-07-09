@@ -3,7 +3,7 @@
 // Liens de parenté = DONATION_RELATIONS (constants), tous gérés par le profil.
 
 import React, { useState } from "react";
-import { Users } from "lucide-react";
+import { Users, X } from "lucide-react";
 import { parseNum, formatEur, dmtgSummary } from "../../lib/accueil/quickCalc";
 import { DONATION_RELATIONS, BRAND } from "../../constants";
 
@@ -21,7 +21,7 @@ export function DmtgCalc({ onClose }: { onClose: () => void }) {
           <span className="qc-tile-ico"><Users /></span>
           Calculette donation &amp; succession
         </div>
-        <button className="qc-close" onClick={onClose} title="Fermer la calculette" aria-label="Fermer la calculette">✕</button>
+        <button className="qc-close" onClick={onClose} title="Fermer la calculette" aria-label="Fermer la calculette"><X className="h-4 w-4" aria-hidden="true" /></button>
       </div>
 
       <div className="qc-body">

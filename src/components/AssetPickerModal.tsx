@@ -1,5 +1,6 @@
 import React from "react";
 import { BRAND, SURFACE } from "../constants";
+import { X } from "lucide-react";
 
 // Modale d'ajout d'actif générique et 100% data-driven (placements OU biens).
 // Même squelette que LoanModal (overlay sombre + carte blanche + en-tête titre/
@@ -60,7 +61,7 @@ export function AssetPickerModal({ open, title, groups, onClose, onPick }: Props
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600 text-xl leading-none ml-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#26428B]"
           >
-            ✕
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 

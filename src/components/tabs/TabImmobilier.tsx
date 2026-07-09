@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
-import { Plus, Trash2, Download, Upload, Settings } from "lucide-react";
+import { Plus, Trash2, Download, Upload, Settings, AlertTriangle, BarChart3, TrendingUp, CreditCard, Gift, Pencil, Check, X } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_GROUPS, PROPERTY_GROUP_COLORS, PROPERTY_RIGHTS, DISPOSITIFS_FISCAUX, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan, DismemberCounterpart } from "../../types/patrimoine";
@@ -115,7 +115,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
        calcul modifie : lecture de detectLmp / collecteRevenusActiviteFoyer (ir.ts). */}
   {lmpProbable && (
     <div className="rounded-xl p-3 flex items-start gap-2" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}` }}>
-      <span style={{ fontSize: 16, lineHeight: "18px" }} aria-hidden="true">🟠</span>
+      <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" style={{ color: BRAND.warning }} />
       <div className="text-xs" style={{ color: BRAND.warning }}>
         <div className="font-bold uppercase tracking-wider mb-1">Statut LMP probable</div>
         <div>
@@ -151,7 +151,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "14px" }}>🎁</span>
+            <Gift className="h-4 w-4 shrink-0" aria-hidden="true" style={{ color: BRAND.warning }} />
             <div>
               <span style={{ fontSize: "12px", fontWeight: 600, color: BRAND.warning }}>Donation active sur ce bien</span>
               <span style={{ fontSize: "11px", color: BRAND.warning, marginLeft: "8px" }}>— Champs verrouillés</span>
@@ -373,7 +373,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                       </div>
                     )}
                     {currentRight !== "full" && !demer && (
-                      <div style={{ fontSize: "11px", color: "#d97706", alignSelf: "flex-end", marginBottom: "4px" }}>⚠️ Âge manquant</div>
+                      <div style={{ fontSize: "11px", color: "#d97706", alignSelf: "flex-end", marginBottom: "4px" }}><AlertTriangle className="h-3.5 w-3.5 inline-block align-middle mr-1" aria-hidden="true" />Âge manquant</div>
                     )}
                   </div>
                 </div>
@@ -462,7 +462,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                             )}
                             <button onClick={() => {
                               mkDismember(pKey, dp, pRight, safeCounterparts.filter((_, i) => i !== ci));
-                            }} style={{ background: "none", border: "none", cursor: "pointer", color: "#aaa", fontSize: "14px", paddingBottom: "2px" }}>✕</button>
+                            }} aria-label="Retirer" style={{ background: "none", border: "none", cursor: "pointer", color: "#aaa", paddingBottom: "2px", display: "inline-flex", alignItems: "center" }}><X className="h-3.5 w-3.5" aria-hidden="true" /></button>
                           </div>
                         ))}
                         <button onClick={() => {
@@ -526,7 +526,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                 )}
                 {!demer && (
                   <div className="text-xs text-amber-600 self-end mb-1">
-                    {isNP && !property.counterpartKey ? "⚠️ Sélectionnez l'usufruitier" : "⚠️ Date de naissance manquante"}
+                    {isNP && !property.counterpartKey ? <><AlertTriangle className="h-3.5 w-3.5 inline-block align-middle mr-1" aria-hidden="true" />Sélectionnez l'usufruitier</> : <><AlertTriangle className="h-3.5 w-3.5 inline-block align-middle mr-1" aria-hidden="true" />Date de naissance manquante</>}
                   </div>
                 )}
               </div>
@@ -546,12 +546,12 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
           {["Location nue", "SCPI", "Résidence secondaire"].includes(property.type) && (
             <div className="mt-1">
               <button type="button" onClick={() => setPvCessionModalPropertyId(property.id)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border transition-colors hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8B6914]" style={{ background: "rgba(196,151,61,0.1)", borderColor: "rgba(196,151,61,0.35)", color: BRAND.goldText }}>
-                📊 Plus-value de cession
+<BarChart3 className="h-3.5 w-3.5" aria-hidden="true" />Plus-value de cession
               </button>
             </div>
           )}
           {property.type === "Résidence principale" && (
-            <div className="text-[11px] mt-1 font-medium" style={{ color: BRAND.success }}>✓ Cession exonérée de plus-value (résidence principale, art. 150 U II-1).</div>
+            <div className="text-[11px] mt-1 font-medium" style={{ color: BRAND.success }}><Check className="h-3.5 w-3.5 inline-block align-middle mr-1" aria-hidden="true" />Cession exonérée de plus-value (résidence principale, art. 150 U II-1).</div>
           )}
           {/* ── Location meublee (LMNP/LMP) — SAISIE SEULE. Tout le calcul vient du
                moteur (locationMeublee.ts / ir.ts) : ici on ne fait que lire (affichage
@@ -616,7 +616,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                 {/* Alerte 1 : seuil micro depasse (bien) */}
                 {microChoisiSurSeuil && (
                   <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}>
-                    <span aria-hidden="true">🟠</span>
+                    <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
                     <span>Seuil micro-BIC dépassé ({euro(recettes)} &gt; {euro(seuilMicro)}) — le régime réel s'applique de plein droit (art. 50-0 CGI).</span>
                   </div>
                 )}
@@ -640,7 +640,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                       <div className="flex items-center gap-2 mt-0.5">
                         {(amortSaisi || autoAmort) && (
                           <span className="text-[10px] font-semibold" style={{ color: amortSaisi ? BRAND.sky : hasOverrides ? BRAND.sky : BRAND.success }}>
-                            {amortSaisi ? "✎ saisi" : hasOverrides ? "⚙ ajusté" : "⚙ calculé"}
+                            {amortSaisi ? <><Pencil className="h-3 w-3 inline-block align-middle mr-0.5" aria-hidden="true" />saisi</> : hasOverrides ? <><Settings className="h-3 w-3 inline-block align-middle mr-0.5" aria-hidden="true" />ajusté</> : <><Settings className="h-3 w-3 inline-block align-middle mr-0.5" aria-hidden="true" />calculé</>}
                           </span>
                         )}
                         {isSet(property.prixAcquisition) && (
@@ -654,7 +654,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                 {regimeEffectif === "reel" && (
                   <div>
                     <button type="button" onClick={() => setProjModalPropertyId(property.id)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border transition-colors hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#26428B]" style={{ background: "rgba(38,66,139,0.08)", borderColor: "rgba(38,66,139,0.25)", color: BRAND.sky }}>
-                      📈 Projection sur 10 ans
+<TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />Projection sur 10 ans
                     </button>
                   </div>
                 )}
@@ -663,14 +663,14 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                     Alerte douce, ZERO impact calcul : le CGP ajuste via Detail / manuel. */}
                 {regimeEffectif === "reel" && property.dispositifFiscal === "censiBouvard" && (
                   <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}>
-                    <span aria-hidden="true">🟠</span>
+                    <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
                     <span>Censi-Bouvard : l'amortissement est exclu sur la fraction du prix ayant ouvert droit à la réduction (art. 199 sexvicies VII) — ajustez le plan via « Détail » ou le champ manuel.</span>
                   </div>
                 )}
                 {/* Alerte 3 : cotisations sociales tourisme courte duree (foyer) */}
                 {(sousType === "tourisme_classe" || sousType === "tourisme_non_classe") && recettesTourismeFoyer > refMeuble.lmp.seuilRecettes && (
                   <div className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: BRAND.warningBg, border: `1px solid ${BRAND.warningBorder}`, color: BRAND.warning }}>
-                    <span aria-hidden="true">🟠</span>
+                    <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
                     <span>Affiliation sociale des loueurs de courte durée (art. L611-1 CSS) : cotisations sociales non modélisées.</span>
                   </div>
                 )}
@@ -695,7 +695,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                     borderColor: loanCount > 0 ? "rgba(38,66,139,0.25)" : SURFACE.border,
                     color: loanCount > 0 ? BRAND.sky : BRAND.muted,
                   }}>
-                  <span>{loanCount > 0 ? `💳 ${loanCount} crédit${loanCount > 1 ? "s" : ""}` : "💳 Ajouter un crédit"}</span>
+                  <span className="inline-flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5" aria-hidden="true" />{loanCount > 0 ? `${loanCount} crédit${loanCount > 1 ? "s" : ""}` : "Ajouter un crédit"}</span>
                   {totalCapital > 0 && <span className="text-xs opacity-70">— {euro(totalCapital)} restant</span>}
                 </button>
               </div>
@@ -784,7 +784,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                     </span>
                     {Math.abs(ecartSomme) > 0.5 && (
                       <span className="text-xs font-bold" style={{ color: ecartSomme > 0 ? BRAND.warning : BRAND.danger }}>
-                        {ecartSomme > 0 ? `⚠ Manque ${ecartSomme.toFixed(0)} %` : `⚠ Dépasse de ${(-ecartSomme).toFixed(0)} %`}
+                        {ecartSomme > 0 ? <><AlertTriangle className="h-3 w-3 inline-block align-middle mr-1" aria-hidden="true" />Manque {ecartSomme.toFixed(0)} %</> : <><AlertTriangle className="h-3 w-3 inline-block align-middle mr-1" aria-hidden="true" />Dépasse de {(-ecartSomme).toFixed(0)} %</>}
                       </span>
                     )}
                   </div>

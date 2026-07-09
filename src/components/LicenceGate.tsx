@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Clock, Lock, Mail, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { LicenceInfo } from "../hooks/useLicense";
@@ -70,8 +71,8 @@ export default function LicenceGate({ licence, userId, onSignOut }: LicenceGateP
 
           {/* Icône + titre */}
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 40, marginBottom: 8 }}>
-              {isExpiredTrial ? "⏱️" : "🔒"}
+            <div style={{ marginBottom: 8, display: "flex", justifyContent: "center" }}>
+              {isExpiredTrial ? <Clock size={40} aria-hidden="true" /> : <Lock size={40} aria-hidden="true" />}
             </div>
             <h2 style={{ fontSize: 22, fontWeight: 700, color: colorNavy, margin: 0 }}>
               {isExpiredTrial ? "Période d'essai terminée" : "Abonnement inactif"}
@@ -106,9 +107,9 @@ export default function LicenceGate({ licence, userId, onSignOut }: LicenceGateP
                 Facturation mensuelle
               </div>
               <ul style={{ fontSize: 11, color: "#4B5563", margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 4 }}>
-                <li>✓ Calculs IR, IFI, Succession 2025</li>
-                <li>✓ Rapports PDF aux couleurs du cabinet</li>
-                <li>✓ Gestion multi-clients illimitée</li>
+                <li style={{ display: "flex", alignItems: "center", gap: 6 }}><Check size={13} aria-hidden="true" /> Calculs IR, IFI, Succession 2025</li>
+                <li style={{ display: "flex", alignItems: "center", gap: 6 }}><Check size={13} aria-hidden="true" /> Rapports PDF aux couleurs du cabinet</li>
+                <li style={{ display: "flex", alignItems: "center", gap: 6 }}><Check size={13} aria-hidden="true" /> Gestion multi-clients illimitée</li>
               </ul>
               <Button
                 style={{
@@ -167,9 +168,9 @@ export default function LicenceGate({ licence, userId, onSignOut }: LicenceGateP
                 500 €/an · 2 mois offerts
               </div>
               <ul style={{ fontSize: 11, color: "#4B5563", margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 4 }}>
-                <li>✓ Toutes les fonctionnalités Solo</li>
-                <li>✓ 2 mois offerts vs mensuel</li>
-                <li>✓ Tarif bloqué à vie</li>
+                <li style={{ display: "flex", alignItems: "center", gap: 6 }}><Check size={13} aria-hidden="true" /> Toutes les fonctionnalités Solo</li>
+                <li style={{ display: "flex", alignItems: "center", gap: 6 }}><Check size={13} aria-hidden="true" /> 2 mois offerts vs mensuel</li>
+                <li style={{ display: "flex", alignItems: "center", gap: 6 }}><Check size={13} aria-hidden="true" /> Tarif bloqué à vie</li>
               </ul>
               <Button
                 style={{
@@ -232,9 +233,9 @@ export default function LicenceGate({ licence, userId, onSignOut }: LicenceGateP
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
             <a
               href="mailto:contact@ploutos-cgp.fr?subject=Problème de licence Ploutos"
-              style={{ fontSize: 12, fontWeight: 500, color: colorSky, textDecoration: "none" }}
+              style={{ fontSize: 12, fontWeight: 500, color: colorSky, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}
             >
-              📧 Contacter le support
+              <Mail size={14} aria-hidden="true" /> Contacter le support
             </a>
             <button
               onClick={onSignOut}

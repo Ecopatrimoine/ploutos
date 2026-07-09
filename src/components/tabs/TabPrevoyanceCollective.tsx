@@ -15,7 +15,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
-import { Building2 } from "lucide-react";
+import { Building2, AlertTriangle } from "lucide-react";
 import type {
   PatrimonialData,
   PayloadPrevoyance,
@@ -167,7 +167,7 @@ const TabPrevoyanceCollective = React.memo(function TabPrevoyanceCollective({
                 color: "#7C4A04",
               }}
             >
-              <div className="font-bold mb-1">⚠ Mode analyse externe</div>
+              <div className="font-bold mb-1 flex items-center gap-1.5"><AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" /> Mode analyse externe</div>
               <p className="text-sm mb-3">
                 Aucun dirigeant n'est détecté dans le foyer (statuts gérant
                 majoritaire / président SAS / EURL unique). Activez l'analyse

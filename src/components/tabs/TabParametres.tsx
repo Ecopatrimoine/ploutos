@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CardAccentTop } from "../CardAccentTop";
 import { TabsContent } from "@/components/ui/tabs";
-import { Upload, Settings, RotateCcw, Undo2 } from "lucide-react";
+import { Upload, Settings, RotateCcw, Undo2, Lightbulb, X } from "lucide-react";
 import { BRAND, CABINET_COLOR_DEFAULTS } from "../../constants";
 import { SectionTitle } from "../shared";
 
@@ -502,7 +502,7 @@ const TabParametres = React.memo(function TabParametres(props: any) {
                     <input type="file" accept="image/png,image/svg+xml,image/jpeg,image/webp" className="hidden" onChange={handleSignatureUpload} />
                   </label>
                   {signatureSrc && (
-                    <button onClick={() => setSignatureSrc("")} className="text-xs text-red-600 hover:text-red-800 font-bold">× Supprimer</button>
+                    <button onClick={() => setSignatureSrc("")} className="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-bold"><X className="h-3.5 w-3.5" aria-hidden="true" /> Supprimer</button>
                   )}
                 </div>
               </SubCard>
@@ -566,7 +566,7 @@ const TabParametres = React.memo(function TabParametres(props: any) {
 
           {/* Encart pédagogique final (préservé) */}
           <div className="rounded-2xl p-4 text-sm" style={{ background: "rgba(251,236,215,0.4)", border: "1px solid rgba(227,175,100,0.3)" }}>
-            <p className="font-semibold mb-2" style={{ color: BRAND.navy }}>💡 Ces paramètres alimentent automatiquement :</p>
+            <p className="font-semibold mb-2 flex items-center gap-1.5" style={{ color: BRAND.navy }}><Lightbulb className="h-4 w-4" aria-hidden="true" />Ces paramètres alimentent automatiquement :</p>
             <ul className="list-disc ml-4 space-y-1 text-sm text-slate-600">
               <li>Page de couverture de tous les PDFs (logo)</li>
               <li>Encadré « Le cabinet » des documents réglementaires (identité juridique)</li>

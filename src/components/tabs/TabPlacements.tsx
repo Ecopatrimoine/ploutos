@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
-import { Plus, Trash2, Download, Upload, Settings } from "lucide-react";
+import { Plus, Trash2, Download, Upload, Settings, Check, Lock, BarChart3, ClipboardList, AlertTriangle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, ALL_PLACEMENTS, labelPlacement, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA, SOUS_TYPES_DEFISC_DEDIES, DISPOSITIFS_FINANCIERS_LABELS } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
@@ -137,7 +137,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
                   style={{ background: over8 ? BRAND.successBg : BRAND.warningBg,
                            color: over8 ? BRAND.success : BRAND.warning,
                            border: `1px solid ${over8 ? BRAND.successBorder : BRAND.warningBorder}` }}>
-                  {years} an{years > 1 ? "s" : ""} {over8 ? "✓ > 8 ans" : `· encore ${8 - years} an${8 - years > 1 ? "s" : ""}`}
+                  {years} an{years > 1 ? "s" : ""} {over8 ? <><Check className="inline h-3.5 w-3.5" aria-hidden="true" /> &gt; 8 ans</> : `· encore ${8 - years} an${8 - years > 1 ? "s" : ""}`}
                 </span>
               );
             })()}
@@ -162,7 +162,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
               const lv = resolveLoanValuesMulti(pledgingProp);
               return (
                 <span className="rounded-full px-2 py-0.5 text-xs font-medium flex items-center gap-1" style={{ background: BRAND.warningBg, color: BRAND.warning, border: `1px solid ${BRAND.warningBorder}` }}>
-                  🔒 Nanti — {pledgingProp.name || pledgingProp.type} ({euro(lv.capital)})
+                  <Lock className="h-3.5 w-3.5" aria-hidden="true" /> Nanti — {pledgingProp.name || pledgingProp.type} ({euro(lv.capital)})
                 </span>
               );
             })()}
@@ -195,7 +195,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
                     border: `1px solid rgba(81,106,199,0.2)`,
                   }}
                 >
-                  {placement.pfuOptOut ? "📊 Option barème IR" : "📋 PFU 31,4%"}
+                  {placement.pfuOptOut ? <><BarChart3 className="h-3.5 w-3.5" aria-hidden="true" /> Option barème IR</> : <><ClipboardList className="h-3.5 w-3.5" aria-hidden="true" /> PFU 31,4%</>}
                 </button>
               </Field>
             )}
@@ -344,7 +344,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
                 {/* Alertes douces du moteur (jamais bloquantes) */}
                 {card && card.alertes.map((a, i) => (
                   <div key={i} className="rounded-lg px-3 py-1.5 text-xs" style={{ background: BRAND.warningBg, color: BRAND.warning, border: `1px solid ${BRAND.warningBorder}` }}>
-                    ⚠️ {a.message}
+                    <AlertTriangle className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />{a.message}
                   </div>
                 ))}
               </div>
@@ -376,14 +376,14 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
               const restantFoyer = Math.max(0, (n((ir as any).plafondPER1) + n((ir as any).plafondPER2)) - n((ir as any).perDeductionCalc));
               return (
                 <div className="rounded-xl px-3 py-2 text-xs" style={{ background: BRAND.successBg, color: BRAND.success, border: `1px solid ${BRAND.successBorder}` }}>
-                  ✓ Plafond personnel dépassé, absorbé par le plafond du conjoint (mutualisation) — restant foyer : <strong>{euro(restantFoyer)}</strong>
+                  <Check className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />Plafond personnel dépassé, absorbé par le plafond du conjoint (mutualisation) — restant foyer : <strong>{euro(restantFoyer)}</strong>
                 </div>
               );
             }
             if (isCouple && depassePerso && excedentFoyer > 0) {
               return (
                 <div className="rounded-xl px-3 py-2 text-xs" style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
-                  ⚠️ <strong>Plafond du foyer dépassé (mutualisation)</strong> — excédent non déductible : {euro(excedentFoyer)}.
+                  <AlertTriangle className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" /><strong>Plafond du foyer dépassé (mutualisation)</strong> — excédent non déductible : {euro(excedentFoyer)}.
                 </div>
               );
             }
@@ -395,8 +395,8 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
                 border: `1px solid ${depasse ? BRAND.dangerBorder : BRAND.successBorder}`,
               }}>
                 {depasse
-                  ? <>⚠️ <strong>Plafond dépassé {titulaire && `(${titulaire})`}</strong> — Total déductible : {euro(totalDeduit)} / Plafond : {euro(plafond)}. Excédent non déductible.</>
-                  : <>✓ {titulaire && <strong>{titulaire} — </strong>}Plafond restant : <strong>{euro(Math.max(0, plafond - totalDeduit))}</strong> · Économie IR estimée : <strong>{euro(Math.min(versement, Math.max(0, plafond - totalDeduit + versement)) * ir.marginalRate)}</strong></>
+                  ? <><AlertTriangle className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" /><strong>Plafond dépassé {titulaire && `(${titulaire})`}</strong> — Total déductible : {euro(totalDeduit)} / Plafond : {euro(plafond)}. Excédent non déductible.</>
+                  : <><Check className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />{titulaire && <strong>{titulaire} — </strong>}Plafond restant : <strong>{euro(Math.max(0, plafond - totalDeduit))}</strong> · Économie IR estimée : <strong>{euro(Math.min(versement, Math.max(0, plafond - totalDeduit + versement)) * ir.marginalRate)}</strong></>
                 }
               </div>
             );
@@ -445,7 +445,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
                     {anticipe ? (
                       <>
                         <span className="text-slate-500">Capital exonéré :</span>
-                        <span className="font-medium text-right">{euro(capAff)} <span className="text-green-600 text-xs">✓ Exonéré</span></span>
+                        <span className="font-medium text-right">{euro(capAff)} <span className="text-green-600 text-xs"><Check className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />Exonéré</span></span>
                         <span className="text-slate-500">Intérêts PFU 31,4% :</span>
                         <span className="font-medium text-right">{euro(intAff * 0.314)}</span>
                         <span className="text-slate-600 font-semibold">Impact fiscal total :</span>
@@ -506,7 +506,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
                       <span>Versements &gt; 150 000 € :</span>
                       <span className={"font-medium text-right " + (above150k ? "text-amber-600" : "text-slate-500")}>{above150k ? "Oui → taux majoré 31,4%" : "Non → taux réduit 7,5%"}</span>
                       <span>Fiscalité applicable :</span>
-                      <span className="font-medium text-right text-slate-700">{!placement.openDate ? "⚠ Date ouverture manquante" : over8 ? (above150k ? "PFU 31,4% (excédent 150k) + PFLi 7,5%/PS 18,6%" : "PFLi 7,5% + PS 18,6%") : "PFU 31,4% (< 8 ans)"}</span>
+                      <span className="font-medium text-right text-slate-700">{!placement.openDate ? <><AlertTriangle className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />Date ouverture manquante</> : over8 ? (above150k ? "PFU 31,4% (excédent 150k) + PFLi 7,5%/PS 18,6%" : "PFLi 7,5% + PS 18,6%") : "PFU 31,4% (< 8 ans)"}</span>
                     </div>
                   </div>
                 )}

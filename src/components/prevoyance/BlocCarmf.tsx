@@ -12,6 +12,7 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertTriangle } from "lucide-react";
 import { BRAND, SURFACE } from "../../constants";
 import { Field } from "../shared";
 import type { CarmfConfig, EntreePerso } from "../../lib/prevoyance/types";
@@ -168,7 +169,7 @@ export const BlocCarmf = React.memo(function BlocCarmf({ value, onChange }: Prop
             </Field>
             {ancienneteInsuffisante && (
               <InlineAlert>
-                ⚠ Affiliation &lt; 2 ans : pas de droits aux IJ CARMF pleines pendant cette période.
+                <AlertTriangle className="inline-block h-3.5 w-3.5 shrink-0 mr-1 align-text-bottom" aria-hidden="true" />Affiliation &lt; 2 ans : pas de droits aux IJ CARMF pleines pendant cette période.
               </InlineAlert>
             )}
           </div>

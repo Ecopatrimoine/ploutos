@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
-import { Plus, Trash2, Download, Upload, Settings, FileText, Database } from "lucide-react";
+import { Plus, Trash2, Download, Upload, Settings, FileText, Database, Lightbulb, AlertTriangle, Check } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid, LabelList } from "recharts";
 import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, EMPTY_CHARGES_COURANTES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PLACEMENTS, PLACEMENT_FAMILIES, PROPERTY_TYPES, PROPERTY_RIGHTS, CHILD_LINKS, CUSTODY_OPTIONS, COUPLE_STATUS_OPTIONS, MATRIMONIAL_OPTIONS, CHART_COLORS, RECEIVED_COLORS, LEGUE_COLORS, TESTAMENT_RELATION_OPTIONS, BENEFICIARY_RELATION_OPTIONS, PCS_GROUPES, PCS_CATEGORIES, SEUIL_MICRO_BA } from "../../constants";
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
@@ -130,7 +130,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
         ? apercuOverride
         : (caNum > 0 && abattementInfo ? (
             <div className="rounded-xl px-3 py-2 text-xs" style={{ background: "rgba(81,106,199,0.08)", color: BRAND.sky, border: "1px solid rgba(81,106,199,0.15)" }}>
-              💡 {abattementInfo}
+              <Lightbulb className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />{abattementInfo}
             </div>
           ) : null);
       return (
@@ -185,7 +185,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
           </div>
           {depasseSeuil && (
             <div className="flex items-start gap-1.5 rounded-xl px-2.5 py-2 text-xs" style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
-              <span className="shrink-0">⚠️</span>
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden="true" />
               <span>CA {caNum.toLocaleString("fr-FR")} € &gt; seuil micro {seuilMicro.toLocaleString("fr-FR")} €. Régime réel obligatoire si dépassement 2 ans consécutifs.</span>
             </div>
           )}
@@ -216,7 +216,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
                   title="Détailler les charges par nature"
                 >
                   <FileText className="h-3 w-3" />
-                  {hasDetail ? "Détail ✓" : "Détailler"}
+                  {hasDetail ? <>Détail <Check className="inline-block h-3.5 w-3.5 align-text-bottom" aria-hidden="true" /></> : "Détailler"}
                 </button>
               </div>
             );
@@ -239,7 +239,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
         ? apercuOverride
         : (apercuBA ? (
             <div className="rounded-xl px-3 py-2 text-xs" style={{ background: "rgba(81,106,199,0.08)", color: BRAND.sky, border: "1px solid rgba(81,106,199,0.15)" }}>
-              💡 {apercuBA}
+              <Lightbulb className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />{apercuBA}
             </div>
           ) : null);
       return (
@@ -275,7 +275,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
               </div>
               {depasseBA && (
                 <div className="flex items-start gap-1.5 rounded-xl px-2.5 py-2 text-xs" style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
-                  <span className="shrink-0">⚠️</span>
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden="true" />
                   <span>Recettes {caNumBa.toLocaleString("fr-FR")} € &gt; seuil micro-BA {SEUIL_MICRO_BA.toLocaleString("fr-FR")} €. Passage au réel obligatoire si dépassement 2 ans consécutifs.</span>
                 </div>
               )}
@@ -309,7 +309,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
         : `Bénéfice imposable estimé : ${fmt} €`;
       return (
         <div className="rounded-xl px-3 py-2 text-xs" style={{ background: "rgba(81,106,199,0.08)", color: BRAND.sky, border: "1px solid rgba(81,106,199,0.15)" }}>
-          💡 {texte}
+          <Lightbulb className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />{texte}
         </div>
       );
     })();
@@ -538,7 +538,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
         title="Détailler les charges courantes par poste"
       >
         <FileText className="h-3 w-3" />
-        {ccPostesRenseignes > 0 ? "Détail ✓" : "Détailler"}
+        {ccPostesRenseignes > 0 ? <>Détail <Check className="inline-block h-3.5 w-3.5 align-text-bottom" aria-hidden="true" /></> : "Détailler"}
       </button>
     </div>
 

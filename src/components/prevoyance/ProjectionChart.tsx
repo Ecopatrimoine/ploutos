@@ -28,6 +28,7 @@ import {
 } from "recharts";
 import type { ProjectionResult } from "../../lib/prevoyance/types";
 import { BRAND } from "../../constants";
+import { AlertTriangle } from "lucide-react";
 import { HelpTooltip } from "../shared";
 import { formatDureeArret } from "../../lib/calculs/utils";
 
@@ -300,7 +301,7 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
 
       {projection.donneesCaisseIndisponibles && (
         <div className="text-xs mt-1" style={{ color: BRAND.muted, fontStyle: "italic" }}>
-          ⚠ Données du régime obligatoire incomplètes : la courbe affiche
+          <AlertTriangle className="h-3.5 w-3.5 inline-block shrink-0 mr-1 align-text-bottom" aria-hidden="true" />Données du régime obligatoire incomplètes : la courbe affiche
           uniquement les couches connues. Les valeurs caisses TO_VERIFY /
           TO_FILL seront ajoutées dans une future mise à jour du référentiel.
         </div>

@@ -4,7 +4,7 @@
 // pas de dates en v1). Aucune règle fiscale recalculée ici.
 
 import React, { useState } from "react";
-import { Building2 } from "lucide-react";
+import { Building2, X } from "lucide-react";
 import { parseNum, formatEur, formatPct, pvImmoSummary } from "../../lib/accueil/quickCalc";
 
 export function PvImmoCalc({ onClose }: { onClose: () => void }) {
@@ -23,7 +23,7 @@ export function PvImmoCalc({ onClose }: { onClose: () => void }) {
           <span className="qc-tile-ico"><Building2 /></span>
           Calculette plus-value immobilière
         </div>
-        <button className="qc-close" onClick={onClose} title="Fermer la calculette" aria-label="Fermer la calculette">✕</button>
+        <button className="qc-close" onClick={onClose} title="Fermer la calculette" aria-label="Fermer la calculette"><X className="h-4 w-4" aria-hidden="true" /></button>
       </div>
 
       <div className="qc-body">

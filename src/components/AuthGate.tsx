@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Check, AlertTriangle, ArrowLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -183,8 +184,8 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
 
           {/* Message succès */}
           {successMsg && (
-            <div className="rounded-xl px-4 py-3 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200">
-              ✓ {successMsg}
+            <div className="rounded-xl px-4 py-3 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 flex items-center gap-2">
+              <Check className="h-4 w-4 shrink-0" aria-hidden="true" /> {successMsg}
             </div>
           )}
 
@@ -197,8 +198,8 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
 
           {/* Mode hors-ligne */}
           {authState === "grace" && (
-            <div className="rounded-xl px-4 py-3 text-sm bg-amber-50 border border-amber-200 text-amber-800">
-              ⚠️ Mode hors-ligne — connexion internet requise dans les 72h
+            <div className="rounded-xl px-4 py-3 text-sm bg-amber-50 border border-amber-200 text-amber-800 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" /> Mode hors-ligne — connexion internet requise dans les 72h
             </div>
           )}
 
@@ -312,8 +313,8 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
               </>
             )}
             {(mode === "register" || mode === "forgot") && (
-              <button onClick={() => { setMode("login"); setLocalError(""); setSuccessMsg(""); }} className="hover:underline hover:text-slate-700">
-                ← Retour à la connexion
+              <button onClick={() => { setMode("login"); setLocalError(""); setSuccessMsg(""); }} className="inline-flex items-center gap-1 hover:underline hover:text-slate-700">
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Retour à la connexion
               </button>
             )}
           </div>

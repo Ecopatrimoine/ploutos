@@ -18,6 +18,7 @@ import type {
 } from "../../lib/prevoyance/comparaison-branche-vue";
 import { BRAND, SURFACE } from "../../constants";
 import { plur } from "../../lib/calculs/utils";
+import { AlertTriangle } from "lucide-react";
 
 type Props = {
   vue: VueObligationsFusionnee | null;
@@ -99,7 +100,7 @@ export const BlocObligationsBranche = React.memo(function BlocObligationsBranche
           className="rounded-xl p-2.5 text-xs"
           style={{ background: "rgba(245, 158, 11, 0.08)", border: "1px solid #F59E0B", color: "#7C4A04" }}
         >
-          ⚠ Données de branche partiellement documentées : vérification manuelle conseillée.
+          <AlertTriangle className="inline-block h-3.5 w-3.5 shrink-0 mr-1 align-text-bottom" aria-hidden="true" />Données de branche partiellement documentées : vérification manuelle conseillée.
         </div>
       )}
 

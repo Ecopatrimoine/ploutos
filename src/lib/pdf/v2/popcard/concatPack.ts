@@ -238,7 +238,7 @@ function placeholderSection(t: any, item: PackItem, customMessage?: string): str
     "Cette section est sélectionnée dans le pack mais son adapter v2 n'est pas encore branché. Elle sera disponible dans une prochaine itération du Lot Dossier client.";
   return `<div style="position:relative;width:210mm;height:297mm;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center;font-family:'Lato',system-ui,sans-serif">
     <div style="text-align:center;padding:40px;max-width:500px">
-      <div style="font-size:48px;margin-bottom:18px;opacity:.3">📄</div>
+      <div style="margin-bottom:18px;opacity:.3"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="${t.navy}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></div>
       <div style="font-size:14px;font-weight:700;color:${t.navy};margin-bottom:8px">Section « ${item} » en attente de câblage</div>
       <div style="font-size:11px;color:${t.texteFaible};line-height:1.6">${message}</div>
     </div>

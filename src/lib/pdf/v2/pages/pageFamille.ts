@@ -11,6 +11,7 @@ import {
   sousTitreSection,
   encartNotreLecture,
   construireTableEcoulable,
+  icones,
   type Col,
   type Cell,
 } from "../primitives";
@@ -90,8 +91,8 @@ export function pageFamille(t: Tokens, d: FamillePageData): string {
     { value: e.dateNaissance || "—", color: t.texteFaible },
     { value: e.lien },
     { value: e.garde },
-    { value: e.rattache ? "✓" : "—", align: "center", color: e.rattache ? t.succes : t.texteFaibleClair },
-    { value: e.handicap ? "✓" : "—", align: "center", color: e.handicap ? t.thOr : t.texteFaibleClair },
+    { value: e.rattache ? icones.circleCheck(t.succes, 11) : "—", align: "center", color: e.rattache ? t.succes : t.texteFaibleClair },
+    { value: e.handicap ? icones.circleCheck(t.thOr, 11) : "—", align: "center", color: e.handicap ? t.thOr : t.texteFaibleClair },
   ]));
 
   // ─── Déclaration des blocs (contrat de page, engine/contrat.ts) ───────

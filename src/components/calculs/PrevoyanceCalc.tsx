@@ -5,7 +5,7 @@
 // reportées.
 
 import React, { useState } from "react";
-import { Shield } from "lucide-react";
+import { Shield, X } from "lucide-react";
 import { parseNum, formatEur, prevoyanceSummary, prevoyanceProjection, PREVOYANCE_CAISSES, type PrevoyanceCaisse } from "../../lib/accueil/quickCalc";
 import { BRAND } from "../../constants";
 import { ProjectionChart } from "../prevoyance/ProjectionChart";
@@ -25,7 +25,7 @@ export function PrevoyanceCalc({ onClose }: { onClose: () => void }) {
           <span className="qc-tile-ico"><Shield /></span>
           Calculette prévoyance obligatoire
         </div>
-        <button className="qc-close" onClick={onClose} title="Fermer la calculette" aria-label="Fermer la calculette">✕</button>
+        <button className="qc-close" onClick={onClose} title="Fermer la calculette" aria-label="Fermer la calculette"><X className="h-4 w-4" aria-hidden="true" /></button>
       </div>
 
       <div className="qc-body">

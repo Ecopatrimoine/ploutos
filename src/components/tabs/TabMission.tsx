@@ -661,7 +661,7 @@ const TabMission = React.memo(function TabMission(props: any) {
         <div className="rounded-2xl p-4 mb-4" style={{ background: "linear-gradient(135deg, rgba(196,151,61,.08) 0%, rgba(196,151,61,.02) 100%)", border: `1.5px solid ${BRAND.gold}` }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <div className="text-sm font-bold mb-1" style={{ color: BRAND.navy }}>📄 Génération de documents PDF</div>
+              <div className="text-sm font-bold mb-1 flex items-center gap-1.5" style={{ color: BRAND.navy }}><FileText className="h-4 w-4" aria-hidden="true" />Génération de documents PDF</div>
               <div className="text-xs" style={{ color: BRAND.muted }}>
                 Panier multi-documents : combinez librement sections du bilan patrimonial + documents réglementaires.
                 1 seul PDF final.

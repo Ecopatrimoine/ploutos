@@ -10,7 +10,7 @@
 // clic extérieur et Échap.
 
 import React, { useEffect, useRef } from "react";
-import { Landmark, Coins, Gem, Building2, Gauge, Users, Shield } from "lucide-react";
+import { Landmark, Coins, Gem, Building2, Gauge, Users, Shield, X, ArrowRight } from "lucide-react";
 import { BRAND, SURFACE, FIELD } from "../constants";
 import { CreditCalc } from "./calculs/CreditCalc";
 import { PvImmoCalc } from "./calculs/PvImmoCalc";
@@ -112,7 +112,7 @@ export function AccueilCalculs({ onClose, activeCalc, setActiveCalc }: Props) {
             </span>
             Calculs rapides <span style={{ color: "var(--qc-muted)", fontWeight: 700, fontSize: 15 }}>— sans ouvrir de dossier</span>
           </div>
-          <button ref={closeRef} className="qc-close" onClick={onClose} title="Fermer" aria-label="Fermer">✕</button>
+          <button ref={closeRef} className="qc-close" onClick={onClose} title="Fermer" aria-label="Fermer"><X className="h-4 w-4" aria-hidden="true" /></button>
         </div>
 
         <div className="qc-grid">
@@ -132,7 +132,7 @@ export function AccueilCalculs({ onClose, activeCalc, setActiveCalc }: Props) {
                   <span className="qc-tile-name">{t.name}</span>
                 </div>
                 <div className="qc-tile-desc">{t.desc}</div>
-                {soon ? <div className="qc-tile-soon">Bientôt disponible</div> : <div className="qc-tile-go">Ouvrir →</div>}
+                {soon ? <div className="qc-tile-soon">Bientôt disponible</div> : <div className="qc-tile-go">Ouvrir <ArrowRight className="h-4 w-4 inline-block align-text-bottom" aria-hidden="true" /></div>}
               </button>
             );
           })}

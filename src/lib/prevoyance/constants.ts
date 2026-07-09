@@ -38,4 +38,4 @@ export const STATUTS_SALARIE: StatutPro[] = [
 // Avertissement affiché (UI + PDF) quand le revenu de référence d'un
 // micro-entrepreneur est calé sur le CA encaissé (cf. décision A).
 export const WARNING_MICRO_TNS =
-  "⚠ Micro-entreprise : la projection utilise votre chiffre d'affaires encaissé comme revenu de référence (et non le bénéfice après abattement forfaitaire), car l'abattement ne reflète pas vos charges réelles. Vérifiez que ce montant correspond bien à votre revenu d'activité réel avant de présenter la simulation.";
+  "Micro-entreprise : la projection utilise votre chiffre d'affaires encaissé comme revenu de référence (et non le bénéfice après abattement forfaitaire), car l'abattement ne reflète pas vos charges réelles. Vérifiez que ce montant correspond bien à votre revenu d'activité réel avant de présenter la simulation.";

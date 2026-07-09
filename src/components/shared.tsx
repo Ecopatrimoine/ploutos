@@ -200,6 +200,17 @@ export function SectionTitle({ icon: Icon, title, subtitle }: { icon: React.Comp
   );
 }
 
+// Pastille de statut (Lot 7) : point rond coloré + libellé texte conservé.
+// Jamais la couleur seule — le libellé porte le sens (accessibilité, daltonisme).
+export function Pastille({ color, children, className = "" }: { color: string; children?: React.ReactNode; className?: string }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 ${className}`}>
+      <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: color }} aria-hidden="true" />
+      {children}
+    </span>
+  );
+}
+
 export function DifferenceBadge({ impact }: { impact: DifferenceLine["impact"] }) {
   if (impact === "up") return <span className="rounded-full px-2 py-1 text-xs" style={{ background: BRAND.warningBg, color: BRAND.warning, border: `1px solid ${BRAND.warningBorder}` }}>Hausse</span>;
   if (impact === "down") return <span className="rounded-full px-2 py-1 text-xs" style={{ background: BRAND.successBg, color: BRAND.success, border: `1px solid ${BRAND.successBorder}` }}>Baisse</span>;

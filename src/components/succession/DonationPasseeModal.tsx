@@ -10,6 +10,7 @@
 import { Input } from "@/components/ui/input";
 import { DateFr } from "@/components/ui/DateFr";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Gift, X } from "lucide-react";
 import { Field, MoneyField } from "../shared";
 import { BRAND, SURFACE, DONATION_RELATIONS } from "../../constants";
 import { euro } from "../../lib/calculs/utils";
@@ -48,8 +49,8 @@ export function DonationPasseeModal({ open, donation, data, person1, person2, up
       <div className="rounded-3xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col" style={{ background: SURFACE.card, boxShadow: "0 24px 64px rgba(16,27,59,0.35)" }} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div style={{ padding: "18px 22px", background: `linear-gradient(135deg, ${BRAND.navy} 0%, ${BRAND.sky} 100%)`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: "15px" }}>🎁 Donation antérieure — rappel fiscal</div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "8px", color: "#fff", width: "30px", height: "30px", cursor: "pointer", fontSize: "18px" }}>×</button>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: "15px", display: "flex", alignItems: "center", gap: 8 }}><Gift className="h-4 w-4" aria-hidden="true" /> Donation antérieure — rappel fiscal</div>
+          <button onClick={onClose} aria-label="Fermer" style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "8px", color: "#fff", width: "30px", height: "30px", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><X className="h-4 w-4" aria-hidden="true" /></button>
         </div>
 
         {/* Corps */}

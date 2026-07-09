@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, CreditCard, Ruler, AlertTriangle, Info, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateFr } from "@/components/ui/DateFr";
@@ -40,8 +40,8 @@ export function LoanModal({ loanModalPropertyId, setLoanModalPropertyId, data, a
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: SURFACE.border }}>
           <div>
-            <div className="font-bold text-base" style={{ color: BRAND.navy }}>
-              💳 Crédits — {prop.name || prop.type}
+            <div className="font-bold text-base flex items-center gap-1.5" style={{ color: BRAND.navy }}>
+              <CreditCard className="h-4 w-4" aria-hidden="true" /> Crédits — {prop.name || prop.type}
             </div>
             <div className="text-xs text-slate-500 mt-0.5">
               {loans.length} crédit{loans.length !== 1 ? "s" : ""} · Capital total restant : <strong>{euro(totalAgg.capital)}</strong> · Mensualités : <strong>{euro(totalAgg.monthlyPayment)}</strong>
@@ -51,7 +51,7 @@ export function LoanModal({ loanModalPropertyId, setLoanModalPropertyId, data, a
             <Button variant="outline" className="h-8 rounded-xl px-3 text-sm" onClick={() => addLoan(loanModalPropertyId)}>
               <Plus className="mr-1 h-3.5 w-3.5" />Ajouter un crédit
             </Button>
-            <button onClick={() => setLoanModalPropertyId(null)} className="text-slate-400 hover:text-slate-600 text-xl leading-none ml-1">✕</button>
+            <button onClick={() => setLoanModalPropertyId(null)} aria-label="Fermer" className="text-slate-400 hover:text-slate-600 leading-none ml-1"><X className="h-5 w-5" aria-hidden="true" /></button>
           </div>
         </div>
 
@@ -132,10 +132,10 @@ export function LoanModal({ loanModalPropertyId, setLoanModalPropertyId, data, a
                 )}
                 {isInFine && n(loan.amount) > 0 && (
                   <div className="text-xs rounded-xl px-3 py-2" style={{ background: "rgba(81,106,199,0.06)", color: BRAND.sky, border: "1px solid rgba(81,106,199,0.18)" }}>
-                    📐 <strong>IFI — Déduction dégressive (art. 974 II)</strong> : {euro(lv.ifiDeduction)} (capital réel : {euro(lv.capital)})
+                    <Ruler className="h-3.5 w-3.5 inline-block" aria-hidden="true" /> <strong>IFI — Déduction dégressive (art. 974 II)</strong> : {euro(lv.ifiDeduction)} (capital réel : {euro(lv.capital)})
                   </div>
                 )}
-                {isPTZ && <div className="text-xs rounded-xl px-3 py-1.5" style={{ background: SURFACE.app, color: BRAND.muted }}>ℹ️ PTZ/PEL : taux 0% → pas de déduction IR foncier</div>}
+                {isPTZ && <div className="text-xs rounded-xl px-3 py-1.5 flex items-center gap-1.5" style={{ background: SURFACE.app, color: BRAND.muted }}><Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> PTZ/PEL : taux 0% → pas de déduction IR foncier</div>}
                 {/* AV nantie */}
                 {isInFine && (
                   <Field label="AV nantie en garantie" tooltip="AV nantie à la banque pour un crédit in fine.">
@@ -145,7 +145,7 @@ export function LoanModal({ loanModalPropertyId, setLoanModalPropertyId, data, a
                         <SelectItem value="__none__">Aucune</SelectItem>
                         {data.placements.map((p) => (
                           <SelectItem key={p.id} value={p.id!}>
-                            {p.name || labelPlacement(p.type)}{isAV(p.type) || isPERType(p.type) ? "" : " ⚠️ non-AV"}
+                            {p.name || labelPlacement(p.type)}{isAV(p.type) || isPERType(p.type) ? "" : <> <AlertTriangle className="h-3 w-3 inline-block" aria-hidden="true" /> non-AV</>}
                           </SelectItem>
                         ))}
                       </SelectContent>

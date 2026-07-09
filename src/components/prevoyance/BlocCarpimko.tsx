@@ -10,6 +10,7 @@
 
 import React from "react";
 import { Input } from "@/components/ui/input";
+import { AlertTriangle } from "lucide-react";
 import { BRAND, SURFACE } from "../../constants";
 import { Field } from "../shared";
 import type { CarpimkoConfig, EntreePerso } from "../../lib/prevoyance/types";
@@ -97,7 +98,7 @@ export const BlocCarpimko = React.memo(function BlocCarpimko({ value, onChange }
             </Field>
             {revenuSousSeuilIJ && (
               <InlineAlert>
-                ⚠ Revenu &lt; seuil d'éligibilité IJ (4 806 €) : aucune indemnité journalière CPAM.
+                <AlertTriangle className="inline-block h-3.5 w-3.5 shrink-0 mr-1 align-text-bottom" aria-hidden="true" />Revenu &lt; seuil d'éligibilité IJ (4 806 €) : aucune indemnité journalière CPAM.
               </InlineAlert>
             )}
             {revenuInhabituel && <InlineAlert>Vérifier la saisie : valeur inhabituelle.</InlineAlert>}

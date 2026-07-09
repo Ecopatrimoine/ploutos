@@ -8,6 +8,7 @@
 // moins fiable.
 
 import React from "react";
+import { ShieldAlert, AlertCircle, AlertTriangle, Info, ArrowRight } from "lucide-react";
 import type { Constat, ConstatSeverite } from "../../lib/prevoyance/types";
 import { BRAND, SURFACE } from "../../constants";
 
@@ -50,11 +51,11 @@ type Props = {
 // déjà utilisés partout ailleurs dans le module. non_conformite et alerte
 // partagent la teinte danger ; la hiérarchie passe par la bordure (pleine
 // vs légère), l'icône et le libellé (jamais la couleur seule).
-const COULEURS: Record<ConstatSeverite, { bg: string; border: string; texte: string; icone: string; label: string }> = {
-  non_conformite: { bg: BRAND.dangerBg, border: BRAND.danger, texte: BRAND.danger, icone: "⚠", label: "NON-CONFORMITÉ" },
-  alerte:         { bg: BRAND.dangerBg, border: BRAND.dangerBorder, texte: BRAND.danger, icone: "🔴", label: "ALERTE" },
-  attention:      { bg: BRAND.warningBg, border: BRAND.warningBorder, texte: BRAND.warning, icone: "🟠", label: "ATTENTION" },
-  info:           { bg: "rgba(38,66,139,0.06)", border: BRAND.sky, texte: BRAND.sky, icone: "ℹ", label: "INFO" },
+const COULEURS: Record<ConstatSeverite, { bg: string; border: string; texte: string; icone: React.ComponentType<{ className?: string }>; label: string }> = {
+  non_conformite: { bg: BRAND.dangerBg, border: BRAND.danger, texte: BRAND.danger, icone: ShieldAlert, label: "NON-CONFORMITÉ" },
+  alerte:         { bg: BRAND.dangerBg, border: BRAND.dangerBorder, texte: BRAND.danger, icone: AlertCircle, label: "ALERTE" },
+  attention:      { bg: BRAND.warningBg, border: BRAND.warningBorder, texte: BRAND.warning, icone: AlertTriangle, label: "ATTENTION" },
+  info:           { bg: "rgba(38,66,139,0.06)", border: BRAND.sky, texte: BRAND.sky, icone: Info, label: "INFO" },
 };
 
 const LIBELLE_AXE: Record<string, string> = {
@@ -88,6 +89,7 @@ export const BlocConstats = React.memo(function BlocConstats({ constats }: Props
     <div className="space-y-3">
       {constats.map((c) => {
         const couleur = COULEURS[c.severite];
+        const Icone = couleur.icone;
         return (
           <div
             key={c.id}
@@ -99,10 +101,10 @@ export const BlocConstats = React.memo(function BlocConstats({ constats }: Props
           >
             <div className="flex flex-wrap items-baseline gap-2 mb-1">
               <span
-                className="text-xs font-black uppercase tracking-widest"
+                className="inline-flex items-center gap-1 text-xs font-black uppercase tracking-widest"
                 style={{ color: couleur.texte, letterSpacing: "0.08em" }}
               >
-                {couleur.icone} {couleur.label}
+                <Icone className="h-3.5 w-3.5" aria-hidden="true" /> {couleur.label}
               </span>
               <span className="text-xs" style={{ color: BRAND.muted }}>
                 · {LIBELLE_AXE[c.axe] ?? c.axe}
@@ -117,8 +119,8 @@ export const BlocConstats = React.memo(function BlocConstats({ constats }: Props
             >
               {renderDetail(c.detail)}
             </div>
-            <div className="text-sm" style={{ color: BRAND.sky, fontWeight: 600 }}>
-              → {c.action}
+            <div className="flex items-start gap-1 text-sm" style={{ color: BRAND.sky, fontWeight: 600 }}>
+              <ArrowRight className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" /> {c.action}
             </div>
             {c.impactChiffre && (
               <div
