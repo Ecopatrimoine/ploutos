@@ -7,9 +7,10 @@ import { CardAccentTop } from "../CardAccentTop";
 import { TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2, Download, Upload, Pencil, X, Gift } from "lucide-react";
 import { BRAND, SURFACE, labelPlacement, DONATION_RELATIONS } from "../../constants";
-import type { DonationItem, DonationHeir, Hypothesis, DifferenceLine } from "../../types/patrimoine";
-import { n, euro, deepClone, getDemembrementPercentages } from "../../lib/calculs/utils";
+import type { DonationItem, DonationHeir, Hypothesis, DifferenceLine, PayloadPrevoyance } from "../../types/patrimoine";
+import { n, euro, deepClone, getDemembrementPercentages, fractionEnPct, pctEnFraction } from "../../lib/calculs/utils";
 import { Field, DifferenceBadge } from "../shared";
+import { SEUILS_DEFAUT } from "../../lib/presentation/prevoyancePerso";
 import { computeIR } from "../../lib/calculs/ir";
 import { computeIFI } from "../../lib/calculs/ifi";
 import { computeSuccession } from "../../lib/calculs/succession";
@@ -29,11 +30,24 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
     saveBaseSnapshot, restoreBaseSnapshot,
     saveHypothesis, loadHypothesis, clearHypothesis,
     addDonation, removeDonation,
-    notes, setNotes,
+    notes, setNotes, setField,
     person1, person2,
   } = props;
 
   const [donationModal, setDonationModal] = React.useState<{ hypoId: number; donation: DonationItem | null } | null>(null);
+
+  // LOT 10c — seuils d'analyse prévoyance réglables (fractions 0-1, édités en %).
+  const cibleCouverture = data.prevoyance?.cibleCouverture ?? SEUILS_DEFAUT.cible;
+  const seuilCritique = data.prevoyance?.seuilCritique ?? SEUILS_DEFAUT.seuilCritique;
+  function patchSeuilsPrevoyance(patch: { cibleCouverture?: number; seuilCritique?: number }) {
+    const current: PayloadPrevoyance = data.prevoyance ?? {
+      version: 1,
+      p1: { contratsIndividuels: [], couvertureCollective: null, categorieInvaliditeProjetee: "cat2" },
+      p2: null,
+      collective: null,
+    };
+    setField?.("prevoyance", { ...current, ...patch });
+  }
 
   const hypothesisResults = React.useMemo(() =>
     hypotheses.map((hypothesis: Hypothesis) => {
@@ -124,6 +138,27 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
             })}
           </div>
         </div>
+
+        {/* Hypothèses de prévoyance (LOT 10c) — seuils d'analyse réglables par dossier,
+             consommés par l'onglet Prévoyance (besoin de couverture, date critique). */}
+        <Card className="border-0 shadow-md relative overflow-hidden" style={{ borderRadius: 14, background: SURFACE.cardSoft }}>
+          <CardAccentTop />
+          <CardContent className="px-5 py-4 space-y-3">
+            <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Hypothèses de prévoyance</div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Cible de couverture (%)" tooltip="Objectif de revenu de remplacement en cas d'arrêt de travail. Le « besoin de couverture minimum » (onglet Prévoyance) = cette cible × revenu de référence − couverture au palier durable. Défaut : 90 %.">
+                <Input type="number" min={50} max={120} value={fractionEnPct(cibleCouverture)}
+                  onChange={(e) => patchSeuilsPrevoyance({ cibleCouverture: pctEnFraction(Number(e.target.value) || 0) })}
+                  className="rounded-xl" />
+              </Field>
+              <Field label="Seuil critique (%)" tooltip="Niveau de couverture sous lequel la situation devient critique. La « date critique » (onglet Prévoyance) est le premier jalon où la couverture totale passe sous ce seuil. Défaut : 50 %.">
+                <Input type="number" min={10} max={90} value={fractionEnPct(seuilCritique)}
+                  onChange={(e) => patchSeuilsPrevoyance({ seuilCritique: pctEnFraction(Number(e.target.value) || 0) })}
+                  className="rounded-xl" />
+              </Field>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* 3 cartes hypothèses */}
         <div className="grid gap-4 md:grid-cols-3">

@@ -31,6 +31,8 @@ import type { ContratTransmissionDeces, StatutPro } from "../../types/patrimoine
 import { referentiels } from "../../data/prevoyance";
 import { capitalDecesCarmf, pensionInvaliditeBaseAnnuelle } from "./carmf";
 import { TYPE_DECES_CAPITAL_LEGACY } from "./utils";
+import { formatDureeArret } from "../calculs/utils";
+import { bornesPalier } from "../presentation/prevoyancePerso";
 
 const TNS_STATUTS: StatutPro[] = [
   "tns_liberal",
@@ -301,20 +303,27 @@ export const regleIjPlafondInsuffisant: Regle = (ctx, cible) => {
   // 30 % pile → alerte ; 29 % → pas d'alerte.
   if (ratio > 0.7) return null;
   const trou = Math.max(0, ref - total);
+  // A3 (addendum 10c) : le palier de couverture est plat de ~1 mois à 1 an — exprimer
+  // ses BORNES réelles (dérivées de la frise) plutôt qu'un point unique « à 6 mois ».
+  // Montant inchangé (palier plat, valeur à J180), seule la formulation temporelle change.
+  const bornes = bornesPalier(ctx.projection, 180);
+  const palierTxt = bornes
+    ? `du ${formatDureeArret(bornes.startJour)} au ${formatDureeArret(bornes.endJour)} d'arrêt`
+    : "à 6 mois d'arrêt";
 
   return {
     id: `ij_plafond_insuffisant_${cible}`,
     severite: "attention",
     axe: "incapacite",
     cible,
-    titre: "Couverture incapacité insuffisante à 6 mois d'arrêt",
+    titre: `Couverture incapacité insuffisante ${palierTxt}`,
     detail:
-      `À J180 d'arrêt, le revenu de remplacement estimé pour ${libelleCible(ctx, cible)} est de ${formatEUR(total)}/mois ` +
+      `Sur ce palier (${palierTxt}), le revenu de remplacement estimé pour ${libelleCible(ctx, cible)} est de ${formatEUR(total)}/mois ` +
       `contre ${formatEUR(ref)} de référence — soit une perte de ${Math.round((1 - ratio) * 100)} %.`,
     action:
       "Évaluer la mise en place d'une couverture complémentaire IJ visant un revenu de remplacement " +
       "proche du revenu de référence sur la durée maximale d'arrêt (jusqu'à 1 095 jours).",
-    impactChiffre: { montant: trou, libelle: "Manque à gagner mensuel à J180" },
+    impactChiffre: { montant: trou, libelle: "Manque à gagner mensuel sur le palier" },
   };
 };
 

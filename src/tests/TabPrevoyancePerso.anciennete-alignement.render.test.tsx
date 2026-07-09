@@ -97,17 +97,40 @@ describe("TabPrevoyancePerso — alignement alerte anciennete 2 personnes (LOT A
       </Tabs>
     );
 
-    // Les deux colonnes sont rendues.
-    const p1Label = screen.getByText("Personne 1");
-    const p2Label = screen.getByText("Personne 2");
+    // Les deux colonnes sont rendues (vue « Les deux » par défaut). Le libellé de
+    // colonne est un <div> (le sélecteur de personne, lui, expose des <button>) : on
+    // cible le div pour lever l'ambiguïté introduite par le sélecteur (Lot 10c).
+    const p1Label = screen.getByText("Personne 1", { selector: "div" });
+    const p2Label = screen.getByText("Personne 2", { selector: "div" });
 
     // Un SEUL encart dans tout l'onglet.
     expect(screen.getAllByText(TEXTE_ALERTE)).toHaveLength(1);
 
-    // L'encart est DANS la carte recap de P1 (egalisee), absent de celle de P2.
+    // L'encart est DANS la carte en-tête de P1, absent de celle de P2.
     const cardP1 = p1Label.closest("div.rounded-xl") as HTMLElement;
     const cardP2 = p2Label.closest("div.rounded-xl") as HTMLElement;
     expect(within(cardP1).getByText(TEXTE_ALERTE)).toBeInTheDocument();
     expect(within(cardP2).queryByText(TEXTE_ALERTE)).toBeNull();
+  });
+
+  // A1-bis — PREUVE du placement : l'en-tête est en rangée 1, l'accordéon « Régime
+  // obligatoire » en rangée 7 (réfute le bug « accordéons en rangée 1 »).
+  it("place l'en-tête en row-start-1 et le régime obligatoire en row-start-7", () => {
+    render(
+      <Tabs defaultValue="prevoyance">
+        <TabPrevoyancePerso data={data2Personnes()} setField={() => {}} person1="Personne 1" person2="Personne 2" />
+      </Tabs>
+    );
+    // En-tête P1 : son wrapper de placement porte col-start-1 + row-start-1.
+    const enteteP1 = screen.getByText("Personne 1", { selector: "div" }).closest("[class*='row-start']") as HTMLElement;
+    expect(enteteP1.className).toContain("min-[900px]:row-start-1");
+    expect(enteteP1.className).toContain("min-[900px]:col-start-1");
+    // Régime obligatoire (dernière section) : wrapper en row-start-7 dans les 2 colonnes.
+    const regimes = screen.getAllByText("Régime obligatoire de la caisse");
+    expect(regimes.length).toBe(2);
+    regimes.forEach((r) => {
+      const wrap = r.closest("[class*='row-start']") as HTMLElement;
+      expect(wrap.className).toContain("min-[900px]:row-start-7");
+    });
   });
 });

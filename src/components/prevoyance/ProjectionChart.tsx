@@ -31,6 +31,8 @@ import { BRAND } from "../../constants";
 import { AlertTriangle } from "lucide-react";
 import { HelpTooltip } from "../shared";
 import { formatDureeArret } from "../../lib/calculs/utils";
+import { ETAGES, PAYEUR_COLORS, couleurEtage } from "../../lib/presentation/payeurs";
+import { compress, axeTemps, labelTooltipTemps, type TickTemps } from "../../lib/presentation/echelleTemps";
 
 type Props = {
   projection: ProjectionResult;
@@ -44,18 +46,9 @@ type Props = {
 const TOOLTIP_IJ_FONCTION_PUBLIQUE =
   "Fonctionnaire titulaire : maintien statutaire 90 % du revenu pendant 3 mois puis 50 % pendant 9 mois (modèle conservateur territorial/hospitalier). Assiette : revenus déclarés.";
 
-// Palette charte (SPEC_PREVOYANCE_UI_GRAPHIQUE §5). Navy et gold restent
-// surchargeables par le thème cabinet ; les teintes intermédiaires sont
-// fixes (validées sur maquette). Les couvertures collective/individuelle
-// partagent le bleu-gris et sont distinguées par l'opacité.
-const COL = {
-  salaire: "var(--cab-gold, #E3AF64)",
-  maintien: "#5B7FB0",
-  obligatoire: "var(--cab-navy, #101B3B)",
-  complementaire: "#A9B8D4",
-  individuelle: "#B5806B",   // Madelin : terracotta sourd, hors famille bleue (color-blind safe)
-  reference: "#888780",
-};
+// Palette & étages : source unique lib/presentation/payeurs.ts (Lot 10c) — remplace
+// l'ancien COL local (dupliqué avec BlocPedagogie). Libellés d'aires strictement
+// identiques (test ProjectionChart.tooltip).
 
 function formatLabelX(jour: number, phase: "am" | "invalidite"): string {
   if (phase === "am") {
@@ -100,11 +93,15 @@ export function TooltipContenu({
   payload,
   label,
   refMensuel,
+  formatLabel,
 }: {
   active?: boolean;
   payload?: Array<{ name?: string; value?: number; color?: string; dataKey?: string }>;
-  label?: string;
+  label?: string | number;
   refMensuel: number;
+  // A4 — l'axe est numérique (coordonnée compressée) : reconvertit en échéance lisible.
+  // Absent (test isolé) -> label affiché tel quel.
+  formatLabel?: (x: string | number) => string;
 }) {
   if (!active || !payload || payload.length === 0) return null;
   const total = payload.reduce((s, p) => s + (Number(p.value) || 0), 0);
@@ -121,7 +118,7 @@ export function TooltipContenu({
         boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
       }}
     >
-      <div style={{ fontWeight: 700, color: BRAND.navy, marginBottom: 4 }}>{`Échéance : ${label}`}</div>
+      <div style={{ fontWeight: 700, color: BRAND.navy, marginBottom: 4 }}>{`Échéance : ${formatLabel && label != null ? formatLabel(label) : label}`}</div>
       {visibles.map((p) => (
         <div key={p.dataKey}>
           <div style={{ color: BRAND.navy, display: "flex", justifyContent: "space-between", gap: 12 }}>
@@ -150,6 +147,20 @@ export function TooltipContenu({
   );
 }
 
+// Tick d'axe personnalisé (C2) : NIVEAU 1 en encre (décalé sur 2 lignes si collision),
+// NIVEAU 2 en gris discret italique. Recharts injecte x / y / payload.
+function TickTempsAxe({ x, y, payload, meta }: { x?: number; y?: number; payload?: { value?: number }; meta?: Map<number, TickTemps> }) {
+  const t = meta && payload?.value != null ? meta.get(payload.value) : undefined;
+  if (!t || !t.label) return null;
+  const niveau2 = t.niveau === 2;
+  const dy = 10 + (t.ligne === 1 ? 13 : 0);
+  return (
+    <text x={x} y={y} dy={dy} textAnchor="middle" fontSize={niveau2 ? 9 : 11} fontStyle={niveau2 ? "italic" : "normal"} fill={niveau2 ? BRAND.muted : BRAND.navy}>
+      {t.label}
+    </text>
+  );
+}
+
 export const ProjectionChart = React.memo(function ProjectionChart({ projection, codeCaisse, publicCaisse }: Props) {
   const [vueComplete, setVueComplete] = React.useState(false);
 
@@ -159,6 +170,7 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
 
   const dataComplete = projection.axe.map((point, idx) => ({
     jour: point.jour,
+    x: compress(point.jour), // A4 — coordonnée temporelle compressée par paliers
     labelX: formatLabelX(point.jour, point.phase),
     salaire: Math.round(projection.series.salaire[idx]),
     maintien: Math.round(projection.series.maintienEmployeur[idx]),
@@ -178,7 +190,13 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
   // On filtre les points affichés — les données calculées sont intactes.
   const data = vueComplete ? dataComplete : dataComplete.filter((d) => d.jour <= bascule);
 
-  const labelBascule = dataComplete.find((d) => d.jour === bascule)?.labelX;
+  // A4 / C2 / C3a — axe numérique compressé via la SOURCE UNIQUE axeTemps (même code
+  // que la liste de preuve). Ticks : NIVEAU 1 = chaque rupture de la frise (libellée,
+  // décalage vertical si collision) ; NIVEAU 2 = repères discrets ; tooltip = double lecture.
+  const { maxJour: maxJourVisible, maxX, ticks } = axeTemps(projection, vueComplete);
+  const tickXs = ticks.map((t) => t.x);
+  const tickMeta = new Map(ticks.map((t) => [t.x, t]));
+  const labelParX = new Map(dataComplete.map((d) => [d.x, labelTooltipTemps(d.jour)]));
 
   // Repères de changement de PAYEUR (relais CPAM → caisse, ou trou de couverture).
   // Idiome identique à la bascule invalidité : on retrouve le labelX du jour de rupture.
@@ -186,16 +204,14 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
   // obligatoire (CPAM des 90 premiers jours → caisse/trou ensuite).
   const TYPES_RELAIS_PAYEUR = ["relais_carmf", "trou_cipav", "relais_carpimko"] as const;
   const reperesRelais = projection.rupturesCles
-    .filter((r) => (TYPES_RELAIS_PAYEUR as readonly string[]).includes(r.type))
+    .filter((r) => (TYPES_RELAIS_PAYEUR as readonly string[]).includes(r.type) && r.jour <= maxJourVisible)
     .map((r) => ({
-      labelX: dataComplete.find((d) => d.jour === r.jour)?.labelX,
-      // Étiquette courte pour le repère vertical (le libellé complet reste dans la donnée).
+      x: compress(r.jour), // A4 — coordonnée compressée (les repères tombent sur leur tick)
       texte:
         r.type === "relais_carmf" ? "relais CARMF" :
         r.type === "trou_cipav" ? "trou CIPAV" :
         "relais CARPIMKO",
-    }))
-    .filter((x) => x.labelX != null);
+    }));
 
   const libelleCaisse =
     codeCaisse
@@ -228,17 +244,27 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-            <XAxis dataKey="labelX" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+            <XAxis
+              dataKey="x"
+              type="number"
+              scale="linear"
+              domain={[0, maxX]}
+              ticks={tickXs}
+              interval={0}
+              height={42}
+              tick={<TickTempsAxe meta={tickMeta} />}
+              allowDuplicatedCategory={false}
+            />
             <YAxis
               tick={{ fontSize: 11 }}
               tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)} k€` : `${v} €`)}
             />
-            <Tooltip content={<TooltipContenu refMensuel={projection.revenuReferenceMensuel} />} />
+            <Tooltip content={<TooltipContenu refMensuel={projection.revenuReferenceMensuel} formatLabel={(x) => labelParX.get(Number(x)) ?? ""} />} />
             <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} />
 
             <ReferenceLine
               y={projection.revenuReferenceMensuel}
-              stroke={COL.reference}
+              stroke={PAYEUR_COLORS.reference}
               strokeDasharray="4 4"
               strokeWidth={1.5}
               label={{
@@ -252,7 +278,7 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
             {reperesRelais.map((rep, i) => (
               <ReferenceLine
                 key={`relais-${i}`}
-                x={rep.labelX!}
+                x={rep.x}
                 stroke="var(--cab-gold, #E3AF64)"
                 strokeDasharray="5 4"
                 strokeWidth={1.5}
@@ -266,35 +292,21 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
               />
             ))}
 
-            {labelBascule && (
-              <ReferenceLine
-                x={labelBascule}
-                stroke="var(--cab-gold, #E3AF64)"
-                strokeDasharray="5 4"
-                strokeWidth={1.5}
-                label={{
-                  value: "bascule invalidité",
-                  fontSize: 11,
-                  angle: -90,
-                  position: "insideTopLeft",
-                  fill: BRAND.goldText,
-                }}
-              />
+            {/* Bascule invalidité : trait repère SANS libellé (le tick « 3 ans » de l'axe
+                 le nomme déjà) — supprime le libellé vertical tronqué « ba… » (C2). */}
+            {bascule <= maxJourVisible && (
+              <ReferenceLine x={compress(bascule)} stroke="var(--cab-gold, #E3AF64)" strokeDasharray="5 4" strokeWidth={1.5} />
             )}
 
-            {hasSalaire && (
-              <Area type="stepAfter" dataKey="salaire"       stackId="1" name="Salaire (activité)"          fill={COL.salaire}       fillOpacity={0.9} stroke="none" />
-            )}
-            <Area type="stepAfter" dataKey="maintien"        stackId="1" name="Maintien employeur"          fill={COL.maintien}      fillOpacity={0.9} stroke="none" />
-            <Area type="stepAfter" dataKey="ijObl"           stackId="1" name="Régime obligatoire (IJ)"    fill={COL.obligatoire}   fillOpacity={0.9} stroke="none" />
-            <Area type="stepAfter" dataKey="ijColl"          stackId="1" name="Prévoyance collective (employeur)" fill={COL.complementaire} fillOpacity={0.95} stroke="none" />
-            <Area type="stepAfter" dataKey="ijInd"           stackId="1" name="Prévoyance individuelle (Madelin)" fill={COL.individuelle} fillOpacity={0.65} stroke="none" />
-            <Area type="stepAfter" dataKey="pensionInvalObl" stackId="1" name="Régime obligatoire (pension invalidité)" fill={COL.obligatoire} fillOpacity={0.7} stroke="none" />
-            <Area type="stepAfter" dataKey="renteInvalColl"  stackId="1" name="Prévoyance collective (rente invalidité)" fill={COL.complementaire} fillOpacity={0.95} stroke="none" />
-            <Area type="stepAfter" dataKey="renteInvalInd"   stackId="1" name="Prévoyance individuelle (Madelin, rente)" fill={COL.individuelle} fillOpacity={0.65} stroke="none" />
-            {hasRenteEnfants && (
-              <Area type="stepAfter" dataKey="renteInvalEnfants" stackId="1" name="Régime obligatoire (rente enfants)" fill={COL.obligatoire} fillOpacity={0.45} stroke="none" />
-            )}
+            {/* Aires empilées depuis la source unique ETAGES (ordre, libellés, couleurs
+                 et opacités identiques à l'existant). salaire/rente enfants conditionnels. */}
+            {ETAGES.map((e) => {
+              if (e.serieKey === "salaire" && !hasSalaire) return null;
+              if (e.serieKey === "renteInvalEnfants" && !hasRenteEnfants) return null;
+              return (
+                <Area key={e.dataKey} type="stepAfter" dataKey={e.dataKey} stackId="1" name={e.nom} fill={couleurEtage(e)} fillOpacity={e.opacity} stroke="none" />
+              );
+            })}
           </AreaChart>
         </ResponsiveContainer>
       </div>

@@ -26,6 +26,7 @@ import type {
 import { BRAND, SURFACE } from "../../constants";
 import { CardAccentTop } from "../CardAccentTop";
 import { SectionTitle } from "../shared";
+import { SectionAccordion } from "../analysis";
 import { BlocEntreprise, emptyEntrepriseAudit } from "../prevoyance/BlocEntreprise";
 import { BlocAuditConformite } from "../prevoyance/BlocAuditConformite";
 import { BlocObligationsBranche } from "../prevoyance/BlocObligationsBranche";
@@ -189,22 +190,24 @@ const TabPrevoyanceCollective = React.memo(function TabPrevoyanceCollective({
             <>
               <BlocEntreprise value={effective.entreprise} onChange={setEntreprise} />
 
+              {/* Grammaire d'analyse (Lot 10c) : sections en accordéons, pastilles lucide
+                   (verdicts), gating et contenus conservés tels quels. Audit ouvert
+                   (résultat principal), obligations replié derrière sa synthèse chiffrée. */}
               {audit && (
-                <div
-                  className="rounded-xl p-4"
-                  style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}
-                >
+                <SectionAccordion title="Audit de conformité" summary="Couverture collective en place face à la CCN de branche" defaultOpen>
                   <BlocAuditConformite audit={audit} />
-                </div>
+                </SectionAccordion>
               )}
 
               {vueObligations && (
-                <div
-                  className="rounded-xl p-4"
-                  style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}
+                <SectionAccordion
+                  title="Obligations de prévoyance de branche"
+                  summary={vueObligations.synthese
+                    ? `${vueObligations.synthese.conformes} conforme${vueObligations.synthese.conformes > 1 ? "s" : ""} · ${vueObligations.synthese.insuffisants} insuffisant${vueObligations.synthese.insuffisants > 1 ? "s" : ""} · ${vueObligations.synthese.aEtudier} à étudier`
+                    : vueObligations.statutLabel}
                 >
                   <BlocObligationsBranche vue={vueObligations} />
-                </div>
+                </SectionAccordion>
               )}
             </>
           )}
