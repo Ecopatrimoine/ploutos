@@ -210,6 +210,18 @@ export function hasClientData(record: ClientRecord | null | undefined): boolean 
   return true; // valeur data non-objet non nulle → consideree presente
 }
 
+// LOT 10d N11 — résolution des Notes de synthèse au CHARGEMENT d'un dossier.
+// Bug corrigé : `if (payload.notes) setNotes(...)` traitait la chaîne VIDE comme une
+// absence (règle L1 « payload vide » appliquée au niveau CHAMP au lieu du niveau
+// DOSSIER) -> une suppression volontaire était ignorée et l'ancienne note ressuscitait.
+// Règle correcte : la protection L1 est de niveau dossier (un payload SANS data ne
+// supplante pas -> on garde la note courante) ; pour un VRAI dossier (avec data), une
+// note vide "" est une valeur légitime -> on l'applique. Pure & testable.
+export function resolveLoadedNotes(payload: ClientPayload | null | undefined, currentNotes: string): string {
+  if (!hasClientData({ payload } as ClientRecord)) return currentNotes; // L1 : ne pas écraser
+  return typeof payload?.notes === "string" ? payload.notes : "";
+}
+
 // Departage pur entre deux versions d'un MEME dossier (meme id).
 // Regle : le plus recent (updatedAt) gagne, SAUF s'il est vide face a un non-vide
 // (un payload sans data ne supplante JAMAIS un payload avec data) ; a updatedAt

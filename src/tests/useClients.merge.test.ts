@@ -11,7 +11,7 @@ import { describe, it, expect, vi } from "vitest";
 
 vi.mock("@/lib/supabase", () => ({ supabase: {} }));
 
-import { pickClientWinner, hasClientData, mergeClients, type ClientRecord } from "../useClients";
+import { pickClientWinner, hasClientData, mergeClients, resolveLoadedNotes, type ClientRecord, type ClientPayload } from "../useClients";
 
 const T_OLD = "2026-01-01T00:00:00.000Z";
 const T_NEW = "2026-01-02T00:00:00.000Z";
@@ -117,5 +117,32 @@ describe("mergeClients — un record vide n'ecrase jamais un record porteur de d
     const merged = mergeClients(local, remote);
     expect(merged).toHaveLength(2);
     expect(merged.map((c) => c.id).sort()).toEqual(["L", "R"]);
+  });
+});
+
+// LOT 10d N11 — chargement des Notes de synthèse : une suppression volontaire (chaîne
+// vide) doit persister ; la protection L1 (payload sans data) ne doit pas être cassée.
+describe("resolveLoadedNotes — la chaîne vide est une valeur légitime (N11)", () => {
+  const pl = (over: Partial<ClientPayload>): ClientPayload => ({ data: { salary1: "1" }, ...over } as ClientPayload);
+
+  it("CAUSE PROUVÉE : ancien comportement (if notes) IGNORAIT la note vide -> ancienne note résiste", () => {
+    // Simulation de l'ancien code : `if (p.notes) setNotes(p.notes)` = garder l'actuel si "".
+    const ancien = (p: ClientPayload, cur: string) => (p.notes ? String(p.notes) : cur);
+    expect(ancien(pl({ notes: "" }), "TEXTE ANCIEN")).toBe("TEXTE ANCIEN"); // bug : ressuscite
+    // Nouveau comportement : la note vide d'un vrai dossier est appliquée.
+    expect(resolveLoadedNotes(pl({ notes: "" }), "TEXTE ANCIEN")).toBe(""); // corrigé
+  });
+
+  it("dossier avec data : note appliquée telle quelle (texte, vide, ou absente -> défaut)", () => {
+    expect(resolveLoadedNotes(pl({ notes: "note client" }), "X")).toBe("note client");
+    expect(resolveLoadedNotes(pl({ notes: "" }), "X")).toBe("");        // suppression persistée
+    expect(resolveLoadedNotes(pl({ notes: undefined }), "X")).toBe(""); // ancien dossier sans notes
+  });
+
+  it("L1 préservé : payload SANS data -> on garde la note courante (ne pas écraser)", () => {
+    const sansData = { clientName: "Nouveau", notes: "" } as ClientPayload;
+    expect(hasClientData({ payload: sansData } as ClientRecord)).toBe(false);
+    expect(resolveLoadedNotes(sansData, "note en cours")).toBe("note en cours");
+    expect(resolveLoadedNotes(null, "note en cours")).toBe("note en cours");
   });
 });

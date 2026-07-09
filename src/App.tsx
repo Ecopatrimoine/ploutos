@@ -12,7 +12,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, CartesianGrid
 } from "recharts";
-import { useClients, ClientManager } from "./useClients";
+import { useClients, ClientManager, resolveLoadedNotes } from "./useClients";
 import type { ClientRecord, ClientPayload } from "./useClients";
 import { useAuth } from "./hooks/useAuth";
 import { useLicense } from "./hooks/useLicense";
@@ -1117,7 +1117,9 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   const handleOpenClient = (client: ClientRecord) => {
     const p = client.payload
     if (p.clientName) setClientName(p.clientName as string)
-    if (p.notes) setNotes(p.notes as string)
+    // N11 — une note vide est une suppression légitime (dossier avec data) ; L1 préservé
+    // (payload sans data -> on garde la note courante). Voir resolveLoadedNotes.
+    setNotes(resolveLoadedNotes(p, notes))
     // Normalisation unique : defauts anciens dossiers + ensureAssetIds (ids stables).
     const norm = normalizeClientData(p)
     if (p.data) setData(norm.data as typeof data)
