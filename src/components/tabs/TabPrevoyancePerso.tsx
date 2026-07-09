@@ -287,10 +287,12 @@ function ColonnePerso({ label, entreeBase, prevoyancePerso, onChangePrevoyance, 
           <div className="font-bold text-base" style={{ color: BRAND.navy }}>{label}</div>
           <div className="text-xs" style={{ color: BRAND.muted }}>{entree.age} ans · retraite à {entree.ageRetraite} ans</div>
         </div>
-        <div className="text-xs flex flex-wrap gap-x-3 gap-y-1" style={{ color: BRAND.muted }}>
+        {/* C1 — bande d'infos en GRILLE FIXE (4 cellules, toujours rendues) : les deux
+             colonnes de la vue « Les deux » se replient aux mêmes points, jamais selon
+             la longueur des chiffres. Cellule vide -> « — ». */}
+        <div className="text-xs grid grid-cols-2 gap-x-4 gap-y-1" style={{ color: BRAND.muted }}>
           <span><strong style={{ color: BRAND.navy }}>Statut :</strong> {libelleStatut(entreeBase.statutPro)}</span>
-          {entree.caisse && <span><strong style={{ color: BRAND.navy }}>Caisse :</strong> {entree.caisse}</span>}
-          {entree.idccCCN && <span><strong style={{ color: BRAND.navy }}>IDCC :</strong> {entree.idccCCN}</span>}
+          <span><strong style={{ color: BRAND.navy }}>Caisse :</strong> {entree.caisse ?? "—"}{entree.idccCCN ? ` · IDCC ${entree.idccCCN}` : ""}</span>
           <span><strong style={{ color: BRAND.navy }}>Ancienneté :</strong> {Math.floor(entree.ancienneteMois / 12)} an{entree.ancienneteMois >= 24 ? "s" : ""} ({entree.ancienneteMois} mois)</span>
           <span><strong style={{ color: BRAND.navy }}>Revenu réf. :</strong> {Math.round(projection.revenuReferenceMensuel).toLocaleString("fr-FR")} €/mois</span>
         </div>
