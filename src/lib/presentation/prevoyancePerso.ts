@@ -91,16 +91,34 @@ export function buildBesoinCouverture(projection: ProjectionResult, cible: numbe
   };
 }
 
+// ── Bornes d'un palier plat de la frise ─────────────────────────────────────
+// Un palier = segment contigu où la couverture totale est constante (à l'euro).
+// Sert à exprimer un constat « du Nᵉ au Mᵉ mois » plutôt qu'« à un point » (A3).
+export function bornesPalier(projection: ProjectionResult, jour: number): { startJour: number; endJour: number; total: number } | null {
+  const { axe, series } = projection;
+  const idx = axe.findIndex((p) => p.jour === jour);
+  if (idx < 0) return null;
+  const r = (x: number) => Math.round(x);
+  const total = couvertureAtIdx(series, idx);
+  let start = idx;
+  let end = idx;
+  while (start > 0 && r(couvertureAtIdx(series, start - 1)) === r(total)) start--;
+  while (end < axe.length - 1 && r(couvertureAtIdx(series, end + 1)) === r(total)) end++;
+  return { startJour: axe[start].jour, endJour: axe[end].jour, total };
+}
+
 // ── Date critique ───────────────────────────────────────────────────────────
 // Premier jalon (point d'axe) où la couverture totale passe SOUS le seuil critique.
 export type DateCritique =
   | { statut: "jamais"; seuil: number }
   | { statut: "des_le_debut"; seuil: number; pct: number }
+  | { statut: "retraite"; seuil: number; jour: number }
   | { statut: "critique"; seuil: number; jour: number; mois: number; date: string; pct: number; libelle: string };
 
 export function buildDateCritique(projection: ProjectionResult, seuil: number): DateCritique {
   const { axe, series } = projection;
   const revenuRef = projection.revenuReferenceMensuel || 0;
+  const bascule = projection.basculeInvaliditeJour || 0;
   if (revenuRef <= 0 || axe.length === 0) return { statut: "jamais", seuil };
   const pctAt = (i: number) => couvertureAtIdx(series, i) / revenuRef;
   // Premier FRANCHISSEMENT DESCENDANT : couverture < seuil alors qu'elle était ≥ seuil
@@ -108,6 +126,11 @@ export function buildDateCritique(projection: ProjectionResult, seuil: number): 
   // franchissement — c'est l'état de départ, pas une bascule sous le seuil.
   for (let i = 1; i < axe.length; i++) {
     if (pctAt(i) < seuil && pctAt(i - 1) >= seuil) {
+      // A2 (addendum) : un franchissement APRÈS la bascule invalidité (J1095) survient
+      // pendant la phase invalidité, où le plateau est plat jusqu'au passage retraite
+      // (coupure de la pension d'invalidité à 62 ans, projection.ts). Cette chute-là est
+      // l'événement RETRAITE, pas un trou de couverture de la vie active -> carte verte.
+      if (axe[i].jour > bascule) return { statut: "retraite", seuil, jour: axe[i].jour };
       return {
         statut: "critique", seuil,
         jour: axe[i].jour, mois: Math.round(axe[i].jour / 30), date: axe[i].date,

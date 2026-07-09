@@ -89,26 +89,16 @@ const TabPrevoyancePerso = React.memo(function TabPrevoyancePerso({
   const [vue, setVue] = React.useState<Vue>("les_deux");
   const vueEff: Vue = hasP2 ? vue : "p1";
 
-  const colonneP1 = entreeP1Base && (
+  const renderColonne = (which: "p1" | "p2", entree: EntreePerso, aligned: boolean) => (
     <ColonnePerso
-      key="p1"
-      label={person1}
-      entreeBase={entreeP1Base}
-      prevoyancePerso={getPrevoyancePerso(data, "p1")}
-      onChangePrevoyance={(patch) => patchPrevoyance("p1", patch)}
-      cible="p1"
+      key={which}
+      label={which === "p1" ? person1 : person2}
+      entreeBase={entree}
+      prevoyancePerso={getPrevoyancePerso(data, which)}
+      onChangePrevoyance={(patch) => patchPrevoyance(which, patch)}
+      cible={which}
       data={data}
-    />
-  );
-  const colonneP2 = hasP2 && entreeP2Base && (
-    <ColonnePerso
-      key="p2"
-      label={person2}
-      entreeBase={entreeP2Base}
-      prevoyancePerso={getPrevoyancePerso(data, "p2")}
-      onChangePrevoyance={(patch) => patchPrevoyance("p2", patch)}
-      cible="p2"
-      data={data}
+      aligned={aligned}
     />
   );
 
@@ -146,15 +136,18 @@ const TabPrevoyancePerso = React.memo(function TabPrevoyancePerso({
         <CardContent>
           {!entreeP1Base ? (
             <EtatVide onGoToTravail={onGoToTravail} />
-          ) : vueEff === "les_deux" ? (
-            <div className="grid gap-6 min-[900px]:grid-cols-2 items-start">
-              {colonneP1}
-              {colonneP2}
+          ) : vueEff === "les_deux" && entreeP2Base ? (
+            // A1 (addendum) : grille par RANGÉES partagées (subgrid) — chaque colonne
+            // occupe les 7 pistes de l'onglet, si bien que les rangées homologues
+            // (en-têtes, actes 1, frises, …) s'alignent quelle que soit leur hauteur.
+            <div className="grid gap-6 min-[900px]:grid-cols-2 min-[900px]:[grid-template-rows:repeat(7,auto)]">
+              {renderColonne("p1", entreeP1Base, true)}
+              {renderColonne("p2", entreeP2Base, true)}
             </div>
-          ) : vueEff === "p2" ? (
-            <div className="max-w-5xl mx-auto">{colonneP2}</div>
+          ) : vueEff === "p2" && entreeP2Base ? (
+            <div className="max-w-5xl mx-auto">{renderColonne("p2", entreeP2Base, false)}</div>
           ) : (
-            <div className="max-w-5xl mx-auto">{colonneP1}</div>
+            <div className="max-w-5xl mx-auto">{renderColonne("p1", entreeP1Base, false)}</div>
           )}
         </CardContent>
       </Card>
@@ -203,9 +196,12 @@ type ColonneProps = {
   onChangePrevoyance: (patch: Partial<PayloadPrevoyancePerso>) => void;
   cible: "p1" | "p2";
   data: PatrimonialData;
+  // true en vue « Les deux » : la colonne devient un subgrid de 7 pistes pour aligner
+  // ses rangées avec l'autre colonne (les cellules s'étirent à la hauteur de la piste).
+  aligned?: boolean;
 };
 
-function ColonnePerso({ label, entreeBase, prevoyancePerso, onChangePrevoyance, cible, data }: ColonneProps) {
+function ColonnePerso({ label, entreeBase, prevoyancePerso, onChangePrevoyance, cible, data, aligned }: ColonneProps) {
   // ── Configs caisse (identique à l'existant) : config persistée + situation
   // familiale VIVANTE injectée depuis le foyer, mémoïsées pour l'identité de réf. ──
   const estCarmf = entreeBase.caisse === "CARMF";
@@ -272,7 +268,7 @@ function ColonnePerso({ label, entreeBase, prevoyancePerso, onChangePrevoyance, 
   ];
 
   return (
-    <div className="space-y-4">
+    <div className={aligned ? "space-y-4 min-[900px]:space-y-0 min-[900px]:grid min-[900px]:row-span-[7] min-[900px]:[grid-template-rows:subgrid] min-[900px]:gap-6" : "space-y-4"}>
       {/* ══ EN-TÊTE ══ bande d'infos + contrôles de scénario/invalidité/TPT */}
       <div className="rounded-xl p-4 space-y-3" style={{ background: SURFACE.cardSoft, border: `1px solid ${SURFACE.border}` }}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -410,12 +406,16 @@ function ColonnePerso({ label, entreeBase, prevoyancePerso, onChangePrevoyance, 
 
 function DateCritiqueCard({ dateCritique }: { dateCritique: ReturnType<typeof buildDateCritique> }) {
   const seuilTxt = pctInt(dateCritique.seuil);
-  if (dateCritique.statut === "jamais") {
+  // Vert : jamais franchie, OU franchissement dû au seul passage retraite (A2).
+  if (dateCritique.statut === "jamais" || dateCritique.statut === "retraite") {
+    const sousTexte = dateCritique.statut === "retraite"
+      ? `Franchissement uniquement au passage retraite (fin de la pension d'invalidité) — pas un trou de la vie active.`
+      : `Couverture ≥ ${seuilTxt} sur toute la période projetée.`;
     return (
       <div className="rounded-2xl px-4 py-3 flex-1 flex flex-col justify-center" style={{ background: BRAND.successBg, border: `1px solid ${BRAND.successBorder}` }}>
         <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: BRAND.success }}>Date critique — couverture &lt; {seuilTxt}</div>
-        <div className="font-black mt-1" style={{ color: BRAND.success, fontSize: 18, lineHeight: 1.1 }}>Jamais franchie</div>
-        <div className="text-[11px] mt-0.5" style={{ color: BRAND.muted }}>Couverture ≥ {seuilTxt} sur toute la période projetée.</div>
+        <div className="font-black mt-1" style={{ color: BRAND.success, fontSize: 18, lineHeight: 1.1 }}>{dateCritique.statut === "retraite" ? `Couverture ≥ ${seuilTxt} jusqu'à la retraite` : "Jamais franchie"}</div>
+        <div className="text-[11px] mt-0.5" style={{ color: BRAND.muted }}>{sousTexte}</div>
       </div>
     );
   }

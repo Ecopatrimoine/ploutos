@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import type { ProjectionResult, SerieEmpilee, Constat } from "../lib/prevoyance/types";
 import {
   buildBesoinCouverture, buildDateCritique, buildTableauEuro, buildVigilance, pireRisques,
-  couvertureAtIdx, resolveSeuilsPrevoyance, SEUILS_DEFAUT,
+  couvertureAtIdx, resolveSeuilsPrevoyance, SEUILS_DEFAUT, bornesPalier,
 } from "../lib/presentation/prevoyancePerso";
 
 const ZERO8 = () => [0, 0, 0, 0, 0, 0, 0, 0];
@@ -66,10 +66,28 @@ describe("prevoyancePerso — date critique (franchissement descendant)", () => 
     if (d.statut === "critique") { expect(d.jour).toBe(90); expect(d.libelle).toBe("3e mois d'arrêt"); }
   });
 
-  it("franchissement tardif à la bascule invalidité (seuil 50 %)", () => {
+  it("franchissement À la bascule invalidité (seuil 50 %) reste critique", () => {
     const d = buildDateCritique(friseFixture(), 0.5);
     expect(d.statut).toBe("critique");
     if (d.statut === "critique") expect(d.jour).toBe(1095);
+  });
+
+  it("A2 — franchissement APRÈS la bascule (coupure pension à la retraite) -> statut retraite (vert)", () => {
+    // Bien couvert : plateau invalidité 2000 (50 %) de J1095 à J6570, puis 0 à la coupure
+    // retraite (age 62, jour 6570 > bascule). Seuil 50 % franchi seulement à la retraite.
+    const arr = () => [0, 0, 0, 0, 0, 0];
+    const series = {
+      salaire: arr(), maintienEmployeur: [0, 4000, 4000, 0, 0, 0], ijObligatoire: arr(),
+      ijComplementaireCollective: arr(), ijComplementaireIndividuelle: arr(),
+      pensionInvalObligatoire: [0, 0, 0, 2500, 2500, 0], renteInvalCollective: arr(),
+      renteInvalIndividuelle: arr(), renteInvalEnfants: arr(),
+    } as unknown as SerieEmpilee;
+    const jours = [0, 30, 180, 1095, 6205, 6570];
+    const axe = jours.map((j) => ({ jour: j, date: "2026-01-01", phase: (j >= 1095 ? "invalidite" : "am") as "am" | "invalidite" }));
+    const proj = { axe, series, revenuReferenceMensuel: 4000, basculeInvaliditeJour: 1095, finProjectionJour: 7300 } as unknown as ProjectionResult;
+    const d = buildDateCritique(proj, 0.5);
+    expect(d.statut).toBe("retraite");
+    if (d.statut === "retraite") expect(d.jour).toBe(6570);
   });
 
   it("jamais sous le seuil -> statut jamais", () => {
@@ -78,6 +96,18 @@ describe("prevoyancePerso — date critique (franchissement descendant)", () => 
 
   it("toujours sous le seuil -> des_le_debut (dès le 1er jour)", () => {
     expect(buildDateCritique(friseUniforme(1000), 0.5).statut).toBe("des_le_debut");
+  });
+});
+
+describe("prevoyancePerso — bornes de palier (A3, constats en paliers)", () => {
+  it("palier plat contenant J180 : bornes exactes J180→J365 (frise fixture)", () => {
+    const b = bornesPalier(friseFixture(), 180)!;
+    expect(b.startJour).toBe(180);   // J90 (3000) ≠ 2000 -> le palier démarre à J180
+    expect(b.endJour).toBe(365);     // J1095 (1600) ≠ 2000 -> se termine à J365
+    expect(b.total).toBe(2000);
+  });
+  it("jour hors axe -> null", () => {
+    expect(bornesPalier(friseFixture(), 999)).toBeNull();
   });
 });
 
