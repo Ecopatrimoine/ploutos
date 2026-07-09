@@ -5,9 +5,10 @@ import React, { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { BRAND, SURFACE } from "../../constants";
 
-export function SectionAccordion({ title, summary, defaultOpen = false, children }: {
+export function SectionAccordion({ title, summary, badge, defaultOpen = false, children }: {
   title: string;
   summary?: React.ReactNode;   // résumé chiffré affiché même quand la section est fermée
+  badge?: React.ReactNode;     // pastille affichée sur la ligne de titre (ex. complétude, Lot 10d)
   defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
@@ -22,7 +23,9 @@ export function SectionAccordion({ title, summary, defaultOpen = false, children
         style={{ background: "transparent", border: "none", cursor: "pointer" }}
       >
         <div className="min-w-0">
-          <div className="text-sm font-bold" style={{ color: BRAND.navy }}>{title}</div>
+          <div className="text-sm font-bold flex items-center flex-wrap gap-2" style={{ color: BRAND.navy }}>
+            <span className="min-w-0">{title}</span>{badge}
+          </div>
           {summary != null && <div className="text-xs mt-0.5" style={{ color: BRAND.muted }}>{summary}</div>}
         </div>
         <span className="shrink-0" style={{ color: BRAND.muted }} aria-hidden="true">

@@ -14,6 +14,9 @@ import type { Child, Property, Placement, PatrimonialData, IrOptions, Succession
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
+import { SectionAccordion } from "../analysis";
+import { Check } from "lucide-react";
+import { completudeMission } from "../../lib/conformite/completudeMission";
 // ─── Lot 6 — source unique du profil + capacité de perte + vocabulaire ESG ──
 import { computeProfilRisque } from "../../lib/conformite/profil";
 import { computeCapacitePerte } from "../../lib/conformite/capacitePerte";
@@ -30,6 +33,18 @@ const TabMission = React.memo(function TabMission(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
   const { data, mission, updateMission, cabinet, logoSrc, signatureSrc, person1, person2 } = props;
 
+  // LOT 10d D1 — complétude par section (données existantes). Section incomplète =
+  // ouverte par défaut ; complétée = fermée. Badge « ✓ complété » / « à faire ».
+  const compl = completudeMission(mission, props.recommandations, props.piecesJointes);
+  const badgeComplet = (ok: boolean) => (
+    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold"
+      style={ok
+        ? { background: BRAND.successBg, color: BRAND.success, border: `1px solid ${BRAND.successBorder}` }
+        : { background: BRAND.warningBg, color: BRAND.warning, border: `1px solid ${BRAND.warningBorder}` }}>
+      {ok ? <Check className="h-3 w-3" aria-hidden="true" /> : null}{ok ? "complété" : "à faire"}
+    </span>
+  );
+
   return (
 <TabsContent value="mission" className="space-y-6">
   <Card className="rounded-3xl border-0 shadow-xl shadow-slate-200/60 relative overflow-hidden">
@@ -37,8 +52,7 @@ const TabMission = React.memo(function TabMission(props: any) {
     <CardHeader><SectionTitle icon={FileText} title="Lettre de mission" subtitle="Besoins client, profil investisseur et obligations fiscales pour la fiche réglementaire." /></CardHeader>
     <CardContent className="space-y-6">
       {/* Besoins */}
-      <div>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>BESOINS EXPRIMÉS</h3>
+      <SectionAccordion title="Besoins exprimés" badge={badgeComplet(compl.besoins)} defaultOpen={!compl.besoins}>
         <div className="grid grid-cols-2 gap-4">
           <div className="border-2 p-4 space-y-2" style={{ borderRadius: 14, borderColor: SURFACE.border, borderLeft: `4px solid ${BRAND.gold}` }}>
             <div className="text-sm font-bold text-center mb-3">Besoin Santé</div>
@@ -77,11 +91,10 @@ const TabMission = React.memo(function TabMission(props: any) {
             ))}
           </div>
         </div>
-      </div>
+      </SectionAccordion>
 
       {/* Profil investisseur */}
-      <div>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>PROFIL INVESTISSEUR</h3>
+      <SectionAccordion title="Profil investisseur" badge={badgeComplet(compl.profil)} defaultOpen={!compl.profil}>
 
         {/* Q1 - Attitude risque + graphique */}
         <div className="p-4 space-y-4" style={{ borderRadius: 14, background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}>
@@ -399,9 +412,10 @@ const TabMission = React.memo(function TabMission(props: any) {
             </div>
           );
         })()}
-      </div>
+      </SectionAccordion>
 
       {/* Recommandations / plan d'action (Lot 7) ─ source unique des recos consommée par le rapport + Lot 8 */}
+      <SectionAccordion title="Recommandations & plan d'action" badge={badgeComplet(compl.recommandations)} defaultOpen={!compl.recommandations}>
       {(() => {
         const recos: Recommandation[] = Array.isArray(props.recommandations) ? props.recommandations : [];
         const setRecos: (next: Recommandation[]) => void = props.setRecommandations || (() => {});
@@ -416,7 +430,6 @@ const TabMission = React.memo(function TabMission(props: any) {
         };
         return (
           <div>
-            <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>RECOMMANDATIONS & PLAN D'ACTION</h3>
             <div className="p-4 space-y-3" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, borderRadius: 14 }}>
               <p className="text-xs text-slate-500">
                 Chaque recommandation se rattache à une <strong>dimension du profil</strong> (besoin exprimé, tolérance au risque, ESG, capacité à subir des pertes). Raisonner <strong>garantie / besoin</strong> — ne pas nommer de produit ni d'assureur.
@@ -487,8 +500,10 @@ const TabMission = React.memo(function TabMission(props: any) {
           </div>
         );
       })()}
+      </SectionAccordion>
 
       {/* Pièces jointes IPID/DIC (Lot 8e — rattachement, jamais génération) */}
+      <SectionAccordion title="Pièces jointes — IPID / DIC" badge={badgeComplet(compl.piecesJointes)} defaultOpen={!compl.piecesJointes}>
       {(() => {
         const pieces: PieceJointe[] = Array.isArray(props.piecesJointes) ? props.piecesJointes : [];
         const setPieces: (next: PieceJointe[]) => void = props.setPiecesJointes || (() => {});
@@ -526,7 +541,6 @@ const TabMission = React.memo(function TabMission(props: any) {
         };
         return (
           <div>
-            <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>PIÈCES JOINTES — IPID / DIC</h3>
             <div className="p-4 space-y-3" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, borderRadius: 14 }}>
               <div className="text-xs text-slate-600" style={{ background: "rgba(146,64,14,0.05)", border: "1px solid rgba(146,64,14,0.25)", padding: "8px 10px", borderRadius: 6 }}>
                 <strong style={{ color: "#92400E" }}>Important :</strong> Ploutos <strong>ne génère pas</strong> d'IPID ni de DIC. Ces documents sont fournis <strong>par l'assureur</strong> (règlement UE 2017/1469 pour l'IPID, règlement 1286/2014 PRIIPs pour le DIC). Le cabinet les <strong>rattache</strong> au dossier et la fiche DDA les <strong>référence</strong>.
@@ -596,10 +610,10 @@ const TabMission = React.memo(function TabMission(props: any) {
           </div>
         );
       })()}
+      </SectionAccordion>
 
       {/* Rémunération */}
-      <div>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>MODE DE RÉMUNÉRATION</h3>
+      <SectionAccordion title="Mode de rémunération" defaultOpen>
         <div className="p-4 space-y-3" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}>
           <p className="text-xs text-slate-500">Sélectionner le mode applicable à cette mission (art. L521-2 code des assurances)</p>
           <label className="flex items-start gap-2 cursor-pointer text-sm">
@@ -623,11 +637,10 @@ const TabMission = React.memo(function TabMission(props: any) {
             <span>Combinaison honoraire + commission</span>
           </label>
         </div>
-      </div>
+      </SectionAccordion>
 
       {/* Obligations fiscales */}
-      <div>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: BRAND.sky }}>OBLIGATIONS FISCALES & CONFORMITÉ</h3>
+      <SectionAccordion title="Obligations fiscales & conformité" defaultOpen>
         <div className="grid grid-cols-2 gap-4">
           <div className="p-4 space-y-2" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}>
             <div className="text-xs font-semibold mb-2" style={{ color: BRAND.sky }}>Résidence fiscale France</div>
@@ -641,17 +654,16 @@ const TabMission = React.memo(function TabMission(props: any) {
             <label className="flex items-center gap-2 cursor-pointer text-sm"><input type="checkbox" checked={mission.ppe} onChange={e => updateMission("ppe", e.target.checked)} className="h-4 w-4 accent-[#0F172A]" /><span>Personne politiquement exposée</span></label>
           </div>
         </div>
-      </div>
+      </SectionAccordion>
 
       {/* Lieu signature */}
-      <div>
-        <h3 className="text-sm font-semibold mb-2" style={{ color: BRAND.sky }}>SIGNATURE — LIEU</h3>
+      <SectionAccordion title="Signature — lieu" defaultOpen>
         <div className="flex items-center gap-3">
           <span className="text-sm">Fait à :</span>
           <input type="text" value={mission.lieuSignature} onChange={e => updateMission("lieuSignature", e.target.value)}
             className="rounded-xl px-3 py-1.5 text-sm w-48" />
         </div>
-      </div>
+      </SectionAccordion>
 
       {/* ─── Lot Dossier client — bouton unique « Générer un document PDF »
            ouvre la pop-card universelle (panier multi-docs + overrides +
