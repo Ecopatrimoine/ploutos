@@ -18,7 +18,7 @@ import type {
 } from "../../lib/prevoyance/comparaison-branche-vue";
 import { BRAND, SURFACE } from "../../constants";
 import { plur } from "../../lib/calculs/utils";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Check, X, Minus, type LucideIcon } from "lucide-react";
 
 type Props = {
   vue: VueObligationsFusionnee | null;
@@ -35,6 +35,14 @@ const COULEURS_VERDICT: Record<Verdict, { bg: string; border: string; texte: str
   non_applicable: { bg: "rgba(107, 114, 128, 0.06)", border: "#9CA3AF", texte: "#6B7280" },
 };
 
+// Pastilles lucide (Lot 10c) : même mapping que BlocAuditConformite (harmonisation).
+const ICONE_VERDICT: Record<Verdict, LucideIcon> = {
+  conforme: Check,
+  insuffisant: X,
+  indetermine: AlertTriangle,
+  non_applicable: Minus,
+};
+
 // Une ValeurFusionnee -> JSX. null -> "—" ; commun -> texte ; split -> 2 lignes.
 function renderValeur(v: ValeurFusionnee | null): React.ReactNode {
   if (!v) return <span style={{ color: BRAND.muted }}>—</span>;
@@ -49,11 +57,13 @@ function renderValeur(v: ValeurFusionnee | null): React.ReactNode {
 
 function pastilleVerdict(verdict: Verdict, label: string, prefixe?: string): React.ReactNode {
   const c = COULEURS_VERDICT[verdict];
+  const Icone = ICONE_VERDICT[verdict];
   return (
     <span
-      className="block w-full text-center rounded px-2 py-0.5 text-xs font-bold"
+      className="flex w-full items-center justify-center gap-1 rounded px-2 py-0.5 text-xs font-bold"
       style={{ background: "#fff", border: `1px solid ${c.border}`, color: c.texte }}
     >
+      <Icone className="h-3 w-3 shrink-0" aria-hidden="true" />
       {prefixe ? `${prefixe} ` : ""}{label}
     </span>
   );
