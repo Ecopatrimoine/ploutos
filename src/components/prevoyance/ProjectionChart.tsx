@@ -32,6 +32,7 @@ import { AlertTriangle } from "lucide-react";
 import { HelpTooltip } from "../shared";
 import { formatDureeArret } from "../../lib/calculs/utils";
 import { ETAGES, PAYEUR_COLORS, couleurEtage } from "../../lib/presentation/payeurs";
+import { compress, buildTicksTemps } from "../../lib/presentation/echelleTemps";
 
 type Props = {
   projection: ProjectionResult;
@@ -92,11 +93,15 @@ export function TooltipContenu({
   payload,
   label,
   refMensuel,
+  formatLabel,
 }: {
   active?: boolean;
   payload?: Array<{ name?: string; value?: number; color?: string; dataKey?: string }>;
-  label?: string;
+  label?: string | number;
   refMensuel: number;
+  // A4 — l'axe est numérique (coordonnée compressée) : reconvertit en échéance lisible.
+  // Absent (test isolé) -> label affiché tel quel.
+  formatLabel?: (x: string | number) => string;
 }) {
   if (!active || !payload || payload.length === 0) return null;
   const total = payload.reduce((s, p) => s + (Number(p.value) || 0), 0);
@@ -113,7 +118,7 @@ export function TooltipContenu({
         boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
       }}
     >
-      <div style={{ fontWeight: 700, color: BRAND.navy, marginBottom: 4 }}>{`Échéance : ${label}`}</div>
+      <div style={{ fontWeight: 700, color: BRAND.navy, marginBottom: 4 }}>{`Échéance : ${formatLabel && label != null ? formatLabel(label) : label}`}</div>
       {visibles.map((p) => (
         <div key={p.dataKey}>
           <div style={{ color: BRAND.navy, display: "flex", justifyContent: "space-between", gap: 12 }}>
@@ -151,6 +156,7 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
 
   const dataComplete = projection.axe.map((point, idx) => ({
     jour: point.jour,
+    x: compress(point.jour), // A4 — coordonnée temporelle compressée par paliers
     labelX: formatLabelX(point.jour, point.phase),
     salaire: Math.round(projection.series.salaire[idx]),
     maintien: Math.round(projection.series.maintienEmployeur[idx]),
@@ -170,7 +176,14 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
   // On filtre les points affichés — les données calculées sont intactes.
   const data = vueComplete ? dataComplete : dataComplete.filter((d) => d.jour <= bascule);
 
-  const labelBascule = dataComplete.find((d) => d.jour === bascule)?.labelX;
+  // A4 — axe numérique compressé : domaine, ticks aux jalons RÉELS de la personne, et
+  // maps de libellés (ticks + tooltip) indexées par la coordonnée compressée.
+  const maxJourVisible = data.length ? data[data.length - 1].jour : bascule;
+  const maxX = compress(maxJourVisible);
+  const ticks = buildTicksTemps(projection, maxJourVisible);
+  const tickXs = ticks.map((t) => t.x);
+  const tickLabelParX = new Map(ticks.map((t) => [t.x, t.label]));
+  const labelParX = new Map(dataComplete.map((d) => [d.x, d.labelX]));
 
   // Repères de changement de PAYEUR (relais CPAM → caisse, ou trou de couverture).
   // Idiome identique à la bascule invalidité : on retrouve le labelX du jour de rupture.
@@ -178,16 +191,14 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
   // obligatoire (CPAM des 90 premiers jours → caisse/trou ensuite).
   const TYPES_RELAIS_PAYEUR = ["relais_carmf", "trou_cipav", "relais_carpimko"] as const;
   const reperesRelais = projection.rupturesCles
-    .filter((r) => (TYPES_RELAIS_PAYEUR as readonly string[]).includes(r.type))
+    .filter((r) => (TYPES_RELAIS_PAYEUR as readonly string[]).includes(r.type) && r.jour <= maxJourVisible)
     .map((r) => ({
-      labelX: dataComplete.find((d) => d.jour === r.jour)?.labelX,
-      // Étiquette courte pour le repère vertical (le libellé complet reste dans la donnée).
+      x: compress(r.jour), // A4 — coordonnée compressée (les repères tombent sur leur tick)
       texte:
         r.type === "relais_carmf" ? "relais CARMF" :
         r.type === "trou_cipav" ? "trou CIPAV" :
         "relais CARPIMKO",
-    }))
-    .filter((x) => x.labelX != null);
+    }));
 
   const libelleCaisse =
     codeCaisse
@@ -220,12 +231,21 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-            <XAxis dataKey="labelX" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+            <XAxis
+              dataKey="x"
+              type="number"
+              scale="linear"
+              domain={[0, maxX]}
+              ticks={tickXs}
+              tick={{ fontSize: 11 }}
+              tickFormatter={(x: number) => tickLabelParX.get(x) ?? ""}
+              allowDuplicatedCategory={false}
+            />
             <YAxis
               tick={{ fontSize: 11 }}
               tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)} k€` : `${v} €`)}
             />
-            <Tooltip content={<TooltipContenu refMensuel={projection.revenuReferenceMensuel} />} />
+            <Tooltip content={<TooltipContenu refMensuel={projection.revenuReferenceMensuel} formatLabel={(x) => labelParX.get(Number(x)) ?? ""} />} />
             <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} />
 
             <ReferenceLine
@@ -244,7 +264,7 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
             {reperesRelais.map((rep, i) => (
               <ReferenceLine
                 key={`relais-${i}`}
-                x={rep.labelX!}
+                x={rep.x}
                 stroke="var(--cab-gold, #E3AF64)"
                 strokeDasharray="5 4"
                 strokeWidth={1.5}
@@ -258,9 +278,9 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
               />
             ))}
 
-            {labelBascule && (
+            {bascule <= maxJourVisible && (
               <ReferenceLine
-                x={labelBascule}
+                x={compress(bascule)}
                 stroke="var(--cab-gold, #E3AF64)"
                 strokeDasharray="5 4"
                 strokeWidth={1.5}
