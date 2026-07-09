@@ -13,7 +13,8 @@ import { BRAND, SURFACE, EMPTY_CHARGES_DETAIL, PLACEMENT_TYPES_BY_FAMILY, ALL_PL
 import type { Child, Property, Placement, PatrimonialData, IrOptions, SuccessionData, Heir, TestamentHeir, LegsPrecisItem, DemembrementContrepartie, OtherLoan, PERRente, Hypothesis, BaseSnapshot, ChargesDetail, TaxBracket, FilledBracket, Beneficiary, DifferenceLine, Loan } from "../../types/patrimoine";
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
-import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
+import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge, EmptyState } from "../shared";
+import { ifiEstVide } from "../../lib/gardefous";
 
 
 // ── TabIFI ─────────────────────────────────────────────────────────────────────
@@ -27,6 +28,11 @@ const TabIFI = React.memo(function TabIFI(props: any) {
     <CardAccentTop />
     <CardHeader><SectionTitle icon={FileText} title="IFI — Impôt sur la Fortune Immobilière" subtitle="Assiette, passif déductible, décote et barème progressif." /></CardHeader>
     <CardContent className="space-y-4">
+      {ifiEstVide(ifi) ? (
+        <EmptyState title="Aucun bien immobilier saisi" ctaLabel="Compléter l'onglet Immobilier" ctaSubTab="immobilier">
+          L'IFI se calcule sur votre patrimoine immobilier net taxable. Renseignez vos biens dans <strong>Collecte patrimoniale → Immobilier</strong> — l'assiette, le passif déductible, la décote et le barème progressif s'afficheront ensuite automatiquement.
+        </EmptyState>
+      ) : (<>
       {/* KPIs + barème côte à côte */}
       <div className="grid gap-4 md:grid-cols-[1fr_2fr]">
         <div className="space-y-3">
@@ -100,7 +106,7 @@ const TabIFI = React.memo(function TabIFI(props: any) {
           </div>
         </div>
       )}
-      {ifi.lines.length === 0 && <div className="border border-dashed p-6 text-center text-sm text-slate-400" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>Aucun bien immobilier saisi dans la collecte.</div>}
+      </>)}
     </CardContent>
   </Card>
 </TabsContent>
