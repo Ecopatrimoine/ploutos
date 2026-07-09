@@ -38,6 +38,14 @@ const RUPTURES_MINEURES = new Set(["fin_maintien_100", "fin_maintien_6666", "deb
 
 export type TickTemps = { jour: number; x: number; label: string; major: boolean };
 
+// Libellé de tick : les petits jours (carence, relais) restent en « J{n} » — sinon
+// formatDureeArret les écrase en « 0 mois » et la carence devient illisible (A4-bis).
+function labelTick(jour: number): string {
+  if (jour <= 0) return "J0";
+  if (jour < 30) return `J${jour}`;
+  return formatDureeArret(jour);
+}
+
 // Jalons de l'axe : MAJEURS (régime obligatoire : carence / changements de taux IJ /
 // bascule invalidité / retraite) avec libellé ; MINEURS (autres ruptures) sans libellé.
 // Anti-collision : deux ticks à moins de minGap (unités compressées, proxy ~28px) →
@@ -64,7 +72,7 @@ export function buildTicksTemps(projection: ProjectionResult, maxJour: number, m
 
   // Assemble, trie par coordonnée compressée, applique l'anti-collision (majeurs prioritaires).
   const all: TickTemps[] = [
-    ...[...majorJours].map((j) => ({ jour: j, x: compress(j), label: formatDureeArret(j), major: true })),
+    ...[...majorJours].map((j) => ({ jour: j, x: compress(j), label: labelTick(j), major: true })),
     ...[...minorJours].map((j) => ({ jour: j, x: compress(j), label: "", major: false })),
   ].sort((a, b) => a.x - b.x);
 

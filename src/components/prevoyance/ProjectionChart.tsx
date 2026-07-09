@@ -180,7 +180,9 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
   // maps de libellés (ticks + tooltip) indexées par la coordonnée compressée.
   const maxJourVisible = data.length ? data[data.length - 1].jour : bascule;
   const maxX = compress(maxJourVisible);
-  const ticks = buildTicksTemps(projection, maxJourVisible);
+  // Anti-collision normalisée : ~4,5 % de la largeur de l'axe (proxy ~28px), stable
+  // quelle que soit la vue (3 ans vs complète) — A4-bis.
+  const ticks = buildTicksTemps(projection, maxJourVisible, maxX * 0.045);
   const tickXs = ticks.map((t) => t.x);
   const tickLabelParX = new Map(ticks.map((t) => [t.x, t.label]));
   const labelParX = new Map(dataComplete.map((d) => [d.x, d.labelX]));

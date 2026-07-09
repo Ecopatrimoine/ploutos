@@ -43,11 +43,15 @@ describe("buildTicksTemps — jalons du régime obligatoire de la personne", () 
   it("régime A : IJ démarre J7 puis change J90 ; bascule 1095, retraite 7300", () => {
     // oblig: 0 (J0), 40 (J7 carence-end), 40, 30 (J90 changement taux), 30, 30 (bascule=pension)
     const ticks = buildTicksTemps(friseRegime([0, 40, 40, 30, 30, 25], [0, 7, 30, 90, 1095, 7300], 1095, 7300), 7300);
-    const jours = ticks.filter((t) => t.major).map((t) => t.jour);
+    const majors = ticks.filter((t) => t.major);
+    const jours = majors.map((t) => t.jour);
     expect(jours).toContain(7);    // fin de carence (0->40)
     expect(jours).toContain(90);   // changement de taux (40->30)
     expect(jours).toContain(1095); // bascule invalidité
     expect(jours).toContain(7300); // retraite
+    // A4-bis : petit jour libellé « J7 » (pas « 0 mois ») ; grands jours en durée.
+    expect(majors.find((t) => t.jour === 7)!.label).toBe("J7");
+    expect(majors.find((t) => t.jour === 1095)!.label).toBe("3 ans");
   });
 
   it("régime B (différent) : IJ démarre J3, pas de palier à J90 -> jalons différents", () => {
