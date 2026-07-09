@@ -25,12 +25,13 @@ import { AmortissementModal } from "../AmortissementModal";
 import { ProjectionMeubleModal } from "../ProjectionMeubleModal";
 import { PvCessionModal } from "../PvCessionModal";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
+import { ContinuerCollecte } from "../collecte/densite";
 
 
 // ── TabImmobilier ─────────────────────────────────────────────────────────────────────
 const TabImmobilier = React.memo(function TabImmobilier(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
-  const { data, setField, addProperty, updateProperty, removeProperty, addLoan, updateLoan, removeLoan, loanModalPropertyId, setLoanModalPropertyId, ownerOptions, person1, person2, activeDonations, restoreBaseSnapshot } = props;
+  const { data, setField, addProperty, updateProperty, removeProperty, addLoan, updateLoan, removeLoan, loanModalPropertyId, setLoanModalPropertyId, ownerOptions, person1, person2, activeDonations, restoreBaseSnapshot, setCollecteSubTab } = props;
 
   // Indices des biens concernés par une donation active
   const donatedPropertyIds = React.useMemo(() => {
@@ -129,6 +130,18 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
       </div>
     </div>
   )}
+  {/* Legende des liserés categoriels (Lot 10e) — pastille + libellé du groupe */}
+  {data.properties.length > 0 && (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-semibold px-1">
+      <span className="uppercase tracking-wide" style={{ color: BRAND.muted }}>Catégories :</span>
+      {PROPERTY_GROUPS.map((g) => (
+        <span key={g.value} className="inline-flex items-center gap-1.5">
+          <span className="inline-block rounded-sm" style={{ width: 4, height: 12, background: PROPERTY_GROUP_COLORS[g.value].solid }} aria-hidden="true" />
+          <span style={{ color: PROPERTY_GROUP_COLORS[g.value].solid }}>{g.label}</span>
+        </span>
+      ))}
+    </div>
+  )}
   {data.properties.map((property, index) => {
     const isDonated = property.id != null && donatedPropertyIds.has(property.id);
     // Dispositifs éligibles pour la nature courante (matrice data-driven). Si un
@@ -141,8 +154,13 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
       ...DISPOSITIFS_FISCAUX.filter((d) => d.value === "aucun" || dispoIds.includes(d.value)).map((d) => ({ value: d.value as string, label: d.label as string })),
       ...(dispoIncoherent ? [{ value: dispoCurrent as string, label: ((DISPOSITIFS_FISCAUX.find((d) => d.value === dispoCurrent)?.label as string) ?? dispoCurrent) + " (incoherent avec la nature du bien)" }] : []),
     ];
+    // Liseré catégoriel (Lot 10e) : couleur du GROUPE immobilier (jeton existant
+    // PROPERTY_GROUP_COLORS) ; le libellé du groupe est TOUJOURS ecrit (jamais couleur seule).
+    const grp = PROPERTY_GROUPS.find((g) => (g.types as readonly string[]).includes(property.type));
+    const grpColor = (grp ? PROPERTY_GROUP_COLORS[grp.value] : PROPERTY_GROUP_COLORS.autres)?.solid ?? PROPERTY_GROUP_COLORS.autres.solid;
+    const grpLabel = grp?.label ?? "Autres";
     return (
-    <Card key={property.id} className="border " style={{ borderColor: isDonated ? "rgba(227,175,100,0.6)" : SURFACE.border, position: "relative", overflow: "hidden" }}>
+    <Card key={property.id} className="border " style={{ borderColor: isDonated ? "rgba(227,175,100,0.6)" : SURFACE.border, borderLeft: `4px solid ${grpColor}`, position: "relative", overflow: "hidden" }}>
       {/* Badge donation active */}
       {isDonated && (
         <div style={{
@@ -185,6 +203,10 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
         />
       )}
       <CardContent className="p-4 space-y-3">
+        {/* Categorie (liseré Lot 10e) — libellé du groupe ecrit en toutes lettres */}
+        <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ color: grpColor }}>
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: grpColor }} aria-hidden="true" />{grpLabel}
+        </div>
         {/* Identité + suppression */}
         <div className="flex items-end gap-2">
           <div className="flex-1 grid gap-2 grid-cols-[1.4fr_1.6fr_1fr_1fr]">
@@ -798,6 +820,9 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
     </Card>
     );
   })}
+
+  {/* Bouton discret « Continuer -> Placements » (Lot 10e) */}
+  {setCollecteSubTab && <ContinuerCollecte label="Placements" onClick={() => setCollecteSubTab("placements")} />}
 </TabsContent>
 
   );
