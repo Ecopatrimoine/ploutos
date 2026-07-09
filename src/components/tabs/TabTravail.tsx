@@ -8,6 +8,7 @@ import { BRAND, SURFACE, PCS_GROUPES, PCS_CATEGORIES } from "../../constants";
 import type { PayloadTravail, PayloadTravailPair, PayloadPrevoyancePerso } from "../../types/patrimoine";
 import { isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, isIndependant } from "../../lib/calculs/utils";
 import { Field, SectionTitle, Pastille } from "../shared";
+import { ContinuerCollecte } from "../collecte/densite";
 import { BlocStatutEmployeur } from "../travail/BlocStatutEmployeur";
 import { createEmptyTravail, getPrevoyancePerso, patchPrevoyancePair, suggestStatutFromCsp } from "../../lib/prevoyance/utils";
 import { STATUTS_TNS, STATUTS_SALARIE } from "../../lib/prevoyance/constants";
@@ -30,7 +31,7 @@ function lookupCaisseRef(code: string | null): any {
 // ── TabTravail ─────────────────────────────────────────────────────────────────────
 const TabTravail = React.memo(function TabTravail(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
-  const { data, setField, person1, person2 } = props;
+  const { data, setField, person1, person2, setCollecteSubTab } = props;
 
   const isCouple =
     data.coupleStatus === "married" ||
@@ -124,7 +125,7 @@ const TabTravail = React.memo(function TabTravail(props: any) {
       const categorie = which === 1 ? data.person1Csp : data.person2Csp;
       const categories = groupe ? PCS_CATEGORIES[groupe] ?? [] : [];
       return (
-        <div key={which} className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+        <div key={which} className="border p-3 space-y-2.5" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 12, boxShadow: SURFACE.cardShadow }}>
           <div className="text-xs font-black uppercase tracking-widest" style={{ color: BRAND.navy }}>{which === 1 ? person1 : person2}</div>
 
           {/* Intitulé du poste */}
@@ -275,6 +276,9 @@ const TabTravail = React.memo(function TabTravail(props: any) {
       </CardContent>
     </Card>
   )}
+
+  {/* Bouton discret « Continuer -> Revenus » (Lot 10e) */}
+  {setCollecteSubTab && <ContinuerCollecte label="Revenus" onClick={() => setCollecteSubTab("revenus")} />}
 </TabsContent>
 
   );
