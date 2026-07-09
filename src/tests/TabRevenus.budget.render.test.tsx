@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 //
-// Lot C — refonte layout TabRevenus : bandeau budget (3 MetricCards) + table
-// "Budget du foyer — detail du calcul" + encart charges courantes. Test de rendu
-// LEGER (l'infra jsdom + mock Select existe deja) : on verifie la presence des
-// nouveaux blocs et la PURETE UI (aucun setField au montage). Le calcul lui-meme
-// est couvert par budget.test.ts.
+// Lot C / Lot 10e — layout TabRevenus : bande KPI dense (KpiCollecte, libellés
+// courts « Revenus /mois » etc.) + table "Budget du foyer — detail du calcul" +
+// encart charges courantes. Test de rendu LEGER (l'infra jsdom + mock Select existe
+// deja) : on verifie la presence des blocs et la PURETE UI (aucun setField au
+// montage). Le calcul lui-meme est couvert par budget.test.ts.
 
 import { describe, it, expect, vi } from "vitest";
 import React from "react";
@@ -69,10 +69,10 @@ function renderTab(data: PatrimonialData, setField: any = () => {}) {
 }
 
 describe("TabRevenus — bandeau budget + table (Lot C)", () => {
-  it("les 3 MetricCards budget sont rendues", () => {
+  it("la bande KPI dense (3 KPI, libellés courts Lot 10e) est rendue", () => {
     renderTab(baseData());
-    expect(screen.getByText(/Revenus du foyer \/mois/)).toBeInTheDocument();
-    expect(screen.getByText(/Charges du foyer \/mois/)).toBeInTheDocument();
+    expect(screen.getByText(/^Revenus \/mois$/)).toBeInTheDocument();
+    expect(screen.getByText(/^Charges \/mois$/)).toBeInTheDocument();
     expect(screen.getByText(/Capacité d'épargne \/mois/)).toBeInTheDocument();
   });
 
