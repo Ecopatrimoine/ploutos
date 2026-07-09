@@ -21,15 +21,10 @@ import { AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import type { ProjectionResult } from "../../lib/prevoyance/types";
 import { BRAND, SURFACE } from "../../constants";
 import { formatDureeArret } from "../../lib/calculs/utils";
+import { ETAGES as ETAGES_PAYEUR, PAYEUR_COLORS, couleurEtage } from "../../lib/presentation/payeurs";
 
-// Palette charte (miroir de ProjectionChart.COL — SPEC_PREVOYANCE_UI_GRAPHIQUE §5).
-const COL = {
-  salaire: "var(--cab-gold, #E3AF64)",
-  maintien: "#5B7FB0",
-  obligatoire: "var(--cab-navy, #101B3B)",
-  complementaire: "#A9B8D4",
-  reference: "#888780",
-};
+// Palette charte : source unique lib/presentation/payeurs.ts (Lot 10c).
+const COL = { reference: PAYEUR_COLORS.reference };
 
 // Seuils de couleur du taux de couverture (miroir de TableauJalons).
 const VERT = "#2F7D5B";
@@ -119,17 +114,11 @@ export function BandeauResumeClient({
 // ÉLÉMENT 2 — Légende des étages (seuls ceux réellement présents)
 // ─────────────────────────────────────────────────────────────────────
 
-const ETAGES: Array<{ key: keyof ProjectionResult["series"]; label: string; color: string; opacity: number }> = [
-  { key: "salaire", label: "Salaire / mi-temps thérapeutique", color: COL.salaire, opacity: 0.9 },
-  { key: "maintienEmployeur", label: "Maintien employeur", color: COL.maintien, opacity: 0.9 },
-  { key: "ijObligatoire", label: "IJ régime obligatoire", color: COL.obligatoire, opacity: 0.9 },
-  { key: "ijComplementaireCollective", label: "Complémentaire collective (IJ)", color: COL.complementaire, opacity: 0.95 },
-  { key: "ijComplementaireIndividuelle", label: "Complémentaire individuelle (IJ)", color: COL.complementaire, opacity: 0.65 },
-  { key: "pensionInvalObligatoire", label: "Pension d'invalidité", color: COL.obligatoire, opacity: 0.7 },
-  { key: "renteInvalCollective", label: "Rente invalidité collective", color: COL.complementaire, opacity: 0.95 },
-  { key: "renteInvalIndividuelle", label: "Rente invalidité individuelle", color: COL.complementaire, opacity: 0.65 },
-  { key: "renteInvalEnfants", label: "Rente enfants (invalidité)", color: COL.obligatoire, opacity: 0.45 },
-];
+// Légende dérivée de la source unique (libellés « legende » + couleurs par famille).
+// L'individuelle (Madelin) prend désormais sa teinte terracotta propre — cohérent
+// avec le graphe qu'elle décrit (auparavant bleu-gris atténué).
+const ETAGES: Array<{ key: keyof ProjectionResult["series"]; label: string; color: string; opacity: number }> =
+  ETAGES_PAYEUR.map((e) => ({ key: e.serieKey, label: e.legende, color: couleurEtage(e), opacity: e.opacity }));
 
 function Pastille({ color, opacity, dashed }: { color: string; opacity?: number; dashed?: boolean }) {
   if (dashed) {

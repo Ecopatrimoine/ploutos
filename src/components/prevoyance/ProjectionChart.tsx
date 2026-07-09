@@ -31,6 +31,7 @@ import { BRAND } from "../../constants";
 import { AlertTriangle } from "lucide-react";
 import { HelpTooltip } from "../shared";
 import { formatDureeArret } from "../../lib/calculs/utils";
+import { ETAGES, PAYEUR_COLORS, couleurEtage } from "../../lib/presentation/payeurs";
 
 type Props = {
   projection: ProjectionResult;
@@ -44,18 +45,9 @@ type Props = {
 const TOOLTIP_IJ_FONCTION_PUBLIQUE =
   "Fonctionnaire titulaire : maintien statutaire 90 % du revenu pendant 3 mois puis 50 % pendant 9 mois (modèle conservateur territorial/hospitalier). Assiette : revenus déclarés.";
 
-// Palette charte (SPEC_PREVOYANCE_UI_GRAPHIQUE §5). Navy et gold restent
-// surchargeables par le thème cabinet ; les teintes intermédiaires sont
-// fixes (validées sur maquette). Les couvertures collective/individuelle
-// partagent le bleu-gris et sont distinguées par l'opacité.
-const COL = {
-  salaire: "var(--cab-gold, #E3AF64)",
-  maintien: "#5B7FB0",
-  obligatoire: "var(--cab-navy, #101B3B)",
-  complementaire: "#A9B8D4",
-  individuelle: "#B5806B",   // Madelin : terracotta sourd, hors famille bleue (color-blind safe)
-  reference: "#888780",
-};
+// Palette & étages : source unique lib/presentation/payeurs.ts (Lot 10c) — remplace
+// l'ancien COL local (dupliqué avec BlocPedagogie). Libellés d'aires strictement
+// identiques (test ProjectionChart.tooltip).
 
 function formatLabelX(jour: number, phase: "am" | "invalidite"): string {
   if (phase === "am") {
@@ -238,7 +230,7 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
 
             <ReferenceLine
               y={projection.revenuReferenceMensuel}
-              stroke={COL.reference}
+              stroke={PAYEUR_COLORS.reference}
               strokeDasharray="4 4"
               strokeWidth={1.5}
               label={{
@@ -282,19 +274,15 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
               />
             )}
 
-            {hasSalaire && (
-              <Area type="stepAfter" dataKey="salaire"       stackId="1" name="Salaire (activité)"          fill={COL.salaire}       fillOpacity={0.9} stroke="none" />
-            )}
-            <Area type="stepAfter" dataKey="maintien"        stackId="1" name="Maintien employeur"          fill={COL.maintien}      fillOpacity={0.9} stroke="none" />
-            <Area type="stepAfter" dataKey="ijObl"           stackId="1" name="Régime obligatoire (IJ)"    fill={COL.obligatoire}   fillOpacity={0.9} stroke="none" />
-            <Area type="stepAfter" dataKey="ijColl"          stackId="1" name="Prévoyance collective (employeur)" fill={COL.complementaire} fillOpacity={0.95} stroke="none" />
-            <Area type="stepAfter" dataKey="ijInd"           stackId="1" name="Prévoyance individuelle (Madelin)" fill={COL.individuelle} fillOpacity={0.65} stroke="none" />
-            <Area type="stepAfter" dataKey="pensionInvalObl" stackId="1" name="Régime obligatoire (pension invalidité)" fill={COL.obligatoire} fillOpacity={0.7} stroke="none" />
-            <Area type="stepAfter" dataKey="renteInvalColl"  stackId="1" name="Prévoyance collective (rente invalidité)" fill={COL.complementaire} fillOpacity={0.95} stroke="none" />
-            <Area type="stepAfter" dataKey="renteInvalInd"   stackId="1" name="Prévoyance individuelle (Madelin, rente)" fill={COL.individuelle} fillOpacity={0.65} stroke="none" />
-            {hasRenteEnfants && (
-              <Area type="stepAfter" dataKey="renteInvalEnfants" stackId="1" name="Régime obligatoire (rente enfants)" fill={COL.obligatoire} fillOpacity={0.45} stroke="none" />
-            )}
+            {/* Aires empilées depuis la source unique ETAGES (ordre, libellés, couleurs
+                 et opacités identiques à l'existant). salaire/rente enfants conditionnels. */}
+            {ETAGES.map((e) => {
+              if (e.serieKey === "salaire" && !hasSalaire) return null;
+              if (e.serieKey === "renteInvalEnfants" && !hasRenteEnfants) return null;
+              return (
+                <Area key={e.dataKey} type="stepAfter" dataKey={e.dataKey} stackId="1" name={e.nom} fill={couleurEtage(e)} fillOpacity={e.opacity} stroke="none" />
+              );
+            })}
           </AreaChart>
         </ResponsiveContainer>
       </div>
