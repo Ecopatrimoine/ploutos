@@ -97,14 +97,16 @@ describe("TabPrevoyancePerso — alignement alerte anciennete 2 personnes (LOT A
       </Tabs>
     );
 
-    // Les deux colonnes sont rendues.
-    const p1Label = screen.getByText("Personne 1");
-    const p2Label = screen.getByText("Personne 2");
+    // Les deux colonnes sont rendues (vue « Les deux » par défaut). Le libellé de
+    // colonne est un <div> (le sélecteur de personne, lui, expose des <button>) : on
+    // cible le div pour lever l'ambiguïté introduite par le sélecteur (Lot 10c).
+    const p1Label = screen.getByText("Personne 1", { selector: "div" });
+    const p2Label = screen.getByText("Personne 2", { selector: "div" });
 
     // Un SEUL encart dans tout l'onglet.
     expect(screen.getAllByText(TEXTE_ALERTE)).toHaveLength(1);
 
-    // L'encart est DANS la carte recap de P1 (egalisee), absent de celle de P2.
+    // L'encart est DANS la carte en-tête de P1, absent de celle de P2.
     const cardP1 = p1Label.closest("div.rounded-xl") as HTMLElement;
     const cardP2 = p2Label.closest("div.rounded-xl") as HTMLElement;
     expect(within(cardP1).getByText(TEXTE_ALERTE)).toBeInTheDocument();
