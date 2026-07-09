@@ -31,9 +31,13 @@ import { BlocEntreprise, emptyEntrepriseAudit } from "../prevoyance/BlocEntrepri
 import { BlocAuditConformite } from "../prevoyance/BlocAuditConformite";
 import { BlocObligationsBranche } from "../prevoyance/BlocObligationsBranche";
 import { BlocContenuCCN } from "../prevoyance/BlocContenuCCN";
+import { CarteRoiConformite } from "../prevoyance/CarteRoiConformite";
+import { BlocContexteCollectif } from "../prevoyance/BlocContexteCollectif";
+import { BlocEcartsDepliables } from "../prevoyance/BlocEcartsDepliables";
 import { runAuditConformite } from "../../lib/prevoyance/audit-collectif";
 import { buildVueObligationsFusionnee } from "../../lib/prevoyance/comparaison-branche-vue";
-import { referentiels } from "../../data/prevoyance";
+import { buildVerdictConformite, buildEcartsCollectifs, buildSanteAni } from "../../lib/presentation/prevoyanceCollective";
+import { referentiels, CURRENT_YEAR } from "../../data/prevoyance";
 
 const STATUTS_DIRIGEANT = ["gerant_majoritaire", "president_sas", "eurl_unique"];
 
@@ -129,6 +133,20 @@ const TabPrevoyanceCollective = React.memo(function TabPrevoyanceCollective({
     [effective.active, effective.entreprise]
   );
 
+  // LOT 10c-bis — dérivations de présentation (ZÉRO moteur) : verdict qualitatif de la
+  // carte-roi, écarts (contrôles non conformes / vigilance), contrôle santé ANI. Tout est
+  // ré-étagé depuis `audit` ; aucun recalcul, aucun chiffre inventé.
+  const verdict = React.useMemo(() => (audit ? buildVerdictConformite(audit) : null), [audit]);
+  const ecarts = React.useMemo(() => (audit ? buildEcartsCollectifs(audit) : []), [audit]);
+  const santeAni = React.useMemo(() => (audit ? buildSanteAni(audit) : null), [audit]);
+  const sourcesRefs = React.useMemo(
+    () => (audit ? [...new Set(audit.controles.map((c) => c.reference))].filter(Boolean) : []),
+    [audit]
+  );
+  const dateVerif = String((referentiels.pass as { dateVerification?: string }).dateVerification ?? "")
+    .split("-").reverse().join("/");
+  const souscritRenseigne = vueObligations?.souscritRenseigne ?? false;
+
   function setEntreprise(next: EntrepriseAudit) {
     patchCollective({ ...effective, entreprise: next });
   }
@@ -186,22 +204,38 @@ const TabPrevoyanceCollective = React.memo(function TabPrevoyanceCollective({
             </div>
           )}
 
-          {effective.active && (
+          {effective.active && audit && verdict && (
             <>
-              <BlocEntreprise value={effective.entreprise} onChange={setEntreprise} />
+              {/* ══ ACTE 1 — L'ESSENTIEL ══ carte-roi conformité + contexte (CCN, santé ANI) */}
+              <div className="grid gap-4 min-[900px]:grid-cols-[1.5fr_1fr] items-stretch">
+                <CarteRoiConformite verdict={verdict} ecarts={ecarts} />
+                <BlocContexteCollectif
+                  idcc={effective.entreprise.idccCCN}
+                  nomCCN={effective.entreprise.nomCCN}
+                  santeAni={santeAni}
+                />
+              </div>
 
-              {/* Grammaire d'analyse (Lot 10c) : sections en accordéons, pastilles lucide
-                   (verdicts), gating et contenus conservés tels quels. Audit ouvert
-                   (résultat principal), obligations replié derrière sa synthèse chiffrée. */}
-              {audit && (
-                <SectionAccordion title="Audit de conformité" summary="Couverture collective en place face à la CCN de branche" defaultOpen>
-                  <BlocAuditConformite audit={audit} />
-                </SectionAccordion>
-              )}
+              {/* ══ ACTE 2 — ÉCARTS & ACTIONS ══ lignes dépliables « Que faire ▾ » */}
+              <div className="rounded-xl p-4" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}>
+                <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: BRAND.sky }}>
+                  Écarts &amp; actions correctives
+                </div>
+                <BlocEcartsDepliables ecarts={ecarts} />
+              </div>
+
+              {/* ══ ACTE 3 — POUR ALLER PLUS LOIN ══ accordéons (contenu conservé, ré-étagé) */}
+              <SectionAccordion
+                title="Entreprise & couverture déclarée"
+                summary={souscritRenseigne ? "Paramètres de l'audit et garanties souscrites" : "À compléter pour affiner l'analyse"}
+                defaultOpen={!souscritRenseigne}
+              >
+                <BlocEntreprise value={effective.entreprise} onChange={setEntreprise} />
+              </SectionAccordion>
 
               {vueObligations && (
                 <SectionAccordion
-                  title="Obligations de prévoyance de branche"
+                  title="Garanties de prévoyance de branche"
                   summary={vueObligations.synthese
                     ? `${vueObligations.synthese.conformes} conforme${vueObligations.synthese.conformes > 1 ? "s" : ""} · ${vueObligations.synthese.insuffisants} insuffisant${vueObligations.synthese.insuffisants > 1 ? "s" : ""} · ${vueObligations.synthese.aEtudier} à étudier`
                     : vueObligations.statutLabel}
@@ -209,6 +243,42 @@ const TabPrevoyanceCollective = React.memo(function TabPrevoyanceCollective({
                   <BlocObligationsBranche vue={vueObligations} />
                 </SectionAccordion>
               )}
+
+              <SectionAccordion title="Audit de conformité — 6 contrôles détaillés" summary={`Score global ${audit.scoreGlobal} %`}>
+                <BlocAuditConformite audit={audit} />
+              </SectionAccordion>
+
+              <SectionAccordion title="Mécanismes : catégories objectives & régime de faveur" summary="Conditions du régime social et fiscal de faveur">
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <div className="font-bold mb-0.5" style={{ color: BRAND.navy }}>Catégories objectives (art. R.242-1-1 CSS)</div>
+                    <p style={{ color: BRAND.muted }}>
+                      Le caractère collectif suppose de couvrir des catégories définies par des critères objectifs
+                      (cadres / non-cadres au sens AGIRC-ARRCO, tranches de rémunération, catégories de la CCN…).
+                      Un périmètre non objectif fait perdre le caractère collectif du régime.
+                    </p>
+                  </div>
+                  <div>
+                    <div className="font-bold mb-0.5" style={{ color: BRAND.navy }}>Régime de faveur (social &amp; fiscal)</div>
+                    <p style={{ color: BRAND.muted }}>
+                      L'exonération sociale et la déductibilité des contributions patronales sont conditionnées au
+                      caractère collectif ET obligatoire du régime, à des catégories objectives et au respect des
+                      plafonds d'exonération. À défaut, les contributions patronales sont réintégrées.
+                    </p>
+                  </div>
+                </div>
+              </SectionAccordion>
+
+              <SectionAccordion title="Sources" summary={`Référentiel millésime ${CURRENT_YEAR}`}>
+                <div className="space-y-2 text-sm" style={{ color: BRAND.muted }}>
+                  <div>Référentiel prévoyance, millésime {CURRENT_YEAR}{dateVerif ? ` — vérifié le ${dateVerif}` : ""}.</div>
+                  {sourcesRefs.length > 0 && (
+                    <ul className="list-disc pl-5 space-y-0.5">
+                      {sourcesRefs.map((r) => <li key={r}>{r}</li>)}
+                    </ul>
+                  )}
+                </div>
+              </SectionAccordion>
             </>
           )}
 
