@@ -385,17 +385,17 @@ const TabHypotheses = React.memo(function TabHypotheses(props: any) {
                           const notary = don.assetType === "property" ? computeNotaryFees(result.donatedValue) : null;
                           return (
                             <>
-                              {/* H3-bis — libellé (secondaire, 11px) AU-DESSUS de la valeur
-                                   (pleine couleur, même à 0 €). Valeur transmise | Droits
-                                   sur une rangée alignée. */}
-                              <div className="grid grid-cols-2 gap-1.5">
-                                <div className="rounded-lg border px-2.5 py-2" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 12 }}>
+                              {/* H3-ter — RÉSULTATS calculés (pas des inputs) : plus de boîtes
+                                   bordées façon fieldset. Libellé secondaire AU-DESSUS, valeur
+                                   en texte plein — comme les lignes Frais de notaire. */}
+                              <div className="grid grid-cols-2 gap-x-4">
+                                <div>
                                   <div className="text-[11px]" style={{ color: BRAND.muted }}>Valeur transmise</div>
-                                  <div className="font-bold text-sm mt-0.5" style={{ color: BRAND.navy }}>{euro(result.donatedValue)}</div>
+                                  <div className="font-bold text-sm tabular-nums" style={{ color: BRAND.navy, fontVariantNumeric: "tabular-nums" }}>{euro(result.donatedValue)}</div>
                                 </div>
-                                <div className="rounded-lg border px-2.5 py-2" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 12 }}>
+                                <div>
                                   <div className="text-[11px]" style={{ color: BRAND.muted }}>Droits donation</div>
-                                  <div className="font-bold text-sm mt-0.5" style={{ color: BRAND.warning }}>{euro(result.totalDonationTax)}</div>
+                                  <div className="font-bold text-sm tabular-nums" style={{ color: BRAND.warning, fontVariantNumeric: "tabular-nums" }}>{euro(result.totalDonationTax)}</div>
                                 </div>
                               </div>
                               {notary && (
