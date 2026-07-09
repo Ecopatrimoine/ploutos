@@ -16,6 +16,7 @@ import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, comput
 import { computeTauxEndettement } from "../../lib/calculs/endettement";
 import { resolveOtherLoan } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
+import { KpiBandeCollecte, KpiCollecte } from "../collecte/densite";
 
 
 // ── TabCredits ─────────────────────────────────────────────────────────────────────
@@ -131,20 +132,20 @@ const TabCredits = React.memo(function TabCredits(props: any) {
     const totalPassif = (data.otherLoans || []).reduce((s, l) => s + Math.max(0, resolveOtherLoan(l).capitalRemaining), 0); // CRD résolu (saisi ou déduit)
     const chargesMensuelles = Math.round(res.numerateurAnnuel / 12);
     const over = res.tauxPct > 35;
+    // Recap dense (Lot 10e) : bande KPI de la meme grammaire que Revenus.
     return (
-      <div className="border p-4 grid grid-cols-3 gap-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-        <div><div className="text-xs" style={{ color: BRAND.muted }}>Total passif autres crédits</div><div className="text-lg font-bold" style={{ color: BRAND.navy }}>{euro(totalPassif)}</div></div>
-        <div><div className="text-xs" style={{ color: BRAND.muted }}>Charges de crédit</div><div className="text-lg font-bold" style={{ color: BRAND.navy }}>{euro(chargesMensuelles)}/mois</div></div>
+      <KpiBandeCollecte>
+        <KpiCollecte label="Total passif autres crédits" value={euro(totalPassif)} accent="navy" />
+        <KpiCollecte label="Charges de crédit /mois" value={`${euro(chargesMensuelles)}`} accent="gold" />
         {res.denominateurAnnuel > 0 ? (
-          <div style={{ borderLeft: `3px solid ${over ? BRAND.danger : BRAND.gold}`, paddingLeft: 12 }}>
-            <div className="text-xs" style={{ color: BRAND.muted }}>Taux d'endettement</div>
-            <div className="text-xl font-black" style={{ color: BRAND.navy }}>{res.tauxPct} %</div>
-            <div className="text-xs font-bold" style={{ color: over ? BRAND.danger : BRAND.success }}>
-              {over ? <><AlertTriangle className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />Seuil HCSF : 35 %</> : <><Check className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />Sous le seuil HCSF (35 %)</>}
-            </div>
-          </div>
-        ) : null}
-      </div>
+          <KpiCollecte
+            label="Taux d'endettement"
+            value={`${res.tauxPct} %`}
+            accent={over ? "red" : "green"}
+            note={over ? "Seuil HCSF : 35 % dépassé" : "Sous le seuil HCSF (35 %)"}
+          />
+        ) : <div />}
+      </KpiBandeCollecte>
     );
   })()}
 </TabsContent>
