@@ -14,6 +14,7 @@ export const BRAND = {
   sky: "#26428B",
   blue: "#516AC7",
   muted: "#637896",        // texte secondaire — AA 4.51:1 sur blanc
+  tabInactive: "#495871",  // libelle onglet inactif — AA 4.78:1 sur beige #D8D2C6, 7.2:1 sur blanc (Lot 8 C5)
   mutedLight: "#7E8F9F",   // tirets, placeholders — AA UI 3.32:1 sur blanc
   inactive: "#94A3B8",     // éléments UI désactivés (icônes, pas du texte courant)
   danger: "#B91C1C",       // texte alerte / erreur — AAA 7.1:1 sur blanc
