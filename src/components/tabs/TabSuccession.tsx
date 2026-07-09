@@ -423,13 +423,13 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
         const members = getFamilyMembers();
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }} onClick={() => setLegsPickerOpen(null)}>
-            <div className="border p-6 space-y-4 w-96 shadow-2xl" style={{ background: SURFACE.card, borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }} onClick={(e) => e.stopPropagation()}>
+            <div className="border p-6 space-y-4 w-full max-w-[min(920px,92vw)] shadow-2xl" style={{ background: SURFACE.card, borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }} onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between">
                 <div className="font-semibold text-sm" style={{ color: BRAND.navy }}>Choisir un légataire</div>
                 <button onClick={() => setLegsPickerOpen(null)} aria-label="Fermer" className="text-slate-400 hover:text-slate-600 leading-none"><X className="h-5 w-5" aria-hidden="true" /></button>
               </div>
               <div className="text-xs text-slate-500">Cliquez sur un membre de la famille ou ajoutez une personne extérieure.</div>
-              <div className="space-y-2">
+              <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
                 {members.map((m: any, mi: number) => (
                   <button key={mi} className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-50 border transition-colors" style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}
                     onClick={() => { if (legsPickerOpen === "global") addFamilyMemberToLegsGlobal(m); else addFamilyMemberToLegsPrecis(m); setLegsPickerOpen(null); }}>
@@ -497,7 +497,9 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
           <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: BRAND.sky }}>
             Qui reçoit quoi
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
+          {/* A1 — auto-fill : largeur de card uniforme quel que soit le nombre par ligne
+              (une card seule garde la même largeur que dans une ligne pleine). */}
+          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
             {pres.persons.map((person, idx) => {
               const clr = getHeirColor(idx);
               const isDonated = person.isHeir && activeDonations?.some((d: any) => person.name && d.heirs?.some((h: any) => h.name === person.name));
@@ -558,7 +560,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
             </div>
             {/* Camembert double : cadre légal (réserve/enfant + quotité) vs répartition simulée. */}
             <AnalysisPie title="Cadre légal" data={pres.cadreLegalPie} valueFormat={euro}
-              note="Réserve héréditaire par enfant réservataire + quotité disponible." />
+              note={<>Quotité disponible <strong>{Math.round(succession.quotiteDisponible * 100)} %</strong> · {succession.reserveChildrenCount} réservataire{succession.reserveChildrenCount > 1 ? "s" : ""}{succession.usufruitierAge !== null ? <> · démembrement US {Math.round(succession.demembrementPct.usufruct * 100)} % / NP {Math.round(succession.demembrementPct.nuePropriete * 100)} % (art. 669 CGI)</> : null}</>} />
             <AnalysisPie title="Répartition simulée" data={pres.repartitionSimuleePie} valueFormat={euro}
               note="Périmètre : succession civile (l'assurance-vie est hors succession) · En cas d'usufruit du conjoint, la réserve s'apprécie en nue-propriété." />
           </div>
@@ -599,20 +601,17 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
           : (data.person2BirthDate ? getAgeFromBirthDate(data.person2BirthDate) : null);
         return (
           <SectionAccordion title="Épargne hors succession" summary={`${avCapital > 0 ? `${euro(avNet)} net AV` : ""}${avCapital > 0 && perTotal > 0 ? " · " : ""}${perTotal > 0 ? `${euro(perTotal)} PER` : ""}`}>
-            <div className="grid gap-4" style={{ gridTemplateColumns: avCapital > 0 && perTotal > 0 ? "2fr 1fr" : "1fr" }}>
-
-              {/* ── Card AV ── */}
+            {/* A3 — AV + PER fusionnés en UNE card à deux zones séparées par une oblique
+                (marine AV à gauche, or PER à droite). Repli responsive : séparation verticale
+                sous 900px, empilement sous 600px. Contenus inchangés. */}
+            <div className="rounded-2xl overflow-hidden flex flex-col min-[600px]:flex-row" style={{ border: "1px solid rgba(227,175,100,0.4)", boxShadow: "0 2px 12px rgba(16,27,59,0.07)" }}>
+              {/* Zone AV (marine, gauche) — oblique à droite en desktop */}
               {avCapital > 0 && (
-                <div onClick={() => setShowAvModal(true)} style={{
-                  borderRadius: "18px", cursor: "pointer", overflow: "hidden",
-                  border: "1px solid rgba(227,175,100,0.4)",
-                  boxShadow: "0 2px 12px rgba(16,27,59,0.07)",
-                  transition: "box-shadow 0.15s",
-                }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 20px rgba(16,27,59,0.14)"}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 12px rgba(16,27,59,0.07)"}
+                <div
+                  onClick={() => setShowAvModal(true)}
+                  className={`flex-1 cursor-pointer ${avCapital > 0 && perTotal > 0 ? "min-[900px]:[clip-path:polygon(0_0,100%_0,calc(100%-28px)_100%,0_100%)]" : ""}`}
+                  style={{ background: SURFACE.card }}
                 >
-                  {/* Header coloré */}
                   <div style={{ background: `linear-gradient(120deg, ${BRAND.navy} 0%, ${BRAND.navyLight} 100%)`, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
                       <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "11px", fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase" }}>Assurances-vie</div>
@@ -624,8 +623,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                       <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: "6px", padding: "3px 8px", fontSize: "11px", color: "rgba(255,255,255,0.8)", marginTop: "4px", display: "inline-block" }}>Voir le détail ↗</div>
                     </div>
                   </div>
-                  {/* Body */}
-                  <div style={{ background: SURFACE.card, padding: "12px 18px", display: "flex", gap: "0" }}>
+                  <div style={{ padding: "12px 18px", display: "flex", gap: "0" }}>
                     {[
                       { label: "Capital", value: euro(avCapital), color: BRAND.navy },
                       { label: "Fiscalité 990I", value: avTax990I > 0 ? "−" + euro(avTax990I) : "Exonéré", color: avTax990I > 0 ? BRAND.warning : BRAND.success },
@@ -639,21 +637,17 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                   </div>
                 </div>
               )}
-
-              {/* ── Card PER ── */}
+              {/* Zone PER (or, droite) — oblique à gauche (chevauche l'AV) en desktop */}
               {perTotal > 0 && (
-                <div style={{
-                  borderRadius: "18px", overflow: "hidden",
-                  border: "1px solid rgba(227,175,100,0.4)",
-                  boxShadow: "0 2px 12px rgba(16,27,59,0.07)",
-                }}>
-                  {/* Header accent doré */}
-                  <div style={{ background: `linear-gradient(120deg, ${BRAND.gold} 0%, #D5A350 100%)`, padding: "14px 18px" }}>
+                <div
+                  className={`flex-1 ${avCapital > 0 && perTotal > 0 ? "min-[900px]:-ml-[28px] min-[900px]:[clip-path:polygon(28px_0,100%_0,100%_100%,0_100%)]" : ""}`}
+                  style={{ background: SURFACE.card }}
+                >
+                  <div style={{ background: `linear-gradient(120deg, ${BRAND.gold} 0%, #D5A350 100%)`, padding: "14px 18px 14px 30px" }}>
                     <div style={{ color: "rgba(255,255,255,0.75)", fontSize: "11px", fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase" }}>Plan Épargne Retraite</div>
                     <div style={{ color: "#fff", fontSize: "20px", fontWeight: 700, marginTop: "2px" }}>{euro(perTotal)}</div>
                   </div>
-                  {/* Body */}
-                  <div style={{ background: SURFACE.card, padding: "12px 16px" }}>
+                  <div style={{ padding: "12px 16px 12px 30px" }}>
                     <div style={{ fontSize: "11px", color: BRAND.muted, marginBottom: "8px" }}>Régime fiscal au décès</div>
                     <div style={{
                       borderRadius: "8px", padding: "8px 10px",
@@ -733,16 +727,6 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
         </div>
       </SectionAccordion>
 
-      {/* §5 — Dévolution, quotité et démembrement (détail de l'encart conjoint, art. 669) */}
-      <SectionAccordion title="Dévolution, quotité et démembrement" summary={`Quotité disponible ${Math.round(succession.quotiteDisponible * 100)} % · ${succession.reserveChildrenCount} réservataire${succession.reserveChildrenCount > 1 ? "s" : ""}`}>
-        <div className="text-sm space-y-1.5" style={{ color: BRAND.navy }}>
-          <div>Conjoint survivant : <strong>{successionData.deceasedPerson === "person1" ? person2 : person1}</strong></div>
-          <div>Quotité disponible : <strong>{Math.round(succession.quotiteDisponible * 100)} %</strong> · Enfants réservataires : <strong>{succession.reserveChildrenCount}</strong></div>
-          {succession.usufruitierAge !== null
-            ? <div>Démembrement (barème Duvergier, art. 669 CGI) : <strong>US {Math.round(succession.demembrementPct.usufruct * 100)} % / NP {Math.round(succession.demembrementPct.nuePropriete * 100)} %</strong> ({succession.usufruitierAge} ans)</div>
-            : <div style={{ color: BRAND.warning }}>Date de naissance du conjoint à renseigner pour le démembrement.</div>}
-        </div>
-      </SectionAccordion>
 
 
     </CardContent>
@@ -751,7 +735,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
   {/* ── Modal AV ── */}
   {showAvModal && (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(16,27,59,0.45)", backdropFilter: "blur(4px)" }} onClick={() => setShowAvModal(false)}>
-      <div className="rounded-3xl w-full max-w-lg max-h-[88vh] overflow-hidden flex flex-col" style={{ background: SURFACE.card, border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 24px 64px rgba(16,27,59,0.35)" }} onClick={e => e.stopPropagation()}>
+      <div className="rounded-3xl w-full max-w-[min(920px,92vw)] max-h-[88vh] overflow-hidden flex flex-col" style={{ background: SURFACE.card, border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 24px 64px rgba(16,27,59,0.35)" }} onClick={e => e.stopPropagation()}>
         <div style={{ padding: "20px 24px 16px", background: `linear-gradient(135deg, ${BRAND.navy} 0%, ${BRAND.sky} 100%)`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
           <div>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: "16px" }}>Assurances-vie au décès</div>
@@ -878,7 +862,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
   {/* ── Modal Actif successoral ── */}
   {showActifModal && (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(16,27,59,0.45)", backdropFilter: "blur(4px)" }} onClick={() => setShowActifModal(false)}>
-      <div className="rounded-3xl w-full max-w-lg max-h-[88vh] overflow-hidden flex flex-col" style={{ background: SURFACE.card, border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 24px 64px rgba(16,27,59,0.35)" }} onClick={e => e.stopPropagation()}>
+      <div className="rounded-3xl w-full max-w-[min(920px,92vw)] max-h-[88vh] overflow-hidden flex flex-col" style={{ background: SURFACE.card, border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 24px 64px rgba(16,27,59,0.35)" }} onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div style={{ padding: "20px 24px 16px", background: `linear-gradient(135deg, ${BRAND.navy} 0%, ${BRAND.sky} 100%)`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
@@ -997,7 +981,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
       : null;
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(16,27,59,0.45)", backdropFilter: "blur(4px)" }} onClick={() => setSelectedHeir(null)}>
-        <div className="rounded-3xl w-full max-w-lg max-h-[88vh] overflow-hidden flex flex-col" style={{ background: SURFACE.card, border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 24px 64px rgba(16,27,59,0.35)" }} onClick={e => e.stopPropagation()}>
+        <div className="rounded-3xl w-full max-w-[min(920px,92vw)] max-h-[88vh] overflow-hidden flex flex-col" style={{ background: SURFACE.card, border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 24px 64px rgba(16,27,59,0.35)" }} onClick={e => e.stopPropagation()}>
 
           {/* Header modal */}
           <div style={{ padding: "20px 24px 16px", background: `linear-gradient(135deg, ${BRAND.navy} 0%, ${BRAND.sky} 100%)`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
@@ -1044,6 +1028,9 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
               );
             })()}
 
+            {/* A2 — démembrement | calcul des droits en 2 colonnes quand le démembrement
+                est présent (réduit le déroulé vertical). Barème en pleine largeur dessous. */}
+            <div className={(heir.nueRawValue > 0 || heir.usufructRawValue > 0) ? "grid gap-4 md:grid-cols-2 items-start" : ""}>
             {/* Démembrement — détail NP/US */}
             {(heir.nueRawValue > 0 || heir.usufructRawValue > 0) && (
               <div style={{ borderRadius: "12px", border: "1px solid rgba(81,106,199,0.25)", background: "rgba(81,106,199,0.04)", padding: "12px 14px", marginBottom: "14px" }}>
@@ -1122,6 +1109,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                 ))}
               </div>
             )}
+            </div>
 
             {/* ── Rappel fiscal des donations (Lot C) ── */}
             {heir.rappelApplique && (heir.rappelApplique.mode !== "aucun" || heir.rappelApplique.aVerifier) && (() => {
