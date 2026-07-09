@@ -22,7 +22,7 @@ const erikaCPAM: EntreePerso = {
 function listeTicks(nom: string, proj: ProjectionResult, maxJour: number) {
   const maxX = compress(maxJour) || 1;
   const ticks = buildTicksTemps(proj, maxJour);
-  const lignes = ticks.map((t) => `  ${t.major ? "▲" : "·"} J${t.jour}  "${t.label}"  @ ${((t.x / maxX) * 100).toFixed(1)} %`);
+  const lignes = ticks.map((t) => `  N${t.niveau}${t.ligne ? "'" : " "} J${String(t.jour).padStart(4)}  "${t.label}"  @ ${((t.x / maxX) * 100).toFixed(1).padStart(5)} %`);
   // eslint-disable-next-line no-console
   console.log(`\n=== TICKS ${nom} (maxJour=${maxJour}) ===\n${lignes.join("\n")}`);
   return ticks;
@@ -41,9 +41,13 @@ describe("A4-bis DIAGNOSTIC — ticks David (SSI) / Erika (CPAM)", () => {
     // eslint-disable-next-line no-console
     console.log(`\nERIKA CPAM : bascule=${pE.basculeInvaliditeJour} retraite=${pE.finProjectionJour} ref=${Math.round(pE.revenuReferenceMensuel)}`);
     listeTicks("ERIKA CPAM — vue 3 ans", pE, pE.basculeInvaliditeJour);
+    listeTicks("ERIKA CPAM — vue complète", pE, pE.finProjectionJour);
 
-    // Diagnostic assertions minimales : au moins un jalon majeur dans la vue 3 ans.
-    expect(buildTicksTemps(pD, pD.basculeInvaliditeJour).some((t) => t.major)).toBe(true);
-    expect(buildTicksTemps(pE, pE.basculeInvaliditeJour).some((t) => t.major)).toBe(true);
+    // Diagnostic : au moins un jalon niveau 1 (rupture) dans chaque vue 3 ans, tous libellés.
+    const tD = buildTicksTemps(pD, pD.basculeInvaliditeJour);
+    const tE = buildTicksTemps(pE, pE.basculeInvaliditeJour);
+    expect(tD.some((t) => t.niveau === 1)).toBe(true);
+    expect(tE.some((t) => t.niveau === 1)).toBe(true);
+    expect(tD.filter((t) => t.niveau === 1).every((t) => t.label.length > 0)).toBe(true); // aucune muette
   });
 });

@@ -32,7 +32,7 @@ import { AlertTriangle } from "lucide-react";
 import { HelpTooltip } from "../shared";
 import { formatDureeArret } from "../../lib/calculs/utils";
 import { ETAGES, PAYEUR_COLORS, couleurEtage } from "../../lib/presentation/payeurs";
-import { compress, buildTicksTemps } from "../../lib/presentation/echelleTemps";
+import { compress, buildTicksTemps, labelTooltipTemps, type TickTemps } from "../../lib/presentation/echelleTemps";
 
 type Props = {
   projection: ProjectionResult;
@@ -147,6 +147,20 @@ export function TooltipContenu({
   );
 }
 
+// Tick d'axe personnalisé (C2) : NIVEAU 1 en encre (décalé sur 2 lignes si collision),
+// NIVEAU 2 en gris discret italique. Recharts injecte x / y / payload.
+function TickTempsAxe({ x, y, payload, meta }: { x?: number; y?: number; payload?: { value?: number }; meta?: Map<number, TickTemps> }) {
+  const t = meta && payload?.value != null ? meta.get(payload.value) : undefined;
+  if (!t || !t.label) return null;
+  const niveau2 = t.niveau === 2;
+  const dy = 10 + (t.ligne === 1 ? 13 : 0);
+  return (
+    <text x={x} y={y} dy={dy} textAnchor="middle" fontSize={niveau2 ? 9 : 11} fontStyle={niveau2 ? "italic" : "normal"} fill={niveau2 ? BRAND.muted : BRAND.navy}>
+      {t.label}
+    </text>
+  );
+}
+
 export const ProjectionChart = React.memo(function ProjectionChart({ projection, codeCaisse, publicCaisse }: Props) {
   const [vueComplete, setVueComplete] = React.useState(false);
 
@@ -176,16 +190,15 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
   // On filtre les points affichés — les données calculées sont intactes.
   const data = vueComplete ? dataComplete : dataComplete.filter((d) => d.jour <= bascule);
 
-  // A4 — axe numérique compressé : domaine, ticks aux jalons RÉELS de la personne, et
-  // maps de libellés (ticks + tooltip) indexées par la coordonnée compressée.
+  // A4 / C2 — axe numérique compressé. Ticks : NIVEAU 1 = chaque rupture de la frise
+  // (libellée, décalage vertical si collision) ; NIVEAU 2 = repères discrets. Le tooltip
+  // donne la double lecture (jour + conversion).
   const maxJourVisible = data.length ? data[data.length - 1].jour : bascule;
   const maxX = compress(maxJourVisible);
-  // Anti-collision normalisée : ~4,5 % de la largeur de l'axe (proxy ~28px), stable
-  // quelle que soit la vue (3 ans vs complète) — A4-bis.
-  const ticks = buildTicksTemps(projection, maxJourVisible, maxX * 0.045);
+  const ticks = buildTicksTemps(projection, maxJourVisible);
   const tickXs = ticks.map((t) => t.x);
-  const tickLabelParX = new Map(ticks.map((t) => [t.x, t.label]));
-  const labelParX = new Map(dataComplete.map((d) => [d.x, d.labelX]));
+  const tickMeta = new Map(ticks.map((t) => [t.x, t]));
+  const labelParX = new Map(dataComplete.map((d) => [d.x, labelTooltipTemps(d.jour)]));
 
   // Repères de changement de PAYEUR (relais CPAM → caisse, ou trou de couverture).
   // Idiome identique à la bascule invalidité : on retrouve le labelX du jour de rupture.
@@ -239,8 +252,9 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
               scale="linear"
               domain={[0, maxX]}
               ticks={tickXs}
-              tick={{ fontSize: 11 }}
-              tickFormatter={(x: number) => tickLabelParX.get(x) ?? ""}
+              interval={0}
+              height={42}
+              tick={<TickTempsAxe meta={tickMeta} />}
               allowDuplicatedCategory={false}
             />
             <YAxis
@@ -280,20 +294,10 @@ export const ProjectionChart = React.memo(function ProjectionChart({ projection,
               />
             ))}
 
+            {/* Bascule invalidité : trait repère SANS libellé (le tick « 3 ans » de l'axe
+                 le nomme déjà) — supprime le libellé vertical tronqué « ba… » (C2). */}
             {bascule <= maxJourVisible && (
-              <ReferenceLine
-                x={compress(bascule)}
-                stroke="var(--cab-gold, #E3AF64)"
-                strokeDasharray="5 4"
-                strokeWidth={1.5}
-                label={{
-                  value: "bascule invalidité",
-                  fontSize: 11,
-                  angle: -90,
-                  position: "insideTopLeft",
-                  fill: BRAND.goldText,
-                }}
-              />
+              <ReferenceLine x={compress(bascule)} stroke="var(--cab-gold, #E3AF64)" strokeDasharray="5 4" strokeWidth={1.5} />
             )}
 
             {/* Aires empilées depuis la source unique ETAGES (ordre, libellés, couleurs
