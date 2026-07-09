@@ -22,6 +22,8 @@ import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, comput
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge, EmptyState } from "../shared";
 import { successionEstVide } from "../../lib/gardefous";
+import { KpiBand, PersonCard, SectionAccordion, AnalysisPie } from "../analysis";
+import { buildSuccessionPresentation } from "../../lib/analysis/successionPresentation";
 import { BlocCapitauxDeces } from "../succession/BlocCapitauxDeces";
 import { DonationPasseeModal } from "../succession/DonationPasseeModal";
 import { patchPrevoyancePair } from "../../lib/prevoyance/utils";
@@ -83,6 +85,8 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
 
   // Total net transmis — utilise les valeurs fiscales dérivées du moteur (source unique).
   const totalNet = visibleHeirs.reduce((s: number, r: any) => s + (r.partRecueFiscale - r.successionDuties + (r.avNetReceived || 0)), 0);
+  // Lot 10a — couche de PRESENTATION (agrege les sorties moteur, zero recalcul).
+  const pres = buildSuccessionPresentation(succession);
   // Lot 9 C1 — etat vide si aucun patrimoine a transmettre (barriere douce, non bloquante).
   const successionVide = successionEstVide(data);
 
@@ -121,41 +125,6 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
         </div>
       </div>
 
-      {/* ── Registre : donations anterieures (rappel fiscal 15 ans, art. 784) ── */}
-      <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-        <div className="flex items-center justify-between">
-          <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Donations antérieures — rappel fiscal (art. 784 CGI)</div>
-          <Button variant="outline" className="h-7 rounded-xl px-3 text-xs" onClick={() => {
-            const nouvelle = { id: `don_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, donorPersonKey: "person1", beneficiaireType: "autre", beneficiaireNom: "", beneficiaireRelation: "enfant", date: new Date().toISOString().slice(0, 10), montant: "", type: "simple" };
-            const idx = (data.donations || []).length;
-            setField("donations", [...(data.donations || []), nouvelle]);
-            setEditingDon(idx); // ouvre le modal sur la donation creee
-          }}>
-            <Plus className="mr-1 h-3 w-3" />Donation
-          </Button>
-        </div>
-        {(!data.donations || data.donations.length === 0) && (
-          <div className="text-xs text-slate-400 italic">Aucune donation enregistrée. Les donations simples de moins de 15 ans consenties par le foyer réduisent l'abattement des héritiers (rappel fiscal, art. 784 CGI).</div>
-        )}
-        {(data.donations || []).map((don: any, i: number) => {
-          const donateurNom = don.donorPersonKey === "person2" ? (person2 || "Personne 2") : person1;
-          const benef = don.beneficiaireNom || (don.beneficiaireType === "autre" ? "—" : "Bénéficiaire");
-          const typeLabel = don.type === "simple" ? "simple" : don.type === "don_familial_790G" ? "790 G" : don.type === "don_790A_bis" ? "790 A bis" : "présent d'usage";
-          const horsRappel = don.type !== "simple";
-          return (
-            <div key={don.id} className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2" style={{ borderColor: SURFACE.border }}>
-              <div className="text-sm min-w-0" style={{ color: BRAND.navy }}>
-                <span className="font-medium">{donateurNom}</span> → {benef}
-                <span className="text-xs ml-2" style={{ color: BRAND.muted }}>{don.montant ? euro(don.montant) : "—"} · {String(don.date || "").slice(0, 10) || "date ?"} · <span style={{ color: horsRappel ? BRAND.muted : BRAND.sky }}>{typeLabel}{horsRappel ? " (hors rappel)" : ""}</span></span>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <Button variant="outline" className="h-7 rounded-xl px-2 text-xs" onClick={() => setEditingDon(i)}>Modifier</Button>
-                <Button variant="outline" className="h-7 w-7 rounded-xl p-0" onClick={() => setField("donations", (data.donations || []).filter((_: any, j: number) => j !== i))}><Trash2 className="h-3.5 w-3.5" /></Button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
 
       {/* ── TESTAMENT ── */}
       <div className="flex flex-wrap items-center gap-2">
@@ -512,114 +481,110 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
       {/* ══════════════════════════════════════════════════════════════════ */}
 
       {/* KPIs */}
-      <div className="grid gap-3 md:grid-cols-3">
-        <div
-          onClick={() => setShowActifModal(true)}
-          style={{ cursor: "pointer", display: "contents" }}
-          title="Cliquer pour le détail"
-        >
-          <MetricCard
-            label="Actif successoral net ↗"
-            value={euro(succession.activeNet)}
-            hint="Cliquer pour voir le détail du calcul"
-            accent="navy"
-          />
-        </div>
-        <MetricCard label="Droits de succession" value={euro(succession.totalSuccessionRights)} hint="Droits calculés par héritier après abattements légaux et barème progressif" accent="red" />
-        <MetricCard label="Net transmis aux héritiers (succession + AV)" value={euro(totalNet)} hint="Après droits de succession et fiscalité AV perçue par les héritiers — les bénéficiaires AV non-héritiers figurent dans le bloc Assurances-vie" accent="green" />
-      </div>
+      {/* ══════ ACTE 1 — L'ESSENTIEL : brut → fiscalité → NET (chiffre-roi) ══════ */}
+      <KpiBand items={[
+        { label: "Transmis brut — tous bénéficiaires", value: euro(pres.kpis.brut), hint: "Actif successoral net + capitaux d'assurance-vie" },
+        { label: "Fiscalité totale", value: euro(pres.kpis.fiscalite), hint: "Droits de succession + fiscalité AV (990 I / 757 B)" },
+        { label: "Net transmis — tous bénéficiaires", value: euro(pres.kpis.net), hint: "Après droits de succession et fiscalité AV", dominant: true, accent: BRAND.success },
+      ]} />
 
-      {/* ── Cartes héritiers 3 colonnes cliquables ── */}
-      {visibleHeirs.length > 0 && (
+      {/* ══════ ACTE 2a — QUI REÇOIT QUOI : une card par personne qui reçoit ══════ */}
+      {/* Héritiers ET bénéficiaires AV non-héritiers (aujourd'hui invisibles). Décomposition
+          en lignes DISTINCTES (Succession / Assurance-vie) — jamais deux fiscalités sous un
+          même mot. Périmètre succession + AV (capitaux décès rangés en Acte 3, décision David). */}
+      {pres.persons.length > 0 && (
         <div>
           <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: BRAND.sky }}>
-            Héritiers — cliquer pour le détail
+            Qui reçoit quoi
           </div>
           <div className="grid gap-3 md:grid-cols-3">
-            {visibleHeirs.map((heir: any, idx: number) => {
+            {pres.persons.map((person, idx) => {
               const clr = getHeirColor(idx);
-              const total = visibleHeirs.reduce((s: number, r: any) => s + r.netReceived, 0);
-              const heirNetActuel = heir.partRecueFiscale - heir.successionDuties + (heir.avNetReceived || 0);
-              const pct = total > 0 ? (heirNetActuel / total) * 100 : 0;
-              const isDonated = activeDonations?.some((d: any) => {
-                return heir.name && heir.name !== "" && d.heirs?.some((h: any) => h.name === heir.name);
+              const isDonated = person.isHeir && activeDonations?.some((d: any) => person.name && d.heirs?.some((h: any) => h.name === person.name));
+              const cardLines: { label: string; net: string; detail?: string }[] = [];
+              if (person.succession) cardLines.push({
+                label: "Succession",
+                net: euro(person.succession.net),
+                detail: `${person.succession.droits > 0 ? `droits ${euro(person.succession.droits)}` : "exonéré"} · ${person.succession.composition}`,
+              });
+              if (person.av) cardLines.push({
+                label: "Assurance-vie",
+                net: euro(person.av.net),
+                detail: person.av.fiscalite > 0 ? `990 I ${euro(person.av.tax990I)} · 757 B ${euro(person.av.tax757B)}` : "exonérée (990 I / 757 B)",
               });
               return (
-                <div key={heir.name + idx}
-                  onClick={() => setSelectedHeir(idx)}
-                  style={{
-                    background: SURFACE.card,
-                    borderTop: `1px solid ${SURFACE.border}`,
-                    borderRight: `1px solid ${SURFACE.border}`,
-                    borderBottom: `1px solid ${SURFACE.border}`,
-                    borderLeft: `4px solid ${clr.bar}`,
-                    borderRadius: "14px", padding: "16px", cursor: "pointer",
-                    transition: "transform .15s, border-color .15s, box-shadow .15s",
-                    position: "relative",
-                    boxShadow: "0 1px 2px rgba(15,23,42,.04), 0 4px 12px rgba(15,23,42,.05)",
-                  }}
-                  onMouseEnter={e => {
-                    const el = e.currentTarget as HTMLElement;
-                    el.style.borderTopColor = BRAND.gold;
-                    el.style.borderRightColor = BRAND.gold;
-                    el.style.borderBottomColor = BRAND.gold;
-                    el.style.transform = "translateY(-3px)";
-                    el.style.boxShadow = "0 4px 10px rgba(15,23,42,.08), 0 14px 28px rgba(15,23,42,.10)";
-                    const chev = el.querySelector("[data-chevron]") as HTMLElement | null;
-                    if (chev) chev.style.transform = "translateX(3px)";
-                  }}
-                  onMouseLeave={e => {
-                    const el = e.currentTarget as HTMLElement;
-                    el.style.borderTopColor = SURFACE.border;
-                    el.style.borderRightColor = SURFACE.border;
-                    el.style.borderBottomColor = SURFACE.border;
-                    el.style.transform = "";
-                    el.style.boxShadow = "0 1px 2px rgba(15,23,42,.04), 0 4px 12px rgba(15,23,42,.05)";
-                    const chev = el.querySelector("[data-chevron]") as HTMLElement | null;
-                    if (chev) chev.style.transform = "";
-                  }}
-                >
-                  {isDonated && (
-                    <div style={{ position: "absolute", top: "10px", right: "10px", fontSize: "11px", fontWeight: 600, background: BRAND.successBg, color: BRAND.success, borderRadius: "6px", padding: "2px 6px", border: `1px solid ${BRAND.successBorder}` }}>
-                      Donation
-                    </div>
-                  )}
-                  {/* Avatar */}
-                  <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: clr.bg, color: clr.text, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: 600, marginBottom: "10px" }}>
-                    {getInitials(heir.name)}
-                  </div>
-                  <div style={{ fontSize: "14px", fontWeight: 600, color: BRAND.navy, marginBottom: "2px" }}>{heir.name}</div>
-                  <div style={{ fontSize: "11px", color: BRAND.muted, marginBottom: "12px" }}>{heir.relation}</div>
-                  {/* Barre de progression */}
-                  <div style={{ height: "4px", background: SURFACE.app, borderRadius: "2px", marginBottom: "10px", overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${pct}%`, background: clr.bar, borderRadius: "2px" }} />
-                  </div>
-                  {/* Montants */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                    <div>
-                      <div style={{ fontSize: "15px", fontWeight: 600, color: BRAND.navy }}>{euro(heirNetActuel)}</div>
-                      <div style={{ fontSize: "11px", color: BRAND.muted }}>net reçu</div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "12px", color: heir.duties > 0 ? BRAND.danger : BRAND.success, fontWeight: 500 }}>
-                        {heir.duties > 0 ? `−${euro(heir.duties)}` : "Exonéré"}
-                      </div>
-                      {/* C5c — ne pas confondre droits de succession et fiscalite AV sous le seul mot "droits" */}
-                      <div style={{ fontSize: "11px", color: BRAND.muted }}>{heir.avDuties > 0 ? "droits + fiscalité AV" : "droits"}</div>
-                    </div>
-                  </div>
-                  <div style={{ marginTop: "10px", fontSize: "11px", color: BRAND.goldText, borderTop: `1px solid ${SURFACE.border}`, paddingTop: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span>Voir le détail</span>
-                    <span data-chevron style={{ transition: "transform .15s", display: "inline-block" }}>→</span>
-                  </div>
-                </div>
+                <PersonCard
+                  key={person.name + idx}
+                  name={person.name}
+                  relation={person.isHeir ? person.relation : "bénéficiaire AV"}
+                  netLabel={euro(person.net)}
+                  lines={cardLines}
+                  color={clr}
+                  donated={!!isDonated}
+                  onDetail={person.heirIndex != null ? () => setSelectedHeir(person.heirIndex as number) : undefined}
+                />
               );
             })}
           </div>
         </div>
       )}
 
-      {/* ── Section Épargne hors succession ── */}
+      {/* ══════ ACTE 2b — DUO : transmission par personne + cadre légal vs simulé ══════ */}
+      {pres.persons.length > 0 && (
+        <div className="space-y-3">
+          <div className="grid gap-4 lg:grid-cols-3">
+            {/* Graphe à barres compact : net transmis par personne (montants). */}
+            <div className="rounded-2xl p-4" style={{ border: `1px solid ${SURFACE.border}`, background: SURFACE.card }}>
+              <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: BRAND.sky }}>Transmission par héritier</div>
+              <div className="space-y-2.5">
+                {(() => {
+                  const maxNet = Math.max(1, ...pres.persons.map((p) => p.net));
+                  return pres.persons.map((p, i) => {
+                    const clr = getHeirColor(i);
+                    return (
+                      <div key={i}>
+                        <div className="flex justify-between items-baseline mb-1">
+                          <span className="text-xs font-semibold" style={{ color: clr.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "60%" }}>{p.name}</span>
+                          <span className="text-xs shrink-0" style={{ color: BRAND.navy }}>{euro(p.net)}</span>
+                        </div>
+                        <div className="h-4 rounded-lg overflow-hidden" style={{ background: SURFACE.app }}>
+                          <div className="h-full rounded-lg" style={{ width: `${(p.net / maxNet) * 100}%`, background: clr.bar, transition: "width .3s" }} />
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+            {/* Camembert double : cadre légal (réserve/enfant + quotité) vs répartition simulée. */}
+            <AnalysisPie title="Cadre légal" data={pres.cadreLegalPie} valueFormat={euro}
+              note="Réserve héréditaire par enfant réservataire + quotité disponible." />
+            <AnalysisPie title="Répartition simulée" data={pres.repartitionSimuleePie} valueFormat={euro}
+              note="Périmètre : succession civile (l'assurance-vie est hors succession) · En cas d'usufruit du conjoint, la réserve s'apprécie en nue-propriété." />
+          </div>
+          {/* Alerte réserve : UNIQUEMENT si le moteur la détecte (legs précis) — jamais déduite des parts. */}
+          {pres.reserveWarning && (
+            <div className="rounded-xl border px-4 py-2 text-sm flex items-start gap-1.5" style={{ borderColor: BRAND.warningBorder, background: BRAND.warningBg, color: BRAND.warning }}>
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
+              <span>{pres.reserveWarning}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══════ ACTE 3 — LES MASSES (accordéons, fermés par défaut) ══════ */}
+      <div className="text-xs font-semibold uppercase tracking-widest pt-1" style={{ color: BRAND.sky }}>Les masses — le détail rangé</div>
+
+      {/* §1 — Actif successoral net */}
+      <SectionAccordion title="Actif successoral net" summary={`${euro(succession.activeNet)} · droits ${euro(succession.totalSuccessionRights)}`}>
+        <div className="grid gap-3 md:grid-cols-2 mb-3">
+          <MetricCard label="Actif successoral net" value={euro(succession.activeNet)} hint="Biens + placements successoraux, après forfait mobilier 5 %" accent="navy" />
+          <MetricCard label="Droits de succession" value={euro(succession.totalSuccessionRights)} hint="Après abattements légaux et barème progressif, par héritier" accent="red" />
+        </div>
+        <Button variant="outline" className="h-8 rounded-xl px-3 text-sm" onClick={() => setShowActifModal(true)}>Détail du calcul de l'actif</Button>
+      </SectionAccordion>
+
+      {/* §2 — Épargne hors succession */}
       {(() => {
         const avCapital = succession.avLines.reduce((s: number, l: any) => s + l.amount, 0);
         const avTax990I = succession.avLines.reduce((s: number, l: any) => s + l.before70Tax, 0);
@@ -633,10 +598,7 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
           ? (data.person1BirthDate ? getAgeFromBirthDate(data.person1BirthDate) : null)
           : (data.person2BirthDate ? getAgeFromBirthDate(data.person2BirthDate) : null);
         return (
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: BRAND.sky }}>
-              Épargne hors succession
-            </div>
+          <SectionAccordion title="Épargne hors succession" summary={`${avCapital > 0 ? `${euro(avNet)} net AV` : ""}${avCapital > 0 && perTotal > 0 ? " · " : ""}${perTotal > 0 ? `${euro(perTotal)} PER` : ""}`}>
             <div className="grid gap-4" style={{ gridTemplateColumns: avCapital > 0 && perTotal > 0 ? "2fr 1fr" : "1fr" }}>
 
               {/* ── Card AV ── */}
@@ -709,11 +671,12 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
                 </div>
               )}
             </div>
-          </div>
+          </SectionAccordion>
         );
       })()}
 
-      {/* ── Capitaux décès hors actif successoral (Lot 4) — purement informatif ── */}
+      {/* §3 — Capitaux décès des régimes obligatoires + rentes de survie (séparation stricte) */}
+      <SectionAccordion title="Capitaux décès des régimes obligatoires + rentes de survie" summary={`${euro((succession.capitalDecesCaisseExonere ?? 0) + (succession.capitalDecesBrancheExonere ?? 0))} exonérés · rentes annuelles comptées à part`}>
       <BlocCapitauxDeces
         caisses={succession.capitalDecesLines?.caisses ?? []}
         prives={succession.capitalDecesLines?.prives ?? []}
@@ -731,125 +694,56 @@ const TabSuccession = React.memo(function TabSuccession(props: any) {
           setField("prevoyance", patchPrevoyancePair(data.prevoyance, which, { capitalDecesCaisseSurcharge: next ?? undefined }, hasP2));
         } : undefined}
       />
+      </SectionAccordion>
 
-      {/* ── Graphiques ── */}
-      {visibleHeirs.length > 0 && (() => {
-        const COLORS = [BRAND.navy, BRAND.gold, BRAND.sky, "#8094D4", "#C4A882", "#516AC7"];
+      {/* §4 — Donations antérieures — rappel fiscal (art. 784 CGI) */}
+      <SectionAccordion title="Donations antérieures — rappel fiscal (art. 784 CGI)" summary={`${(data.donations || []).length} donation${(data.donations || []).length > 1 ? "s" : ""} enregistrée${(data.donations || []).length > 1 ? "s" : ""}`}>
+        <div className="flex justify-end mb-2">
+          <Button variant="outline" className="h-7 rounded-xl px-3 text-xs" onClick={() => {
+            const nouvelle = { id: `don_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, donorPersonKey: "person1", beneficiaireType: "autre", beneficiaireNom: "", beneficiaireRelation: "enfant", date: new Date().toISOString().slice(0, 10), montant: "", type: "simple" };
+            const idx = (data.donations || []).length;
+            setField("donations", [...(data.donations || []), nouvelle]);
+            setEditingDon(idx);
+          }}>
+            <Plus className="mr-1 h-3 w-3" />Donation
+          </Button>
+        </div>
+        {(!data.donations || data.donations.length === 0) && (
+          <div className="text-xs text-slate-400 italic">Aucune donation enregistrée. Les donations simples de moins de 15 ans consenties par le foyer réduisent l'abattement des héritiers (rappel fiscal, art. 784 CGI).</div>
+        )}
+        <div className="space-y-2">
+        {(data.donations || []).map((don: any, i: number) => {
+          const donateurNom = don.donorPersonKey === "person2" ? (person2 || "Personne 2") : person1;
+          const benef = don.beneficiaireNom || (don.beneficiaireType === "autre" ? "—" : "Bénéficiaire");
+          const typeLabel = don.type === "simple" ? "simple" : don.type === "don_familial_790G" ? "790 G" : don.type === "don_790A_bis" ? "790 A bis" : "présent d'usage";
+          const horsRappel = don.type !== "simple";
+          return (
+            <div key={don.id} className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2" style={{ borderColor: SURFACE.border }}>
+              <div className="text-sm min-w-0" style={{ color: BRAND.navy }}>
+                <span className="font-medium">{donateurNom}</span> → {benef}
+                <span className="text-xs ml-2" style={{ color: BRAND.muted }}>{don.montant ? euro(don.montant) : "—"} · {String(don.date || "").slice(0, 10) || "date ?"} · <span style={{ color: horsRappel ? BRAND.muted : BRAND.sky }}>{typeLabel}{horsRappel ? " (hors rappel)" : ""}</span></span>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button variant="outline" className="h-7 rounded-xl px-2 text-xs" onClick={() => setEditingDon(i)}>Modifier</Button>
+                <Button variant="outline" className="h-7 w-7 rounded-xl p-0" onClick={() => setField("donations", (data.donations || []).filter((_: any, j: number) => j !== i))}><Trash2 className="h-3.5 w-3.5" /></Button>
+              </div>
+            </div>
+          );
+        })}
+        </div>
+      </SectionAccordion>
 
-        // Data pour bar chart héritiers : gross / droits / net
-        const barData = visibleHeirs.map((r: any, i: number) => ({
-          name: r.name.split(" ")[0],
-          net: Math.round(r.partRecueFiscale - r.successionDuties + (r.avNetReceived || 0)),
-          droits: Math.round(r.duties),
-          color: COLORS[i % COLORS.length],
-        }));
+      {/* §5 — Dévolution, quotité et démembrement (détail de l'encart conjoint, art. 669) */}
+      <SectionAccordion title="Dévolution, quotité et démembrement" summary={`Quotité disponible ${Math.round(succession.quotiteDisponible * 100)} % · ${succession.reserveChildrenCount} réservataire${succession.reserveChildrenCount > 1 ? "s" : ""}`}>
+        <div className="text-sm space-y-1.5" style={{ color: BRAND.navy }}>
+          <div>Conjoint survivant : <strong>{successionData.deceasedPerson === "person1" ? person2 : person1}</strong></div>
+          <div>Quotité disponible : <strong>{Math.round(succession.quotiteDisponible * 100)} %</strong> · Enfants réservataires : <strong>{succession.reserveChildrenCount}</strong></div>
+          {succession.usufruitierAge !== null
+            ? <div>Démembrement (barème Duvergier, art. 669 CGI) : <strong>US {Math.round(succession.demembrementPct.usufruct * 100)} % / NP {Math.round(succession.demembrementPct.nuePropriete * 100)} %</strong> ({succession.usufruitierAge} ans)</div>
+            : <div style={{ color: BRAND.warning }}>Date de naissance du conjoint à renseigner pour le démembrement.</div>}
+        </div>
+      </SectionAccordion>
 
-        // Waterfall actif → droits → net
-        const activeNet = succession.activeNet;
-        const totalDroits = succession.totalSuccessionRights;
-        const totalAvTax = succession.totalAvRights;
-        // C1 (Lot 3) — Total net aux héritiers : somme du netFiscal moteur
-        // (partRecueFiscale − droits + avNetReceived), cohérent avec le KPI (:71/:508).
-        // Ne PAS sommer r.netReceived (valeurs économiques brutes : en démembrement,
-        // NP pleine valeur + US pleine valeur comptent l'actif ~2×).
-        const totalNet = visibleHeirs.reduce((s: number, r: any) => s + r.netFiscal, 0);
-        const avCapital = succession.avLines.reduce((s: number, l: any) => s + l.amount, 0);
-
-        return (
-          <div className="grid gap-4 md:grid-cols-2">
-
-            {/* Graphique 1 : Brut / Droits / Net par héritier */}
-            <Card className="border " style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm" style={{ color: BRAND.navy }}>Transmission par héritier</CardTitle>
-                <div className="text-xs text-slate-400">Actif reçu, droits, net</div>
-              </CardHeader>
-              <CardContent className="-mt-2">
-                <div className="space-y-3">
-                  {barData.map((d: any, i: number) => {
-                    const gross = d.net + d.droits;
-                    const netPct = gross > 0 ? (d.net / gross) * 100 : 100;
-                    const droitsPct = 100 - netPct;
-                    return (
-                      <div key={i}>
-                        <div className="flex justify-between items-baseline mb-1">
-                          <span className="text-xs font-semibold" style={{ color: d.color }}>{d.name}</span>
-                          <span className="text-xs" style={{ color: BRAND.navy }}>{euro(d.net)} net</span>
-                        </div>
-                        <div className="h-6 rounded-lg overflow-hidden flex" style={{ background: SURFACE.app }}>
-                          <div className="h-full flex items-center justify-end pr-1.5 text-xs font-medium text-white" style={{ width: `${netPct}%`, background: d.color, minWidth: netPct > 15 ? undefined : 0 }}>
-                            {netPct > 20 ? euro(d.net) : ""}
-                          </div>
-                          {d.droits > 0 && (
-                            <div className="h-full flex items-center justify-center text-xs font-medium" style={{ width: `${droitsPct}%`, background: "rgba(220,38,38,0.15)", color: BRAND.danger, minWidth: droitsPct > 5 ? undefined : 0 }}>
-                              {droitsPct > 12 ? "−" + euro(d.droits) : ""}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {/* Légende */}
-                  <div className="flex gap-4 pt-1 text-xs text-slate-400">
-                    <span className="flex items-center gap-1"><span className="inline-block w-3 h-2 rounded-sm" style={{ background: BRAND.navy }}></span>Net reçu</span>
-                    <span className="flex items-center gap-1"><span className="inline-block w-3 h-2 rounded-sm" style={{ background: "rgba(220,38,38,0.3)" }}></span>Droits</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Graphique 2 : Flux actif → net transmis */}
-            <Card className="border " style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm" style={{ color: BRAND.navy }}>De l'actif au net transmis</CardTitle>
-                <div className="text-xs text-slate-400">Vision consolidée succession + AV</div>
-              </CardHeader>
-              <CardContent className="-mt-2">
-                {(() => {
-                  const total = activeNet + avCapital;
-                  const netSucc = activeNet - totalDroits;
-                  const netAv = avCapital - totalAvTax;
-                  const steps = [
-                    { label: "Actif successoral", value: activeNet, color: BRAND.navy, bar: activeNet / total },
-                    { label: "Droits de succession", value: -totalDroits, color: BRAND.danger, bar: totalDroits / total },
-                    { label: "Net succession", value: netSucc, color: BRAND.success, bar: netSucc / total, separator: true },
-                    ...(avCapital > 0 ? [
-                      { label: "Capital AV", value: avCapital, color: BRAND.sky, bar: avCapital / total },
-                      { label: "Fiscalité AV", value: -totalAvTax, color: BRAND.warning, bar: totalAvTax / total },
-                      { label: "Net AV", value: netAv, color: BRAND.success, bar: netAv / total, separator: true },
-                    ] : []),
-                    { label: "Total net transmis aux héritiers", value: totalNet, color: BRAND.navy, bar: totalNet / total, total: true },
-                  ];
-                  return (
-                    <div className="space-y-2">
-                      {steps.map((s: any, i: number) => (
-                        <div key={i}>
-                          {s.separator && <div className="h-px my-1" style={{ background: SURFACE.border }} />}
-                          <div className="flex items-center gap-2">
-                            <div className="w-28 text-xs text-slate-500 shrink-0 text-right">{s.label}</div>
-                            <div className="flex-1 h-5 rounded overflow-hidden" style={{ background: SURFACE.cardSoft }}>
-                              <div className="h-full rounded" style={{
-                                width: `${Math.abs(s.bar) * 100}%`,
-                                background: s.value < 0 ? "rgba(220,38,38,0.2)" : s.color,
-                                opacity: s.total ? 1 : 0.8,
-                                transition: "width 0.3s"
-                              }} />
-                            </div>
-                            <div className="w-24 text-xs font-semibold text-right shrink-0" style={{ color: s.value < 0 ? BRAND.danger : (s.total ? BRAND.navy : BRAND.muted) }}>
-                              {s.value < 0 ? "−" : ""}{euro(Math.abs(s.value))}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </CardContent>
-            </Card>
-
-          </div>
-        );
-      })()}
 
     </CardContent>
   </Card>
