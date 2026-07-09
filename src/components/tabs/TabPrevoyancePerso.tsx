@@ -42,7 +42,7 @@ import {
 import { ProjectionChart } from "../prevoyance/ProjectionChart";
 import { TableauEuroPayeurs } from "../prevoyance/TableauEuroPayeurs";
 import { BlocConstatsCompacts } from "../prevoyance/BlocConstatsCompacts";
-import { COULEURS_SEVERITE, LIBELLE_AXE } from "../prevoyance/constatsSeverite";
+import { COULEURS_SEVERITE } from "../prevoyance/constatsSeverite";
 import { BlocCouvertureCollective } from "../prevoyance/BlocCouvertureCollective";
 import { BlocContratsIndividuels } from "../prevoyance/BlocContratsIndividuels";
 import { BlocTransmissionDeces } from "../prevoyance/BlocTransmissionDeces";
@@ -151,7 +151,7 @@ const TabPrevoyancePerso = React.memo(function TabPrevoyancePerso({
             // A1-bis : chaque section reçoit un placement de grille EXPLICITE (row-start/
             // col-start) -> les rangées homologues des 2 colonnes partagent la même piste
             // et s'alignent quelle que soit la hauteur. Sous 900px : empilement P1 puis P2.
-            <div className="grid gap-x-6 gap-y-4 min-[900px]:grid-cols-2 items-start">
+            <div className="grid gap-x-6 gap-y-4 min-[900px]:grid-cols-2 items-stretch">
               {renderColonne("p1", entreeP1Base, 1)}
               {renderColonne("p2", entreeP2Base, 2)}
             </div>
@@ -337,7 +337,7 @@ function ColonnePerso({ label, entreeBase, prevoyancePerso, onChangePrevoyance, 
     ),
     /* ══ ACTE 1 — L'ESSENTIEL ══ besoin (carte-roi) + date critique + vigilance */
     (
-      <div className="grid gap-4 min-[900px]:grid-cols-[1.4fr_1fr] items-stretch">
+      <div className="grid gap-4 min-[900px]:grid-cols-[1.4fr_1fr] items-stretch min-[900px]:h-full">
         <KpiRoiCard
           title={`Besoin de couverture minimum — ${label}`}
           amount={fmtEuroMois(besoin.besoin)}
@@ -466,29 +466,43 @@ function DateCritiqueCard({ dateCritique }: { dateCritique: ReturnType<typeof bu
   );
 }
 
+// C3b — hauteur partagée (flex-1, contenu aligné en haut), chaque constat en UNE ligne
+// STRICTE (icône + titre tronqué + montant ; le texte long vit dans « Constats et
+// pistes »). Au-delà de 3 : « + N autres points » dépliable.
 function VigilanceCard({ rows }: { rows: VigilanceRow[] }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const MAX = 3;
+  const shown = expanded ? rows : rows.slice(0, MAX);
+  const extra = rows.length - MAX;
   return (
-    <div className="rounded-2xl px-4 py-3" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
+    <div className="rounded-2xl px-4 py-3 flex-1 flex flex-col" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}`, boxShadow: SURFACE.cardShadow }}>
       <div className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: BRAND.muted }}>Points de vigilance</div>
       {rows.length === 0 ? (
         <div className="text-xs" style={{ color: BRAND.muted }}>Aucun risque majeur signalé sur la couverture en place.</div>
       ) : (
         <ul className="space-y-1.5">
-          {rows.map((r) => {
+          {shown.map((r) => {
             const coul = COULEURS_SEVERITE[r.severite];
             const Icone = coul.icone;
             return (
-              <li key={r.id} className="flex items-start gap-2 text-xs">
-                <Icone className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: coul.texte }} aria-hidden="true" />
-                <span className="min-w-0 flex-1" style={{ color: BRAND.navy }}>
-                  {r.titre}
-                  <span style={{ color: BRAND.muted }}> · {LIBELLE_AXE[r.axe] ?? r.axe}</span>
-                </span>
+              <li key={r.id} className="flex items-center gap-2 text-xs">
+                <Icone className="h-3.5 w-3.5 shrink-0" style={{ color: coul.texte }} aria-hidden="true" />
+                <span className="min-w-0 flex-1 truncate" style={{ color: BRAND.navy }} title={r.titre}>{r.titre}</span>
                 {r.montant != null && <span className="shrink-0 font-bold" style={{ color: coul.texte }}>{Math.round(r.montant).toLocaleString("fr-FR")} €</span>}
               </li>
             );
           })}
         </ul>
+      )}
+      {extra > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="mt-1.5 self-start text-[11px] font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#A67F32] rounded"
+          style={{ color: BRAND.sky, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+        >
+          {expanded ? "Réduire" : `+ ${extra} autre${extra > 1 ? "s" : ""} point${extra > 1 ? "s" : ""}`}
+        </button>
       )}
     </div>
   );
