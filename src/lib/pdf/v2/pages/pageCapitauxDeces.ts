@@ -323,13 +323,27 @@ function sousGroupeNature(t: Tokens, nature: "temporaire" | "rachetable", lignes
 function bloc990IRachetable(t: Tokens, lignes: CapitauxDecesPrive[]): string {
   // Agrégation de valeurs DÉJÀ dérivées par le moteur (aucun recalcul fiscal).
   const assiette = lignes.reduce((a, l) => a + (l.assiette990I || 0), 0);
+  const taxable = lignes.reduce((a, l) => a + (l.before70Taxable || 0), 0);
   const duties = lignes.reduce((a, l) => a + (l.duties || 0), 0);
+  // F — Abattement 990 I RÉELLEMENT imputé à CE contrat = assiette − base taxable (moteur).
+  // L'abattement de 152 500 €/bénéficiaire est PARTAGÉ avec l'assurance-vie (mêmes versements
+  // avant 70 ans, CGI art. 990 I) : quand l'AV l'a déjà consommé, il reste 0 € imputable ici et
+  // l'assiette est taxée en plein. On n'affiche donc plus le forfait 152 500 € (trompeur) mais
+  // le RESTANT réellement appliqué — 0 € sur le contrat de nono (AV avant 70 = 350 000 €).
+  const abattementImpute = Math.max(0, assiette - taxable);
+  const consomme = abattementImpute === 0 && assiette > 0;
   const cellule = (libelle: string, valeur: string, couleur: string) =>
     `<div><div class="lt" style="font-size:8.5px;text-transform:uppercase;letter-spacing:.04em;color:${t.texteFaibleClair}">${libelle}</div><div class="lt" style="font-size:11px;font-weight:700;color:${couleur};margin-top:2px">${valeur}</div></div>`;
-  return `<div data-bloc-990i style="margin-top:8px;border-top:1px solid ${t.bordureClaire};padding-top:7px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-    ${cellule("Assiette 990 I", euro(assiette), t.navy)}
-    ${cellule("Abattement / bénéf.", euro(ABATTEMENT_990I), t.navy)}
-    ${cellule("Droits 990 I", duties > 0 ? euro(duties) : "exonéré", duties > 0 ? t.thOr : t.succes)}
+  const note = consomme
+    ? `<div data-abattement-consomme class="lt" style="margin-top:6px;font-size:9px;color:${t.texteFaible}">Abattement 990 I de ${euro(ABATTEMENT_990I)} par bénéficiaire déjà consommé par l'assurance-vie (versements avant 70 ans) : 0 € imputable sur ce contrat.</div>`
+    : "";
+  return `<div data-bloc-990i style="margin-top:8px;border-top:1px solid ${t.bordureClaire};padding-top:7px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      ${cellule("Assiette 990 I", euro(assiette), t.navy)}
+      ${cellule("Abattement imputé", euro(abattementImpute), consomme ? t.texteFaible : t.navy)}
+      ${cellule("Droits 990 I", duties > 0 ? euro(duties) : "exonéré", duties > 0 ? t.thOr : t.succes)}
+    </div>
+    ${note}
   </div>`;
 }
 
