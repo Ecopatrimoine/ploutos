@@ -4,6 +4,9 @@
 // l'assiette nette, l'IFI dû et les lignes par bien immobilier.
 
 import type { IFIPageData } from "../pages/pageIFI";
+import { buildIfiRoiCard } from "../../../analysis/ifiPresentation";
+import { computePatrimoineNet } from "../../../calculs/patrimoine";
+import { pct } from "../../../calculs/utils";
 
 const SEUIL_IFI_2026 = 1_300_000;
 
@@ -38,6 +41,16 @@ export function buildIFIData(p: BuildIFIDataParams): IFIPageData {
   const grossIfi = num(ifi.grossIfi ?? 0);
   const decote = num(ifi.decote ?? 0);
 
+  // Tranche marginale + taux moyen IFI : SOURCE UNIQUE = buildIfiRoiCard (lib de présentation,
+  // MÊME appel que l'écran). Décision David : le taux moyen se rapporte au PATRIMOINE TOTAL net
+  // (comme l'écran, TabIFI) → on passe patrimoineNet ; la lib retombe sur l'actif net taxable si
+  // le patrimoine n'est pas calculable. Garde-fou : dénominateur ≤ 0 → « — ».
+  const patrimoineNet = computePatrimoineNet(data).patrimoineNet;
+  const roi = buildIfiRoiCard(ifi, { patrimoineNet });
+  const baseTauxMoyen = patrimoineNet > 0 ? patrimoineNet : assietteNette;
+  const trancheMarginaleIFI = pct(roi.marginalRate);
+  const tauxMoyenIFI = baseTauxMoyen > 0 ? pct(roi.tauxMoyen) : "—";
+
   // Mapping des lignes — souple pour différentes structures possibles côté computeIFI
   const linesRaw: any[] = Array.isArray(ifi.lines) ? ifi.lines : [];
   const biens = linesRaw.map(line => ({
@@ -71,14 +84,14 @@ export function buildIFIData(p: BuildIFIDataParams): IFIPageData {
   }
 
   const notreLectureCalculee = `
-    <p style="margin:0 0 10px 0">L'IFI taxe le <strong>patrimoine immobilier net</strong> du foyer, après abattement de 30 % sur la résidence principale et déduction des dettes affectées. Le seuil d'assujettissement est de ${formatEuro(SEUIL_IFI_2026)}.</p>
+    <p style="margin:0 0 10px 0">L'IFI taxe le <strong>patrimoine immobilier net</strong> du foyer, après abattement de 30 % sur la résidence principale et déduction des dettes affectées. Le seuil d'imposition est de ${formatEuro(SEUIL_IFI_2026)}.</p>
     <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
       <li><strong>Composition</strong> — ${nbBiens > 0
         ? `${nbBiens} bien${nbBiens > 1 ? "s" : ""} immobilier${nbBiens > 1 ? "s" : ""} pour ${formatEuro(totalBrut)} en valeur brute, abattement RP ${formatEuro(totalAbatRP)}, dettes déductibles ${formatEuro(totalDette)}.`
         : `Aucun bien immobilier saisi.`}</li>
-      <li><strong>Assiette nette taxable</strong> — ${formatEuro(assietteNette)}.</li>
+      <li><strong>Actif net taxable</strong> — ${formatEuro(assietteNette)}.</li>
       <li><strong>Position</strong> — ${sousSeuil
-        ? `Sous le seuil de ${formatEuro(SEUIL_IFI_2026)}. Marge avant assujettissement : ${formatEuro(margeSousSeuil)} (${margeRelative} %).`
+        ? `Sous le seuil de ${formatEuro(SEUIL_IFI_2026)}. Marge sous le seuil d'imposition : ${formatEuro(margeSousSeuil)} (${margeRelative} %).`
         : `Au-dessus du seuil. IFI dû : <strong>${formatEuro(ifiDu)}</strong>.`}</li>
     </ul>
     <p style="margin:0;font-style:italic;color:#6B6353"><strong>Leviers à étudier :</strong> ${leviers.join(" ; ")}.</p>
@@ -95,6 +108,8 @@ export function buildIFIData(p: BuildIFIDataParams): IFIPageData {
     grossIfi,
     decote,
     biens,
+    trancheMarginaleIFI,
+    tauxMoyenIFI,
     notreLecture: p.notreLecture || notreLectureCalculee,
     pagePosition: p.pagePosition || "— / —",
     cabinetLibellePied: `${cabinet.cabinetName || cabinet.nom || "Cabinet"} · Fiscalité — confidentiel`,

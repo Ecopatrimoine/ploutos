@@ -277,7 +277,7 @@ exports[`CONTRAT — pageSuccessionB (flux paged.js) > 10. blocs declares : head
   </div>
 <div style="break-inside:avoid"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px">
     <div style="background:#0F172A;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
-        <div class="lt" style="font-size:9px;color:#E3C485cc;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Capitaux transmis</div>
+        <div class="lt" style="font-size:9px;color:#E3C485cc;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Capital total</div>
         <div class="lt" style="font-weight:700;font-size:15px;color:#E3C485;margin-top:5px;line-height:1">100 000 €</div>
       </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
       <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Fiscalité totale</div>

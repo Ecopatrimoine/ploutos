@@ -73,7 +73,7 @@ export function pageSuccessionB(t: Tokens, d: SuccessionBPageData): string {
   // Libellé aligné MOT POUR MOT sur l'écran 10a (TabSuccession, modale AV) : le net AV
   // porte le même nom des deux côtés (« Net transmis — assurances-vie (tous bénéficiaires) »).
   const kpis = [
-    { label: "Capitaux transmis",      value: euro(d.capitauxTransmis),    type: "main"   as const },
+    { label: "Capital total",          value: euro(d.capitauxTransmis),    type: "main"   as const },
     { label: "Fiscalité totale",       value: euro(d.fiscaliteTotale),
       type: (d.fiscaliteTotale === 0 ? "success" : "normal") as "success" | "normal" },
     { label: "Net transmis — assurances-vie (tous bénéficiaires)", value: euro(d.netAuxBeneficiaires), type: "normal" as const },

@@ -25,6 +25,7 @@ import {
 } from "../primitives";
 import { compilerPageContrat, type Bloc } from "../engine/contrat";
 import { renderBracketChartSVG } from "../bracketChart";
+import { plur } from "../../../calculs/utils";
 import type { Tokens } from "../tokens";
 import type { FilledBracket } from "../../../../types/patrimoine";
 
@@ -87,11 +88,15 @@ export type IRPageData = {
 
 export function pageIR(t: Tokens, d: IRPageData): string {
   // ─── KPI band (mode "large" — 4 KPI, 1er navy plus large) ──
+  // Chiffres-rois nommés en miroir de l'écran 10b (TabIR) :
+  //   - « Impôt total du foyer » = finalIR (tout compris : barème net des réductions + PFU + PS) ;
+  //   - « TMI » (tranche affichée : réf sous plafonnement QF, statutaire sinon) ;
+  //   - « Revenu net global » (€, = ir.revenuNetGlobal) avec « N parts » en sous-titre.
   const kpis = [
-    { label: "IMPÔT NET DÛ",   value: euro(d.impotNetDu),    type: "main"   as const },
-    { label: "TRANCHE MARG.",  value: d.tmiAffichee ?? d.trancheMarginale, sousLabel: d.trancheMargSousLabel, type: "normal" as const },
-    { label: "TAUX MOYEN",     value: d.tauxMoyen,           type: "normal" as const },
-    { label: "QUOTIENT",       value: d.quotient,            type: "normal" as const },
+    { label: "Impôt total du foyer", value: euro(d.impotNetDu), type: "main" as const },
+    { label: "TMI",           value: d.tmiAffichee ?? d.trancheMarginale, sousLabel: d.trancheMargSousLabel, type: "normal" as const },
+    { label: "Taux moyen",    value: d.tauxMoyen,           type: "normal" as const },
+    { label: "Revenu net global", value: euro(d.revenuNetImposable), sousLabel: plur(d.parts, "part"), type: "normal" as const },
   ];
 
   // ─── Encart « votre taux marginal réel » (Lot B2) — patron alerte douce (noteIconee

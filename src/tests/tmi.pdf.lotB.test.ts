@@ -35,12 +35,13 @@ const NORMAL = base({ salary1: "60000" });                                      
 const NORMAL_PFU = base({ salary1: "60000", placements: [cto("5000")] });                                     // normal + forfaitaire
 const FRONTIERE = base({ salary1: "93900" });                                                                 // quotient 84 510 -> +100 franchit 84 577
 
-describe("Lot B2/C2 — tuile KPI 'TRANCHE MARG.' (valeur = tranche affichée)", () => {
-  it("D2 : tuile affiche la tranche réelle 30,0 % (plafonnement), libellé inchangé, PAS 'TAUX MARGINAL'", () => {
+describe("Lot B2/C2 — tuile KPI 'TMI' (valeur = tranche affichée)", () => {
+  it("D2 : tuile affiche la tranche réelle 30,0 % (plafonnement), libellé 'TMI' (lot 11), PAS 'TAUX MARGINAL'", () => {
     expect(dataOf(D2).tmiAffichee).toBe("30,0 %");      // Lot C2 révisé : réf-2-parts
     expect(dataOf(D2).trancheMarginale).toBe("11,0 %"); // statutaire conservé (champ)
     const h = pageOf(D2);
-    expect(h).toContain("TRANCHE MARG.");
+    expect(h).toContain(">TMI<");        // libellé KPI renommé (lot 11) — ex « TRANCHE MARG. »
+    expect(h).not.toContain("TRANCHE MARG.");
     expect(h).not.toContain("TAUX MARGINAL");
   });
 });

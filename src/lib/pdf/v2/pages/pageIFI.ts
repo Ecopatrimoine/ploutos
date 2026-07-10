@@ -59,6 +59,11 @@ export type IFIPageData = {
   decote: number;           // décote 1,3–1,4 M€ (0 sinon) — pour la note de réconciliation
   // Détail
   biens: BienIFI[];
+  // ── Contexte fiscal (Lot 11) — miroir écran 10b. OPTIONNELS (fixtures legacy → « — ») :
+  //   trancheMarginaleIFI = taux de la tranche du barème atteinte par l'actif net taxable ;
+  //   tauxMoyenIFI = IFI dû rapporté à l'actif net taxable (pct FR), déjà formaté (« — » si base ≤ 0).
+  trancheMarginaleIFI?: string;
+  tauxMoyenIFI?: string;
   // Texte « Notre lecture » (compose en amont, ex. par le composant React)
   notreLecture: string;
   // Pagination
@@ -73,16 +78,19 @@ export function pageIFI(t: Tokens, d: IFIPageData): string {
     ? `Non redevable de l'IFI — marge de ${euro(d.margeSousSeuil)} sous le seuil.`
     : undefined;
   const noteAlerte = !enSeuil
-    ? `Assiette au-dessus du seuil — calcul de l'IFI applicable : ${euro(d.ifiDu)}.`
+    ? `Actif net taxable au-dessus du seuil — calcul de l'IFI applicable : ${euro(d.ifiDu)}.`
     : undefined;
 
-  // ── KPI band (1 navy + 3 cernés, le dernier en vert si IFI=0) ──
+  // ── KPI band — noms alignés sur l'écran 10b (TabIFI) : « Actif net taxable » (une seule
+  //    formulation partout), « Seuil d'imposition », + « Tranche marginale » / « Taux moyen IFI ».
   const kpis = [
-    { label: "Assiette IFI nette",        value: euro(d.assietteNette), type: "main" as const },
-    { label: "Seuil d'assujettissement",  value: euro(d.seuilIFI),      type: "normal" as const },
-    { label: "Marge sous le seuil",       value: euro(Math.max(0, d.margeSousSeuil)), type: "normal" as const },
-    { label: "IFI dû",                    value: euro(d.ifiDu),
+    { label: "Actif net taxable",   value: euro(d.assietteNette), type: "main" as const },
+    { label: "Seuil d'imposition",  value: euro(d.seuilIFI),      type: "normal" as const },
+    { label: "IFI dû",              value: euro(d.ifiDu),
       type: (d.ifiDu === 0 ? "success" : "normal") as "success" | "normal" },
+    { label: "Marge sous le seuil", value: euro(Math.max(0, d.margeSousSeuil)), type: "normal" as const },
+    { label: "Tranche marginale",   value: d.trancheMarginaleIFI ?? "—", type: "normal" as const },
+    { label: "Taux moyen IFI",      value: d.tauxMoyenIFI ?? "—",        type: "normal" as const },
   ];
 
   // ── Colonnes + lignes du tableau « Détail de l'assiette taxable » ──
@@ -139,9 +147,9 @@ export function pageIFI(t: Tokens, d: IFIPageData): string {
   blocs.push({
     kind: "insecable",
     html: `<div style="margin-top:22px">
-      ${sousTitreSection(t, "Assiette face au seuil d'assujettissement")}
+      ${sousTitreSection(t, "Actif net taxable face au seuil d'imposition")}
       ${barreRailFill(t, {
-        labelGauche: "Assiette immobilière nette",
+        labelGauche: "Actif net taxable",
         valeur: d.assietteNette,
         seuil: d.seuilIFI,
         noteSucces,
