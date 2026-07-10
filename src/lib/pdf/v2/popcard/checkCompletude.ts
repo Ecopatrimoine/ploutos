@@ -172,11 +172,13 @@ function collectMissing(pack: PackItem, p: CheckParams): string[] {
       break;
     }
     case "prevoyancePersoP1": {
-      if (!data.travail?.p1?.statutPro) out.push("Onglet Travail P1 (statut professionnel requis pour la projection prévoyance)");
+      // C1 — sans statut pro, la projection est indisponible : la section n'est PAS imprimée
+      // (cohérence empty state écran), d'où le libellé explicite plutôt qu'un manque bloquant.
+      if (!data.travail?.p1?.statutPro) out.push("Statut professionnel P1 absent — section Prévoyance personnelle (P1) non imprimée");
       break;
     }
     case "prevoyancePersoP2": {
-      if (!data.travail?.p2?.statutPro) out.push("Onglet Travail P2 (statut professionnel requis — ou pas de 2e personne)");
+      if (!data.travail?.p2?.statutPro) out.push("Pas de 2e personne / statut P2 absent — section Prévoyance personnelle (P2) non imprimée");
       break;
     }
     case "prevoyanceColl": {
@@ -188,8 +190,9 @@ function collectMissing(pack: PackItem, p: CheckParams): string[] {
       break;
     }
     case "recommandations": {
+      // C1 — aucune reco complète → page vide exclue du pack : on l'annonce explicitement.
       const recosComplete = (p.recommandations || []).filter((r: any) => r?.libelle && r?.justification);
-      if (recosComplete.length === 0) out.push("Aucune recommandation finalisée");
+      if (recosComplete.length === 0) out.push("Aucune recommandation finalisée — section non imprimée");
       break;
     }
     case "mentions":
