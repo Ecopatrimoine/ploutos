@@ -113,9 +113,9 @@ electron/
 
 supabase/functions/
 ├── stripe-webhook/          # Événements Stripe → mise à jour licences
-├── send-email/              # Emails Resend (welcome, trial_expiring...)
-├── create-portal-session/   # Stripe Billing Portal
-└── get-sub-details/         # Détails abonnement Stripe
+├── send-email/              # Emails Resend (welcome, licence_activated...)
+├── create-portal-session/   # Stripe Billing Portal (JWT requis)
+└── delete-user/             # Suppression de compte (JWT + table admins)
 ```
 
 ## Tests
