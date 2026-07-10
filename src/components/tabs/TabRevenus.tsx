@@ -15,16 +15,21 @@ import type { Child, Property, Placement, PatrimonialData, IrOptions, Succession
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
+import { KpiBandeCollecte, KpiCollecte, ValeurCalculee, ContinuerCollecte, LabelCollecte, InvitePersonne2, NoteDormante } from "../collecte/densite";
+import { person2Mode, person2Dormant } from "../../lib/collecte/person2";
 import { computeBeneficeImposable, resolveBeneficeTns, resolveBeneficeAuReel } from "../../lib/calculs/ir";
 import { computeBudget } from "../../lib/calculs/budget";
-import { BlocMadelinSynthese } from "../prevoyance/BlocMadelinSynthese";
+import { estEligibleMadelin, sommeCotisationsMadelin, plafondMadelinPrevoyance, enveloppeMadelinPrevoyance } from "../../lib/prevoyance/madelin";
+import { createEmptyTravail } from "../../lib/prevoyance/utils";
+import { referentiels } from "../../data/prevoyance";
+import type { PayloadTravailPair } from "../../types/patrimoine";
 import { ChargesModal } from "../ChargesModal";
 
 
 // ── TabRevenus ─────────────────────────────────────────────────────────────────────
 const TabRevenus = React.memo(function TabRevenus(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
-  const { data, setField, setData, setChargesDialogOpen, irOptions, setIrOptions, ir, person1, person2 } = props;
+  const { data, setField, setData, setChargesDialogOpen, irOptions, setIrOptions, ir, person1, person2, setCollecteSubTab } = props;
   const addPerRente = useDebouncedAction(() => setData(prev => ({ ...prev, perRentes: [...(prev.perRentes || []), { owner: "person1", annualAmount: "", ageAtFirst: "" }] }))); // Lot 8 C2 — anti double-clic
 
   // ── Madelin (Lot B4) : bénéfice imposable + versements PER par personne, pour
@@ -63,18 +68,27 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
   const ccPostesRenseignes = [ccDetail.loyerRP, ccDetail.energie, ccDetail.assurancesPerso, ccDetail.scolarite, ccDetail.transport, ccDetail.autres]
     .filter((v) => String(v ?? "").trim() !== "").length;
 
-  return (
-<TabsContent value="revenus" className="space-y-4">
-  {/* 1. Bandeau budget : 3 KPI (source UNIQUE computeBudget) */}
-  <div className="grid gap-4 md:grid-cols-3">
-    <MetricCard label="Revenus du foyer /mois"  value={euro(budget.revenusMensuels)}   accent="navy" />
-    <MetricCard label="Charges du foyer /mois"   value={euro(budget.chargesMensuelles)} accent="gold" />
-    <MetricCard label="Capacité d'épargne /mois" value={euro(budget.capaciteEpargne)}   accent={budget.capaciteEpargne >= 0 ? "green" : "red"} hint={budget.hasChargesCourantes ? undefined : "hors charges courantes non renseignées"} />
-  </div>
+  // U3 — mode d'affichage de la carte Personne 2 (card / invite / none).
+  const p2mode = person2Mode(data);
 
-  {/* 2. Cartes personnes — grille 2 colonnes : une par personne (contenu inchange) */}
-  <div className="grid gap-4 md:grid-cols-2">
+  return (
+<TabsContent value="revenus" className="space-y-3">
+  {/* 1. Bande KPI dense (Lot 10e) : source UNIQUE computeBudget, valeurs ~24px */}
+  <KpiBandeCollecte>
+    <KpiCollecte label="Revenus /mois"            value={euro(budget.revenusMensuels)}   accent="navy" />
+    <KpiCollecte label="Charges /mois"            value={euro(budget.chargesMensuelles)} accent="gold" />
+    <KpiCollecte label="Capacité d'épargne /mois" value={euro(budget.capaciteEpargne)}   accent={budget.capaciteEpargne >= 0 ? "green" : "red"} note={budget.hasChargesCourantes ? undefined : "hors charges courantes non renseignées"} />
+  </KpiBandeCollecte>
+
+  {/* 2. Cartes personnes — Personne 2 conditionnelle (U3) : grille 1 colonne si P2 absente */}
+  <div className={`grid gap-3 ${p2mode === "none" ? "md:grid-cols-1" : "md:grid-cols-2"}`}>
   {([1, 2] as const).map((which) => {
+    // U3 : Personne 2 conditionnelle — seul sans identite -> rien ; couple sans
+    // identite -> invite compacte vers Donnees familiales. Identite renseignee -> carte.
+    if (which === 2) {
+      if (p2mode === "none") return null;
+      if (p2mode === "invite") return <InvitePersonne2 key="p2-invite" onGo={() => setCollecteSubTab && setCollecteSubTab("famille")} />;
+    }
     const groupe = which === 1 ? data.person1PcsGroupe : data.person2PcsGroupe;
     const cat = which === 1 ? data.person1Csp : data.person2Csp;
     const personName = which === 1 ? person1 : person2;
@@ -129,104 +143,87 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
     const renderBicBncBlock = (isBNCeff: boolean, apercuOverride?: React.ReactNode) => {
       const seuilMicro = isBNCeff ? 77700 : (bicTypeVal === "vente" ? 188700 : 77700);
       const depasseSeuil = micro && caNum > 0 && caNum > seuilMicro;
-      const apercuNode = apercuOverride !== undefined
-        ? apercuOverride
-        : (caNum > 0 && abattementInfo ? (
-            <div className="rounded-xl px-3 py-2 text-xs" style={{ background: "rgba(81,106,199,0.08)", color: BRAND.sky, border: "1px solid rgba(81,106,199,0.15)" }}>
-              <Lightbulb className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />{abattementInfo}
-            </div>
-          ) : null);
+      const detail: ChargesDetail = (which === 1 ? data.chargesDetail1 : data.chargesDetail2) as ChargesDetail || EMPTY_CHARGES_DETAIL;
+      const hasDetail = sumChargesDetail(detail) > 0;
       return (
         <>
-          {/* Toggle Micro / Réel — switch */}
+          {/* Toggle Micro / Réel — switch (ligne compacte) */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400">Régime fiscal</span>
+            <span className="text-[11px] font-bold" style={{ color: BRAND.muted }}>Régime fiscal</span>
             <label className="flex items-center gap-2 cursor-pointer select-none">
-              <span className="text-xs font-medium" style={{ color: micro ? BRAND.sky : BRAND.gold }}>
-                {micro ? "Micro" : "Réel"}
-              </span>
+              <span className="text-xs font-medium" style={{ color: micro ? BRAND.sky : BRAND.gold }}>{micro ? "Micro" : "Réel"}</span>
               <button
                 role="switch" aria-checked={micro}
                 onClick={() => setField(microKey, !micro)}
                 className="relative inline-flex items-center rounded-full transition-colors focus:outline-none"
                 style={{ width: 34, height: 19, background: micro ? BRAND.gold : SURFACE.border, flexShrink: 0 }}
               >
-                <span
-                  className="absolute rounded-full bg-white shadow transition-all"
-                  style={{ width: 15, height: 15, top: 2, left: micro ? 17 : 2 }}
-                />
+                <span className="absolute rounded-full bg-white shadow transition-all" style={{ width: 15, height: 15, top: 2, left: micro ? 17 : 2 }} />
               </button>
             </label>
           </div>
 
-          {/* Type BIC uniquement */}
-          {!isBNCeff && (
-            <Field label="Nature de l'activité BIC">
-              <Select value={bicTypeVal} onValueChange={(v) => setField(bicTypeKey, v)}>
-                <SelectTrigger className="rounded-xl h-9 text-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="services">Prestations de services (abatt. 50%)</SelectItem>
-                  <SelectItem value="vente">Achat-revente / commerce (abatt. 71%)</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-          )}
-
-          {/* CA */}
-          <div className="max-w-[240px]">
-            <MoneyField
-              label={`Chiffre d'affaires HT${isBNCeff ? " (recettes)" : ""}`}
-              tooltip={isBNCeff
-                ? "Recettes brutes HT de l'activité libérale. L'abattement de 34% sera appliqué en régime micro pour obtenir la base imposable."
-                : bicTypeVal === "vente"
-                  ? "CA HT annuel. Abattement forfaitaire de 71% en micro pour activités de vente/commerce."
-                  : "CA HT annuel. Abattement forfaitaire de 50% en micro pour prestations de services BIC."
-              }
-              value={caVal}
-              onChange={(e) => setField(caKey, e.target.value)}
-            />
+          {/* Champs en grille (Lot 10e : densite grid) */}
+          <div className="grid grid-cols-2 gap-x-3 gap-y-2 items-end">
+            {/* Nature BIC uniquement */}
+            {!isBNCeff && (
+              <div className="col-span-2">
+                <LabelCollecte label="Nature de l'activité BIC" />
+                <Select value={bicTypeVal} onValueChange={(v) => setField(bicTypeKey, v)}>
+                  <SelectTrigger className="rounded-lg text-sm" style={{ height: 32 }}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="services">Prestations de services (abatt. 50%)</SelectItem>
+                    <SelectItem value="vente">Achat-revente / commerce (abatt. 71%)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {/* CA / recettes */}
+            <div>
+              <LabelCollecte
+                label={`CA HT${isBNCeff ? " (recettes)" : ""}`}
+                tooltip={isBNCeff
+                  ? "Recettes brutes HT de l'activité libérale. L'abattement de 34% sera appliqué en régime micro pour obtenir la base imposable."
+                  : bicTypeVal === "vente"
+                    ? "CA HT annuel. Abattement forfaitaire de 71% en micro pour activités de vente/commerce."
+                    : "CA HT annuel. Abattement forfaitaire de 50% en micro pour prestations de services BIC."}
+              />
+              <Input value={caVal || ""} onChange={(e) => setField(caKey, e.target.value)} className="rounded-lg text-sm" style={{ height: 32, fontWeight: 700 }} inputMode="decimal" />
+            </div>
+            {/* Charges reelles (regime reel uniquement) */}
+            {!micro && (
+              <div>
+                <LabelCollecte label="Charges pro déductibles" tooltip="Total des charges réelles déductibles. Bouton Détailler : ventilation par nature. Bénéfice imposable = CA − charges." />
+                <div className="flex items-stretch gap-1">
+                  <Input value={chargesVal || ""} onChange={(e) => setField(chargesKey, e.target.value)} className="rounded-lg text-sm flex-1 min-w-0" style={{ height: 32, fontWeight: 700 }} inputMode="decimal" />
+                  <button
+                    onClick={() => setChargesDialogOpen(which)}
+                    className="flex items-center gap-1 rounded-lg px-2 text-xs font-medium shrink-0"
+                    style={{ height: 32, background: hasDetail ? BRAND.navy : "rgba(81,106,199,0.1)", color: hasDetail ? "#fff" : BRAND.sky, border: hasDetail ? "none" : "1px solid rgba(81,106,199,0.2)" }}
+                    title="Détailler les charges par nature"
+                  >
+                    <FileText className="h-3 w-3" />{hasDetail ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : "Détail"}
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* Benefice (calcule) principal / override secondaire */}
+            {apercuOverride !== undefined ? (
+              <div className="col-span-2">{apercuOverride}</div>
+            ) : (caNum > 0 && abattementInfo) ? (
+              <div>
+                <LabelCollecte label="Bénéfice imposable" tooltip={abattementInfo} />
+                <ValeurCalculee>{beneficeApercu.toLocaleString("fr-FR")} € · calculé</ValeurCalculee>
+              </div>
+            ) : null}
           </div>
+
           {depasseSeuil && (
-            <div className="flex items-start gap-1.5 rounded-xl px-2.5 py-2 text-xs" style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
+            <div className="flex items-start gap-1.5 rounded-lg px-2.5 py-2 text-xs" style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
               <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden="true" />
               <span>CA {caNum.toLocaleString("fr-FR")} € &gt; seuil micro {seuilMicro.toLocaleString("fr-FR")} €. Régime réel obligatoire si dépassement 2 ans consécutifs.</span>
             </div>
           )}
-
-          {/* Charges réelles (régime réel uniquement) */}
-          {!micro && (() => {
-            const detail: ChargesDetail = (which === 1 ? data.chargesDetail1 : data.chargesDetail2) as ChargesDetail || EMPTY_CHARGES_DETAIL;
-            const hasDetail = sumChargesDetail(detail) > 0;
-            return (
-              <div className="flex items-end gap-1.5">
-                <div style={{ width: 200 }}>
-                  <MoneyField
-                    label="Charges professionnelles déductibles"
-                    tooltip="Total des charges réelles déductibles. Cliquez sur le bouton détail pour ventiler par nature. Bénéfice imposable = CA − Charges."
-                    value={chargesVal}
-                    onChange={(e) => setField(chargesKey, e.target.value)}
-                  />
-                </div>
-                <button
-                  onClick={() => setChargesDialogOpen(which)}
-                  className="mb-0.5 flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-colors"
-                  style={{
-                    background: hasDetail ? BRAND.navy : "rgba(81,106,199,0.1)",
-                    color: hasDetail ? "#fff" : BRAND.sky,
-                    border: hasDetail ? "none" : "1px solid rgba(81,106,199,0.2)",
-                    whiteSpace: "nowrap",
-                  }}
-                  title="Détailler les charges par nature"
-                >
-                  <FileText className="h-3 w-3" />
-                  {hasDetail ? <>Détail <Check className="inline-block h-3.5 w-3.5 align-text-bottom" aria-hidden="true" /></> : "Détailler"}
-                </button>
-              </div>
-            );
-          })()}
-
-          {/* Aperçu bénéfice imposable (principal) / estimation (secondaire) */}
-          {apercuNode}
         </>
       );
     };
@@ -241,7 +238,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
       const apercuNode = apercuOverride !== undefined
         ? apercuOverride
         : (apercuBA ? (
-            <div className="rounded-xl px-3 py-2 text-xs" style={{ background: "rgba(81,106,199,0.08)", color: BRAND.sky, border: "1px solid rgba(81,106,199,0.15)" }}>
+            <div className="rounded-xl px-3 py-2 text-xs" style={{ background: "rgba(47,107,58,0.08)", color: BRAND.success, border: "1px dashed #9DBB9A" }}>
               <Lightbulb className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />{apercuBA}
             </div>
           ) : null);
@@ -249,7 +246,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
         <>
           {/* Switch Micro / Réel */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400">Régime fiscal</span>
+            <span className="text-[11px] font-bold" style={{ color: BRAND.muted }}>Régime fiscal</span>
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <span className="text-xs font-medium" style={{ color: micro ? BRAND.sky : BRAND.gold }}>
                 {micro ? "Micro-BA" : "Réel"}
@@ -311,7 +308,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
         ? `Abattement micro ${secBa ? 87 : secBnc ? 34 : (bicTypeVal === "vente" ? 71 : 50)} % — bénéfice imposable estimé : ${fmt} €`
         : `Bénéfice imposable estimé : ${fmt} €`;
       return (
-        <div className="rounded-xl px-3 py-2 text-xs" style={{ background: "rgba(81,106,199,0.08)", color: BRAND.sky, border: "1px solid rgba(81,106,199,0.15)" }}>
+        <div className="rounded-xl px-3 py-2 text-xs" style={{ background: "rgba(47,107,58,0.08)", color: BRAND.success, border: "1px dashed #9DBB9A" }}>
           <Lightbulb className="inline-block h-3.5 w-3.5 mr-1 align-text-bottom" aria-hidden="true" />{texte}
         </div>
       );
@@ -319,98 +316,234 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
 
     if (isSansAct) return null; // pas de revenus pro
 
-    return (
-      <div key={which} className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-        <div className="flex items-center justify-between">
-          <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>{personName}</div>
-          <div className="text-xs px-2 py-0.5 rounded-full font-medium" style={{
-            background: isIndep ? "rgba(227,175,100,0.15)" : isRetr ? "rgba(81,106,199,0.1)" : "rgba(81,106,199,0.1)",
-            color: isIndep ? BRAND.gold : BRAND.sky,
-          }}>
-            {isBA ? "BA" : isBNC ? "BNC" : isIndep ? "BIC" : isRetr ? "Retraité" : "Salarié"}
+    // ── Madelin INTEGRE dans la carte personne (Lot 10e) — TNS uniquement. Cotisations
+    // + plafonds ; la decomposition Base/Sup (163 quatervicies / 154 bis) + mutualisation
+    // 6QR va dans des tooltips riches INTEGRAUX (rien perdu vs l'ancien bloc separe).
+    const eurR = (x: number) => `${Math.round(x).toLocaleString("fr-FR")} €`;
+    const eligibleMadelin = estEligibleMadelin(data, which);
+    const madelinAutre = which === 1 ? data.madelinAutreCotisation1 : data.madelinAutreCotisation2;
+    const madelinTotal = eligibleMadelin ? sommeCotisationsMadelin(data, which) : 0;
+    const madelinPlafond = eligibleMadelin ? plafondMadelinPrevoyance(beneficeMadelin(which), referentiels.pass.pass.annuel) : 0;
+    const madelinEnv = eligibleMadelin ? enveloppeMadelinPrevoyance(madelinTotal, madelinPlafond) : null;
+    const plafPER = which === 1 ? (ir.plafondPER1 ?? 0) : (ir.plafondPER2 ?? 0);
+    const plafPER163 = which === 1 ? (ir.plafondPER1Base163 ?? 0) : (ir.plafondPER2Base163 ?? 0);
+    const plafPER154 = which === 1 ? (ir.plafondPER1Sup154 ?? 0) : (ir.plafondPER2Sup154 ?? 0);
+    const perReel = resolveBeneficeAuReel(data, which);
+    const versPER = versementsPERMadelin(which);
+    const perRestant = Math.max(0, plafPER - versPER);
+    const perPct = plafPER > 0 ? Math.min(100, Math.round((versPER / plafPER) * 100)) : 0;
+    const persoKeyM = which === 1 ? "p1" : "p2";
+    const dejaDeduit = data.travail?.[persoKeyM]?.beneficeDejaDeduitMadelin === true;
+    const setDejaDeduit = (next: boolean) => {
+      const isCouple = data.coupleStatus === "married" || data.coupleStatus === "pacs" || data.coupleStatus === "cohab";
+      const currentPair: PayloadTravailPair = data.travail ?? { p1: createEmptyTravail(), p2: isCouple ? createEmptyTravail() : null };
+      const nextPair: PayloadTravailPair = which === 1
+        ? { ...currentPair, p1: { ...currentPair.p1, beneficeDejaDeduitMadelin: next } }
+        : { ...currentPair, p2: { ...(currentPair.p2 ?? createEmptyTravail()), beneficeDejaDeduitMadelin: next } };
+      setField("travail", nextPair);
+    };
+    const tipMutualisation = (data.coupleStatus === "married" || data.coupleStatus === "pacs")
+      ? " Mutualisation époux/PACS appliquée sur la part revenu global (demande expresse — case 6QR)."
+      : "";
+    const tipPrevSante = `Enveloppe commune prévoyance-santé (art. 154 bis CGI) : 7 % du PASS + 3,75 % du bénéfice imposable, plafonnée à 3 % de 8 PASS — distincte de l'enveloppe retraite (PER). Plafond ${eurR(madelinPlafond)} · cotisations ${eurR(madelinTotal)}.${madelinEnv?.depasse ? ` Dépassement de ${eurR(madelinEnv.depassement)} : la part au-delà du plafond n'est pas déductible.` : ""}`;
+    const tipPER = `Retraite (PER) — pour info (valeurs lues du calcul IR, jamais recalculées ici). Plafond ${eurR(plafPER)} · consommé ${eurR(versPER)}. Décomposition : revenu global — art. 163 quatervicies (versements personnels) ${eurR(plafPER163)}${perReel ? ` ; majoration TNS au réel — art. 154 bis (versements professionnels) ${eurR(plafPER154)}` : " ; régime micro : pas de déduction professionnelle (art. 154 bis) — versements côté personnel uniquement"}.${tipMutualisation} Le plafond personnel (163 quatervicies) se calcule légalement sur les revenus N-1 ; la majoration professionnelle (154 bis) sur le bénéfice N. La majoration TNS (154 bis) reste personnelle : ni mutualisable ni reportable. Reportez-vous à l'avis d'imposition pour le plafond exact (reports des 3 années non modélisés).`;
+
+    // ── Cellules grid4 reutilisables (Lot 10e — format maquette validee) ──
+    const detailCharges: ChargesDetail = (which === 1 ? data.chargesDetail1 : data.chargesDetail2) as ChargesDetail || EMPTY_CHARGES_DETAIL;
+    const hasDetailCharges = sumChargesDetail(detailCharges) > 0;
+    const seuilMicroP = isBNC ? 77700 : (bicTypeVal === "vente" ? 188700 : 77700);
+    const depasseSeuilP = isIndep && !isBA && micro && caNum > 0 && caNum > seuilMicroP;
+    const inputCls = "rounded-lg text-sm";
+    const inputSty = { height: 32, fontWeight: 700 } as const;
+    // Seconde activite (selecteur) — cellule de la grille (les sous-blocs restent dessous)
+    const secondeCell = !isRetr ? (
+      <div>
+        <LabelCollecte label="Seconde activité" tooltip="Déclare une seconde source de revenu sur la même personne (cumul salarié + indépendant). Les champs correspondants apparaissent sous la carte ; le calcul IR additionne les deux revenus." />
+        <Select value={sec || "none"} onValueChange={(v) => setField(secKey, v === "none" ? "" : v)}>
+          <SelectTrigger className="rounded-lg text-sm" style={{ height: 32 }}><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {isIndep
+              ? (<><SelectItem value="none">Aucune</SelectItem><SelectItem value="salariat">Salariat</SelectItem></>)
+              : (<><SelectItem value="none">Aucune</SelectItem><SelectItem value="bic">Indépendant — BIC</SelectItem><SelectItem value="bnc">Indépendant — BNC (libéral)</SelectItem><SelectItem value="ba">Exploitant agricole — BA</SelectItem></>)}
+          </SelectContent>
+        </Select>
+      </div>
+    ) : <div />;
+    // PER : plafond restant + barre (une seule cellule, hauteur alignee sur les inputs)
+    const perCell = (
+      <div>
+        <LabelCollecte label="PER — plafond restant" tooltip={tipPER} />
+        <div className="rounded-lg px-2.5 flex flex-col justify-center" style={{ height: 32, background: "rgba(47,107,58,0.08)", border: "1px dashed #9DBB9A" }}>
+          <div className="text-[12px] font-semibold leading-none" style={{ color: BRAND.success }}>{eurR(perRestant)}</div>
+          <div className="mt-1 h-1 rounded-full overflow-hidden" style={{ background: "#E9E1CC" }}>
+            <div className="h-full" style={{ width: `${perPct}%`, background: BRAND.gold }} />
           </div>
         </div>
+      </div>
+    );
+    // PER versé (lu des placements, lecture seule)
+    const perVerseCell = (
+      <div>
+        <LabelCollecte label="PER — versé" tooltip="Versements PER de l'année, lus des placements (onglet Placements). Réduisent le plafond disponible (art. 163 quatervicies)." />
+        <ValeurCalculee>{eurR(versPER)}</ValeurCalculee>
+      </div>
+    );
 
-        {/* Salarié / fonctionnaire */}
-        {!isIndep && !isRetr && (
-          <div className="max-w-[240px]">
-            <MoneyField
-              label={`Salaire net imposable`}
-              tooltip="Salaire net avant impôt. Pour les salariés, l'abattement de 10% (ou frais réels) sera appliqué dans l'onglet IR."
-              value={salaryVal}
-              onChange={(e) => setField(salaryKey, e.target.value)}
-            />
+    return (
+      <div key={which} className="border p-3 space-y-2.5" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 12, boxShadow: SURFACE.cardShadow }}>
+        {/* Header : nom + toggle Micro/Réel (TNS) + badge */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>{personName}</div>
+          <div className="flex items-center gap-2">
+            {isIndep && (
+              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <span className="text-[11px] font-medium" style={{ color: micro ? BRAND.sky : BRAND.gold }}>{micro ? (isBA ? "Micro-BA" : "Micro") : "Réel"}</span>
+                <button role="switch" aria-checked={micro} onClick={() => setField(microKey, !micro)}
+                  className="relative inline-flex items-center rounded-full transition-colors focus:outline-none"
+                  style={{ width: 32, height: 18, background: micro ? BRAND.gold : SURFACE.border, flexShrink: 0 }}>
+                  <span className="absolute rounded-full bg-white shadow transition-all" style={{ width: 14, height: 14, top: 2, left: micro ? 16 : 2 }} />
+                </button>
+              </label>
+            )}
+            <div className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: isIndep ? "rgba(227,175,100,0.15)" : "rgba(81,106,199,0.1)", color: isIndep ? BRAND.gold : BRAND.sky }}>
+              {isBA ? "BA" : isBNC ? "BNC" : isIndep ? "BIC" : isRetr ? "Retraité" : "Salarié"}
+            </div>
+          </div>
+        </div>
+        {which === 2 && person2Dormant(data) && (
+          <NoteDormante>Situation actuelle « seul » — données de la personne 2 conservées (non supprimées). Modifiable dans Données familiales.</NoteDormante>
+        )}
+
+        {/* Nature BIC (BIC uniquement) — au-dessus de la grille */}
+        {isIndep && !isBA && !isBNC && (
+          <div>
+            <LabelCollecte label="Nature de l'activité BIC" />
+            <Select value={bicTypeVal} onValueChange={(v) => setField(bicTypeKey, v)}>
+              <SelectTrigger className="rounded-lg text-sm" style={{ height: 32 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="services">Prestations de services (abatt. 50%)</SelectItem>
+                <SelectItem value="vente">Achat-revente / commerce (abatt. 71%)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         )}
 
-        {/* Retraité */}
-        {isRetr && (
-          <div className="max-w-[240px]">
-            <MoneyField
-              label="Pensions de retraite"
-              tooltip="Total des pensions perçues. Abattement de 10% appliqué automatiquement (plafonné à 4 123 €)."
-              value={data.pensions}
-              onChange={(e) => setField("pensions", e.target.value)}
-            />
+        {/* Row 1 grid4 (mise au format maquette) */}
+        <div className="grid grid-cols-4 gap-x-2 gap-y-2 items-end">
+          {/* SALARIÉ : Salaire | Seconde | PER versé | PER plafond+barre (symétrie carte TNS) */}
+          {!isIndep && !isRetr && (<>
+            <div>
+              <LabelCollecte label="Salaire net imposable" tooltip="Salaire net avant impôt. L'abattement de 10% (ou frais réels) est appliqué dans l'onglet IR." />
+              <Input value={salaryVal || ""} onChange={(e) => setField(salaryKey, e.target.value)} className={inputCls} style={inputSty} inputMode="decimal" />
+            </div>
+            {secondeCell}
+            {perVerseCell}
+            {perCell}
+          </>)}
+
+          {/* RETRAITÉ : Pensions | PER versé | PER plafond+barre */}
+          {isRetr && (<>
+            <div>
+              <LabelCollecte label="Pensions de retraite" tooltip="Total des pensions perçues. Abattement de 10% appliqué automatiquement (plafonné à 4 123 €)." />
+              <Input value={data.pensions || ""} onChange={(e) => setField("pensions", e.target.value)} className={inputCls} style={inputSty} inputMode="decimal" />
+            </div>
+            {perVerseCell}
+            {perCell}
+            <div />
+          </>)}
+
+          {/* TNS BIC/BNC : CA | Charges(réel)/Abattement(micro) | Bénéfice | Seconde */}
+          {isIndep && !isBA && (<>
+            <div>
+              <LabelCollecte label={`CA HT${isBNC ? " (recettes)" : ""}`} tooltip={isBNC ? "Recettes brutes HT de l'activité libérale. Abattement 34% en micro pour la base imposable." : bicTypeVal === "vente" ? "CA HT annuel. Abattement forfaitaire 71% en micro (vente / commerce)." : "CA HT annuel. Abattement forfaitaire 50% en micro (prestations de services BIC)."} />
+              <Input value={caVal || ""} onChange={(e) => setField(caKey, e.target.value)} className={inputCls} style={inputSty} inputMode="decimal" />
+            </div>
+            {!micro ? (
+              <div>
+                <LabelCollecte label="Charges pro déductibles" tooltip="Total des charges réelles déductibles. Bouton Détail : ventilation par nature. Bénéfice = CA − charges." />
+                <div className="flex items-stretch gap-1">
+                  <Input value={chargesVal || ""} onChange={(e) => setField(chargesKey, e.target.value)} className="rounded-lg text-sm flex-1 min-w-0" style={inputSty} inputMode="decimal" />
+                  <button onClick={() => setChargesDialogOpen(which)} className="flex items-center gap-1 rounded-lg px-2 text-xs font-medium shrink-0" style={{ height: 32, background: hasDetailCharges ? BRAND.navy : "rgba(81,106,199,0.1)", color: hasDetailCharges ? "#fff" : BRAND.sky, border: hasDetailCharges ? "none" : "1px solid rgba(81,106,199,0.2)" }} title="Détailler les charges par nature">
+                    <FileText className="h-3 w-3" />{hasDetailCharges ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : "Détail"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <LabelCollecte label="Abattement micro" tooltip={abattementInfo || "Abattement forfaitaire du régime micro."} />
+                <ValeurCalculee>{isBNC ? "34 %" : bicTypeVal === "vente" ? "71 %" : "50 %"}</ValeurCalculee>
+              </div>
+            )}
+            <div>
+              <LabelCollecte label="Bénéfice imposable" tooltip={abattementInfo || "Bénéfice imposable calculé (CA − charges, ou après abattement en micro)."} />
+              <ValeurCalculee>{caNum > 0 ? `${beneficeApercu.toLocaleString("fr-FR")} € · calculé` : "—"}</ValeurCalculee>
+            </div>
+            {secondeCell}
+          </>)}
+
+          {/* BA (agriculteur) : Recettes/Bénéfice | Bénéfice(micro) | Seconde */}
+          {isBA && (<>
+            <div>
+              <LabelCollecte label={micro ? "Recettes HT (N)" : "Bénéfice agricole net"} tooltip={micro ? `Recettes brutes HT. Abattement 87% (min. 305 €). Seuil micro-BA ${SEUIL_MICRO_BA.toLocaleString("fr-FR")} €.` : "Bénéfice net de l'exploitation après charges réelles. Imposable au barème progressif."} />
+              <Input value={caVal || ""} onChange={(e) => setField(caKey, e.target.value)} className={inputCls} style={inputSty} inputMode="decimal" />
+            </div>
+            {micro ? (
+              <div>
+                <LabelCollecte label="Bénéfice imposable" tooltip="Base imposable = recettes − abattement 87% (min. 305 €)." />
+                <ValeurCalculee>{n(caVal) > 0 ? `${Math.max(0, n(caVal) - Math.max(305, n(caVal) * 0.87)).toLocaleString("fr-FR")} € · calculé` : "—"}</ValeurCalculee>
+              </div>
+            ) : <div />}
+            {secondeCell}
+          </>)}
+        </div>
+
+        {/* Alerte depassement seuil micro (BIC/BNC) — pleine largeur */}
+        {depasseSeuilP && (
+          <div className="flex items-start gap-1.5 rounded-lg px-2.5 py-2 text-xs" style={{ background: BRAND.dangerBg, color: BRAND.danger, border: `1px solid ${BRAND.dangerBorder}` }}>
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden="true" />
+            <span>CA {caNum.toLocaleString("fr-FR")} € &gt; seuil micro {seuilMicroP.toLocaleString("fr-FR")} €. Régime réel obligatoire si dépassement 2 ans consécutifs.</span>
           </div>
         )}
 
-        {/* Agriculteur — BA avec toggle Micro / Réel (Lot C : bloc extrait, reutilise en secondaire) */}
-        {isBA && renderBaBlock()}
-
-        {/* Indépendant BIC / BNC (Lot C : bloc extrait, reutilise en secondaire) */}
-        {isIndep && !isBA && renderBicBncBlock(isBNC)}
-
-        {/* Seconde activite (Lot C cumul salarie + TNS) — selecteur + bloc secondaire.
-            Absent pour les retraites (cumul emploi-retraite hors perimetre). */}
-        {!isRetr && (
-          <div className="pt-3 mt-1" style={{ borderTop: `1px solid ${SURFACE.border}` }}>
-            <Field label="Seconde activité" tooltip="Déclare une seconde source de revenu sur la même personne (cumul salarié + indépendant). Les champs correspondants apparaissent ci-dessous ; le calcul IR additionne les deux revenus.">
-              <Select value={sec || "none"} onValueChange={(v) => setField(secKey, v === "none" ? "" : v)}>
-                <SelectTrigger className="rounded-xl h-9 text-sm max-w-[280px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {isIndep ? (
-                    <>
-                      <SelectItem value="none">Aucune</SelectItem>
-                      <SelectItem value="salariat">Salariat</SelectItem>
-                    </>
-                  ) : (
-                    <>
-                      <SelectItem value="none">Aucune</SelectItem>
-                      <SelectItem value="bic">Indépendant — BIC</SelectItem>
-                      <SelectItem value="bnc">Indépendant — BNC (libéral)</SelectItem>
-                      <SelectItem value="ba">Exploitant agricole — BA</SelectItem>
-                    </>
-                  )}
-                </SelectContent>
-              </Select>
-            </Field>
-
-            {/* Bloc secondaire — Salariat (personne TNS principale) */}
-            {montreSalaireSecondaire && (
-              <div className="mt-3 rounded-xl p-3 space-y-3" style={{ background: "rgba(81,106,199,0.04)", border: `1px solid ${SURFACE.border}` }}>
-                <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: BRAND.sky }}>Activité secondaire — Salariat</div>
-                <div className="max-w-[240px]">
-                  <MoneyField
-                    label="Salaire net imposable"
-                    tooltip="Salaire net avant impôt de l'activité salariée secondaire. L'abattement de 10% (ou frais réels) est appliqué dans l'onglet IR."
-                    value={salaryVal}
-                    onChange={(e) => setField(salaryKey, e.target.value)}
-                  />
-                </div>
+        {/* Row 2 grid4 — Madelin (TNS) : cotisation | prévoyance-santé | PER plafond+barre | déjà net */}
+        {eligibleMadelin && (
+          <div className="pt-2.5 space-y-2" style={{ borderTop: `1px solid ${SURFACE.border}` }}>
+            <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: BRAND.gold }}>Madelin — déduction prévoyance</div>
+            <div className="grid grid-cols-4 gap-x-2 gap-y-2 items-end">
+              <div>
+                <LabelCollecte label="Cotisation Madelin (€)" tooltip="Cotisations Madelin prévoyance-santé de l'année (contrats marqués Madelin + cette saisie), déductibles dans l'enveloppe art. 154 bis CGI." />
+                <Input type="number" min={0} value={madelinAutre ?? ""} onChange={(e) => setField("madelinAutreCotisation" + which, Number(e.target.value) || 0)} className="rounded-lg text-sm" style={{ height: 32 }} placeholder="ex. 600" />
               </div>
-            )}
-
-            {/* Bloc secondaire — TNS (personne salariee principale) : bloc BIC/BNC/BA
-                reutilise, nature pilotee par sec ; estimation via resolveBeneficeTns. */}
-            {montreTnsSecondaire && (
-              <div className="mt-3 rounded-xl p-3 space-y-3" style={{ background: "rgba(227,175,100,0.06)", border: `1px solid ${SURFACE.border}` }}>
-                <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: BRAND.gold }}>
-                  Activité secondaire — {secBa ? "BA" : secBnc ? "BNC" : "BIC"}
-                </div>
-                {secBa ? renderBaBlock(estimationSecondaire) : renderBicBncBlock(secBnc, estimationSecondaire)}
+              <div>
+                <LabelCollecte label="Prévoyance-santé déduct." tooltip={tipPrevSante} />
+                <ValeurCalculee>{eurR(madelinEnv?.deductible ?? 0)}{madelinEnv?.depasse ? " · plafond" : ""}</ValeurCalculee>
               </div>
-            )}
+              {perCell}
+              <div>
+                <LabelCollecte label="Bénéfice déjà net ?" tooltip="Cochez si vous avez déjà déduit les cotisations Madelin du bénéfice renseigné — sinon Ploutos applique la déduction (art. 154 bis)." />
+                <label className="flex items-center gap-1.5 text-[11px] cursor-pointer select-none" style={{ height: 32, color: BRAND.navy }}>
+                  <input type="checkbox" checked={dejaDeduit} onChange={(e) => setDejaDeduit(e.target.checked)} />
+                  <span>Déjà net</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Blocs secondaires — la seconde activite est selectionnee dans la grille ci-dessus ;
+            les champs correspondants apparaissent ici (cumul salarie + TNS). */}
+        {!isRetr && montreSalaireSecondaire && (
+          <div className="rounded-xl p-3 space-y-3" style={{ background: "rgba(81,106,199,0.04)", border: `1px solid ${SURFACE.border}` }}>
+            <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: BRAND.sky }}>Activité secondaire — Salariat</div>
+            <div className="max-w-[240px]">
+              <MoneyField label="Salaire net imposable" tooltip="Salaire net avant impôt de l'activité salariée secondaire. L'abattement de 10% (ou frais réels) est appliqué dans l'onglet IR." value={salaryVal} onChange={(e) => setField(salaryKey, e.target.value)} />
+            </div>
+          </div>
+        )}
+        {!isRetr && montreTnsSecondaire && (
+          <div className="rounded-xl p-3 space-y-3" style={{ background: "rgba(227,175,100,0.06)", border: `1px solid ${SURFACE.border}` }}>
+            <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: BRAND.gold }}>Activité secondaire — {secBa ? "BA" : secBnc ? "BNC" : "BIC"}</div>
+            {secBa ? renderBaBlock(estimationSecondaire) : renderBicBncBlock(secBnc, estimationSecondaire)}
           </div>
         )}
       </div>
@@ -419,43 +552,59 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
 
   </div>{/* fin grid 2 colonnes */}
 
-  {/* 3. Autres revenus (fusion : pensions nominatives + rentes PER, un seul titre) */}
-  <div className="border p-4 space-y-4" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-    <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Autres revenus</div>
+  {/* 3. Autres revenus & charges + Budget cote a cote (Lot 10e : format maquette grid2).
+      items-stretch => les deux cartes partagent TOUJOURS la meme hauteur (celle de la plus
+      haute), hauteur commune variable selon le contenu (demande David : rentes PER, etc.). */}
+  <div className="grid gap-3 md:grid-cols-2 items-stretch">
 
-    {/* Pensions nominatives (conditions d'affichage inchangees) — champs bornes */}
-    {(!isRetraite(data.person1PcsGroupe) || !isRetraite(data.person2PcsGroupe)) && (
-      <div className="grid gap-3 md:grid-cols-2 max-w-[520px]">
-        {!isRetraite(data.person1PcsGroupe) && (
-          <MoneyField
-            label={`Pensions / retraites — ${person1}`}
-            tooltip="Retraite, pension complémentaire, rente. Abattement de 10% appliqué automatiquement (plafonné à 4 123 €)."
-            value={data.pensions1 || ""}
-            onChange={(e) => setField("pensions1", e.target.value)}
-          />
-        )}
-        {!isRetraite(data.person2PcsGroupe) && (data.person2FirstName || data.person2LastName) && (
-          <MoneyField
-            label={`Pensions / retraites — ${person2 || "Personne 2"}`}
-            tooltip="Retraite, pension complémentaire, rente. Abattement de 10% appliqué automatiquement (plafonné à 4 123 €)."
-            value={data.pensions2 || ""}
-            onChange={(e) => setField("pensions2", e.target.value)}
-          />
-        )}
+  {/* Colonne gauche : Autres revenus & charges du foyer */}
+  <div className="border p-3 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+    <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Autres revenus &amp; charges du foyer</div>
+
+    {/* Revenus & charges a plat — grille dense grid4 (labels 11px, inputs 30px). Unites
+        dans les libelles (remplace le suffixe EUR des anciens MoneyField). Pensions et
+        deductibles regroupees ; aucun champ supprime. */}
+    <div className="grid grid-cols-4 gap-x-2 gap-y-2 items-end">
+      {!isRetraite(data.person1PcsGroupe) && (
+        <div>
+          <LabelCollecte label={`Pensions /an — ${person1}`} tooltip="Retraite, pension complémentaire, rente. Abattement de 10% appliqué automatiquement (plafonné à 4 123 €)." />
+          <Input value={data.pensions1 || ""} onChange={(e) => setField("pensions1", e.target.value)} className="rounded-lg text-sm" style={{ height: 32, fontWeight: 700 }} inputMode="decimal" placeholder="0" />
+        </div>
+      )}
+      {!isRetraite(data.person2PcsGroupe) && (data.person2FirstName || data.person2LastName) && (
+        <div>
+          <LabelCollecte label={`Pensions /an — ${person2 || "Personne 2"}`} tooltip="Retraite, pension complémentaire, rente. Abattement de 10% appliqué automatiquement (plafonné à 4 123 €)." />
+          <Input value={data.pensions2 || ""} onChange={(e) => setField("pensions2", e.target.value)} className="rounded-lg text-sm" style={{ height: 32, fontWeight: 700 }} inputMode="decimal" placeholder="0" />
+        </div>
+      )}
+      <div>
+        <LabelCollecte label="Pension alim. versée /an" tooltip="Pensions alimentaires versées à un enfant majeur ou à un ex-conjoint, déductibles du revenu global sous conditions." />
+        <Input value={data.pensionDeductible || ""} onChange={(e) => setField("pensionDeductible", e.target.value)} className="rounded-lg text-sm" style={{ height: 32, fontWeight: 700 }} inputMode="decimal" placeholder="0" />
       </div>
-    )}
+      <div>
+        <LabelCollecte label="Autres charges déduct. /an" tooltip="Autres déductions du revenu global : épargne retraite PERP, déduction épargne handicap, etc. Les cotisations Madelin ont leur poste dédié dans les cartes personnes ci-dessus." />
+        <Input value={data.otherDeductible || ""} onChange={(e) => setField("otherDeductible", e.target.value)} className="rounded-lg text-sm" style={{ height: 32, fontWeight: 700 }} inputMode="decimal" placeholder="0" />
+      </div>
+      <div>
+        <LabelCollecte label="CSG fonciers N-1 /an (6DE)" tooltip="CSG déductible sur les revenus fonciers de l'année précédente (6,8% des revenus fonciers nets N-1). Ligne 6DE de l'avis d'imposition — à reporter directement." />
+        <Input value={data.csgDeductibleFoncier || ""} onChange={(e) => setField("csgDeductibleFoncier", e.target.value)} className="rounded-lg text-sm" style={{ height: 32, fontWeight: 700 }} inputMode="decimal" placeholder="0" />
+      </div>
+    </div>
 
     {/* Rentes PER — Phase de rente (sous-bloc, contenu inchange) */}
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Rentes PER — Phase de rente</div>
+        <div className="text-xs font-semibold uppercase tracking-widest flex items-center" style={{ color: BRAND.sky }}>
+          Rentes PER — Phase de rente
+          <HelpTooltip label="Rentes PER" text="Les rentes PER sont imposées selon le régime des rentes viagères à titre onéreux (RVTO, art. 158-6 CGI) : seule une fraction est imposable au barème selon l'âge au 1er versement — moins de 50 ans : 70 % · 50-59 ans : 50 % · 60-69 ans : 40 % · 70 ans et plus : 30 %. Les prélèvements sociaux (17,2 %) portent sur cette même fraction." />
+        </div>
         <Button variant="outline" className="h-7 rounded-xl px-3 text-xs"
           onClick={addPerRente}>
           <Plus className="mr-1 h-3 w-3" />Ajouter une rente
         </Button>
       </div>
       {(!data.perRentes || data.perRentes.length === 0) && (
-        <div className="text-xs text-slate-400 italic">Aucune rente PER. Les rentes PER sont imposées selon le régime des rentes viagères à titre onéreux (RVTO, art. 158-6 CGI) : seule une fraction est imposable au barème selon l'âge au 1er versement.</div>
+        <div className="text-xs text-slate-400 italic">Aucune rente PER déclarée.</div>
       )}
       {(data.perRentes || []).map((rente, ri) => {
         const montant = n(rente.annualAmount || "");
@@ -505,11 +654,6 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
         );
       })}
     </div>
-  </div>
-
-  {/* 4. Charges du foyer : charges courantes (Lot B) + charges deductibles */}
-  <div className="border p-4 space-y-3" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-    <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Charges du foyer</div>
 
     {/* Encart charges courantes : UNE ligne (label + montant/detail + bouton Detailler) */}
     <div className="rounded-xl px-3 py-2 flex items-center gap-3 flex-wrap" style={{ background: "rgba(81,106,199,0.06)", border: "1px solid rgba(81,106,199,0.15)" }}>
@@ -522,12 +666,12 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
           <span className="text-sm font-bold" style={{ color: BRAND.navy }}>{euro(budget.detail.chargesCourantes)}/mois</span>
         </div>
       ) : (
-        <div className="relative" style={{ width: 150 }}>
+        <div className="relative" style={{ width: 190 }}>
           <Input
             value={data.chargesCourantes || ""}
             onChange={(e) => setField("chargesCourantes", e.target.value)}
-            placeholder="Montant global"
-            className="rounded-xl h-8 text-sm text-right pr-11"
+            placeholder="Montant"
+            className="rounded-xl h-8 text-sm text-right pr-12"
             style={{ fontWeight: 700 }}
             inputMode="decimal"
           />
@@ -545,28 +689,10 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
       </button>
     </div>
 
-    {/* Charges deductibles du revenu global — 3 cartes compactes (libelles inchanges) */}
-    <div className="grid gap-3 md:grid-cols-3">
-      <MoneyField label="Pensions alimentaires déductibles" tooltip="Pensions alimentaires versées à un enfant majeur ou à un ex-conjoint, déductibles sous conditions." value={data.pensionDeductible} onChange={(e) => setField("pensionDeductible", e.target.value)} compact />
-      <MoneyField label="Autres charges déductibles" tooltip="Autres déductions du revenu global : épargne retraite PERP, déduction épargne handicap, etc. Les cotisations Madelin ont leur poste dédié ci-dessous." value={data.otherDeductible} onChange={(e) => setField("otherDeductible", e.target.value)} compact />
-      <MoneyField
-        label="CSG déductible — revenus fonciers N-1 (ligne 6DE)"
-        tooltip="CSG déductible sur les revenus fonciers de l'année précédente. Correspond à 6,8% des revenus fonciers nets N-1. Montant indiqué sur votre avis d'imposition à la ligne 6DE — à reporter directement ici."
-        value={data.csgDeductibleFoncier || ""}
-        onChange={(e) => setField("csgDeductibleFoncier", e.target.value)}
-        compact
-      />
-    </div>
-  </div>
+  </div>{/* fin colonne gauche : Autres revenus & charges */}
 
-  {/* 5. Madelin prevoyance — 2 blocs en colonnes (P1 | P2). Bloc inchange, seul le conteneur change (dette "2 blocs empiles" soldee). */}
-  <div className="grid gap-4 md:grid-cols-2">
-    <BlocMadelinSynthese data={data} which={1} benefice={beneficeMadelin(1)} plafondPER={ir.plafondPER1 ?? 0} plafondPER163={ir.plafondPER1Base163 ?? 0} plafondPER154={ir.plafondPER1Sup154 ?? 0} perAuReel={resolveBeneficeAuReel(data, 1)} versementsPER={versementsPERMadelin(1)} setField={setField} />
-    <BlocMadelinSynthese data={data} which={2} benefice={beneficeMadelin(2)} plafondPER={ir.plafondPER2 ?? 0} plafondPER163={ir.plafondPER2Base163 ?? 0} plafondPER154={ir.plafondPER2Sup154 ?? 0} perAuReel={resolveBeneficeAuReel(data, 2)} versementsPER={versementsPERMadelin(2)} setField={setField} />
-  </div>
-
-  {/* 6. Budget du foyer — detail du calcul (lecture seule, source computeBudget) */}
-  <div className="border p-4 space-y-2" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+  {/* Colonne droite : Budget du foyer — detail du calcul (lecture seule, source computeBudget) */}
+  <div className="border p-3 space-y-2" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
     <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>Budget du foyer — détail du calcul</div>
     <div className="text-xs" style={{ color: BRAND.muted }}>Montants mensuels.</div>
     {(() => {
@@ -578,20 +704,26 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
         </div>
       );
       return (
-        <div className="space-y-0.5">
-          {ligne("Salaires + pensions", d.salairesPensions)}
-          {ligne("Bénéfice TNS", d.beneficeTns)}
-          {ligne("Rentes PER", d.rentesPer)}
-          {ligne("Loyers bruts (100 %)", d.loyersBruts)}
-          {ligne("Retraits AV / PER", d.retraitsAvPer)}
-          {ligne("Revenus du foyer", budget.revenusMensuels, { total: true })}
-          {ligne("Charges courantes", d.chargesCourantes)}
-          {ligne("Charges foncières", d.chargesFoncieres)}
-          {ligne("Crédits + assurances", d.creditsAssurances)}
-          {ligne("Impôts calculés (IR tout compris)", d.impots)}
-          {ligne("Pension versée", d.pensionVersee)}
-          {ligne("Charges du foyer", budget.chargesMensuelles, { total: true })}
-          {ligne("Capacité d'épargne", budget.capaciteEpargne, { total: true, couleur: budget.capaciteEpargne >= 0 ? BRAND.success : BRAND.danger })}
+        <div className="grid gap-x-6 md:grid-cols-2">
+          {/* Colonne REVENUS */}
+          <div className="space-y-0.5">
+            {ligne("Salaires + pensions", d.salairesPensions)}
+            {ligne("Bénéfice TNS", d.beneficeTns)}
+            {ligne("Rentes PER", d.rentesPer)}
+            {ligne("Loyers bruts (100 %)", d.loyersBruts)}
+            {ligne("Retraits AV / PER", d.retraitsAvPer)}
+            {ligne("Revenus du foyer", budget.revenusMensuels, { total: true })}
+          </div>
+          {/* Colonne CHARGES */}
+          <div className="space-y-0.5">
+            {ligne("Charges courantes", d.chargesCourantes)}
+            {ligne("Charges foncières", d.chargesFoncieres)}
+            {ligne("Crédits + assurances", d.creditsAssurances)}
+            {ligne("Impôts calculés (IR tout compris)", d.impots)}
+            {ligne("Pension versée", d.pensionVersee)}
+            {ligne("Charges du foyer", budget.chargesMensuelles, { total: true })}
+            {ligne("Capacité d'épargne", budget.capaciteEpargne, { total: true, couleur: budget.capaciteEpargne >= 0 ? BRAND.success : BRAND.danger })}
+          </div>
         </div>
       );
     })()}
@@ -601,6 +733,11 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
       </div>
     )}
   </div>
+
+  </div>{/* fin grid2 : autres revenus & charges + budget */}
+
+  {/* Bouton discret « Continuer -> Immobilier » (Lot 10e) */}
+  {setCollecteSubTab && <ContinuerCollecte label="Immobilier" onClick={() => setCollecteSubTab("immobilier")} />}
 
   {/* Modale de detail des charges courantes (Lot B) */}
   <ChargesModal open={chargesModalOpen} onClose={() => setChargesModalOpen(false)} data={data} setField={setField} />

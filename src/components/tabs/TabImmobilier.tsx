@@ -25,12 +25,13 @@ import { AmortissementModal } from "../AmortissementModal";
 import { ProjectionMeubleModal } from "../ProjectionMeubleModal";
 import { PvCessionModal } from "../PvCessionModal";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
+import { ContinuerCollecte, LisereCategorie, ChampCollecte, MoneyCollecte, LigneActions } from "../collecte/densite";
 
 
 // ── TabImmobilier ─────────────────────────────────────────────────────────────────────
 const TabImmobilier = React.memo(function TabImmobilier(props: any) {
   // Destructure props (toutes les valeurs viennent du parent AppInner)
-  const { data, setField, addProperty, updateProperty, removeProperty, addLoan, updateLoan, removeLoan, loanModalPropertyId, setLoanModalPropertyId, ownerOptions, person1, person2, activeDonations, restoreBaseSnapshot } = props;
+  const { data, setField, addProperty, updateProperty, removeProperty, addLoan, updateLoan, removeLoan, loanModalPropertyId, setLoanModalPropertyId, ownerOptions, person1, person2, activeDonations, restoreBaseSnapshot, setCollecteSubTab } = props;
 
   // Indices des biens concernés par une donation active
   const donatedPropertyIds = React.useMemo(() => {
@@ -53,6 +54,9 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
   const [projModalPropertyId, setProjModalPropertyId] = React.useState<string | null>(null);
   // Modal "Plus-value de cession" (Lot 2quater, foncier nu, ecran seul).
   const [pvCessionModalPropertyId, setPvCessionModalPropertyId] = React.useState<string | null>(null);
+  // Repli du bloc co-proprietaires exterieurs (I2) : ouvert a la demande via le bouton
+  // de la rangee indivision/SCI, ou automatiquement s'il y a deja des co-proprietaires.
+  const [openExt, setOpenExt] = React.useState<Set<string>>(() => new Set());
   const addPropBtnRef = React.useRef<HTMLButtonElement>(null);
   const closeAddPropModal = React.useCallback(() => {
     setAddPropModalOpen(false);
@@ -83,7 +87,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
   const lmpProbable = detectLmpTrue || biensMeubles.some((p) => p.type === "LMP");
 
   return (
-<TabsContent value="immobilier" className="space-y-4">
+<TabsContent value="immobilier" className="space-y-3">
   <div className="flex items-center justify-between gap-4">
     <h3 className="font-semibold" style={{ color: BRAND.navy }}>Immobilier</h3>
     <button
@@ -129,6 +133,18 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
       </div>
     </div>
   )}
+  {/* Legende des liserés categoriels (Lot 10e) — pastille + libellé du groupe */}
+  {data.properties.length > 0 && (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-semibold px-1">
+      <span className="uppercase tracking-wide" style={{ color: BRAND.muted }}>Catégories :</span>
+      {PROPERTY_GROUPS.map((g) => (
+        <span key={g.value} className="inline-flex items-center gap-1.5">
+          <span className="inline-block rounded-sm" style={{ width: 4, height: 12, background: PROPERTY_GROUP_COLORS[g.value].solid }} aria-hidden="true" />
+          <span style={{ color: PROPERTY_GROUP_COLORS[g.value].solid }}>{g.label}</span>
+        </span>
+      ))}
+    </div>
+  )}
   {data.properties.map((property, index) => {
     const isDonated = property.id != null && donatedPropertyIds.has(property.id);
     // Dispositifs éligibles pour la nature courante (matrice data-driven). Si un
@@ -141,8 +157,32 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
       ...DISPOSITIFS_FISCAUX.filter((d) => d.value === "aucun" || dispoIds.includes(d.value)).map((d) => ({ value: d.value as string, label: d.label as string })),
       ...(dispoIncoherent ? [{ value: dispoCurrent as string, label: ((DISPOSITIFS_FISCAUX.find((d) => d.value === dispoCurrent)?.label as string) ?? dispoCurrent) + " (incoherent avec la nature du bien)" }] : []),
     ];
+    // Liseré catégoriel (Lot 10e) : couleur du GROUPE immobilier (jeton existant
+    // PROPERTY_GROUP_COLORS) ; le libellé du groupe est TOUJOURS ecrit (jamais couleur seule).
+    const grp = PROPERTY_GROUPS.find((g) => (g.types as readonly string[]).includes(property.type));
+    const grpColor = (grp ? PROPERTY_GROUP_COLORS[grp.value] : PROPERTY_GROUP_COLORS.autres)?.solid ?? PROPERTY_GROUP_COLORS.autres.solid;
+    const grpLabel = grp?.label ?? "Autres";
+
+    // ── C3/C4 : regime effectif meuble (miroir baseBicMeuble) + credit, hoistes pour la
+    // LIGNE D'ACTIONS UNIQUE en bas de carte (Projection 10 ans | Detail amort | Credit). ──
+    const estMeuble = isBienMeuble(property);
+    const recettesM = estMeuble ? recettesBienMeuble(property) : 0;
+    const sousTypeM = (property.sousType || "longue_duree") as SousTypeMeuble;
+    const seuilMicroM = sousTypeM === "tourisme_non_classe" ? refMeuble.microBic.tourismeNonClasse.seuil : refMeuble.microBic.residuel.seuil;
+    const microM = estMeuble ? computeMicroBicMeuble(recettesM, sousTypeM) : null;
+    const regimeChoisiM = property.regimeMeuble || (recettesM <= seuilMicroM ? "micro" : "reel");
+    const regimeEffectifM = regimeChoisiM === "micro" && microM?.eligible ? "micro" : "reel";
+    const showProjection = estMeuble && regimeEffectifM === "reel";
+    const showAmortDetail = showProjection && isSet(property.prixAcquisition);
+    const loanCountC = (property.loans || []).length || (property.loanEnabled ? 1 : 0);
+    const totalCapitalC = property.loans && property.loans.length > 0
+      ? resolveLoanValuesMulti(property).capital
+      : (property.loanEnabled ? n(property.loanCapitalRemaining) || resolveLoanValuesMulti(property).capital : 0);
+
     return (
-    <Card key={property.id} className="border " style={{ borderColor: isDonated ? "rgba(227,175,100,0.6)" : SURFACE.border, position: "relative", overflow: "hidden" }}>
+    <Card key={property.id} className="border " style={{ borderColor: isDonated ? "rgba(227,175,100,0.6)" : SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow, position: "relative", overflow: "hidden" }}>
+      {/* Barrette categorielle interieure arrondie (I1) — couleur du groupe */}
+      <LisereCategorie color={grpColor} top={isDonated ? 46 : 12} />
       {/* Badge donation active */}
       {isDonated && (
         <div style={{
@@ -185,28 +225,32 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
         />
       )}
       <CardContent className="p-4 space-y-3">
+        {/* Categorie (liseré Lot 10e) — libellé du groupe ecrit en toutes lettres */}
+        <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ color: grpColor }}>
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: grpColor }} aria-hidden="true" />{grpLabel}
+        </div>
         {/* Identité + suppression */}
         <div className="flex items-end gap-2">
           <div className="flex-1 grid gap-2 grid-cols-[1.4fr_1.6fr_1fr_1fr]">
-            <Field label="Nom"><Input value={property.name} onChange={(e) => updateProperty(property.id, "name", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
-            <Field label="Nature">
+            <ChampCollecte label="Nom"><Input value={property.name} onChange={(e) => updateProperty(property.id, "name", e.target.value)} className="rounded-lg h-8 text-sm" /></ChampCollecte>
+            <ChampCollecte label="Nature">
               <Select value={property.type} onValueChange={(v) => updateProperty(property.id, "type", v)}>
-                <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>{PROPERTY_TYPES.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
               </Select>
-            </Field>
-            <Field label="Propriétaire">
+            </ChampCollecte>
+            <ChampCollecte label="Propriétaire">
               <Select value={property.ownership} onValueChange={(v) => updateProperty(property.id, "ownership", v)}>
-                <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>{ownerOptions.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
               </Select>
-            </Field>
-            <Field label="Droit">
+            </ChampCollecte>
+            <ChampCollecte label="Droit">
               <Select value={property.propertyRight} onValueChange={(v) => updateProperty(property.id, "propertyRight", v)}>
-                <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>{PROPERTY_RIGHTS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
               </Select>
-            </Field>
+            </ChampCollecte>
           </div>
           {n(property.rentGrossAnnual) > 0 && n(property.value) > 0 && (() => {
             const rdt = Math.round(n(property.rentGrossAnnual) / n(property.value) * 1000) / 10;
@@ -225,78 +269,80 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
              calcul branché (Lot D). Pattern conditionnel impératif (comme démembrement /
              indivision). Bascule vers « Aucun » : masque les sous-champs SANS effacer
              les données (barrière douce ; onChange ne touche que dispositifFiscal). */}
-        {dispoIds.length > 0 && (
-        <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
-          <Field label="Dispositif fiscal">
+        {/* Rangee 2+ (I2) : Dispositif + valeurs financieres en une seule grid4 dense
+            auto-flow. Les champs conditionnels de la nature remplissent la grille sans
+            laisser de demi-ligne vide (grid-flow-row-dense). */}
+        <div className="grid grid-cols-4 gap-x-2 gap-y-2 items-end grid-flow-row-dense">
+          {dispoIds.length > 0 && (<>
+          <ChampCollecte label="Dispositif fiscal">
             <Select value={property.dispositifFiscal || "aucun"} onValueChange={(v) => updateProperty(property.id, "dispositifFiscal", v === "aucun" ? "" : v)}>
-              <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>{dispoOptions.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
             </Select>
-          </Field>
+          </ChampCollecte>
           {(property.dispositifFiscal === "pinel" || property.dispositifFiscal === "pinelPlus" || property.dispositifFiscal === "denormandie") && (
             <>
-              <Field label="Année d'investissement"><Input value={property.dispositifAnnee || ""} onChange={(e) => updateProperty(property.id, "dispositifAnnee", e.target.value)} className="rounded-xl h-8 text-sm" inputMode="numeric" /></Field>
-              <MoneyField label="Base (prix de revient, €)" tooltip="Prix de revient retenu pour la réduction (plafonné par la réglementation). Montant SAISI, pas la valeur actuelle du bien." value={property.dispositifBase || ""} onChange={(e) => updateProperty(property.id, "dispositifBase", e.target.value)} compact />
-              <Field label="Engagement">
+              <ChampCollecte label="Année d'investissement"><Input value={property.dispositifAnnee || ""} onChange={(e) => updateProperty(property.id, "dispositifAnnee", e.target.value)} className="rounded-lg h-8 text-sm" inputMode="numeric" /></ChampCollecte>
+              <MoneyCollecte label="Base (prix de revient, €)" tooltip="Prix de revient retenu pour la réduction (plafonné par la réglementation). Montant SAISI, pas la valeur actuelle du bien." value={property.dispositifBase || ""} onChange={(e) => updateProperty(property.id, "dispositifBase", e.target.value)} />
+              <ChampCollecte label="Engagement">
                 <Select value={property.dispositifEngagementAns || ""} onValueChange={(v) => updateProperty(property.id, "dispositifEngagementAns", v)}>
-                  <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent><SelectItem value="6">6 ans</SelectItem><SelectItem value="9">9 ans</SelectItem></SelectContent>
                 </Select>
-              </Field>
-              <Field label="Prorogation">
+              </ChampCollecte>
+              <ChampCollecte label="Prorogation">
                 <Select value={property.dispositifProrogation || ""} onValueChange={(v) => updateProperty(property.id, "dispositifProrogation", v)}>
-                  <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent><SelectItem value="0">Aucune</SelectItem><SelectItem value="1">1re période</SelectItem><SelectItem value="2">2e période</SelectItem></SelectContent>
                 </Select>
-              </Field>
+              </ChampCollecte>
             </>
           )}
           {property.dispositifFiscal === "censiBouvard" && (
             <>
-              <Field label="Année"><Input value={property.dispositifAnnee || ""} onChange={(e) => updateProperty(property.id, "dispositifAnnee", e.target.value)} className="rounded-xl h-8 text-sm" inputMode="numeric" /></Field>
-              <MoneyField label="Base (€, engagement 9 ans)" tooltip="Censi-Bouvard : engagement de location de 9 ans. Base = prix de revient plafonné (SAISI)." value={property.dispositifBase || ""} onChange={(e) => updateProperty(property.id, "dispositifBase", e.target.value)} compact />
+              <ChampCollecte label="Année"><Input value={property.dispositifAnnee || ""} onChange={(e) => updateProperty(property.id, "dispositifAnnee", e.target.value)} className="rounded-lg h-8 text-sm" inputMode="numeric" /></ChampCollecte>
+              <MoneyCollecte label="Base (€, engagement 9 ans)" tooltip="Censi-Bouvard : engagement de location de 9 ans. Base = prix de revient plafonné (SAISI)." value={property.dispositifBase || ""} onChange={(e) => updateProperty(property.id, "dispositifBase", e.target.value)} />
             </>
           )}
           {property.dispositifFiscal === "locavantages" && (
             <>
-              <Field label="Année prise d'effet" tooltip="Année de prise d'effet de la convention ANAH (Loc'Avantages)."><Input value={property.dispositifAnnee || ""} onChange={(e) => updateProperty(property.id, "dispositifAnnee", e.target.value)} className="rounded-xl h-8 text-sm" inputMode="numeric" /></Field>
-              <Field label="Niveau de loyer">
+              <ChampCollecte label="Année prise d'effet" tooltip="Année de prise d'effet de la convention ANAH (Loc'Avantages)."><Input value={property.dispositifAnnee || ""} onChange={(e) => updateProperty(property.id, "dispositifAnnee", e.target.value)} className="rounded-lg h-8 text-sm" inputMode="numeric" /></ChampCollecte>
+              <ChampCollecte label="Niveau de loyer">
                 <Select value={property.dispositifNiveauLoyer || ""} onValueChange={(v) => updateProperty(property.id, "dispositifNiveauLoyer", v)}>
-                  <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent><SelectItem value="loc1">Loc1</SelectItem><SelectItem value="loc2">Loc2</SelectItem><SelectItem value="loc3">Loc3</SelectItem></SelectContent>
                 </Select>
-              </Field>
-              <Field label="Intermédiation" tooltip="Intermédiation locative : gestion confiée à un organisme agréé (bonus de réduction Loc'Avantages).">
+              </ChampCollecte>
+              <ChampCollecte label="Intermédiation" tooltip="Intermédiation locative : gestion confiée à un organisme agréé (bonus de réduction Loc'Avantages).">
                 <label className="flex items-center gap-2 h-8 text-sm">
                   <input type="checkbox" checked={!!property.dispositifIntermediation} onChange={(e) => updateProperty(property.id, "dispositifIntermediation", e.target.checked)} className="h-4 w-4 rounded accent-[#0F172A]" />
                   <span style={{ color: BRAND.muted }}>Oui</span>
                 </label>
-              </Field>
+              </ChampCollecte>
             </>
           )}
           {property.dispositifFiscal === "jeanbrunRelanceLogement" && (
             <>
-              <Field label="Année d'acquisition"><Input value={property.dispositifAnnee || ""} onChange={(e) => updateProperty(property.id, "dispositifAnnee", e.target.value)} className="rounded-xl h-8 text-sm" inputMode="numeric" /></Field>
-              <MoneyField label="Base (prix + travaux, €)" tooltip="Prix d'acquisition, majoré des travaux le cas échéant (ancien réhabilité). Montant SAISI." value={property.dispositifBase || ""} onChange={(e) => updateProperty(property.id, "dispositifBase", e.target.value)} compact />
-              <Field label="Neuf / Ancien réhabilité">
+              <ChampCollecte label="Année d'acquisition"><Input value={property.dispositifAnnee || ""} onChange={(e) => updateProperty(property.id, "dispositifAnnee", e.target.value)} className="rounded-lg h-8 text-sm" inputMode="numeric" /></ChampCollecte>
+              <MoneyCollecte label="Base (prix + travaux, €)" tooltip="Prix d'acquisition, majoré des travaux le cas échéant (ancien réhabilité). Montant SAISI." value={property.dispositifBase || ""} onChange={(e) => updateProperty(property.id, "dispositifBase", e.target.value)} />
+              <ChampCollecte label="Neuf / Ancien réhabilité">
                 <Select value={property.dispositifNeufAncien || ""} onValueChange={(v) => updateProperty(property.id, "dispositifNeufAncien", v)}>
-                  <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent><SelectItem value="neuf">Neuf</SelectItem><SelectItem value="ancien">Ancien réhabilité</SelectItem></SelectContent>
                 </Select>
-              </Field>
-              <Field label="Niveau de loyer">
+              </ChampCollecte>
+              <ChampCollecte label="Niveau de loyer">
                 <Select value={property.dispositifNiveauLoyer || ""} onValueChange={(v) => updateProperty(property.id, "dispositifNiveauLoyer", v)}>
-                  <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent><SelectItem value="intermediaire">Intermédiaire</SelectItem><SelectItem value="social">Social</SelectItem><SelectItem value="tresSocial">Très social</SelectItem></SelectContent>
                 </Select>
-              </Field>
+              </ChampCollecte>
             </>
           )}
-        </div>
+        </>
         )}
-        {/* Valeurs financières — grille adaptative, sans divs vides */}
-        <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(130px,1fr))]">
-          <MoneyField label={property.propertyRight === "full" ? "Valeur estimée" : "Valeur PP"} tooltip="Valeur vénale actuelle du bien. En pleine propriété, c'est la valeur retenue pour l'IFI et la succession. En démembrement, seule la valeur de la pleine propriété est saisie ici." value={property.value} onChange={(e) => updateProperty(property.id, "value", e.target.value)} compact />
+        {/* Valeurs financieres (I2) — memes cellules, dans la meme grille grid4 dense */}
+          <MoneyCollecte label={property.propertyRight === "full" ? "Valeur estimée" : "Valeur PP"} tooltip="Valeur vénale actuelle du bien. En pleine propriété, c'est la valeur retenue pour l'IFI et la succession. En démembrement, seule la valeur de la pleine propriété est saisie ici." value={property.value} onChange={(e) => updateProperty(property.id, "value", e.target.value)} />
           {property.propertyRight !== "full" && (() => {
             const familyOptions = [
               { key: "person1", label: person1, birthDate: data.person1BirthDate, relation: "conjoint" },
@@ -335,37 +381,37 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                   <div style={{ fontSize: "11px", fontWeight: 600, color: BRAND.sky, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.8px" }}>{personLabel}</div>
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "flex-end" }}>
                     <div style={{ flex: "0 0 auto", minWidth: "130px" }}>
-                      <Field label="Droit">
+                      <ChampCollecte label="Droit">
                         <Select value={currentRight} onValueChange={onRight}>
-                          <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="full">Pleine propriété</SelectItem>
                             <SelectItem value="bare">Nue-propriété</SelectItem>
                             <SelectItem value="usufruct">Usufruit</SelectItem>
                           </SelectContent>
                         </Select>
-                      </Field>
+                      </ChampCollecte>
                     </div>
                     {currentRight !== "full" && (
                       <div style={{ flex: 1, minWidth: "160px" }}>
-                        <Field label={currentRight === "bare" ? "Usufruitier" : "Nu-propriétaire"}>
+                        <ChampCollecte label={currentRight === "bare" ? "Usufruitier" : "Nu-propriétaire"}>
                           <Select value={currentKey || ""} onValueChange={(v) => {
                             const found = familyOptions.find(f => f.key === v);
                             onSelect(v, found?.birthDate || "", found?.relation || "tiers", found?.label || "");
                           }}>
-                            <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue placeholder="Choisir…" /></SelectTrigger>
+                            <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue placeholder="Choisir…" /></SelectTrigger>
                             <SelectContent>
                               {familyOptions.map(f => <SelectItem key={f.key} value={f.key}>{f.label}</SelectItem>)}
                             </SelectContent>
                           </Select>
-                        </Field>
+                        </ChampCollecte>
                       </div>
                     )}
                     {currentRight !== "full" && currentKey === "other" && (
                       <div style={{ flex: "0 0 auto" }}>
-                        <Field label="Date naissance">
-                          <DateFr value={currentBirthDate || ""} onChange={(iso) => onBirthDate(iso || "")} className="rounded-xl h-8 text-sm w-36" />
-                        </Field>
+                        <ChampCollecte label="Date naissance">
+                          <DateFr value={currentBirthDate || ""} onChange={(iso) => onBirthDate(iso || "")} className="rounded-lg h-8 text-sm w-36" />
+                        </ChampCollecte>
                       </div>
                     )}
                     {currentRight !== "full" && demer && (
@@ -415,16 +461,16 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                     </div>
                     {/* Droit */}
                     <div style={{ marginBottom: "10px" }}>
-                      <Field label="Droit de propriété">
+                      <ChampCollecte label="Droit de propriété">
                         <Select value={pRight} onValueChange={(v) => mkDismember(pKey, dp, v, dp.counterparts)}>
-                          <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="full">Pleine propriété</SelectItem>
                             <SelectItem value="bare">Nue-propriété</SelectItem>
                             <SelectItem value="usufruct">Usufruit</SelectItem>
                           </SelectContent>
                         </Select>
-                      </Field>
+                      </ChampCollecte>
                     </div>
                     {/* Contreparties */}
                     {pRight !== "full" && (
@@ -498,7 +544,7 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
             return (
               <div style={{ gridColumn: "1 / -1", display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "flex-end" }}>
                 <div style={{ minWidth: "200px", flex: "1" }}>
-                  <Field label={isNP ? "Usufruitier (contrepartie NP)" : "Nu-propriétaire (contrepartie US)"} tooltip="Personne qui détient l'autre partie du bien.">
+                  <ChampCollecte label={isNP ? "Usufruitier (contrepartie NP)" : "Nu-propriétaire (contrepartie US)"} tooltip="Personne qui détient l'autre partie du bien.">
                     <Select value={property.counterpartKey || ""} onValueChange={(v) => {
                       const found = familyOptions.find(f => f.key === v);
                       updateProperty(property.id, "counterpartKey", v);
@@ -506,18 +552,18 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                       updateProperty(property.id, "counterpartRelation", found?.relation || "tiers");
                       updateProperty(property.id, "counterpartName", found?.label || "");
                     }}>
-                      <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue placeholder="Choisir…" /></SelectTrigger>
+                      <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue placeholder="Choisir…" /></SelectTrigger>
                       <SelectContent>
                         {familyOptions.map(f => <SelectItem key={f.key} value={f.key}>{f.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                  </Field>
+                  </ChampCollecte>
                 </div>
                 {property.counterpartKey === "other" && (
                   <div style={{ minWidth: "160px", flex: "1" }}>
-                    <Field label="Date de naissance">
-                      <DateFr value={property.counterpartBirthDate || ""} onChange={(iso) => updateProperty(property.id, "counterpartBirthDate", iso || "")} className="rounded-xl h-8 text-sm" />
-                    </Field>
+                    <ChampCollecte label="Date de naissance">
+                      <DateFr value={property.counterpartBirthDate || ""} onChange={(iso) => updateProperty(property.id, "counterpartBirthDate", iso || "")} className="rounded-lg h-8 text-sm" />
+                    </ChampCollecte>
                   </div>
                 )}
                 {demer && (
@@ -533,13 +579,13 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
               </div>
             );
           })()}
-          {propertyNeedsPropertyTax(property.type) && <MoneyField label="Taxe foncière/an" tooltip="Montant annuel de la taxe foncière. Déductible des revenus fonciers en régime réel." value={property.propertyTaxAnnual} onChange={(e) => updateProperty(property.id, "propertyTaxAnnual", e.target.value)} compact />}
+          {propertyNeedsPropertyTax(property.type) && <MoneyCollecte label="Taxe foncière/an" tooltip="Montant annuel de la taxe foncière. Déductible des revenus fonciers en régime réel." value={property.propertyTaxAnnual} onChange={(e) => updateProperty(property.id, "propertyTaxAnnual", e.target.value)} />}
           {/* Meuble (LMNP/LMP) : loyer + autres charges saisis dans le bloc "Location
               meublee" (recettes / charges reelles), source unique - masques ici. */}
-          {propertyNeedsRent(property.type) && !isBienMeuble(property) && <MoneyField label="Loyer brut/an" tooltip="Total des loyers encaissés sur l'année, avant déduction des charges. Utilisé pour calculer le revenu foncier net imposable." value={property.rentGrossAnnual} onChange={(e) => updateProperty(property.id, "rentGrossAnnual", e.target.value)} compact />}
-          {propertyNeedsInsurance(property.type) && <MoneyField label="Assurance/an" tooltip="Prime d'assurance habitation annuelle du bien locatif. Déductible des revenus fonciers en régime réel." value={property.insuranceAnnual} onChange={(e) => updateProperty(property.id, "insuranceAnnual", e.target.value)} compact />}
-          {propertyNeedsWorks(property.type) && <MoneyField label="Travaux/an" tooltip="Dépenses de travaux d'entretien et de réparation annuelles. Déductibles des revenus fonciers en régime réel. Les travaux de construction ou d'agrandissement ne sont pas déductibles." value={property.worksAnnual} onChange={(e) => updateProperty(property.id, "worksAnnual", e.target.value)} compact />}
-          {propertyNeedsRent(property.type) && !isBienMeuble(property) && <MoneyField label="Autres charges/an" tooltip="Autres charges déductibles : frais de gestion locative, charges de copropriété non récupérables, frais comptables, etc." value={property.otherChargesAnnual} onChange={(e) => updateProperty(property.id, "otherChargesAnnual", e.target.value)} compact />}
+          {propertyNeedsRent(property.type) && !isBienMeuble(property) && <MoneyCollecte label="Loyer brut/an" tooltip="Total des loyers encaissés sur l'année, avant déduction des charges. Utilisé pour calculer le revenu foncier net imposable." value={property.rentGrossAnnual} onChange={(e) => updateProperty(property.id, "rentGrossAnnual", e.target.value)} />}
+          {propertyNeedsInsurance(property.type) && <MoneyCollecte label="Assurance/an" tooltip="Prime d'assurance habitation annuelle du bien locatif. Déductible des revenus fonciers en régime réel." value={property.insuranceAnnual} onChange={(e) => updateProperty(property.id, "insuranceAnnual", e.target.value)} />}
+          {propertyNeedsWorks(property.type) && <MoneyCollecte label="Travaux/an" tooltip="Dépenses de travaux d'entretien et de réparation annuelles. Déductibles des revenus fonciers en régime réel. Les travaux de construction ou d'agrandissement ne sont pas déductibles." value={property.worksAnnual} onChange={(e) => updateProperty(property.id, "worksAnnual", e.target.value)} />}
+          {propertyNeedsRent(property.type) && !isBienMeuble(property) && <MoneyCollecte label="Autres charges/an" tooltip="Autres charges déductibles : frais de gestion locative, charges de copropriété non récupérables, frais comptables, etc." value={property.otherChargesAnnual} onChange={(e) => updateProperty(property.id, "otherChargesAnnual", e.target.value)} />}
           {/* ── Bloc crédit ── */}
           </div>
           {/* ── Plus-value de cession (Lot 2quater) — foncier nu du groupe locatif +
@@ -586,33 +632,37 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                   Location meublée (BIC)
                   {property.type === "LMP" && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: BRAND.cream, color: BRAND.goldText, border: `1px solid ${BRAND.warningBorder}` }}>LMP</span>}
                 </div>
-                <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(165px,1fr))]">
-                  <Field label="Type de location" tooltip="Chambres d'hôtes = régime du tourisme classé (seuil 83 600 €, abattement 50 %).">
+                <div className="grid grid-cols-4 gap-x-2 gap-y-2 items-end grid-flow-row-dense">
+                  <ChampCollecte label="Type de location" tooltip="Chambres d'hôtes = régime du tourisme classé (seuil 83 600 €, abattement 50 %).">
                     <Select value={sousType} onValueChange={(v) => updateProperty(property.id, "sousType", v)}>
-                      <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="longue_duree">Longue durée</SelectItem>
                         <SelectItem value="tourisme_classe">Meublé de tourisme classé</SelectItem>
                         <SelectItem value="tourisme_non_classe">Meublé de tourisme non classé</SelectItem>
                       </SelectContent>
                     </Select>
-                  </Field>
+                  </ChampCollecte>
                   <div>
-                    <MoneyField label="Recettes annuelles" tooltip="Recettes locatives meublées encaissées sur l'année. Préremplies depuis le loyer saisi ; modifiables." value={isSet(property.recettesAnnuelles) ? property.recettesAnnuelles : (n(property.rentGrossAnnual) > 0 ? property.rentGrossAnnual : "")} onChange={(e) => updateProperty(property.id, "recettesAnnuelles", e.target.value)} compact />
+                    <MoneyCollecte label="Recettes annuelles" tooltip="Recettes locatives meublées encaissées sur l'année. Préremplies depuis le loyer saisi ; modifiables." value={isSet(property.recettesAnnuelles) ? property.recettesAnnuelles : (n(property.rentGrossAnnual) > 0 ? property.rentGrossAnnual : "")} onChange={(e) => updateProperty(property.id, "recettesAnnuelles", e.target.value)} />
                     {loyersRepris && <div className="text-[10px] mt-0.5" style={{ color: BRAND.muted }}>↩ reprise des loyers saisis</div>}
                   </div>
                   <div>
-                    <Field label="Régime fiscal" tooltip="Micro-BIC : abattement forfaitaire. Réel : charges réelles + amortissement. Au-dessus du seuil, le réel s'applique de plein droit (art. 50-0 CGI).">
+                    <ChampCollecte label="Régime fiscal" tooltip="Micro-BIC : abattement forfaitaire. Réel : charges réelles + amortissement. Au-dessus du seuil, le réel s'applique de plein droit (art. 50-0 CGI).">
                       <Select value={regimeChoisi} onValueChange={(v) => updateProperty(property.id, "regimeMeuble", v)}>
-                        <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="micro">Micro-BIC</SelectItem>
                           <SelectItem value="reel">Réel</SelectItem>
                         </SelectContent>
                       </Select>
-                    </Field>
+                    </ChampCollecte>
                     {microChoisiSurSeuil && <div className="text-[10px] mt-0.5 font-semibold" style={{ color: BRAND.warning }}>Régime appliqué : réel</div>}
                   </div>
+                  {/* Rangee A 4e cellule (I2) : Charges reelles quand le regime est reel */}
+                  {regimeEffectif === "reel" && (
+                    <MoneyCollecte label="Charges réelles/an" tooltip="Charges déductibles hors amortissement ET hors taxe foncière / assurance saisies ci-dessus (comptées à part, pour éviter le double-compte) : intérêts d'emprunt, gestion, copropriété non récupérable, comptable..." value={property.chargesReelles || ""} onChange={(e) => updateProperty(property.id, "chargesReelles", e.target.value)} />
+                  )}
                 </div>
                 {/* Alerte 1 : seuil micro depasse (bien) */}
                 {microChoisiSurSeuil && (
@@ -629,36 +679,20 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                 )}
                 {/* Reel : charges + bloc amortissement */}
                 {regimeEffectif === "reel" && (
-                  <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
-                    <MoneyField label="Charges réelles/an" tooltip="Charges déductibles hors amortissement ET hors taxe foncière / assurance saisies ci-dessus (comptées à part, pour éviter le double-compte) : intérêts d'emprunt, gestion, copropriété non récupérable, comptable..." value={property.chargesReelles || ""} onChange={(e) => updateProperty(property.id, "chargesReelles", e.target.value)} compact />
-                    <MoneyField label="Prix d'acquisition" tooltip="Prix de revient de l'immeuble, base de l'amortissement par composants (hors terrain)." value={property.prixAcquisition || ""} onChange={(e) => updateProperty(property.id, "prixAcquisition", e.target.value)} compact />
-                    <Field label="Part terrain (%)" tooltip="Fraction non amortissable du prix (terrain). Défaut 15 %. Saisie en pourcentage.">
-                      <Input value={isSet(property.partTerrain) ? String(Math.round(n(property.partTerrain) * 1000) / 10) : ""} placeholder="15" onChange={(e) => { const v = e.target.value.trim(); updateProperty(property.id, "partTerrain", v === "" ? "" : String(n(v) / 100)); }} className="rounded-xl h-8 text-sm" style={{ fontWeight: 700 }} inputMode="decimal" />
-                    </Field>
-                    <MoneyField label="Valeur mobilier" tooltip={`Valeur du mobilier, amorti linéairement sur ${refMeuble.amortissement.dureeMobilier} ans.`} value={property.valeurMobilier || ""} onChange={(e) => updateProperty(property.id, "valeurMobilier", e.target.value)} compact />
-                    <div>
-                      <MoneyField label="Amortissement annuel" tooltip={amortTooltip} value={amortSaisi ? property.amortissementAnnuelManuel : (autoAmort ? String(Math.round(autoAmort.total * 100) / 100) : "")} onChange={(e) => updateProperty(property.id, "amortissementAnnuelManuel", e.target.value)} compact />
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {(amortSaisi || autoAmort) && (
-                          <span className="text-[10px] font-semibold" style={{ color: amortSaisi ? BRAND.sky : hasOverrides ? BRAND.sky : BRAND.success }}>
-                            {amortSaisi ? <><Pencil className="h-3 w-3 inline-block align-middle mr-0.5" aria-hidden="true" />saisi</> : hasOverrides ? <><Settings className="h-3 w-3 inline-block align-middle mr-0.5" aria-hidden="true" />ajusté</> : <><Settings className="h-3 w-3 inline-block align-middle mr-0.5" aria-hidden="true" />calculé</>}
-                          </span>
-                        )}
-                        {isSet(property.prixAcquisition) && (
-                          <button type="button" onClick={() => setAmortModalPropertyId(property.id)} className="text-[10px] font-semibold underline" style={{ color: BRAND.sky }}>Détail</button>
-                        )}
-                      </div>
-                    </div>
+                  <div className="grid grid-cols-4 gap-x-2 gap-y-2 items-end grid-flow-row-dense">
+                    {/* Rangee B (I2) : Prix d'acquisition | Part terrain | Valeur mobilier | Amortissement */}
+                    <MoneyCollecte label="Prix d'acquisition" tooltip="Prix de revient de l'immeuble, base de l'amortissement par composants (hors terrain)." value={property.prixAcquisition || ""} onChange={(e) => updateProperty(property.id, "prixAcquisition", e.target.value)} />
+                    <ChampCollecte label="Part terrain (%)" tooltip="Fraction non amortissable du prix (terrain). Défaut 15 %. Saisie en pourcentage.">
+                      <Input value={isSet(property.partTerrain) ? String(Math.round(n(property.partTerrain) * 1000) / 10) : ""} placeholder="15" onChange={(e) => { const v = e.target.value.trim(); updateProperty(property.id, "partTerrain", v === "" ? "" : String(n(v) / 100)); }} className="rounded-lg h-8 text-sm" style={{ fontWeight: 700 }} inputMode="decimal" />
+                    </ChampCollecte>
+                    <MoneyCollecte label="Valeur mobilier" tooltip={`Valeur du mobilier, amorti linéairement sur ${refMeuble.amortissement.dureeMobilier} ans.`} value={property.valeurMobilier || ""} onChange={(e) => updateProperty(property.id, "valeurMobilier", e.target.value)} />
+                    {/* C3 : Amortissement = champ aligne comme les autres. Statut (calcule/
+                        saisi/ajuste) dans le label ; le bouton Detail passe dans la ligne d'actions. */}
+                    <MoneyCollecte label={`Amortissement annuel${amortSaisi ? " · saisi" : hasOverrides ? " · ajusté" : autoAmort ? " · calculé" : ""}`} tooltip={amortTooltip} value={amortSaisi ? property.amortissementAnnuelManuel : (autoAmort ? String(Math.round(autoAmort.total * 100) / 100) : "")} onChange={(e) => updateProperty(property.id, "amortissementAnnuelManuel", e.target.value)} />
                   </div>
                 )}
-                {/* Bouton projete 10 ans (Lot 2) — visible au reel resolu, ecran seul. */}
-                {regimeEffectif === "reel" && (
-                  <div>
-                    <button type="button" onClick={() => setProjModalPropertyId(property.id)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border transition-colors hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#26428B]" style={{ background: "rgba(38,66,139,0.08)", borderColor: "rgba(38,66,139,0.25)", color: BRAND.sky }}>
-<TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />Projection sur 10 ans
-                    </button>
-                  </div>
-                )}
+                {/* Projection 10 ans + Detail amortissement deplaces dans la LIGNE D'ACTIONS
+                    unique en bas de carte (C4). */}
                 {/* Garde-fou conformite : Censi-Bouvard exclut l'amortissement sur la
                     fraction ayant ouvert droit a la reduction (art. 199 sexvicies VII).
                     Alerte douce, ZERO impact calcul : le CGP ajuste via Detail / manuel. */}
@@ -678,43 +712,37 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
               </div>
             );
           })()}
-          {/* ── Multi-crédits : bouton ouvre modale ── */}
+          {/* ── Repartition (indivision / SCI) : % foyer + bouton co-proprietaires. Le bouton
+               credit rejoint la LIGNE D'ACTIONS (C4). Rangee affichee seulement si pertinent. ── */}
           {(() => {
-            const loanCount = (property.loans || []).length || (property.loanEnabled ? 1 : 0);
-            const totalCapital = property.loans && property.loans.length > 0
-              ? resolveLoanValuesMulti(property).capital
-              : (property.loanEnabled ? n(property.loanCapitalRemaining) || resolveLoanValuesMulti(property).capital : 0);
+            const isIndiv = property.ownership === "indivision";
+            const isSCI = property.type === "SCI IR" || property.type === "SCI IS";
+            if (!isIndiv && !isSCI) return null;
+            const extCount = (property.externalShares || []).length;
             return (
-              <div className="flex items-center gap-2 mt-1">
+              <div className="grid grid-cols-4 gap-x-2 gap-y-2 items-end grid-flow-row-dense">
+                {isIndiv && (
+                  <MoneyCollecte label={`% ${person1}`} tooltip={`Quote-part de propriété de ${person1} dans l'indivision. La somme des deux parts (foyer + co-indivisaires extérieurs s'il y en a) doit égaler 100%.`} value={property.indivisionShare1} onChange={(e) => updateProperty(property.id, "indivisionShare1", e.target.value)} />
+                )}
+                {isIndiv && (
+                  <MoneyCollecte label={`% ${person2}`} tooltip={`Quote-part de propriété de ${person2} dans l'indivision. La somme des deux parts (foyer + co-indivisaires extérieurs s'il y en a) doit égaler 100%.`} value={property.indivisionShare2} onChange={(e) => updateProperty(property.id, "indivisionShare2", e.target.value)} />
+                )}
+                {/* Bouton co-proprietaires (indivision ou SCI) : ouvre/ferme le bloc dedie */}
                 <button
-                  onClick={() => {
-                    setLoanModalPropertyId(property.id);
-                  }}
-                  className="flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-medium border transition-colors hover:opacity-90"
-                  style={{
-                    background: loanCount > 0 ? "rgba(38,66,139,0.08)" : "rgba(229,231,235,0.5)",
-                    borderColor: loanCount > 0 ? "rgba(38,66,139,0.25)" : SURFACE.border,
-                    color: loanCount > 0 ? BRAND.sky : BRAND.muted,
-                  }}>
-                  <span className="inline-flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5" aria-hidden="true" />{loanCount > 0 ? `${loanCount} crédit${loanCount > 1 ? "s" : ""}` : "Ajouter un crédit"}</span>
-                  {totalCapital > 0 && <span className="text-xs opacity-70">— {euro(totalCapital)} restant</span>}
+                  onClick={() => setOpenExt((prev) => { const next = new Set(prev); if (next.has(property.id)) next.delete(property.id); else next.add(property.id); return next; })}
+                  className="flex items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium border transition-colors hover:opacity-90"
+                  style={{ height: 32, background: extCount > 0 ? "rgba(81,106,199,0.08)" : "rgba(229,231,235,0.5)", borderColor: extCount > 0 ? "rgba(81,106,199,0.25)" : SURFACE.border, color: extCount > 0 ? BRAND.sky : BRAND.muted }}>
+                  <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span className="truncate">{extCount > 0 ? `${extCount} co-propriétaire${extCount > 1 ? "s" : ""}` : "Co-propriétaires"}</span>
                 </button>
               </div>
             );
           })()}
-          <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(145px,1fr))]">
-          {property.ownership === "indivision" && (
-            <>
-              <MoneyField label={`% ${person1}`} tooltip={`Quote-part de propriété de ${person1} dans l'indivision. La somme des deux parts (foyer + co-indivisaires extérieurs s'il y en a) doit égaler 100%.`} value={property.indivisionShare1} onChange={(e) => updateProperty(property.id, "indivisionShare1", e.target.value)} compact />
-              <MoneyField label={`% ${person2}`} tooltip={`Quote-part de propriété de ${person2} dans l'indivision. La somme des deux parts (foyer + co-indivisaires extérieurs s'il y en a) doit égaler 100%.`} value={property.indivisionShare2} onChange={(e) => updateProperty(property.id, "indivisionShare2", e.target.value)} compact />
-            </>
-          )}
-        </div>
 
         {/* ─── Co-propriétaires / co-associés extérieurs au foyer ────────
              Pertinent pour : indivision (partagée avec tiers) ou SCI
              familiale étendue / SCI avec amis / SCI avec associés. */}
-        {(property.ownership === "indivision" || property.type === "SCI IR" || property.type === "SCI IS") && (() => {
+        {(property.ownership === "indivision" || property.type === "SCI IR" || property.type === "SCI IS") && (openExt.has(property.id) || (property.externalShares || []).length > 0) && (() => {
           const externals = property.externalShares || [];
           const s1 = n(property.indivisionShare1);
           const s2 = n(property.indivisionShare2);
@@ -736,25 +764,22 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
           return (
             <div className="mt-3 rounded-xl p-3" style={{ background: "rgba(81,106,199,0.04)", border: `1px solid rgba(81,106,199,0.15)` }}>
               <div className="flex items-center justify-between mb-2">
-                <div className="text-xs font-bold uppercase tracking-wider" style={{ color: BRAND.sky }}>
+                <div className="text-xs font-bold uppercase tracking-wider flex items-center gap-1" style={{ color: BRAND.sky }}>
                   Co-propriétaires extérieurs au foyer
+                  <HelpTooltip label="Co-proprietaires exterieurs au foyer" text="Ajoutez des co-indivisaires ou co-associés de SCI extérieurs à votre foyer (frère, ami, partenaire d'affaires…). Leurs parts sont déclarées par eux, pas par votre foyer." />
                 </div>
                 <Button onClick={addExternal} variant="outline" className="h-7 rounded-lg px-2 text-xs">
                   <Plus className="mr-1 h-3 w-3" />Ajouter
                 </Button>
               </div>
-              {externals.length === 0 ? (
-                <div className="text-xs italic" style={{ color: BRAND.mutedLight }}>
-                  Ajoutez des co-indivisaires ou co-associés de SCI extérieurs à votre foyer (frère, ami, partenaire d'affaires…). Leurs parts sont déclarées par eux, pas par votre foyer.
-                </div>
-              ) : (
+              {externals.length === 0 ? null : (
                 <div className="space-y-2">
                   {externals.map((ext, extIdx) => (
                     <div key={ext.id} className="grid gap-2 items-end" style={{ gridTemplateColumns: "2fr 1.4fr 80px 32px" }}>
-                      <Field label={extIdx === 0 ? "Nom complet" : undefined}>
+                      <ChampCollecte label={extIdx === 0 ? "Nom complet" : undefined}>
                         <Input value={ext.name} onChange={(e) => updateExternal(extIdx, "name", e.target.value)} placeholder="ex: Jean Martin" className="h-8 text-sm rounded-lg" />
-                      </Field>
-                      <Field label={extIdx === 0 ? "Relation" : undefined}>
+                      </ChampCollecte>
+                      <ChampCollecte label={extIdx === 0 ? "Relation" : undefined}>
                         <Select value={ext.relation} onValueChange={(v) => updateExternal(extIdx, "relation", v)}>
                           <SelectTrigger className="h-8 text-sm rounded-lg"><SelectValue /></SelectTrigger>
                           <SelectContent>
@@ -769,10 +794,10 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
                             <SelectItem value="Autre">Autre</SelectItem>
                           </SelectContent>
                         </Select>
-                      </Field>
-                      <Field label={extIdx === 0 ? "% parts" : undefined}>
+                      </ChampCollecte>
+                      <ChampCollecte label={extIdx === 0 ? "% parts" : undefined}>
                         <Input type="number" value={ext.sharePercent} onChange={(e) => updateExternal(extIdx, "sharePercent", e.target.value)} placeholder="0" className="h-8 text-sm rounded-lg text-right" />
-                      </Field>
+                      </ChampCollecte>
                       <Button onClick={() => removeExternal(extIdx)} variant="outline" aria-label="Supprimer l'intervenant exterieur" className="h-8 w-8 rounded-lg p-0" title="Supprimer">
                         <Trash2 className="h-3.5 w-3.5" style={{ color: BRAND.danger }} />
                       </Button>
@@ -794,10 +819,30 @@ const TabImmobilier = React.memo(function TabImmobilier(props: any) {
             </div>
           );
         })()}
+        {/* ── LIGNE D'ACTIONS UNIQUE (C4) en bas de carte : Projection 10 ans | Detail
+             amortissement | Ajouter un credit — compacte, jamais pleine largeur. ── */}
+        <LigneActions>
+          {showProjection && (
+            <button type="button" onClick={() => setProjModalPropertyId(property.id)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border transition-colors hover:brightness-95" style={{ background: "rgba(38,66,139,0.08)", borderColor: "rgba(38,66,139,0.25)", color: BRAND.sky }}>
+              <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />Projection sur 10 ans
+            </button>
+          )}
+          {showAmortDetail && (
+            <button type="button" onClick={() => setAmortModalPropertyId(property.id)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border transition-colors hover:brightness-95" style={{ background: "rgba(196,151,61,0.1)", borderColor: "rgba(196,151,61,0.35)", color: BRAND.goldText }}>
+              <Settings className="h-3.5 w-3.5" aria-hidden="true" />Détail amortissement
+            </button>
+          )}
+          <button type="button" onClick={() => setLoanModalPropertyId(property.id)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border transition-colors hover:brightness-95" style={{ background: loanCountC > 0 ? "rgba(38,66,139,0.08)" : "rgba(229,231,235,0.5)", borderColor: loanCountC > 0 ? "rgba(38,66,139,0.25)" : SURFACE.border, color: loanCountC > 0 ? BRAND.sky : BRAND.muted }}>
+            <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />{loanCountC > 0 ? `${loanCountC} crédit${loanCountC > 1 ? "s" : ""}${totalCapitalC > 0 ? ` — ${euro(totalCapitalC)} restant` : ""}` : "Ajouter un crédit"}
+          </button>
+        </LigneActions>
       </CardContent>
     </Card>
     );
   })}
+
+  {/* Bouton discret « Continuer -> Placements » (Lot 10e) */}
+  {setCollecteSubTab && <ContinuerCollecte label="Placements" onClick={() => setCollecteSubTab("placements")} />}
 </TabsContent>
 
   );

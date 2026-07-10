@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle } from "lucide-react";
 import { BRAND, SURFACE } from "../../constants";
-import { Field } from "../shared";
+import { ChampCollecte, INPUT_COLLECTE_CLS, INPUT_COLLECTE_STYLE } from "../collecte/densite";
 import type { PayloadTravail, EmployeurInfo, StatutPro, CodeCaisse } from "../../types/patrimoine";
 import {
   resolveSiret,
@@ -76,12 +76,16 @@ type Props = {
   personLabel: string;
   value: PayloadTravail;
   onChange: (patch: Partial<PayloadTravail>) => void;
+  // C6 : mode "embedded" -> pas de carte ni d'en-tete (fournis par la card-personne
+  // parente du sous-onglet Travail). Sert a fusionner Situation pro + Statut/Employeur.
+  embedded?: boolean;
 };
 
 export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
   personLabel,
   value,
   onChange,
+  embedded = false,
 }: Props) {
   const [siretLoading, setSiretLoading] = React.useState(false);
   const [siretError, setSiretError] = React.useState<string | null>(null);
@@ -132,28 +136,30 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
   }
 
   return (
-    <div className="border p-4 space-y-4" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-      <div className="text-xs font-black uppercase tracking-widest" style={{ color: BRAND.navy }}>
-        {personLabel}
-      </div>
+    <div className={embedded ? "space-y-4" : "border p-4 space-y-4"} style={embedded ? undefined : { borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+      {!embedded && (
+        <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>
+          {personLabel}
+        </div>
+      )}
 
       {/* Statut + caisse — 2 colonnes alignées, labels sur 1 ligne. */}
       <div className="grid gap-3 md:grid-cols-2 items-start">
-        <Field label="Statut professionnel">
+        <ChampCollecte label="Statut professionnel">
           <Select
             value={statut || ""}
             onValueChange={(v) => handleStatutChange(v as StatutPro)}
           >
-            <SelectTrigger className="rounded-xl"><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
+            <SelectTrigger className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE}><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
             <SelectContent>
               {STATUTS_PRO.map((s) => (
                 <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-        </Field>
+        </ChampCollecte>
 
-        <Field label="Caisse d'affiliation">
+        <ChampCollecte label="Caisse d'affiliation">
           <Select
             value={value.caisseAffiliation ?? ""}
             onValueChange={(v) => {
@@ -164,14 +170,14 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
               onChange({ caisseAffiliation: (code || null) as CodeCaisse | null });
             }}
           >
-            <SelectTrigger className="rounded-xl"><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
+            <SelectTrigger className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE}><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
             <SelectContent>
               {CAISSES.map((c) => (
                 <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-        </Field>
+        </ChampCollecte>
       </div>
 
       {/* Bloc Employeur — encart visuellement distinct. SIRET prend
@@ -185,12 +191,12 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
         {/* Ligne 1 : SIRET (large) + Effectif */}
         <div className="grid gap-3 md:grid-cols-3 items-start">
           <div className="md:col-span-2">
-            <Field label="SIRET (14 chiffres)">
+            <ChampCollecte label="SIRET (14 chiffres)">
               <div className="flex gap-2">
                 <Input
                   value={employeur?.siret ?? ""}
                   onChange={(e) => patchEmployeur({ siret: e.target.value.replace(/\s+/g, "") })}
-                  className="rounded-xl flex-1"
+                  className="rounded-lg flex-1 h-8 text-sm"
                   inputMode="numeric"
                   placeholder="ex. 78404636300040"
                   maxLength={14}
@@ -199,7 +205,7 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
                   type="button"
                   onClick={handleResolveSiret}
                   disabled={siretLoading || !validateSiret(employeur?.siret ?? null)}
-                  className="rounded-xl whitespace-nowrap"
+                  className="rounded-lg whitespace-nowrap h-8 text-sm"
                   style={{ background: BRAND.navy }}
                 >
                   {siretLoading ? "…" : "Rechercher l'entreprise"}
@@ -208,10 +214,10 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
               {siretError && (
                 <div className="text-xs mt-1" style={{ color: "#B0413E" }}>{siretError}</div>
               )}
-            </Field>
+            </ChampCollecte>
           </div>
 
-          <Field label="Effectif">
+          <ChampCollecte label="Effectif">
             <Input
               value={employeur?.effectif ?? ""}
               onChange={(e) => {
@@ -219,47 +225,47 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
                 const n = v === "" ? null : Number(v);
                 patchEmployeur({ effectif: Number.isFinite(n as number) ? (n as number) : null });
               }}
-              className="rounded-xl"
+              className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE}
               type="number"
               min={0}
               placeholder="—"
             />
-          </Field>
+          </ChampCollecte>
         </div>
 
         {/* Ligne 2 : Nom + Forme juridique */}
         <div className="grid gap-3 md:grid-cols-2 items-start">
-          <Field label="Nom de l'employeur">
+          <ChampCollecte label="Nom de l'employeur">
             <Input
               value={employeur?.nom ?? ""}
               onChange={(e) => patchEmployeur({ nom: e.target.value || null })}
-              className="rounded-xl"
+              className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE}
               placeholder="Raison sociale"
             />
-          </Field>
+          </ChampCollecte>
 
-          <Field label="Forme juridique">
+          <ChampCollecte label="Forme juridique">
             <Input
               value={employeur?.formeJuridique ?? ""}
               onChange={(e) => patchEmployeur({ formeJuridique: e.target.value || null })}
-              className="rounded-xl"
+              className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE}
               placeholder="SARL, SAS, SCI…"
             />
-          </Field>
+          </ChampCollecte>
         </div>
 
         {/* Ligne 3 : Code NAF + IDCC */}
         <div className="grid gap-3 md:grid-cols-2 items-start">
-          <Field label="Code NAF / APE">
+          <ChampCollecte label="Code NAF / APE">
             <Input
               value={employeur?.codeNAF ?? ""}
               onChange={(e) => patchEmployeur({ codeNAF: e.target.value || null })}
-              className="rounded-xl"
+              className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE}
               placeholder="ex. 6201Z"
             />
-          </Field>
+          </ChampCollecte>
 
-          <Field label="IDCC (convention collective)">
+          <ChampCollecte label="IDCC (convention collective)">
             <div className="space-y-1">
               <Input
                 value={employeur?.idccCCN ?? ""}
@@ -270,7 +276,7 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
                     sourceCCN: next ? "manuel" : "non_defini",
                   });
                 }}
-                className="rounded-xl"
+                className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE}
                 placeholder="ex. 1486"
                 inputMode="numeric"
               />
@@ -290,7 +296,7 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
                 </div>
               )}
             </div>
-          </Field>
+          </ChampCollecte>
         </div>
       </div>
 
@@ -300,15 +306,15 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
           « Début d'activité / affiliation » ci-dessous. */}
       {isSal && (
       <div className="grid gap-3 md:grid-cols-3 items-start">
-        <Field label="Date d'embauche">
+        <ChampCollecte label="Date d'embauche">
           <DateFr
             value={value.dateEmbauche ?? ""}
             onChange={(iso) => onChange({ dateEmbauche: iso || null })}
-            className="rounded-xl"
+            className="rounded-lg h-8 text-sm w-full"
           />
-        </Field>
+        </ChampCollecte>
 
-        <Field label="Temps de travail">
+        <ChampCollecte label="Temps de travail">
           <Select
             value={value.tempsTravail.type}
             onValueChange={(v) =>
@@ -320,16 +326,16 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
               })
             }
           >
-            <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+            <SelectTrigger className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE}><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="plein">Temps plein</SelectItem>
               <SelectItem value="partiel">Temps partiel</SelectItem>
             </SelectContent>
           </Select>
-        </Field>
+        </ChampCollecte>
 
         {value.tempsTravail.type === "partiel" ? (
-          <Field label="Quotité (%)">
+          <ChampCollecte label="Quotité (%)">
             <Input
               type="number"
               min={1}
@@ -344,9 +350,9 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
                   },
                 });
               }}
-              className="rounded-xl"
+              className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE}
             />
-          </Field>
+          </ChampCollecte>
         ) : (
           // colonne vide pour conserver l'alignement de la grille
           <div className="hidden md:block" />
@@ -358,16 +364,16 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
           d'embauche : l'ancienneté d'affiliation en découle, cf. mapping). */}
       {isTNS && (
         <div className="grid gap-3 md:grid-cols-2 items-start">
-          <Field
+          <ChampCollecte
             label="Début d'activité / 1ʳᵉ affiliation à la caisse"
             tooltip="Date de début d'activité libérale ou de 1ʳᵉ affiliation à votre caisse (CIPAV, CARMF…). Sert à calculer votre ancienneté d'affiliation."
           >
             <DateFr
               value={value.dateDebutActivite ?? ""}
               onChange={(iso) => onChange({ dateDebutActivite: iso || null })}
-              className="rounded-xl"
+              className="rounded-lg h-8 text-sm w-full"
             />
-          </Field>
+          </ChampCollecte>
         </div>
       )}
 
@@ -376,17 +382,17 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
           (CA, BNC/BIC, régime micro/réel) et lus par le moteur. */}
       {isSal && (
         <div className="grid gap-3 md:grid-cols-2 items-start">
-          <Field label="Salaire brut annuel (€)">
+          <ChampCollecte label="Salaire brut annuel (€)">
             <Input
               type="number"
               min={0}
               value={value.salaireBrutAnnuel || ""}
               onChange={(e) => onChange({ salaireBrutAnnuel: Number(e.target.value) || 0 })}
-              className="rounded-xl"
+              className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE}
               placeholder="ex. 55000"
             />
-          </Field>
-          <Field label="Prime annuelle (€)">
+          </ChampCollecte>
+          <ChampCollecte label="Prime annuelle (€)">
             <Input
               type="number"
               min={0}
@@ -395,10 +401,10 @@ export const BlocStatutEmployeur = React.memo(function BlocStatutEmployeur({
                 const v = e.target.value === "" ? null : Number(e.target.value);
                 onChange({ primeAnnuelle: Number.isFinite(v as number) ? (v as number) : null });
               }}
-              className="rounded-xl"
+              className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE}
               placeholder="0"
             />
-          </Field>
+          </ChampCollecte>
         </div>
       )}
     </div>

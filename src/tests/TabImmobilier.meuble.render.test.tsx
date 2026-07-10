@@ -90,7 +90,7 @@ describe("TabImmobilier — section Location meublee", () => {
   it("LMNP reel + prix saisi : bloc amortissement + badge calcule", () => {
     renderImmo(mkProp({ type: "LMNP", regimeMeuble: "reel", recettesAnnuelles: "20000", prixAcquisition: "300000" }));
     expect(screen.getByText("Charges réelles/an")).toBeTruthy();
-    expect(screen.getByText("Amortissement annuel")).toBeTruthy();
+    expect(screen.getByText(/Amortissement annuel/)).toBeTruthy(); // label + statut "· calculé" (C3)
     expect(screen.getByText("Part terrain (%)")).toBeTruthy();
     expect(screen.getByText(/calculé/)).toBeTruthy();
   });
@@ -124,9 +124,9 @@ describe("TabImmobilier — section Location meublee", () => {
   });
 
   // ── Lot 1bis point A : modal Detail amortissement ──
-  it("LMNP reel + prix saisi : bouton 'Detail' de l'amortissement present", () => {
+  it("LMNP reel + prix saisi : bouton 'Detail amortissement' present (ligne d'actions, C4)", () => {
     renderImmo(mkProp({ type: "LMNP", regimeMeuble: "reel", recettesAnnuelles: "20000", prixAcquisition: "300000" }));
-    expect(screen.getByText("Détail")).toBeTruthy();
+    expect(screen.getByText("Détail amortissement")).toBeTruthy();
   });
 
   // ── Lot 1bis amendement : garde-fou Censi-Bouvard x amortissement ──
