@@ -6,16 +6,15 @@
 // Le jour où l'on change de moteur de rendu, on ne réécrit QUE cette couche — les
 // pages ne connaissent que le contrat, jamais paged.js.
 //
-// PUR : aucun import, aucun DOM, aucun Tokens. Les `html` des blocs sont déjà
-// rendus par la page (avec ses tokens) ; le contrat ne fait qu'ASSEMBLER + poser
-// les règles de coupe.
+// PUR : aucun DOM, aucun Tokens, aucun moteur — seule dépendance, la constante d'inset
+// partagée (C3). Les `html` des blocs sont déjà rendus par la page (avec ses tokens) ;
+// le contrat ne fait qu'ASSEMBLER + poser les règles de coupe.
+import { INSET_LATERAL_PX } from "./insets";
 
-// Canvas de page : inset latéral 38px, aligné sur l'en-tête/pied @page du feeder
-// (inset 38px). PAS d'inset HAUT : le corps s'appuie sur la marge @page (15mm) du
-// feeder, IDENTIQUE en page 1 et sur les feuilles de continuation. (Un padding-top
-// de wrapper ne s'applique qu'au 1er fragment → il décalait la SEULE page 1, ~32px
-// plus bas que les continuations ; retiré pour un démarrage de corps homogène.)
-const PAGE_PAD_LAT_PX = 38;
+// Canvas de page : inset latéral (INSET_LATERAL_PX), aligné sur l'en-tête/pied @page du
+// feeder (même constante). PAS d'inset HAUT : le corps s'appuie sur la marge @page (15mm)
+// du feeder, IDENTIQUE en page 1 et sur les feuilles de continuation. (Un padding-top de
+// wrapper ne s'applique qu'au 1er fragment → il décalait la SEULE page 1 ; retiré.)
 
 // ─── Les 3 types de blocs ──────────────────────────────────────────────────────
 
@@ -111,7 +110,7 @@ export function compilerBloc(b: Bloc): string {
 export function compilerPageContrat(blocs: PageContrat): string {
   const corps = blocs.map(compilerBloc).join("\n");
   return (
-    `<div class="pdf-contrat" style="padding:0 ${PAGE_PAD_LAT_PX}px 0;orphans:2;widows:2">\n` +
+    `<div class="pdf-contrat" style="padding:0 ${INSET_LATERAL_PX}px 0;orphans:2;widows:2">\n` +
     `${corps}\n` +
     `</div>`
   );
