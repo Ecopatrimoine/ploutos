@@ -251,7 +251,7 @@ exports[`CONTRAT — pageSuccessionA (flux paged.js) > 9. blocs declares : heade
           <th class="th" style="text-align:left;width:25%">Héritier</th><th class="th" style="text-align:left;width:18%">Lien</th><th class="th" style="text-align:right;width:16%">Part reçue</th><th class="th" style="text-align:right;width:13%">Abatt.</th><th class="th" style="text-align:right;width:13%">Droits</th><th class="th" style="text-align:right;width:15%">Net</th>
         </tr></thead><tbody><tr><td class="td" style="text-align:left;">HERITIER_TEST</td><td class="td" style="text-align:left;color:#6B6353;">Conjoint</td><td class="td" style="text-align:right;">240 000 €</td><td class="td" style="text-align:right;color:#777060;">—</td><td class="td" style="text-align:right;color:#2F7D5B;font-weight:700;">exonéré</td><td class="td" style="text-align:right;font-weight:700;">240 000 €</td></tr></tbody></table>
 <div class="pdf-queue" style="break-inside:avoid"><div class="foot" style="margin-top:6px">
-        Part reçue = pleine propriété + nue-propriété fiscale + usufruit valorisé selon le coefficient Duvergier (CGI art. 669). Le conjoint marié ou partenaire de PACS est exonéré de droits (CGI art. 796-0 bis).
+        Part reçue = pleine propriété + nue-propriété fiscale + usufruit valorisé selon le barème fiscal de l'usufruit (CGI art. 669). Le conjoint marié ou partenaire de PACS est exonéré de droits (CGI art. 796-0 bis).
       </div></div>
 <div class="pdf-queue" style="break-inside:avoid">
     <div style="margin-top:20px;background:#FBF8F1;border:0.5px solid #ECE3CF;border-left:3px solid #C4973D;border-radius:8px;padding:15px 17px">

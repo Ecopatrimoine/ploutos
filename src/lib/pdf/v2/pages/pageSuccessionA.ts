@@ -118,7 +118,7 @@ export function pageSuccessionA(t: Tokens, d: SuccessionAPageData): string {
   const rappelActif = d.heritiers.some((h) => h.rappel);
   const aVerifierActif = d.heritiers.some((h) => h.aVerifier);
   const footNoteHTML = `<div class="foot" style="margin-top:6px">
-        Part reçue = pleine propriété + nue-propriété fiscale + usufruit valorisé selon le coefficient Duvergier (CGI art. 669). Le conjoint marié ou partenaire de PACS est exonéré de droits (CGI art. 796-0 bis).${rappelActif ? "<br>Donations antérieures de moins de 15 ans réintégrées (rappel fiscal, CGI art. 784)." : ""}${aVerifierActif ? "<br>Une donation n'a pas été prise en compte (données incomplètes)." : ""}
+        Part reçue = pleine propriété + nue-propriété fiscale + usufruit valorisé selon le barème fiscal de l'usufruit (CGI art. 669). Le conjoint marié ou partenaire de PACS est exonéré de droits (CGI art. 796-0 bis).${rappelActif ? "<br>Donations antérieures de moins de 15 ans réintégrées (rappel fiscal, CGI art. 784)." : ""}${aVerifierActif ? "<br>Une donation n'a pas été prise en compte (données incomplètes)." : ""}
       </div>`;
 
   // ─── Déclaration des blocs (contrat de page) ──

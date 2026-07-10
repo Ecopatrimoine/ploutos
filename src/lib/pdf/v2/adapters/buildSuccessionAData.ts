@@ -121,7 +121,7 @@ export function buildSuccessionAData(p: BuildSuccessionADataParams): SuccessionA
       const leviers: string[] = [];
       if (reservataires > 0 && droitsSuccession > 0) {
         leviers.push("donation-partage de la quotité disponible (figure les valeurs, évite les conflits ultérieurs)");
-        leviers.push("démembrement temporaire (donation de nue-propriété, conjoint usufruitier) — abat la base taxable selon Duvergier");
+        leviers.push("démembrement temporaire (donation de nue-propriété, conjoint usufruitier) — abat la base taxable selon le barème de l'usufruit (art. 669 CGI)");
       }
       if (hasConjoint) {
         leviers.push("option du conjoint à arbitrer (¼ PP / usufruit total / ¼ PP + ¾ usufruit) selon objectif protection vs transmission rapide");
