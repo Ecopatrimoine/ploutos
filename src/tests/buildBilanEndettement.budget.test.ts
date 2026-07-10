@@ -4,6 +4,7 @@
 // conditionnelle, et rendu du bloc dans la page (avant la cascade, tokens).
 
 import { describe, it, expect } from "vitest";
+import { pct } from "../lib/calculs/utils";
 import { buildBilanEndettementData } from "../lib/pdf/v2/adapters/buildBilanEndettementData";
 import { pageBilanEndettement } from "../lib/pdf/v2/pages/pageBilanEndettement";
 import { computeBudget } from "../lib/calculs/budget";
@@ -52,7 +53,7 @@ describe("pageBilanEndettement — rendu du bloc budget (Lot D)", () => {
     expect(html).toContain("Budget et capacité d'épargne");
     expect(html).toContain("Impôts calculés (IR tout compris)");
     expect(html).toContain("Loyers à 100 % (approche budget)"); // approche budget
-    expect(html).toContain("Loyers retenus (70 %)");            // methode bancaire inchangee
+    expect(html).toContain(`Loyers retenus (${pct(0.70)})`);            // methode bancaire inchangee
     expect(html.indexOf("Budget et capacité d'épargne")).toBeLessThan(html.indexOf("Répartition du patrimoine net"));
   });
 

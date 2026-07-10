@@ -333,7 +333,7 @@ const dataMaquetteSuccessionB: SuccessionBPageData = {
   ],
   clauseBeneficiaireHtml: "Clause bénéficiaire retenue : <em>mes enfants vivants ou représentés, par parts égales</em>.",
   totalNetTransmis: 1_158_400,
-  totalLabelHaut: "Total transmis net aux proches",
+  totalLabelHaut: "Net transmis — tous bénéficiaires",
   totalLabelBas: "(succession + assurance-vie)",
   notreLecture:
     "Le capital reçu par chaque enfant reste sous le plafond d'abattement de 152 500 € : la transmission s'opère donc entièrement hors fiscalité, et 117 000 € d'abattement demeurent mobilisables pour de futurs versements. L'assurance-vie reste ainsi votre levier de transmission le plus efficace, en complément de la succession civile.",

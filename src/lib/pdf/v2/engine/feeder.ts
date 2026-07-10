@@ -20,6 +20,7 @@ import type { Tokens } from "../tokens";
 import { FONT_FACES_STYLE } from "../fontsLocal";
 import { cssCommun } from "../primitives";
 import { HANDLER_SCRIPT, DOCNUM_HANDLER_SCRIPT, COVER_HANDLER_SCRIPT } from "./pagedHandler";
+import { INSET_LATERAL_PX, DOCREG_INSET_GAUCHE_PX, DOCREG_INSET_DROITE_PX } from "./insets";
 
 // Géométrie du moteur (mm).
 // MARGES LATÉRALES @page = 0 : la boîte module (width:210mm) occupe toute la largeur
@@ -29,14 +30,9 @@ import { HANDLER_SCRIPT, DOCNUM_HANDLER_SCRIPT, COVER_HANDLER_SCRIPT } from "./p
 // et la boîte déborderait — cf. diag. ÉTAPE 1.)
 const MARGE_HAUT_MM = 15;       // bande haute (en-tête courant)
 const MARGE_BAS_MM = 15;        // bande basse (pied + X/Y)
-// Inset latéral de l'en-tête courant / pied / X-Y = EXACTEMENT le padding latéral des
-// modules (coquillePage paddingLeft/Right = 38px) -> aligné au pixel sur le corps.
-const INSET_LATERAL_PX = 38;
-// docReg : le corps a un inset latéral asymétrique (gauche 44 > droite 36) pour la
-// respiration du liseré gauche 9px. Les margin-boxes en-tête/pied/numéro de CES feuilles
-// s'alignent sur ce bord (et non sur 38) → chrome et corps partagent le même bord latéral.
-const DOCREG_INSET_GAUCHE_PX = 44; // = padding-left du corps docReg
-const DOCREG_INSET_DROITE_PX = 36; // = padding-right du corps docReg
+// Insets latéraux (INSET_LATERAL_PX symétrique / DOCREG asymétrique 44-36) : SOURCE UNIQUE
+// engine/insets.ts (C3), partagée avec le corps (.pdf-contrat) et les 5 pages réglementaires.
+// L'en-tête/pied/X-Y s'alignent au pixel sur le bord du corps (chrome et corps = même bord).
 
 function escapeHtml(s: string): string {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

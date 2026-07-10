@@ -20,6 +20,8 @@ import {
   type KpiItem,
 } from "../primitives";
 import { compilerPageContrat, type Bloc } from "../engine/contrat";
+import { pct } from "../../../calculs/utils";
+import { labelRelationSuccession } from "../../../presentation/relationsSuccession";
 import type { Tokens } from "../tokens";
 
 // ─── Types de page ─────────────────────────────────────────────────────────
@@ -193,17 +195,6 @@ export function pageCapitauxDeces(t: Tokens, d: CapitauxDecesPageData): string {
 
 // ─── Helpers de présentation (pure mise en forme, aucun calcul fiscal) ──────
 
-function relationLabel(r: string): string {
-  const map: Record<string, string> = {
-    conjoint: "Conjoint",
-    pacs_partner: "Partenaire PACS",
-    enfant: "Enfant",
-    ascendant: "Ascendant",
-    autre: "Autre",
-  };
-  return map[String(r || "").toLowerCase()] || (r || "—");
-}
-
 function renteLabel(type: CapitauxDecesRente["type"]): string {
   switch (type) {
     case "conjoint": return "Rente de survie du conjoint";
@@ -229,7 +220,7 @@ function carteCaisse(t: Tokens, c: CapitauxDecesCaisse): string {
   const devo = c.devolution.length > 0
     ? `<div style="margin-top:8px;border-top:1px solid ${t.bordureClaire};padding-top:7px">
         ${c.devolution.map(r => `<div style="display:flex;justify-content:space-between;gap:10px;padding:2px 0">
-          <span class="lt" style="font-size:10.5px;color:${t.texte}">${r.beneficiaire} <span style="color:${t.texteFaible}">(${relationLabel(r.relation)}${r.origine === "capital_orphelin" ? " · orphelin" : ""})</span></span>
+          <span class="lt" style="font-size:10.5px;color:${t.texte}">${r.beneficiaire} <span style="color:${t.texteFaible}">(${labelRelationSuccession(r.relation)}${r.origine === "capital_orphelin" ? " · orphelin" : ""})</span></span>
           <span class="lt" style="font-size:10.5px;font-weight:700;color:${t.navy}">${euro(r.montant)}</span>
         </div>`).join("")}
       </div>`
@@ -262,7 +253,7 @@ function listePrivesSimple(t: Tokens, prives: CapitauxDecesPrive[]): string {
   const lignes = prives.map((l, i) => {
     const border = i === prives.length - 1 ? "" : `border-bottom:1px solid ${t.bordureClaire};`;
     return `<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;${border}">
-      <span class="lt" style="font-size:11px;color:${t.texte}">${l.beneficiary || "Bénéficiaire à renseigner"} <span style="color:${t.texteFaible}">(${relationLabel(l.relation)}) · ${l.contrat}</span></span>
+      <span class="lt" style="font-size:11px;color:${t.texte}">${l.beneficiary || "Bénéficiaire à renseigner"} <span style="color:${t.texteFaible}">(${labelRelationSuccession(l.relation)}) · ${l.contrat}</span></span>
       <span class="lt" style="font-size:11.5px;font-weight:700;color:${t.navy}">${euro(l.montant)}</span>
     </div>`;
   }).join("");
@@ -305,7 +296,7 @@ function sousGroupeNature(t: Tokens, nature: "temporaire" | "rachetable", lignes
   const tag = `<span data-nature-tag="${nature}" class="lt" style="display:inline-block;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:${t.thOr};background:${t.fondTableau};border:0.5px solid ${t.bordureSeuilRail};border-radius:5px;padding:2px 8px;margin-top:9px">${label}</span>`;
 
   const rows = lignes.map(l => `<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0">
-      <span class="lt" style="font-size:11px;color:${t.texte}">${l.beneficiary || "Bénéficiaire à renseigner"} <span style="color:${t.texteFaible}">(${relationLabel(l.relation)}${l.sharePct ? ` · ${l.sharePct}%` : ""})</span></span>
+      <span class="lt" style="font-size:11px;color:${t.texte}">${l.beneficiary || "Bénéficiaire à renseigner"} <span style="color:${t.texteFaible}">(${labelRelationSuccession(l.relation)}${l.sharePct ? ` · ${pct(l.sharePct / 100)}` : ""})</span></span>
       <span class="lt" style="font-size:11px;font-weight:700;color:${t.navy}">${euro(l.montant)}</span>
     </div>`).join("");
 
@@ -322,13 +313,27 @@ function sousGroupeNature(t: Tokens, nature: "temporaire" | "rachetable", lignes
 function bloc990IRachetable(t: Tokens, lignes: CapitauxDecesPrive[]): string {
   // Agrégation de valeurs DÉJÀ dérivées par le moteur (aucun recalcul fiscal).
   const assiette = lignes.reduce((a, l) => a + (l.assiette990I || 0), 0);
+  const taxable = lignes.reduce((a, l) => a + (l.before70Taxable || 0), 0);
   const duties = lignes.reduce((a, l) => a + (l.duties || 0), 0);
+  // F — Abattement 990 I RÉELLEMENT imputé à CE contrat = assiette − base taxable (moteur).
+  // L'abattement de 152 500 €/bénéficiaire est PARTAGÉ avec l'assurance-vie (mêmes versements
+  // avant 70 ans, CGI art. 990 I) : quand l'AV l'a déjà consommé, il reste 0 € imputable ici et
+  // l'assiette est taxée en plein. On n'affiche donc plus le forfait 152 500 € (trompeur) mais
+  // le RESTANT réellement appliqué — 0 € sur le contrat de nono (AV avant 70 = 350 000 €).
+  const abattementImpute = Math.max(0, assiette - taxable);
+  const consomme = abattementImpute === 0 && assiette > 0;
   const cellule = (libelle: string, valeur: string, couleur: string) =>
     `<div><div class="lt" style="font-size:8.5px;text-transform:uppercase;letter-spacing:.04em;color:${t.texteFaibleClair}">${libelle}</div><div class="lt" style="font-size:11px;font-weight:700;color:${couleur};margin-top:2px">${valeur}</div></div>`;
-  return `<div data-bloc-990i style="margin-top:8px;border-top:1px solid ${t.bordureClaire};padding-top:7px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-    ${cellule("Assiette 990 I", euro(assiette), t.navy)}
-    ${cellule("Abattement / bénéf.", euro(ABATTEMENT_990I), t.navy)}
-    ${cellule("Droits 990 I", duties > 0 ? euro(duties) : "exonéré", duties > 0 ? t.thOr : t.succes)}
+  const note = consomme
+    ? `<div data-abattement-consomme class="lt" style="margin-top:6px;font-size:9px;color:${t.texteFaible}">Abattement 990 I de ${euro(ABATTEMENT_990I)} par bénéficiaire déjà consommé par l'assurance-vie (versements avant 70 ans) : 0 € imputable sur ce contrat.</div>`
+    : "";
+  return `<div data-bloc-990i style="margin-top:8px;border-top:1px solid ${t.bordureClaire};padding-top:7px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      ${cellule("Assiette 990 I", euro(assiette), t.navy)}
+      ${cellule("Abattement imputé", euro(abattementImpute), consomme ? t.texteFaible : t.navy)}
+      ${cellule("Droits 990 I", duties > 0 ? euro(duties) : "exonéré", duties > 0 ? t.thOr : t.succes)}
+    </div>
+    ${note}
   </div>`;
 }
 

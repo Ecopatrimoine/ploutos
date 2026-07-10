@@ -3,6 +3,7 @@
 // Mappe data + ir (parts) vers FamillePageData.
 
 import type { FamillePageData, PersonneFamille, EnfantLigne } from "../pages/pageFamille";
+import { plur } from "../../../calculs/utils";
 
 export type BuildFamilleDataParams = {
   data: Record<string, any>;
@@ -54,7 +55,12 @@ export function buildFamilleData(p: BuildFamilleDataParams): FamillePageData {
     dateNaissance: formatDateNaissance(c.birthDate),
     lien: composeLienEnfant(c.parentLink, p1Prenom, p2Prenom),
     garde: composeGarde(c.custody),
-    rattache: !!c.rattached,
+    // Rattachement fiscal : MEME convention que le moteur (ir.ts:671/694-695), l'IFI,
+    // getChildrenFiscalParts (utils.ts:352), la succession et la prevoyance — un enfant
+    // est rattache SAUF si rattached === false (defaut absent = rattache). `!!c.rattached`
+    // (truthy) faisait tomber les enfants sans champ explicite -> "1 rattache" alors que
+    // parts=4 en compte 3 (Perry : riri/nono sans rattached => a tort detaches). G5-B.
+    rattache: c.rattached !== false,
     handicap: !!c.handicap,
   }));
 
@@ -75,16 +81,16 @@ export function buildFamilleData(p: BuildFamilleDataParams): FamillePageData {
     points.push("statut parent isolé (case T) : demi-part fiscale supplémentaire pour le 1ʳᵉ enfant à charge");
   }
   if (nbHandicapEnfant > 0) {
-    points.push(`${nbHandicapEnfant} enfant${nbHandicapEnfant > 1 ? "s" : ""} en situation de handicap : abattement succession majoré de 159 325 € cumulable (CGI art. 779 II) + demi-part fiscale supplémentaire (case G/H)`);
+    points.push(`${plur(nbHandicapEnfant, "enfant")} en situation de handicap : abattement succession majoré de 159 325 € cumulable (CGI art. 779 II) + demi-part fiscale supplémentaire (case G/H)`);
   }
   if (handicapAdulte) {
     points.push("personne en situation de handicap dans le foyer : demi-part fiscale supplémentaire + abattement IR (case P)");
   }
   if (nbAlternee > 0) {
-    points.push(`${nbAlternee} enfant${nbAlternee > 1 ? "s" : ""} en garde alternée : 0,25 part fiscale par enfant (vs 0,5 en garde classique)`);
+    points.push(`${plur(nbAlternee, "enfant")} en garde alternée : 0,25 part fiscale par enfant (vs 0,5 en garde classique)`);
   }
   if (nbRattaches > 0 && enfants.length > 0) {
-    points.push(`${nbRattaches} enfant${nbRattaches > 1 ? "s" : ""} rattaché${nbRattaches > 1 ? "s" : ""} fiscalement — réduction d'impôt scolarité (collège 61 € / lycée 153 € / supérieur 183 € par enfant)`);
+    points.push(`${plur(nbRattaches, "enfant rattaché", "enfants rattachés")} fiscalement — réduction d'impôt scolarité (collège 61 € / lycée 153 € / supérieur 183 € par enfant)`);
   }
   if (points.length === 0) {
     points.push("Composition familiale standard — pas de cas particulier détecté");
@@ -94,8 +100,8 @@ export function buildFamilleData(p: BuildFamilleDataParams): FamillePageData {
     <p style="margin:0 0 10px 0">La composition familiale détermine vos <strong>parts fiscales</strong> et conditionne vos choix patrimoniaux (réserve héréditaire des enfants, protection du conjoint, donations).</p>
     <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
       <li><strong>Statut du couple</strong> — ${statutCouple}.</li>
-      <li><strong>Quotient familial</strong> — ${parts} part${parts > 1 ? "s" : ""} fiscale${parts > 1 ? "s" : ""}.</li>
-      <li><strong>Enfants</strong> — ${enfants.length} enregistré${enfants.length > 1 ? "s" : ""}${enfants.length > 0 ? ` (${nbRattaches} rattaché${nbRattaches > 1 ? "s" : ""}, ${nbAlternee} en garde alternée, ${nbHandicapEnfant} en situation de handicap)` : ""}.</li>
+      <li><strong>Quotient familial</strong> — ${plur(parts, "part fiscale", "parts fiscales")}.</li>
+      <li><strong>Enfants</strong> — ${plur(enfants.length, "enregistré")}${enfants.length > 0 ? ` (${plur(nbRattaches, "rattaché")}, ${nbAlternee} en garde alternée, ${nbHandicapEnfant} en situation de handicap)` : ""}.</li>
     </ul>
     <p style="margin:0;font-style:italic;color:#6B6353"><strong>Points d'attention :</strong> ${points.join(" ; ")}.</p>
   `.trim();

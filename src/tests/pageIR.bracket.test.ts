@@ -12,7 +12,7 @@
 //   5. Aucune chaîne « 75 % » (ça, c'est l'IFI — et absent de toute façon).
 
 import { describe, it, expect } from "vitest";
-import { buildTokens, echantillonnerRampe } from "../lib/pdf/v2/tokens";
+import { buildTokens } from "../lib/pdf/v2/tokens";
 import { pageIR } from "../lib/pdf/v2/pages/pageIR";
 import { buildIRData } from "../lib/pdf/v2/adapters/buildIRData";
 import { euro } from "../lib/pdf/v2/primitives";
@@ -29,7 +29,8 @@ function lireBarres(html: string): Barre[] {
   return out;
 }
 const compte = (html: string, re: RegExp) => (html.match(re) || []).length;
-const rougeProfond = (n: number) => echantillonnerRampe(t.rampeBareme, n - 1, n);
+// C2 — couleur = palette catégorielle de l'écran, cyclée par rang de tranche.
+const couleurRang = (i: number) => t.paletteBareme[i % t.paletteBareme.length];
 
 // Décomposition par tranche sur le quotient — miroir de computeTaxFromBrackets (IR 5 tranches).
 function brackets(quotient: number): FilledBracket[] {
@@ -68,23 +69,23 @@ describe("pageIR — graphe barème par tranche (par part)", () => {
     expect(compte(html, /data-bar="/g)).toBe(5);
   });
 
-  it("(2) couleur indexée sur le rang absolu : T5 = rouge profond, indépendant du remplissage", () => {
+  it("(2) couleur indexée sur le rang absolu (palette catégorielle), indépendante du remplissage", () => {
     const html = rendre({ quotient: 45_000, parts: 2, marginalRate: 0.30 }); // T4 (45 %) vide
     const barres = lireBarres(html);
-    for (const b of barres) expect(b.color).toBe(echantillonnerRampe(t.rampeBareme, b.index, 5));
+    for (const b of barres) expect(b.color).toBe(couleurRang(b.index));
     const t5 = barres.find(b => b.index === 4)!;
     expect(t5.type).toBe("empty");
-    expect(t5.color).toBe(rougeProfond(5));
-    expect(barres[0].color).not.toBe(t5.color);
+    expect(t5.color).toBe(couleurRang(4));
+    expect(barres[0].color).not.toBe(t5.color);   // teintes catégorielles distinctes
   });
 
-  it("(3) active = tranche du quotient (TMI), contour or + badge TMI, fill = couleur de rampe", () => {
+  it("(3) active = tranche du quotient (TMI), contour or + badge TMI, fill = couleur de palette", () => {
     const html = rendre({ quotient: 45_000, parts: 2, marginalRate: 0.30 });
     const actives = lireBarres(html).filter(b => b.active);
     expect(actives).toHaveLength(1);
     const active = actives[0];
     expect(active.index).toBe(2);                 // tranche 30 % contient le quotient 45 000
-    expect(active.color).toBe(echantillonnerRampe(t.rampeBareme, 2, 5));
+    expect(active.color).toBe(couleurRang(2));
     expect(active.color).not.toBe(t.navy.toLowerCase());
     expect(active.color).not.toBe(t.or.toLowerCase());
     expect(html).toContain("data-active-badge");

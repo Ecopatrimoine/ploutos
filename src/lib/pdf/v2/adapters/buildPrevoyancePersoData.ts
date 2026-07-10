@@ -21,6 +21,11 @@ import { evaluerToutesLesRegles } from "../../../prevoyance/regles";
 import { WARNING_MICRO_TNS } from "../../../prevoyance/constants";
 import { referentiels } from "../../../../data/prevoyance";
 import { mentionDDAPrevoyance } from "../textesLegaux";
+import { formatDureeArret, plur, euro } from "../../../calculs/utils";
+import { libelleStatut } from "../../../presentation/statutsPrevoyance";
+import { compositionAtIdx, bornesPalier } from "../../../presentation/prevoyancePerso";
+import { labelExact } from "../../../presentation/echelleTemps";
+import { ticksPdf } from "../prevoyanceChart";
 
 export type BuildPrevoyancePersoDataParams = {
   data: Record<string, any>;
@@ -29,20 +34,6 @@ export type BuildPrevoyancePersoDataParams = {
   clientName?: string;
   dateLettre?: string;
   pagePosition?: string;
-};
-
-const LIBELLE_STATUT: Record<string, string> = {
-  salarie_non_cadre: "Salarié non-cadre",
-  salarie_cadre: "Salarié cadre",
-  tns_liberal: "TNS — profession libérale",
-  tns_commercant: "TNS — commerçant",
-  tns_artisan: "TNS — artisan",
-  gerant_majoritaire: "Gérant majoritaire",
-  president_sas: "Président SAS / SASU",
-  eurl_unique: "EURL gérant non majoritaire",
-  fonctionnaire: "Fonctionnaire",
-  retraite: "Retraité",
-  sans_activite: "Sans activité",
 };
 
 const LIBELLE_CAISSE: Record<string, string> = {
@@ -62,7 +53,7 @@ const LIBELLE_CAISSE: Record<string, string> = {
 };
 
 function euroMois(v: number): string {
-  return `${Math.round(v).toLocaleString("fr-FR")} €/mois`;
+  return `${euro(v)}/mois`;
 }
 
 function totalAtIdx(s: ProjectionResult["series"], i: number): number {
@@ -79,44 +70,33 @@ function totalAtIdx(s: ProjectionResult["series"], i: number): number {
   );
 }
 
-function compositionAtIdx(s: ProjectionResult["series"], i: number, jour: number): string {
-  const parts: string[] = [];
-  if (s.salaire[i] > 0) parts.push("salaire (activité)");
-  if (s.maintienEmployeur[i] > 0) parts.push("maintien employeur");
-  if (s.ijObligatoire[i] > 0) parts.push("IJ régime obl.");
-  if (s.ijComplementaireCollective[i] > 0) parts.push("IJ coll.");
-  if (s.ijComplementaireIndividuelle[i] > 0) parts.push("IJ ind.");
-  if (s.pensionInvalObligatoire[i] > 0) parts.push("pension inval. obl.");
-  if (s.renteInvalCollective[i] > 0) parts.push("rente inval. coll.");
-  if (s.renteInvalIndividuelle[i] > 0) parts.push("rente inval. ind.");
-  if (s.renteInvalEnfants[i] > 0) parts.push("rente enfants");
-  if (parts.length === 0) return jour < 7 ? "carence — aucun revenu" : "aucun revenu de remplacement";
-  return parts.join(" + ");
+// Jalons du tableau « Points clés » = EXACTEMENT les ruptures marquées sur le graphe.
+// SOURCE UNIQUE : ticksPdf(projection) — la fonction que le graphe (renderProjectionSVG)
+// consomme lui-même — filtrée sur niveau 1 (chaque rupture de la frise : tout étage change
+// de valeur), PLUS J0 (état initial, carence). Fini le gabarit fixe [0,7,30,90,180,365,1095]
+// qui masquait les VRAIES ruptures et affichait des horizons génériques : David J30 (IJ
+// Madelin après franchise 30 j) et Erika J37/J67 (maintien légal 90→66→0) n'apparaissaient
+// pas. Le tableau montre désormais les mêmes points que le graphe, ligne pour ligne.
+function joursJalonsTable(projection: ProjectionResult): number[] {
+  const ruptures = ticksPdf(projection)
+    .filter((tk) => tk.niveau === 1)
+    .map((tk) => tk.jour)
+    .filter((j) => j > 0);
+  return [0, ...ruptures];
 }
 
-const JALONS = [0, 7, 30, 90, 180, 365, 1095];
-
-function libelleJalon(jour: number): string {
-  if (jour === 0) return "J0";
-  if (jour < 30) return `J${jour}`;
-  if (jour < 365) return `${Math.round(jour / 30)} mois`;
-  if (jour === 1095) return "3 ans (inval.)";
-  return `${(jour / 365).toFixed(1)} ans`;
-}
-
-function buildJalons(projection: ProjectionResult): PrevoyancePersoJalon[] {
+export function buildJalons(projection: ProjectionResult): PrevoyancePersoJalon[] {
   const ref = projection.revenuReferenceMensuel;
-  return JALONS.map((j) => {
-    const idx =
-      j === 1095
-        ? projection.axe.findIndex((p) => p.jour >= 1095)
-        : projection.axe.findIndex((p) => p.jour === j);
+  return joursJalonsTable(projection).map((j) => {
+    const idx = projection.axe.findIndex((p) => p.jour === j);
     if (idx < 0) return null;
     const total = totalAtIdx(projection.series, idx);
     const pct = ref > 0 ? Math.round((total / ref) * 100) : 0;
     return {
-      libelle: libelleJalon(j),
-      revenu: `${Math.round(total).toLocaleString("fr-FR")} €`,
+      // labelExact = l'ÉTIQUETTE DU TICK DU GRAPHE (« J30 », « J37 », « 3 ans » à la bascule
+      // invalidité) : jour exact sous 61 j, jamais arrondi au mois. Cohérence table↔graphe.
+      libelle: labelExact(j),
+      revenu: euro(total),
       pct: `${pct} %`,
       detail: compositionAtIdx(projection.series, idx, j),
     };
@@ -125,12 +105,20 @@ function buildJalons(projection: ProjectionResult): PrevoyancePersoJalon[] {
 
 function redigerNotreLecture(projection: ProjectionResult, personneLibelle: string): string {
   const ref = projection.revenuReferenceMensuel;
-  const idxJ180 = projection.axe.findIndex((p) => p.jour === 180);
   const idxInval = projection.axe.findIndex((p) => p.jour >= 1095);
-  const totalJ180 = idxJ180 >= 0 ? totalAtIdx(projection.series, idxJ180) : 0;
   const totalInval = idxInval >= 0 ? totalAtIdx(projection.series, idxInval) : 0;
-  const pctJ180 = ref > 0 ? Math.round((totalJ180 / ref) * 100) : 0;
   const pctInval = ref > 0 ? Math.round((totalInval / ref) * 100) : 0;
+
+  // A3 — on décrit le PALIER de couverture autour de 6 mois d'arrêt (segment plat de la frise
+  // contenant J180), pas un point isolé : bornes via bornesPalier() (lib de présentation).
+  const palier = bornesPalier(projection, 180);
+  const idxJ180 = projection.axe.findIndex((p) => p.jour === 180);
+  const totalPalier = palier
+    ? palier.total
+    : idxJ180 >= 0
+      ? totalAtIdx(projection.series, idxJ180)
+      : 0;
+  const pctPalier = ref > 0 ? Math.round((totalPalier / ref) * 100) : 0;
 
   const phrases: string[] = [];
   phrases.push(
@@ -138,11 +126,15 @@ function redigerNotreLecture(projection: ProjectionResult, personneLibelle: stri
     `du premier jour (carence) jusqu'à la reconnaissance d'invalidité (3 ans), puis jusqu'à l'âge légal de retraite.`
   );
   if (ref > 0) {
+    const span =
+      palier && palier.endJour > palier.startJour
+        ? ` (palier de ${formatDureeArret(palier.startJour)} à ${formatDureeArret(palier.endJour)} d'arrêt)`
+        : "";
     phrases.push(
-      `À 6 mois d'arrêt, le revenu de remplacement estimé représente environ ${pctJ180} % du revenu de référence ; ` +
-      `en cas d'invalidité reconnue, environ ${pctInval} %.`
+      `Autour de 6 mois d'arrêt, le revenu de remplacement estimé représente environ ${pctPalier} % ` +
+      `du revenu de référence${span} ; en cas d'invalidité reconnue, environ ${pctInval} %.`
     );
-    if (pctInval < 70 || pctJ180 < 70) {
+    if (pctInval < 70 || pctPalier < 70) {
       phrases.push(
         `Un écart sensible apparaît entre le revenu habituel et le revenu de remplacement : ` +
         `c'est précisément le besoin de couverture complémentaire à étudier.`
@@ -217,14 +209,14 @@ export function buildPrevoyancePersoData(p: BuildPrevoyancePersoDataParams): Pre
 
   const anneesAnciennete = Math.floor(entree.ancienneteMois / 12);
   const ageInfo =
-    `${entree.age} ans · retraite à ${entree.ageRetraite} ans · ancienneté ${anneesAnciennete} an${anneesAnciennete > 1 ? "s" : ""}`;
+    `${entree.age} ans · retraite à ${entree.ageRetraite} ans · ancienneté ${plur(anneesAnciennete, "an")}`;
 
   return {
     disponible: true,
     clientName,
     personneLibelle,
     dateStr,
-    statutLibelle: LIBELLE_STATUT[entree.statutPro] ?? "—",
+    statutLibelle: libelleStatut(entree.statutPro),
     caisseLibelle: entree.caisse ? (LIBELLE_CAISSE[entree.caisse] ?? entree.caisse) : "—",
     ccnLibelle: entree.idccCCN ? `IDCC ${entree.idccCCN}` : null,
     revenuReference: euroMois(projection.revenuReferenceMensuel),

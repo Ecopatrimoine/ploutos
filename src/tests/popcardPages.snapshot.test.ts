@@ -4,6 +4,7 @@
 // structurants (titre de page + cabinet pied de page). Si l'une de ces
 // pages casse, le pop-card aurait des trous → on veut le bloquer ici.
 import { describe, it, expect } from "vitest";
+import { pct } from "../lib/calculs/utils";
 import { fixtureData, fixtureCabinet, fixtureMission, buildFixtureComputed, fixtureHypothesisResults } from "./__fixtures__/pdfFixture";
 import { buildTokens } from "../lib/pdf/v2/tokens";
 
@@ -141,7 +142,7 @@ describe("Pop-card pages v2 — sentinelles non-vide + structuration", () => {
     expect(html).toContain("aucun produit ni assureur");
   });
 
-  it("pageTravail : libelle 'Abattement forfaitaire 10%' quand expenseMode standard (audit #14)", () => {
+  it("pageTravail : libelle 'Abattement forfaitaire 10 %' quand expenseMode standard (audit #14)", () => {
     const html = pageTravail(t, buildTravailData({
       data: fixtureData, cabinet: fixtureCabinet, ir,
       irOptions: { expenseMode1: "standard", expenseMode2: "standard" },
@@ -149,7 +150,7 @@ describe("Pop-card pages v2 — sentinelles non-vide + structuration", () => {
     }));
     // Si déductions présentes dans la fixture, le label doit refléter le mode
     if (html.includes("Déductions appliquées")) {
-      expect(html.includes("Abattement forfaitaire 10%") || html.includes("Frais professionnels retenus")).toBe(true);
+      expect(html.includes(`Abattement forfaitaire ${pct(0.10, 0)}`) || html.includes("Frais professionnels retenus")).toBe(true);
     }
   });
 

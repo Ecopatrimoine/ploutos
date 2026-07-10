@@ -24,6 +24,7 @@ import {
   icones,
 } from "../primitives";
 import { compilerBloc, type Bloc } from "../engine/contrat";
+import { DOCREG_BODY_PADDING } from "../engine/insets";
 import { referencesLegales, type StatutFlags } from "../../../conformite/referencesLegales";
 import type { Tokens } from "../tokens";
 import { DOC_DER, type DerPageData } from "./pageDer";
@@ -109,7 +110,7 @@ export function pageDerAnnexe(t: Tokens, d: DerPageData): string {
   // compteur X/N commun avec la section principale (DocNumHandler).
   const corps = blocs.map(compilerBloc).join("\n");
   return (
-    `<div class="pdf-contrat" data-pdf-page="docReg" data-pdf-doc="${DOC_DER}" style="padding:0 36px 0 44px;orphans:2;widows:2">\n` +
+    `<div class="pdf-contrat" data-pdf-page="docReg" data-pdf-doc="${DOC_DER}" style="padding:${DOCREG_BODY_PADDING};orphans:2;widows:2">\n` +
     `${corps}\n` +
     `</div>`
   );

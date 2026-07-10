@@ -39,6 +39,7 @@ import {
   resolveSeuilsPrevoyance, buildBesoinCouverture, buildDateCritique,
   buildVigilance, pireRisques, type VigilanceRow,
 } from "../../lib/presentation/prevoyancePerso";
+import { libelleStatut } from "../../lib/presentation/statutsPrevoyance";
 import { ProjectionChart } from "../prevoyance/ProjectionChart";
 import { TableauEuroPayeurs } from "../prevoyance/TableauEuroPayeurs";
 import { BlocConstatsCompacts } from "../prevoyance/BlocConstatsCompacts";
@@ -506,23 +507,6 @@ function VigilanceCard({ rows }: { rows: VigilanceRow[] }) {
       )}
     </div>
   );
-}
-
-function libelleStatut(s: string): string {
-  const map: Record<string, string> = {
-    salarie_non_cadre: "Salarié non-cadre",
-    salarie_cadre: "Salarié cadre",
-    tns_liberal: "TNS — profession libérale",
-    tns_commercant: "TNS — commerçant",
-    tns_artisan: "TNS — artisan",
-    gerant_majoritaire: "Gérant majoritaire",
-    president_sas: "Président SAS / SASU",
-    eurl_unique: "EURL gérant non majoritaire",
-    fonctionnaire: "Fonctionnaire",
-    retraite: "Retraité",
-    sans_activite: "Sans activité",
-  };
-  return map[s] ?? "—";
 }
 
 function libelleCategorie(c: CategorieInvalidite): string {

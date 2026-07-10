@@ -4,7 +4,7 @@
 // l'euro avec le graphe (mêmes séries). Testé sur fixtures de frise.
 import type { ProjectionResult, SerieEmpilee, Constat, ConstatSeverite } from "../prevoyance/types";
 import { formatDureeArret } from "../calculs/utils";
-import { PAYEURS, type PayeurFamille } from "./payeurs";
+import { ETAGES, PAYEURS, type PayeurFamille } from "./payeurs";
 
 // Les 9 étages qui composent la couverture totale à un instant donné.
 const SERIE_KEYS: (keyof SerieEmpilee)[] = [
@@ -30,6 +30,15 @@ export function couvertureAtIdx(series: SerieEmpilee, i: number): number {
   let t = 0;
   for (const k of SERIE_KEYS) t += series[k][i] || 0;
   return t;
+}
+
+// Composition d'un point de la frise = liste des étages présents (> 0) au sens
+// des LIBELLÉS COURTS de la source unique ETAGES (mêmes chaînes, même ordre que le
+// graphe et le Tableau €). Rapatrie la version dupliquée de buildPrevoyancePersoData.
+export function compositionAtIdx(series: SerieEmpilee, i: number, jour: number): string {
+  const parts = ETAGES.filter((e) => (series[e.serieKey][i] || 0) > 0).map((e) => e.court);
+  if (parts.length === 0) return jour < 7 ? "carence — aucun revenu" : "aucun revenu de remplacement";
+  return parts.join(" + ");
 }
 
 // Libellé RDV d'un jalon (jour depuis J0). Miroir de TableauJalons.libelleJour.

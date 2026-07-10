@@ -11,6 +11,7 @@ import {
   DIMENSIONS_ORDER,
   type Recommandation,
 } from "../../../conformite/recommandations";
+import { plur } from "../../../calculs/utils";
 
 import type { RecommandationsPageData, RecoGroupe } from "../pages/pageRecommandations";
 
@@ -50,7 +51,7 @@ export function buildRecommandationsData(p: BuildRecommandationsDataParams): Rec
   const intro = `Chaque recommandation se rattache à une dimension du profil (fiscalité, transmission, protection, etc.). Le cabinet raisonne en garanties et besoins ; aucun produit ni assureur n'est nommé à ce stade. Chaque proposition est à valider avec votre conseiller selon l'évolution de votre situation.`;
 
   const notreLecture = groupes.length > 0
-    ? `${groupes.length} dimension${groupes.length > 1 ? "s" : ""} couverte${groupes.length > 1 ? "s" : ""} par ${recosComplete.length} recommandation${recosComplete.length > 1 ? "s" : ""}. Le plan d'action sera revu lors du prochain entretien.`
+    ? `${plur(groupes.length, "dimension couverte", "dimensions couvertes")} par ${plur(recosComplete.length, "recommandation")}. Le plan d'action sera revu lors du prochain entretien.`
     : `Aucune recommandation complète n'a été finalisée pour ce dossier. Le diagnostic reste à enrichir.`;
 
   return {

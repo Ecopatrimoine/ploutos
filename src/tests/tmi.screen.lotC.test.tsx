@@ -4,6 +4,7 @@
 // l'équivalence écran = PDF sur les mêmes données (buildIRData délègue au helper), (3)
 // le rendu écran du bloc réconciliation + note (BracketFillChart, hors ResponsiveContainer).
 import { describe, it, expect } from "vitest";
+import { pct } from "../lib/calculs/utils";
 import { render } from "@testing-library/react";
 import { computeIR } from "../lib/calculs/ir";
 import { computeTmiView } from "../lib/calculs/tmiEffective";
@@ -94,7 +95,7 @@ describe("Lot C2 révisé — tmiAffichee + sousTexteCard (source unique card/tu
     const pdf2 = buildIRData({ ir: computeIR(D2, OPTS), data: D2, cabinet: {}, clientName: "T" });
     const pdf4 = buildIRData({ ir: computeIR(NORMAL, OPTS), data: NORMAL, cabinet: {}, clientName: "T" });
     expect(pdf2.trancheMargSousLabel).toBe(viewOf(D2).sousTexteCard);
-    expect(pdf2.tmiAffichee).toBe("30,0 %");                          // tuile PDF = card écran (30 %)
+    expect(pdf2.tmiAffichee).toBe(pct(0.30, 0));                          // tuile PDF = card écran (30 %)
     expect(pdf4.trancheMargSousLabel).toBeUndefined();                // normal : pas de sous-texte
     expect(pdf4.tmiAffichee).toBe(pdf4.trancheMarginale);             // byte-identique
   });

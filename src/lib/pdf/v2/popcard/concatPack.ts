@@ -187,14 +187,19 @@ function renderItemBody(
     }
     case "prevoyancePersoP1": {
       const d = buildPrevoyancePersoData({ data, cabinet, which: "p1", clientName: payload.clientName, dateLettre, pagePosition });
+      // C1 — module vide = pas de page (comme l'empty state écran). Même condition que la
+      // branche « non disponible » de pagePrevoyancePerso : pas de projection → exclu du pack.
+      if (!d.disponible || !d.projection) return "";
       return pagePrevoyancePerso(t, d);
     }
     case "prevoyancePersoP2": {
       const d = buildPrevoyancePersoData({ data, cabinet, which: "p2", clientName: payload.clientName, dateLettre, pagePosition });
+      if (!d.disponible || !d.projection) return "";   // C1 — dossier sans 2e personne : pas de page P2
       return pagePrevoyancePerso(t, d);
     }
     case "prevoyanceColl": {
       const d = buildPrevoyanceCollData({ data, cabinet, clientName: payload.clientName, dateLettre, pagePosition });
+      if (!d.active) return "";   // C1 — module collectif inactif : pas de page (empty state écran)
       return pagePrevoyanceColl(t, d);
     }
 
@@ -218,10 +223,12 @@ function renderItemBody(
         hypothesisResults: payload.hypothesisResults,
         clientName: payload.clientName, dateLettre, pagePosition,
       });
+      if (d.scenarios.length === 0) return "";   // C1 — aucun scénario comparé : pas de page
       return pageHypos(t, d);
     }
     case "recommandations": {
       const d = buildRecommandationsData({ recommandations, cabinet, data, clientName: payload.clientName, dateLettre, pagePosition });
+      if (d.groupes.length === 0) return "";   // C1 — aucune recommandation complète : pas de page
       return pageRecommandations(t, d);
     }
     case "mentions": {

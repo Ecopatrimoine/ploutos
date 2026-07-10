@@ -4,6 +4,7 @@
 // déductions. Tous les calculs sont déjà faits dans computeIR().
 
 import type { TravailPageData, PersonneTravail, LigneRevenu, LigneDeduction } from "../pages/pageTravail";
+import { euro, pct } from "../../../calculs/utils";
 
 export type BuildTravailDataParams = {
   data: Record<string, any>;
@@ -154,28 +155,14 @@ function composeNotreLectureTravail(o: {
   return `
     <p style="margin:0 0 10px 0">La structure de vos revenus conditionne votre <strong>capacité d'épargne</strong>, vos <strong>marges d'optimisation fiscale</strong> et vos choix d'enveloppes patrimoniales.</p>
     <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
-      <li><strong>Revenus actifs (salaires, CA, pensions)</strong> — ${formatEuroT(o.revenusActifs)}, soit ${Math.round((o.revenusActifs / totalRefer) * 100)} % des revenus bruts.</li>
-      <li><strong>Revenus passifs (foncier + mobiliers)</strong> — ${formatEuroT(o.revenusPassifs)}, soit ${partPassif} %.</li>
-      <li><strong>Pression fiscale</strong> — IR ${formatEuroT(o.irEstime)} — taux moyen ${formatPct(o.averageRate)} (IR / revenu net imposable).</li>
+      <li><strong>Revenus actifs (salaires, CA, pensions)</strong> — ${euro(o.revenusActifs)}, soit ${Math.round((o.revenusActifs / totalRefer) * 100)} % des revenus bruts.</li>
+      <li><strong>Revenus passifs (foncier + mobiliers)</strong> — ${euro(o.revenusPassifs)}, soit ${partPassif} %.</li>
+      <li><strong>Pression fiscale</strong> — IR ${euro(o.irEstime)} — taux moyen ${pct(Number(o.averageRate) || 0, 1)} (IR / revenu net imposable).</li>
     </ul>
     <p style="margin:0;font-style:italic;color:#6B6353"><strong>Points d'attention :</strong> ${points.join(" ; ")}.</p>
   `.trim();
 }
 
-function formatEuroT(n: number): string {
-  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Math.round(n)) + " €";
-}
-
-// Identique a buildIRData.formatPct : le taux moyen affiche dans la prose Travail
-// matche EXACTEMENT le KPI net (formatPct(ir.averageRate)). averageRate est un taux
-// decimal (0-1) => *100 ; valeur absente/non finie => "—".
-function formatPct(v: any): string {
-  if (v === undefined || v === null || v === "") return "—";
-  const n = typeof v === "string" ? parseFloat(v.replace(/\s|%/g, "").replace(",", ".")) : v;
-  if (!Number.isFinite(n)) return "—";
-  const pct = n <= 1 ? n * 100 : n;
-  return `${pct.toFixed(1).replace(".", ",")} %`;
-}
 
 function num(v: any): number {
   const n = typeof v === "string" ? parseFloat(v.replace(/\s/g, "").replace(",", ".")) : (v || 0);
@@ -191,5 +178,5 @@ function composeFraisLabel(irOptions?: { expenseMode1?: string; expenseMode2?: s
   // Si irOptions n'est pas fourni → label neutre.
   if (!irOptions) return "Frais professionnels retenus";
   const isActual = irOptions.expenseMode1 === "actual" || irOptions.expenseMode2 === "actual";
-  return isActual ? "Frais réels" : "Abattement forfaitaire 10%";
+  return isActual ? "Frais réels" : `Abattement forfaitaire ${pct(0.10, 0)}`;
 }

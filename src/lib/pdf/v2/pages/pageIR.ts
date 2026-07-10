@@ -25,6 +25,7 @@ import {
 } from "../primitives";
 import { compilerPageContrat, type Bloc } from "../engine/contrat";
 import { renderBracketChartSVG } from "../bracketChart";
+import { plur } from "../../../calculs/utils";
 import type { Tokens } from "../tokens";
 import type { FilledBracket } from "../../../../types/patrimoine";
 
@@ -87,11 +88,15 @@ export type IRPageData = {
 
 export function pageIR(t: Tokens, d: IRPageData): string {
   // ─── KPI band (mode "large" — 4 KPI, 1er navy plus large) ──
+  // Chiffres-rois nommés en miroir de l'écran 10b (TabIR) :
+  //   - « Impôt total du foyer » = finalIR (tout compris : barème net des réductions + PFU + PS) ;
+  //   - « TMI » (tranche affichée : réf sous plafonnement QF, statutaire sinon) ;
+  //   - « Revenu net global » (€, = ir.revenuNetGlobal) avec « N parts » en sous-titre.
   const kpis = [
-    { label: "IMPÔT NET DÛ",   value: euro(d.impotNetDu),    type: "main"   as const },
-    { label: "TRANCHE MARG.",  value: d.tmiAffichee ?? d.trancheMarginale, sousLabel: d.trancheMargSousLabel, type: "normal" as const },
-    { label: "TAUX MOYEN",     value: d.tauxMoyen,           type: "normal" as const },
-    { label: "QUOTIENT",       value: d.quotient,            type: "normal" as const },
+    { label: "Impôt total du foyer", value: euro(d.impotNetDu), type: "main" as const },
+    { label: "TMI",           value: d.tmiAffichee ?? d.trancheMarginale, sousLabel: d.trancheMargSousLabel, type: "normal" as const },
+    { label: "Taux moyen",    value: d.tauxMoyen,           type: "normal" as const },
+    { label: "Revenu net global", value: euro(d.revenuNetImposable), sousLabel: plur(d.parts, "part"), type: "normal" as const },
   ];
 
   // ─── Encart « votre taux marginal réel » (Lot B2) — patron alerte douce (noteIconee
@@ -117,7 +122,9 @@ export function pageIR(t: Tokens, d: IRPageData): string {
   const echelle = d.revenusBruts || 1;
   const pctCascade = (v: number) => Math.min(100, Math.round((v / echelle) * 100));
   // Format 2 décimales (réductions/amortissements exacts) : round -> sans décimale, sinon 2.
-  const euro2 = (v: number) => new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(v) + " €";
+  // euro à 2 décimales (réductions/amortissements exacts) — style currency = espace insécable
+  // avant € (cohérent avec le euro() partagé, qui reste en entier).
+  const euro2 = (v: number) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(v);
   const reductionsDispositifs = d.reductionsDispositifs ?? [];
   const jeanbrun = d.jeanbrun ?? null;
   const ecretementNiches = d.ecretementNiches ?? 0;
@@ -168,10 +175,10 @@ export function pageIR(t: Tokens, d: IRPageData): string {
   // En-tête de lecture (Lot B3) : sens de chaque barre (hauteur = revenu logé, étiquette = impôt).
   const lectureBarre = "Chaque barre : la hauteur représente le revenu logé dans la tranche, l'étiquette l'impôt correspondant (par part).";
   const footHautBareme = plafonneActif
-    ? `Le <strong>plafonnement du quotient familial</strong> est atteint (avantage écrêté de ${euro(d.qfEcretement ?? 0)}) : lecture au <strong>barème de référence à ${baseParts} part${baseParts > 1 ? "s" : ""}</strong> (${euro(chartRef)} par part). ${lectureBarre}`
+    ? `Le <strong>plafonnement du quotient familial</strong> est atteint (avantage écrêté de ${euro(d.qfEcretement ?? 0)}) : lecture au <strong>barème de référence à ${plur(baseParts, "part")}</strong> (${euro(chartRef)} par part). ${lectureBarre}`
     : lectureBarre;
   const annotationBareme = plafonneActif
-    ? `Plafonnement du quotient familial actif — avantage écrêté de ${euro(d.qfEcretement ?? 0)} ; lecture au barème de référence (${baseParts} part${baseParts > 1 ? "s" : ""}).`
+    ? `Plafonnement du quotient familial actif — avantage écrêté de ${euro(d.qfEcretement ?? 0)} ; lecture au barème de référence (${plur(baseParts, "part")}).`
     : undefined;
   // Réconciliation sous le graphe (Lot B3) : lignes de calcul data-driven (buildIRData).
   // Repli défensif sur l'ancienne légende si absentes.

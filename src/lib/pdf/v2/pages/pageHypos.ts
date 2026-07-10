@@ -201,7 +201,7 @@ function renderHyposBarChart(t: Tokens, d: HyposPageData): string {
       const x = groupX + barGap + j * (barWidth + barGap);
       const y = padding.top + innerH - h;
       bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${Math.max(1, h).toFixed(1)}" fill="${colors[j]}" rx="2"/>`;
-      bars += `<text x="${(x + barWidth/2).toFixed(1)}" y="${(y - 4).toFixed(1)}" text-anchor="middle" font-size="8.5" font-family="Lato,sans-serif" fill="${colors[j]}">${formatEuroCompact(val)}</text>`;
+      bars += `<text x="${(x + barWidth/2).toFixed(1)}" y="${(y - 4).toFixed(1)}" text-anchor="middle" font-size="8.5" font-family="Lato,sans-serif" fill="${colors[j]}">${euro(val)}</text>`;
     });
 
     labels += `<text x="${(groupX + groupWidth/2).toFixed(1)}" y="${(padding.top + innerH + 18).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" font-family="Lato,sans-serif" fill="${t.texte}">${g.label}</text>`;
@@ -233,11 +233,3 @@ function renderHyposBarChart(t: Tokens, d: HyposPageData): string {
   `;
 }
 
-function formatEuroCompact(n: number): string {
-  // Compact pour rester lisible au-dessus des barres : 1 234 € / 12 k€ / 1,2 M€.
-  const abs = Math.abs(n);
-  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(".", ",")} M€`;
-  if (abs >= 10_000)    return `${Math.round(n / 1000)} k€`;
-  if (abs >= 1_000)     return `${(n / 1000).toFixed(1).replace(".", ",")} k€`;
-  return `${Math.round(n)} €`;
-}

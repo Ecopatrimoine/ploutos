@@ -5,10 +5,11 @@
 // histogramme, une barre par tranche :
 //   - hauteur de barre = assiette logée dans la tranche (`filled`), échelle sur
 //     le plus grand `filled` ;
-//   - COULEUR = rampe de sévérité crème → rouge échantillonnée sur le RANG ABSOLU
-//     de la tranche (t.rampeBareme[i/(n-1)]) → la dernière tranche est toujours le
-//     rouge profond, que n=5 (IR) ou 6 (IFI), indépendamment du remplissage ;
-//   - tranche à filled=0 = trait fin au pied, MÊME teinte de rampe en opacité réduite
+//   - COULEUR (C2) = palette CATÉGORIELLE or/bleu de l'écran (t.paletteBareme = CHART_COLORS,
+//     BracketFillChart), cyclée par RANG de tranche i (jamais selon le remplissage) →
+//     l'écran fait foi ; en N&B, les valeurs affichées (taux/impôt/borne) désambiguïsent
+//     deux teintes voisines devenues proches en gris ;
+//   - tranche à filled=0 = trait fin au pied, MÊME teinte catégorielle en opacité réduite
 //     (visible, pas trompeur) ;
 //   - label au-dessus = impôt de la tranche (`tax`) via euro() ; rien si tax=0 ;
 //   - tranche active (la DERNIÈRE à filled>0) marquée par un CONTOUR or + un badge
@@ -22,7 +23,7 @@
 // UNIQUEMENT (rampe incluse — aucun hex ici). Générique → réutilisable IFI et IR.
 
 import type { FilledBracket } from "../../../types/patrimoine";
-import { echantillonnerRampe, type Tokens } from "./tokens";
+import { type Tokens } from "./tokens";
 import { euro } from "./primitives";
 
 // Borne en millions d'euros, format FR compact (« ≤ 0,8 M », « 1,3–2,57 M », « ≥ 10 M »).
@@ -96,9 +97,10 @@ export function renderBracketChartSVG(
     const isActive = i === activeIdx;
     const isEmpty = b.filled <= 0;
 
-    // Couleur de rampe au RANG ABSOLU i parmi n (jamais selon le remplissage).
-    const fill = echantillonnerRampe(t.rampeBareme, i, n);
-    const bordure = echantillonnerRampe(t.rampeBaremeBordure, i, n);
+    // C2 — palette CATÉGORIELLE or/bleu de l'écran (t.paletteBareme = CHART_COLORS), cyclée
+    // par RANG de tranche i (jamais selon le remplissage), comme BracketFillChart.
+    const fill = t.paletteBareme[i % t.paletteBareme.length];
+    const bordure = t.paletteBaremeBordure[i % t.paletteBaremeBordure.length];
     const activeAttr = isActive ? ` data-bar-active="true"` : "";
 
     let barre: string;

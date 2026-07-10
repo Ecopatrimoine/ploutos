@@ -10,6 +10,7 @@ import { buildIRData } from "../lib/pdf/v2/adapters/buildIRData";
 import { pageIR } from "../lib/pdf/v2/pages/pageIR";
 import { renderBracketChartSVG } from "../lib/pdf/v2/bracketChart";
 import { EMPTY_CHARGES_DETAIL } from "../constants";
+import { pct } from "../lib/calculs/utils";
 
 const t = buildTokens("encreOr");
 const OPTS = { expenseMode1: "standard", expenseMode2: "standard", km1: "0", cv1: "5", mealCount1: "0", mealUnit1: "4.9", km2: "0", cv2: "5", mealCount2: "0", mealUnit2: "4.9", foncierRegime: "micro", other1: "0", other2: "0" } as any;
@@ -35,12 +36,13 @@ const NORMAL = base({ salary1: "60000" });                                      
 const NORMAL_PFU = base({ salary1: "60000", placements: [cto("5000")] });                                     // normal + forfaitaire
 const FRONTIERE = base({ salary1: "93900" });                                                                 // quotient 84 510 -> +100 franchit 84 577
 
-describe("Lot B2/C2 — tuile KPI 'TRANCHE MARG.' (valeur = tranche affichée)", () => {
-  it("D2 : tuile affiche la tranche réelle 30,0 % (plafonnement), libellé inchangé, PAS 'TAUX MARGINAL'", () => {
-    expect(dataOf(D2).tmiAffichee).toBe("30,0 %");      // Lot C2 révisé : réf-2-parts
-    expect(dataOf(D2).trancheMarginale).toBe("11,0 %"); // statutaire conservé (champ)
+describe("Lot B2/C2 — tuile KPI 'TMI' (valeur = tranche affichée)", () => {
+  it("D2 : tuile affiche la tranche réelle 30,0 % (plafonnement), libellé 'TMI' (lot 11), PAS 'TAUX MARGINAL'", () => {
+    expect(dataOf(D2).tmiAffichee).toBe(pct(0.30, 0));      // Lot C2 révisé : réf-2-parts
+    expect(dataOf(D2).trancheMarginale).toBe(pct(0.11, 0)); // statutaire conservé (champ)
     const h = pageOf(D2);
-    expect(h).toContain("TRANCHE MARG.");
+    expect(h).toContain(">TMI<");        // libellé KPI renommé (lot 11) — ex « TRANCHE MARG. »
+    expect(h).not.toContain("TRANCHE MARG.");
     expect(h).not.toContain("TAUX MARGINAL");
   });
 });
@@ -105,14 +107,14 @@ describe("Lot B2 — encart 'votre taux marginal reel' (1 par cas)", () => {
 
 describe("Lot C2 révisé — tuile PDF : valeur = tranche affichée + sous-texte", () => {
   it("D2 plafonnement : valeur 30,0 % (réf) + sous-texte 'tranche sur le quotient : 11 %'", () => {
-    expect(dataOf(D2).tmiAffichee).toBe("30,0 %");
+    expect(dataOf(D2).tmiAffichee).toBe(pct(0.30, 0));
     expect(dataOf(D2).trancheMargSousLabel).toBe("plafonnement du QF actif — tranche sur le quotient : 11 %");
     const h = pageOf(D2);
-    expect(h).toContain("30,0 %");
+    expect(h).toContain(pct(0.30, 0));
     expect(h).toContain("plafonnement du QF actif — tranche sur le quotient : 11 %");
   });
   it("D3 décote : valeur 11,0 % (tranche) + sous-texte 'taux réel : 15,98 % (effet décote)'", () => {
-    expect(dataOf(D3).tmiAffichee).toBe("11,0 %");
+    expect(dataOf(D3).tmiAffichee).toBe(pct(0.11, 0));
     expect(dataOf(D3).trancheMargSousLabel).toBe("taux réel : 15,98 % (effet décote) — voir encadré");
     expect(pageOf(D3)).toContain("taux réel : 15,98 % (effet décote)");
   });

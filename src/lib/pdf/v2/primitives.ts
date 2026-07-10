@@ -7,6 +7,11 @@
 // revue-preview/pdf/refonte_pdf_*.html — c'est la source de vérité visuelle.
 
 import { FONTS_HTML_LINKS, type Tokens } from "./tokens";
+// LOT 11 G4 — formateur monétaire UNIQUE (calculs/utils) : espace insécable avant € (style
+// currency fr-FR). L'ancien euro() local de primitives ajoutait un espace ASCII. Réexporté
+// ici pour tous les points d'appel PDF (pages/adapters) sans changer leurs imports.
+import { euro } from "../../calculs/utils";
+export { euro };
 
 // ─── CSS commun (classes utilitaires partagées) ──────────────────────────
 // Reproduit les classes .ser/.lt/.eb/.sct/.kpi/.klbl/.kval/.foot/.th/.td
@@ -57,11 +62,7 @@ export const icones = {
 };
 
 // ─── Helpers de formatage ────────────────────────────────────────────────
-export function euro(n: number | string | null | undefined): string {
-  const v = typeof n === "string" ? parseFloat(n.replace(/\s/g, "").replace(",", ".")) : (n || 0);
-  if (!Number.isFinite(v)) return "—";
-  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(v) + " €";
-}
+// euro() est désormais réexporté depuis calculs/utils (voir en-tête du fichier).
 
 // ─── header : eyebrow doré + titre Fraunces + colonne droite + filet or ─
 // Option sousTitre : petit texte gris entre le titre et le filet (ex:
