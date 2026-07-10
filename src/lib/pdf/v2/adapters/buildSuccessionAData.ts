@@ -5,6 +5,7 @@
 
 import type { SuccessionAPageData } from "../pages/pageSuccessionA";
 import { euro, pct, plur } from "../../../calculs/utils";
+import { labelRelationSuccession } from "../../../presentation/relationsSuccession";
 
 export type BuildSuccessionADataParams = {
   succession: any;
@@ -44,7 +45,7 @@ export function buildSuccessionAData(p: BuildSuccessionADataParams): SuccessionA
     const rappelAuto = !!ra && ra.mode === "auto" && num(ra.abattementConsomme) > 0;
     return {
       nom: h.name || "Héritier",
-      lien: relationLabel(h.relation),
+      lien: labelRelationSuccession(h.relation, "Héritier"),
       partRecue,
       abattement: abattement > 0 ? abattement : undefined,
       rappel: rappelAuto ? {
@@ -157,19 +158,6 @@ function num(v: any): number {
   return Number.isFinite(n) ? Math.round(n) : 0;
 }
 
-
-function relationLabel(r: any): string {
-  if (!r) return "Héritier";
-  const map: Record<string, string> = {
-    "conjoint": "Conjoint",
-    "enfant": "Enfant",
-    "petit-enfant": "Petit-enfant",
-    "frere-soeur": "Frère/Sœur",
-    "parent": "Parent",
-    "autre": "Autre",
-  };
-  return map[String(r).toLowerCase()] || String(r);
-}
 
 // Description dévolution = réservataires du DÉFUNT + option conjoint CHOISIE (label moteur,
 // même source que le select écran) + démembrement US/NP (art. 669) si l'option est en usufruit.

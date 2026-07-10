@@ -6,6 +6,7 @@
 
 import type { SuccessionBPageData, BeneficiaireAV } from "../pages/pageSuccessionB";
 import { euro, plur } from "../../../calculs/utils";
+import { labelRelationSuccession } from "../../../presentation/relationsSuccession";
 
 const ABATTEMENT_990I = 152_500;
 
@@ -54,7 +55,7 @@ export function buildSuccessionBData(p: BuildSuccessionBDataParams): SuccessionB
 
   const beneficiaires: BeneficiaireAV[] = Array.from(benefMap.entries()).map(([nom, agg]) => ({
     nom,
-    lien: relationLabel(agg.relation),
+    lien: labelRelationSuccession(agg.relation, "Bénéficiaire"),
     capital: agg.amount,
     // Abattement 990 I INDIVIDUEL (152 500 €) uniquement si part avant 70 ans ; sinon 0
     // (le 757 B est un abattement GLOBAL de 30 500 €, jamais par bénéficiaire — cf. note).
@@ -141,13 +142,6 @@ function num(v: any): number {
   const n = typeof v === "string" ? parseFloat(v.replace(/\s/g, "").replace(",", ".")) : (v || 0);
   return Number.isFinite(n) ? Math.round(n) : 0;
 }
-
-function relationLabel(r: any): string {
-  if (!r) return "Bénéficiaire";
-  const map: Record<string, string> = { conjoint: "Conjoint", enfant: "Enfant", parent: "Parent", autre: "Autre" };
-  return map[String(r).toLowerCase()] || String(r);
-}
-
 
 function formatDateFr(d: Date): string {
   return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
