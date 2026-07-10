@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { useAuth } from "../hooks/useAuth";
-import { supabase } from "../lib/supabase";
+import { supabase, SUPABASE_FUNCTIONS_URL } from "../lib/supabase";
 
 // Email de bienvenue — déplacé de l'inscription au PREMIER login (tranche P4).
 // Motif : l'inscription exige une confirmation email, donc AUCUNE session n'existe
@@ -35,7 +35,7 @@ async function sendWelcomeIfNeeded() {
     const emailType = isMac ? "welcome_trial_mac" : "welcome_trial";
     const cabinet_name = (user.user_metadata as { cabinet_name?: string } | undefined)?.cabinet_name;
 
-    const res = await fetch("https://ysbgfiqsuvdwzkcsiqir.supabase.co/functions/v1/send-email", {
+    const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/send-email`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
       body: JSON.stringify({ to: user.email, type: emailType, cabinet_name }),

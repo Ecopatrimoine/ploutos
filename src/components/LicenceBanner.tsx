@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { AlertTriangle, Settings, ArrowRight, Sparkles } from "lucide-react";
 import type { LicenceInfo } from "../hooks/useLicense";
-import { supabase } from "../lib/supabase";
+import { supabase, SUPABASE_FUNCTIONS_URL } from "../lib/supabase";
 
 interface LicenceBannerProps {
   licence:   LicenceInfo;
@@ -18,7 +18,7 @@ async function openStripePortal() {
   if (!token) { console.error("Portail Stripe : session absente"); return; }
 
   const res = await fetch(
-    "https://ysbgfiqsuvdwzkcsiqir.supabase.co/functions/v1/create-portal-session",
+    `${SUPABASE_FUNCTIONS_URL}/create-portal-session`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
