@@ -118,4 +118,36 @@ describe("useClients — suppression honnete (C2) + anti-resurrection (C3)", () 
     // Tombstone leve apres suppression confirmee au rejeu
     expect(JSON.parse(localStorage.getItem(`ecopatrimoine_deleted_${UID}`) || "[]")).not.toContain("id-3");
   });
+
+  // ── LOT 3ter (T3) — LE VRAI CYCLE que le 3bis ne couvrait pas ──
+  // Le 3bis ne testait que le rejeu-DELETE qui ABOUTIT (deleteRows non vide -> tombstone
+  // leve). Ici : DELETE serveur a 0 ligne (refus RLS / course) MAIS le dossier est TOUJOURS
+  // renvoye par le fetch autoritaire. L'ancien code levait le tombstone via existsOnSupabase
+  // (false) -> vide a [] -> au reload suivant, plus de protection -> RESURRECTION.
+  // Le fix (reconcileTombstones) doit GARDER le tombstone (ligne encore la + DELETE echoue)
+  // et re-tenter ; il survit a un 2e montage (reload) -> aucune resurrection.
+  it("C3 REGRESSION (3ter) : DELETE=0 ligne + dossier encore dans le fetch -> tombstone CONSERVE, pas de resurrection apres reload", async () => {
+    const r = rec("id-4", "Delta");
+    // Etat post-suppression : local vide, tombstone pose, serveur a ENCORE la ligne.
+    localStorage.setItem(`ecopatrimoine_clients_${UID}`, JSON.stringify([]));
+    localStorage.setItem(`ecopatrimoine_deleted_${UID}`, JSON.stringify(["id-4"]));
+    state.v.remote = [r];        // fetch autoritaire : la ligne est encore la
+    state.v.deleteRows = [];     // rejeu DELETE : 0 ligne (refus RLS / course)
+    state.v.exists = [];         // existsOnSupabase renverrait false -> l'ANCIEN code aurait leve a tort
+
+    // 1er montage
+    const { result, unmount } = renderHook(() => useClients(UID, "authenticated"));
+    await settle();
+    expect(result.current.clients.find((c) => c.id === "id-4")).toBeUndefined();
+    // Tombstone CONSERVE (ligne encore presente + DELETE non abouti) — c'est le fix 3ter.
+    expect(JSON.parse(localStorage.getItem(`ecopatrimoine_deleted_${UID}`) || "[]")).toContain("id-4");
+
+    // 2e montage = reload / re-init du module, MEME remote stale
+    unmount();
+    const { result: r2 } = renderHook(() => useClients(UID, "authenticated"));
+    await settle();
+    // Le tombstone a survecu au reload -> toujours pas de resurrection.
+    expect(r2.current.clients.find((c) => c.id === "id-4")).toBeUndefined();
+    expect(JSON.parse(localStorage.getItem(`ecopatrimoine_deleted_${UID}`) || "[]")).toContain("id-4");
+  });
 });

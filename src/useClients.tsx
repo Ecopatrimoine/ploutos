@@ -315,6 +315,35 @@ export function useClients(userId: string, authState = "authenticated") {
     return loadClientsLocal(userId);
   }, [userId]);
 
+  // ── LOT 3ter (T1/T2) — Reconciliation des tombstones contre le fetch AUTORITAIRE ──
+  // Regle : un tombstone ne se leve QUE sur absence CONFIRMEE par LA MEME requete qui
+  // pourrait le ressusciter (fetchFromSupabase, filtre user_id), ou apres un DELETE
+  // serveur REELLEMENT abouti (removed>0). On N'UTILISE PLUS existsOnSupabase (filtre
+  // id+user_id) pour lever : il peut diverger du fetch autoritaire (0 ligne alors que le
+  // fetch renvoie encore le dossier) -> c'etait LE TROU du 3bis (levee a tort -> tombstone
+  // remis a [] -> resurrection au reload suivant, diagnostic session propre du 10/07).
+  // Tant qu'un id tombstone reste present cote serveur ET que le DELETE echoue (RLS /
+  // course), on GARDE le tombstone (il filtre) et on RE-TENTE le DELETE (T2). Write-through
+  // systematique via saveDeletedIds.
+  const reconcileTombstones = useCallback(async (remoteClients: ClientRecord[]) => {
+    if (deletedRef.current.size === 0) return;
+    const remoteIds = new Set(remoteClients.map((c) => c.id));
+    for (const id of [...deletedRef.current]) {
+      if (!remoteIds.has(id)) {
+        // Absent du fetch autoritaire : aucune resurrection possible -> lever.
+        deletedRef.current.delete(id);
+        continue;
+      }
+      // Encore present cote serveur : re-tenter la suppression ; ne lever QUE si aboutie.
+      try {
+        const removed = await deleteFromSupabase(userId, id);
+        if (removed > 0) deletedRef.current.delete(id);
+        // removed === 0 (refus RLS / course) : GARDER le tombstone, retry prochaine synchro.
+      } catch { /* garder le tombstone */ }
+    }
+    saveDeletedIds(userId, deletedRef.current);
+  }, [userId]);
+
   // ── Chargement initial ──
   useEffect(() => {
     if (!userId) { setClients([]); setSyncStatus("offline"); return; }
@@ -403,19 +432,9 @@ export function useClients(userId: string, authState = "authenticated") {
             for (const c of toSync) pendingRef.current.delete(c.id);
             savePendingIds(userId, pendingRef.current);
           }
-          // Rejouer les suppressions en attente (tombstones) — INDEPENDANT du pending.
-          // On ne leve un tombstone que si la ligne a reellement disparu du serveur.
-          if (deletedRef.current.size > 0) {
-            for (const id of [...deletedRef.current]) {
-              try {
-                const removed = await deleteFromSupabase(userId, id);
-                if (removed > 0 || !(await existsOnSupabase(userId, id))) {
-                  deletedRef.current.delete(id);
-                }
-              } catch { /* garder le tombstone, retry a la prochaine synchro */ }
-            }
-            saveDeletedIds(userId, deletedRef.current);
-          }
+          // Reconciliation des tombstones contre le fetch AUTORITAIRE (T1/T2) : ne leve
+          // que sur absence confirmee par CE fetch ou DELETE abouti ; re-tente sinon.
+          await reconcileTombstones(remoteClients as ClientRecord[]);
 
           console.log("[useClients] Sync success, merged:", guarded.length, "clients");
           if (!cancelled) setSyncStatus("synced");
@@ -503,15 +522,8 @@ export function useClients(userId: string, authState = "authenticated") {
       for (const c of toSync) pendingRef.current.delete(c.id);
       savePendingIds(userId, pendingRef.current);
 
-      // Rejouer les suppressions ; ne lever un tombstone que si la ligne a bien
-      // disparu du serveur (sinon la garder pour retry — pas de faux succes).
-      for (const id of [...deletedRef.current]) {
-        try {
-          const removed = await deleteFromSupabase(userId, id);
-          if (removed > 0 || !(await existsOnSupabase(userId, id))) deletedRef.current.delete(id);
-        } catch { /* garder le tombstone */ }
-      }
-      saveDeletedIds(userId, deletedRef.current);
+      // Reconciliation des tombstones contre le fetch AUTORITAIRE (T1/T2).
+      await reconcileTombstones(remoteClients);
       setSyncStatus("synced");
     } catch {
       setSyncStatus("pending");
