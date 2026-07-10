@@ -78,17 +78,23 @@ export function buildSuccessionAData(p: BuildSuccessionADataParams): SuccessionA
     : 0;
   const tauxMoyen = pct(tauxMoyenPct / 100, 1);
 
-  // Réserve héréditaire / Quotité disponible — calcul selon nb enfants
-  const nbEnfants = Array.isArray(data.childrenData) ? data.childrenData.length : 0;
-  const reservePct = nbEnfants === 1 ? 50 : nbEnfants === 2 ? 67 : nbEnfants >= 3 ? 75 : 0;
-  const reserveMontant = Math.round(masseSuccessoraleNette * reservePct / 100);
-  const quotitePct = 100 - reservePct;
-  const quotiteMontant = masseSuccessoraleNette - reserveMontant;
-  const reserveFraction = nbEnfants === 1 ? "1/2" : nbEnfants === 2 ? "2/3" : nbEnfants >= 3 ? "3/4" : "—";
-  const quotiteFraction = nbEnfants === 1 ? "1/2" : nbEnfants === 2 ? "1/3" : nbEnfants >= 3 ? "1/4" : "—";
+  // Dévolution — SOURCE = sorties MOTEUR (les MÊMES que l'écran : encart conjoint + camembert
+  // « Cadre légal »), JAMAIS data.childrenData. Les RÉSERVATAIRES DU DÉFUNT (reserveChildrenCount,
+  // filtrés sur parentLink = défunt), la quotité disponible et l'option conjoint CHOISIE viennent
+  // de computeSuccession. (Bug G5-A : le PDF comptait les enfants du foyer + option légale figée.)
+  const reservataires = num(s.reserveChildrenCount ?? 0);
+  const quotiteFallback = reservataires === 1 ? 0.5 : reservataires === 2 ? 1 / 3 : reservataires >= 3 ? 0.25 : 1;
+  const quotiteFrac = typeof s.quotiteDisponible === "number" ? s.quotiteDisponible : quotiteFallback;
+  const quotitePct = Math.round(quotiteFrac * 100);
+  const reservePct = 100 - quotitePct;
+  const reserveMontant = num(s.legalReserveAmount ?? Math.round(masseSuccessoraleNette * reservePct / 100));
+  const quotiteMontant = num(s.legalDisposableAmount ?? (masseSuccessoraleNette - reserveMontant));
+  const reserveFraction = reservataires === 1 ? "1/2" : reservataires === 2 ? "2/3" : reservataires >= 3 ? "3/4" : "—";
+  const quotiteFraction = reservataires === 1 ? "1/2" : reservataires === 2 ? "1/3" : reservataires >= 3 ? "1/4" : "totale";
 
-  // Description dévolution (composée selon situation famille)
-  const devolutionDescription = describeDevolution(data, nbEnfants);
+  // Badge + description dévolution composés depuis l'option MOTEUR choisie (DDV vs légale).
+  const devolutionBadge = String(s.spouseOption || "").startsWith("ddv") ? "Donation au dernier vivant" : "Dévolution légale";
+  const devolutionDescription = describeDevolution(s, data, reservataires);
 
   return {
     clientName,
@@ -98,7 +104,7 @@ export function buildSuccessionAData(p: BuildSuccessionADataParams): SuccessionA
     netTransmis,
     tauxMoyen,
     noteKpi: "Masse civile, hors assurance-vie et PER (transmis hors succession — voir page suivante).",
-    devolutionBadge: "Dévolution légale",
+    devolutionBadge,
     devolutionDescription,
     reservePct,
     reserveLabel: `Réserve héréditaire · ${reserveFraction}`,
@@ -113,14 +119,14 @@ export function buildSuccessionAData(p: BuildSuccessionADataParams): SuccessionA
 
       // Leviers contextuels
       const leviers: string[] = [];
-      if (nbEnfants > 0 && droitsSuccession > 0) {
+      if (reservataires > 0 && droitsSuccession > 0) {
         leviers.push("donation-partage de la quotité disponible (figure les valeurs, évite les conflits ultérieurs)");
         leviers.push("démembrement temporaire (donation de nue-propriété, conjoint usufruitier) — abat la base taxable selon Duvergier");
       }
       if (hasConjoint) {
         leviers.push("option du conjoint à arbitrer (¼ PP / usufruit total / ¼ PP + ¾ usufruit) selon objectif protection vs transmission rapide");
       }
-      if (masseSuccessoraleNette > 500_000 && nbEnfants > 0) {
+      if (masseSuccessoraleNette > 500_000 && reservataires > 0) {
         leviers.push("AV avec clause bénéficiaire structurée (transmission hors succession civile, abattement 152 500 € par bénéficiaire avant 70 ans)");
       }
       if (leviers.length === 0) {
@@ -134,7 +140,7 @@ export function buildSuccessionAData(p: BuildSuccessionADataParams): SuccessionA
           <li><strong>Droits estimés</strong> — ${droitsSuccession > 0
             ? `${euro(droitsSuccession)} (taux moyen ${tauxMoyen}). Net transmis : ${euro(netTransmis)}.`
             : `Aucun droit dû (exonération conjoint/PACS ou base sous abattements).`}</li>
-          <li><strong>Quotité civile</strong> — ${nbEnfants > 0
+          <li><strong>Quotité civile</strong> — ${reservataires > 0
             ? `Réserve héréditaire ${reserveFraction} = ${euro(reserveMontant)} (bloquée pour les enfants). Quotité disponible ${quotiteFraction} = ${euro(quotiteMontant)} (libre allocation).`
             : `Pas d'enfant : quotité disponible = totalité du patrimoine.`}</li>
         </ul>
@@ -165,13 +171,21 @@ function relationLabel(r: any): string {
   return map[String(r).toLowerCase()] || String(r);
 }
 
-function describeDevolution(data: Record<string, any>, nbEnfants: number): string {
-  const status = data.coupleStatus;
+// Description dévolution = réservataires du DÉFUNT + option conjoint CHOISIE (label moteur,
+// même source que le select écran) + démembrement US/NP (art. 669) si l'option est en usufruit.
+function describeDevolution(s: Record<string, any>, data: Record<string, any>, reservataires: number): string {
   const parts: string[] = [];
-  if (nbEnfants > 0) parts.push(plur(nbEnfants, "enfant"));
-  if (status === "married" || status === "pacs") {
-    parts.push("conjoint — option ¼ en pleine propriété");
-  } else if (status === "cohab") {
+  if (reservataires > 0) parts.push(plur(reservataires, "enfant réservataire"));
+  if (s.spouseEligible) {
+    const opt = Array.isArray(s.spouseOptions) ? s.spouseOptions.find((o: any) => o?.value === s.spouseOption) : null;
+    let txt = "conjoint";
+    if (opt?.label) txt += ` — ${opt.label}`;
+    const dem = s.demembrementPct;
+    if (dem && typeof dem.usufruct === "number" && opt?.label && /usufruit/i.test(opt.label)) {
+      txt += ` (US ${pct(dem.usufruct, 0)} / NP ${pct(dem.nuePropriete, 0)})`;
+    }
+    parts.push(txt);
+  } else if (data.coupleStatus === "cohab") {
     parts.push("concubin (non héritier légal — taxation 60 %)");
   }
   return parts.join(" · ") || "Dévolution à préciser";
