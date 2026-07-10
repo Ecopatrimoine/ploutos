@@ -1,0 +1,262 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Revue UX/UI — Ploutos · 07/07/2026</title>
+<style>
+:root{
+  --bg:#0b1230;--panel:#121f47;--bg2:#0f1838;--line:#1c2c5e;--ink:#eef1fb;--soft:#a9b6e0;
+  --gold:#e3af64;--good:#46d39a;--warn:#f0b54a;--maj:#f3736f;--crit:#d6453f;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:radial-gradient(1000px 560px at 85% -12%,rgba(227,175,100,.12),transparent 60%),var(--bg);color:var(--ink);font-family:var(--sans);padding:44px 20px 90px;line-height:1.55}
+.wrap{max-width:920px;margin:0 auto}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+h1{font-family:var(--serif);font-weight:600;font-size:44px;letter-spacing:-.01em;line-height:1.05}
+h1 em{font-style:italic;color:var(--gold)}
+.meta{color:var(--soft);font-size:13px;margin-top:10px;font-family:var(--mono)}
+.lede{color:var(--soft);font-size:15px;margin-top:16px;max-width:70ch}
+.lede b{color:var(--ink)}
+
+.glob{display:flex;align-items:flex-end;gap:26px;margin:30px 0 6px;flex-wrap:wrap}
+.gcard{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:14px;padding:16px 22px;text-align:center;min-width:150px}
+.gcard .n{font-family:var(--serif);font-size:56px;line-height:1}
+.gcard .o{color:var(--soft);font-size:11px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;margin-top:6px}
+.arrow{color:var(--soft);font-size:26px;align-self:center;padding-bottom:22px}
+
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0 8px}
+.chip{flex:1;min-width:120px;background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:12px;padding:13px}
+.chip .cl{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft)}
+.chip .row{display:flex;align-items:baseline;gap:8px;margin-top:6px}
+.chip .cv{font-family:var(--serif);font-size:24px}
+.chip .cv.was{font-size:15px;color:var(--soft);text-decoration:line-through;text-decoration-color:var(--maj)}
+.bar{height:5px;border-radius:20px;background:var(--line);margin-top:9px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:20px}
+
+.sec{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin:38px 0 14px;border-top:1px solid var(--line);padding-top:22px}
+.sub{color:var(--soft);font-size:13.5px;margin:-6px 0 14px;max-width:74ch}
+
+.pairs{display:flex;flex-wrap:wrap;gap:9px}
+.pair{border:1px solid;border-radius:10px;padding:10px 13px;font-size:12px;display:flex;flex-direction:column;gap:4px;font-family:var(--mono);min-width:168px}
+.pair .r{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pair .v{font-weight:700}
+.pill{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:20px;border:1px solid;align-self:flex-start}
+
+.ba{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:stretch;margin-bottom:12px}
+.ba .box{border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+.ba .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:9px}
+.swatch{display:flex;align-items:center;gap:10px;border-radius:8px;padding:11px 13px;font-family:var(--mono);font-size:13px;font-weight:600}
+.swatch small{font-weight:400;opacity:.8;font-size:11px}
+.ba .mid{align-self:center;color:var(--soft);font-size:22px}
+.verdict{font-family:var(--mono);font-size:11px;margin-top:8px}
+
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:13px;padding:16px 18px;position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px}
+.card.s4::before{background:var(--crit)}.card.s3::before{background:var(--maj)}.card.s2::before{background:var(--warn)}
+.chead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.tag{font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid;letter-spacing:.05em}
+.tag.s4{background:#d6453f22;color:#ff9a95;border-color:#d6453f66}
+.tag.s3{background:#f3736f1f;color:#f3736f;border-color:#f3736f66}
+.tag.s2{background:#f0b54a1f;color:#f0b54a;border-color:#f0b54a66}
+.dim{font-family:var(--mono);font-size:11px;color:var(--soft);letter-spacing:.06em}
+.ctitle{font-family:var(--serif);font-size:19px;margin-bottom:6px}
+.cst{font-size:14px;margin-bottom:4px}
+.loc{font-family:var(--mono);font-size:11.5px;color:var(--gold);opacity:.9}
+.fix{font-size:12.5px;color:var(--soft);margin-top:9px;border-left:2px solid var(--gold);padding:7px 12px;background:var(--bg2);border-radius:0 8px 8px 0}
+.fix b{color:var(--gold)}
+.flag{font-size:11px;color:var(--warn);font-family:var(--mono);margin-top:7px}
+
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft)}
+td b{color:var(--gold)}
+.lvl{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid var(--line);white-space:nowrap}
+.tblwrap{overflow-x:auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mini{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:11px;padding:13px 15px;font-size:13px}
+.mini h4{font-family:var(--serif);font-size:15px;font-weight:600;margin-bottom:6px}
+.mini ul{list-style:none;color:var(--soft);font-size:12.5px}
+.mini li{padding:3px 0 3px 14px;position:relative}
+.mini li::before{content:"·";position:absolute;left:2px;color:var(--gold)}
+.foot{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--soft);line-height:1.75}
+@media(max-width:640px){h1{font-size:34px}.ba,.grid2{grid-template-columns:1fr}.ba .mid{display:none}.arrow{display:none}}
+</style></head><body><div class="wrap">
+
+<div class="eyebrow">Ecopatrimoine · Studio de revue · skill revue-ui</div>
+<h1>Revue <em>complète</em> d'interface — Ploutos</h1>
+<div class="meta">07/07/2026 · React + TypeScript + Tailwind · 69 fichiers de présentation · contexte à enjeu : oui (936 indices)</div>
+<p class="lede">Le <b>socle graphique est bon</b> : palette réfléchie, ratios documentés, jetons <code>FIELD</code> centralisés, focus clavier soigné sur les champs. Cette revue corrige des écarts d'<b>accessibilité</b> (contraste, clavier, daltonisme), de <b>gestion des erreurs de saisie</b> et d'<b>homogénéité</b> — sans jamais toucher à la logique métier. Aucune correction n'a été appliquée : le rapport se valide lot par lot.</p>
+
+<div class="glob">
+  <div class="gcard"><div class="n" style="color:var(--gold)">81</div><div class="o">Score outil / 100</div></div>
+  <div class="arrow">→</div>
+  <div class="gcard"><div class="n" style="color:var(--warn)">68</div><div class="o">Lecture experte / 100</div></div>
+  <div style="color:var(--soft);font-size:13px;max-width:34ch;padding-bottom:8px">L'écart vient surtout du pilier <b style="color:var(--ink)">daltonisme</b> (0 chez l'outil = artefact) et du <b style="color:var(--ink)">contraste texte</b> réévalués à la main.</div>
+</div>
+
+<div class="sec">Scores par pilier — lecture corrigée</div>
+<div class="sub">L'outil compare toutes les couleurs deux à deux (d'où un daltonisme à 0, trompeur) et n'a résolu qu'une seule paire texte/fond (d'où un contraste à 100). Colonne barrée = score outil, colonne pleine = lecture experte après vérification.</div>
+<div class="chips">
+  <div class="chip"><div class="cl">Contraste</div><div class="row"><span class="cv was">100</span><span class="cv">85</span></div><div class="bar"><i style="width:85%;background:var(--good)"></i></div></div>
+  <div class="chip"><div class="cl">Daltonisme</div><div class="row"><span class="cv was">0</span><span class="cv">55</span></div><div class="bar"><i style="width:55%;background:var(--warn)"></i></div></div>
+  <div class="chip"><div class="cl">Guidage</div><div class="row"><span class="cv was">100</span><span class="cv">70</span></div><div class="bar"><i style="width:70%;background:var(--warn)"></i></div></div>
+  <div class="chip"><div class="cl">Homogénéité</div><div class="row"><span class="cv">66</span></div><div class="bar"><i style="width:66%;background:var(--warn)"></i></div></div>
+  <div class="chip"><div class="cl">Erreurs</div><div class="row"><span class="cv was">100</span><span class="cv">55</span></div><div class="bar"><i style="width:55%;background:var(--warn)"></i></div></div>
+  <div class="chip"><div class="cl">Charge</div><div class="row"><span class="cv was">88</span><span class="cv">80</span></div><div class="bar"><i style="width:80%;background:var(--good)"></i></div></div>
+</div>
+
+<div class="sec">Contraste — paires vérifiées (WCAG 2.2)</div>
+<div class="sub">Ratios recalculés à la main sur la palette réelle. Le fond de chaque pastille est la vraie couleur de fond, le texte la vraie couleur d'avant-plan.</div>
+<div class="pairs">
+  <div class="pair" style="background:#F0EDE6;color:#0F172A;border-color:#46d39a66"><div class="r"><span>navy / parchemin</span><span class="v">15,3:1</span></div><span class="pill" style="color:#166534;border-color:#46d39a66">AAA</span></div>
+  <div class="pair" style="background:#F6F4EF;color:#0F172A;border-color:#46d39a66"><div class="r"><span>champ / fond</span><span class="v">16,2:1</span></div><span class="pill" style="color:#166534;border-color:#46d39a66">AAA</span></div>
+  <div class="pair" style="background:#FFFFFF;color:#8B6914;border-color:#46d39a66"><div class="r"><span>goldText / blanc</span><span class="v">5,09:1</span></div><span class="pill" style="color:#166534;border-color:#46d39a66">AA</span></div>
+  <div class="pair" style="background:#FFFFFF;color:#637896;border-color:#46d39a66"><div class="r"><span>muted / blanc</span><span class="v">4,51:1</span></div><span class="pill" style="color:#166534;border-color:#46d39a66">AA</span></div>
+  <div class="pair" style="background:#FEF2F2;color:#B91C1C;border-color:#f0b54a66"><div class="r"><span>danger / fond</span><span class="v">5,91:1</span></div><span class="pill" style="color:#92400E;border-color:#f0b54a66">AA (pas AAA)</span></div>
+  <div class="pair" style="background:#FEF9EE;color:#92400E;border-color:#f0b54a66"><div class="r"><span>warning / fond</span><span class="v">6,75:1</span></div><span class="pill" style="color:#92400E;border-color:#f0b54a66">AA (pas AAA)</span></div>
+  <div class="pair" style="background:#FFFFFF;color:#C4973D;border-color:#d6453f"><div class="r"><span>gold / blanc</span><span class="v">2,68:1</span></div><span class="pill" style="color:#d6453f;border-color:#d6453f">ÉCHEC — texte</span></div>
+  <div class="pair" style="background:#FFFFFF;color:#94A3B8;border-color:#d6453f"><div class="r"><span>slate-400 / blanc</span><span class="v">3,3:1</span></div><span class="pill" style="color:#d6453f;border-color:#d6453f">ÉCHEC — texte</span></div>
+</div>
+
+<div class="sec">Nuanciers avant → après</div>
+<div class="sub">Trois corrections de contraste, chacune reste dans l'esprit de la charte (le jeton cible existe déjà dans <code>constants</code>).</div>
+
+<div class="ba">
+  <div class="box"><div class="lab" style="color:var(--maj)">Avant · échec AA</div>
+    <div class="swatch" style="background:#FFFFFF;color:#C4973D">Montant · €<br><small>gold #C4973D — 2,68:1</small></div>
+    <div class="verdict" style="color:var(--maj)">✕ texte/montant illisible</div></div>
+  <div class="mid">→</div>
+  <div class="box"><div class="lab" style="color:var(--good)">Après · conforme</div>
+    <div class="swatch" style="background:#FFFFFF;color:#8B6914">Montant · €<br><small>goldText #8B6914 — 5,09:1</small></div>
+    <div class="verdict" style="color:var(--good)">✓ AA — jeton existant</div></div>
+</div>
+<div class="ba">
+  <div class="box"><div class="lab" style="color:var(--maj)">Avant · sous AA</div>
+    <div class="swatch" style="background:#FFFFFF;color:#94A3B8">Texte d'aide courant<br><small>slate-400 #94A3B8 — 3,3:1</small></div>
+    <div class="verdict" style="color:var(--maj)">✕ réservé au « désactivé »</div></div>
+  <div class="mid">→</div>
+  <div class="box"><div class="lab" style="color:var(--good)">Après · conforme</div>
+    <div class="swatch" style="background:#FFFFFF;color:#637896">Texte d'aide courant<br><small>muted #637896 — 4,51:1</small></div>
+    <div class="verdict" style="color:var(--good)">✓ AA</div></div>
+</div>
+<div class="ba">
+  <div class="box"><div class="lab" style="color:var(--maj)">Avant · illisible</div>
+    <div class="swatch" style="background:#FFFFFF;color:#fbbf24">+20 %<br><small>pastel #fbbf24 — 1,7:1</small></div>
+    <div class="verdict" style="color:var(--maj)">✕ chiffre financier invisible</div></div>
+  <div class="mid">→</div>
+  <div class="box"><div class="lab" style="color:var(--good)">Après · conforme</div>
+    <div class="swatch" style="background:#FFFFFF;color:#0F172A">+20 %<br><small>navy #0F172A — 15,3:1</small></div>
+    <div class="verdict" style="color:var(--good)">✓ pastel réservé à la barre</div></div>
+</div>
+
+<div class="sec">Daltonisme — le vrai risque (graphiques)</div>
+<div class="sub">Les 477 « collisions » de l'outil sont un artefact (couleurs jamais côte à côte). Simulation Viénot 1999 sur les palettes réellement utilisées ensemble : <b style="color:var(--ink)">chaque palette de 8 séries en a 2 confondues</b> en deutéranopie/protanopie → ~6 séries perçues. Ci-dessous les paires jumelles.</div>
+<div class="pairs">
+  <div class="pair" style="border-color:var(--line)"><div class="r"><span>CHART · périwinkles</span></div>
+    <div class="r"><span style="background:#A0B4E8;color:#0b1230;padding:2px 8px;border-radius:5px">#A0B4E8</span><span style="background:#8CA2F0;color:#0b1230;padding:2px 8px;border-radius:5px">#8CA2F0</span></div><span class="pill" style="color:var(--maj);border-color:#f3736f66">se confondent</span></div>
+  <div class="pair" style="border-color:var(--line)"><div class="r"><span>CHART · ocres</span></div>
+    <div class="r"><span style="background:#D4A96A;color:#0b1230;padding:2px 8px;border-radius:5px">#D4A96A</span><span style="background:#C8956E;color:#0b1230;padding:2px 8px;border-radius:5px">#C8956E</span></div><span class="pill" style="color:var(--maj);border-color:#f3736f66">se confondent</span></div>
+  <div class="pair" style="border-color:var(--line)"><div class="r"><span>RECEIVED · bleus</span></div>
+    <div class="r"><span style="background:#6B8DD6;color:#0b1230;padding:2px 8px;border-radius:5px">#6B8DD6</span><span style="background:#7D95E8;color:#0b1230;padding:2px 8px;border-radius:5px">#7D95E8</span></div><span class="pill" style="color:var(--maj);border-color:#f3736f66">se confondent</span></div>
+  <div class="pair" style="border-color:var(--line)"><div class="r"><span>ProjectionChart · jumeaux</span></div>
+    <div class="r"><span style="background:#A9B8D4;color:#0b1230;padding:2px 8px;border-radius:5px">#A9B8D4</span><span style="background:#A9B8D4;color:#0b1230;padding:2px 8px;border-radius:5px">#A9B8D4</span></div><span class="pill" style="color:var(--crit);border-color:#d6453f66">strictement identiques</span></div>
+</div>
+<div class="sub" style="margin-top:12px">Correction : recomposer 6–8 teintes à luminosités échelonnées et color-blind-safe (skills <code>contraste-wcag</code> / <code>harmonie-couleurs</code>) <b style="color:var(--ink)">et</b> ne jamais coder une série par la couleur seule — libellés directs, motifs ou marqueurs. Le feu tricolore rouge-vert de <code>TableauJalons</code> doit être doublé d'un mot ou d'un picto.</div>
+
+<div class="sec">Les 7 constats à plus fort enjeu</div>
+<div class="cards">
+
+  <div class="card s4"><div class="chead"><span class="tag s4">Critique</span><span class="dim">Contraste · Signifiance</span></div>
+    <div class="ctitle">Le gold sert de couleur de texte → échec AA</div>
+    <div class="cst"><code>#C4973D</code> = 2,68:1 sur blanc, mais utilisé en texte et sur des <b>montants €</b>. Le jeton <code>goldText</code> (5,09:1) existe pour ça et <code>constants</code> l'interdit déjà en texte.</div>
+    <div class="loc">TabPlacements:587 · TabIFI:80 · TabRevenus:142/251/325 · TabImmobilier:584</div>
+    <div class="fix">Correction : <b>color: BRAND.gold → BRAND.goldText</b> là où le fond est clair (sur navy, gold reste correct). Présentation pure.</div></div>
+
+  <div class="card s4"><div class="chead"><span class="tag s4">Critique</span><span class="dim">Gestion des erreurs</span></div>
+    <div class="ctitle">Champs de saisie sans état d'erreur visuel</div>
+    <div class="cst"><code>MoneyField</code> n'affiche aucune erreur (bordure, message, <code>aria-invalid</code>) sur une valeur non numérique ou aberrante. Sur un calculateur fiscal, une saisie fautive fausse tout en silence.</div>
+    <div class="loc">shared.tsx:80-88 · âge hors bornes TabRevenus:478</div>
+    <div class="fix">Correction : bordure <b>BRAND.danger</b> + micro-message d'erreur.</div>
+    <div class="flag">⚠ Touche la validation de saisie → à faire sous la discipline revue-code.</div></div>
+
+  <div class="card s4"><div class="chead"><span class="tag s4">Critique</span><span class="dim">Signifiance</span></div>
+    <div class="ctitle">Montants tronqués en silence dans les cartes-clés</div>
+    <div class="cst"><code>MetricCard</code> rend la valeur en <code>nowrap + ellipsis</code> : un montant à 7 chiffres (IR, actif successoral) peut être coupé sans avertissement.</div>
+    <div class="loc">shared.tsx:107</div>
+    <div class="fix">Correction : pas d'ellipsis sur les montants — <b>réduction dynamique</b> de la taille plutôt qu'une troncature.</div></div>
+
+  <div class="card s3"><div class="chead"><span class="tag s3">Majeur+</span><span class="dim">Erreurs · Signifiance</span></div>
+    <div class="ctitle">Menu déroulant sans fond + options non surlignées</div>
+    <div class="cst">Thème Tailwind vide et tokens shadcn non définis → <code>bg-popover</code> (panneau transparent) et <code>focus:bg-accent</code> (option survolée/clavier non surlignée) sont <b>inertes</b>. Risque de choisir « Micro-foncier » au lieu de « Régime réel ».</div>
+    <div class="loc">select.tsx:66 · select.tsx:120 · select.tsx:141</div>
+    <div class="fix">Correction : fond <b>SURFACE.card</b> sur SelectContent, <b>focus:bg-[#F6F4EF]</b> sur SelectItem. À confirmer visuellement.</div></div>
+
+  <div class="card s3"><div class="chead"><span class="tag s3">Majeur</span><span class="dim">Daltonisme · Lisibilité</span></div>
+    <div class="ctitle">Graphique prévoyance : 9 séries, 5 couleurs</div>
+    <div class="cst">Deux séries strictement identiques (<code>#A9B8D4</code>), deux autres identiques (<code>#B5806B</code>), un navy triplé par la seule opacité → pastilles de légende jumelles, illisibles <b>pour tout le monde</b>.</div>
+    <div class="loc">ProjectionChart:287-294</div>
+    <div class="fix">Correction : teintes franchement distinctes ou motifs ; réserver le gold aux marqueurs d'événement.</div></div>
+
+  <div class="card s3"><div class="chead"><span class="tag s3">Majeur</span><span class="dim">Contraste</span></div>
+    <div class="ctitle">Chiffres pastel illisibles (graphe risque)</div>
+    <div class="cst">« +20 % » / « −13 % » peints avec la couleur pastel de la barre sur blanc : <code>#fbbf24</code> ≈ 1,7:1, <code>#34d399</code> ≈ 1,8:1. Chiffres de rendement quasi invisibles.</div>
+    <div class="loc">TabMission:126,152 · états inactifs #aaa/#999 ≈ 2,3:1</div>
+    <div class="fix">Correction : chiffres en <b>navy</b>, pastel réservé à la barre.</div></div>
+
+  <div class="card s3"><div class="chead"><span class="tag s3">Majeur</span><span class="dim">Accessibilité clavier</span></div>
+    <div class="ctitle">Actions clés inatteignables au clavier</div>
+    <div class="cst">« Charger un dossier » (<code>label</code> + <code>input hidden</code>), aide « ? » (<code>tabIndex=-1</code>), cartes héritier + KPI « Actif net » (<code>div onClick</code> sans rôle) → hors de l'ordre de tabulation.</div>
+    <div class="loc">AppHeader:221-233 · shared.tsx:33 · TabSuccession:527,495-499</div>
+    <div class="fix">Correction : déclencheurs focusables (<b>sr-only</b> au lieu de hidden), <b>onKeyDown</b>, <b>role="button"</b>.</div>
+    <div class="flag">⚠ Comportement clavier → coordination revue-code.</div></div>
+
+</div>
+
+<div class="sec">Constats majeurs complémentaires</div>
+<div class="grid2">
+  <div class="mini"><h4>Cohérence</h4><ul>
+    <li>En-têtes d'écran différents selon l'onglet (SectionTitle / h3 / rien)</li>
+    <li>Modales & champs hors design system (DonationModal, HelpMenu, inputs bruts)</li>
+    <li>Switches « maison » de 3 tailles · 20 glyphes ✕/× vs icône</li>
+    <li>3 triplets rouge/ambre/vert divergents des jetons BRAND</li>
+  </ul></div>
+  <div class="mini"><h4>Guidage & densité</h4><ul>
+    <li>Jargon dev exposé au CGP (« clé renommée », « legacy », noms de clés)</li>
+    <li>Hiérarchie typographique plate (tous les titres identiques)</li>
+    <li>Carte « bien immobilier » surchargée, sans sous-sections</li>
+    <li>Bouton « Envoyer » au disabled trompeur (style actif)</li>
+  </ul></div>
+  <div class="mini"><h4>Unités & saisie</h4><ul>
+    <li>MoneyField sans « € » intégré · unité incohérente selon les libellés</li>
+    <li>Pourcentages saisis via MoneyField (style montant)</li>
+    <li>Parts d'indivision &gt;100 % sans contrôle visuel</li>
+  </ul></div>
+  <div class="mini"><h4>Ménage & accessibilité fine</h4><ul>
+    <li><code>App.css</code> ≈ 90 % de gabarit Vite mort → à supprimer</li>
+    <li>Commentaires <code>constants</code> sur-annoncent l'AAA (réel : AA)</li>
+    <li>Cible tactile « ? » 15px &lt; 24px · <code>th</code> sans scope, tables sans caption</li>
+    <li>Échec portail Stripe silencieux (console.error seul)</li>
+  </ul></div>
+</div>
+
+<div class="sec">Lots d'application proposés — à valider un par un</div>
+<div class="sub">Discipline revue-ui : sauvegarde d'abord, un lot à la fois, diff montré, re-vérification, réversible. Rien touchant la logique n'est fait sans bascule explicite sous revue-code.</div>
+<div class="tblwrap"><table>
+<thead><tr><th>Lot</th><th>Contenu</th><th>Effort</th><th>Risque</th><th>Gain</th></tr></thead>
+<tbody>
+<tr><td><b>A · Contraste texte</b></td><td>gold→goldText sur fonds clairs · slate-400→muted · chiffres pastel TabMission en navy</td><td><span class="lvl">faible</span></td><td><span class="lvl">très faible</span></td><td>Lève des échecs AA sur des montants</td></tr>
+<tr><td><b>B · Select & tokens</b></td><td>Fond opaque + surlignage d'option · câbler/remplacer les tokens shadcn manquants · anneau focus or</td><td><span class="lvl">moyen</span></td><td><span class="lvl">faible</span></td><td>Supprime un risque d'erreur de saisie</td></tr>
+<tr><td><b>C · Daltonisme</b></td><td>Palettes de graphiques color-blind-safe + double-encodage · feu tricolore doublé d'un libellé · légende ProjectionChart</td><td><span class="lvl">moyen</span></td><td><span class="lvl">faible</span></td><td>Accessibilité + lisibilité client</td></tr>
+<tr><td><b>D · Cohérence</b></td><td>Switch unique · icônes · HelpTooltip factorisé · cards/modales sur primitives · couleurs sémantiques alignées</td><td><span class="lvl">moyen</span></td><td><span class="lvl">faible</span></td><td>Homogénéité</td></tr>
+<tr><td><b>E · Guidage & densité</b></td><td>Patron d'en-tête unique · 2 niveaux de titres · sous-sections carte « bien » · retrait du jargon dev</td><td><span class="lvl">moyen</span></td><td><span class="lvl">faible</span></td><td>Clarté</td></tr>
+<tr><td><b>F · Ménage</b></td><td>Supprimer App.css mort · corriger commentaires AAA · scope/caption · aria-live</td><td><span class="lvl">faible</span></td><td><span class="lvl">nul</span></td><td>Propreté</td></tr>
+<tr><td style="color:var(--warn)"><b>⚠ Hors présentation</b></td><td>États d'erreur MoneyField · anti-troncature montants · accessibilité clavier · feedback échec Stripe</td><td>—</td><td>—</td><td style="color:var(--warn)">À traiter sous revue-code</td></tr>
+</tbody>
+</table></div>
+
+<div class="foot">
+Méthode : critères ergonomiques de Bastien &amp; Scapin (INRIA) · heuristiques de Nielsen · microinteractions de Saffer · criticité de l'erreur (Casey) · WCAG 2.2 · simulation daltonisme Viénot 1999 · règle 60-30-10. Couche couleur alignée sur les skills contraste-wcag et harmonie-couleurs. Chaque constat sensible a été vérifié par le calcul ou la lecture du code ; les faux positifs de l'outil (477 collisions daltonisme, onglet actif) ont été écartés. Rapport généré le 07/07/2026 — aucune modification appliquée.
+</div>
+</div></body></html>

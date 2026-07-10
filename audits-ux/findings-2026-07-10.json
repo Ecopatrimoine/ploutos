@@ -1,0 +1,215 @@
+{
+  "meta": {
+    "date": "2026-07-10",
+    "base": "audits-ux/findings.json (2026-07-07, skill revue-ui)",
+    "verifie_contre": "main @ 5167c25 (v1.36.0)",
+    "commit_repere_audit": "dad5d69",
+    "methode": "Relecture mecanique de chaque constat titre du RAPPORT-UX contre l'arbre courant. Les 477 collisions daltonisme brutes de findings.json ne sont PAS reprises une a une : elles se distillent dans M2 (cf. RAPPORT §5).",
+    "avertissement": "Les lots 1 a 11 sont des lots PRODUIT (accueil, collecte, prevoyance, PDF). Ce ne sont PAS les lots de remediation A-F proposes par l'audit, qui n'ont jamais ete lances. Les corrections listees ici sont donc pour l'essentiel INCIDENTES."
+  },
+
+  "synthese": {
+    "constats_titres_audit": 16,
+    "corriges": 2,
+    "partiels": 2,
+    "ouverts": 8,
+    "non_reverifies": 4,
+    "regressions": 1,
+    "lots_remediation_A_F_appliques": 0
+  },
+
+  "corriges": [
+    {
+      "id": "M5",
+      "constat": "Jargon dev expose au CGP (« cle renommee », legacy remuneration, cles internes) dans TabParametres",
+      "preuve": "grep (cle renommee|legacy|retrocompat|builders) sur src/components/tabs/TabParametres.tsx = 0 occurrence",
+      "corrige_par": "a73e5af — fix(ui): retire fuites dev (Lot 6 C2), 2026-07-08, posterieur a l'audit",
+      "statut": "corrige"
+    },
+    {
+      "id": "M1",
+      "constat": "Feu tricolore rouge-vert sur le seul chiffre % (TableauJalons), sans libelle — pire cas protan/deutan",
+      "preuve": "src/components/prevoyance/TableauJalons.tsx SUPPRIME (06ce094, Lot 10c). Le verdict passe desormais par pastilleVerdict(verdict, label) dans BlocObligationsBranche.tsx:58 -> couleur + libelle.",
+      "corrige_par": "06ce094 — refonte TabPrevoyancePerso 3 actes (Lot 10c)",
+      "statut": "corrige_par_remplacement",
+      "note": "Correction reelle mais fortuite : le double-encodage vient de la refonte, pas d'une intention d'accessibilite."
+    }
+  ],
+
+  "partiels": [
+    {
+      "id": "3.1",
+      "severite": 4,
+      "constat": "gold #C4973D (2,68:1 sur blanc) utilise comme couleur de TEXTE -> echec AA",
+      "preuve": "BRAND.goldText adopte a 23 endroits, mais 7 `color: BRAND.gold` subsistent dans src/components/.",
+      "legitimes": [
+        "src/components/tabs/TabMission.tsx:382 — fond BRAND.navy, contraste correct"
+      ],
+      "restants_sur_fond_clair": [
+        "src/components/tabs/TabPlacements.tsx:623 — euro(dyn) : un MONTANT peint en gold. C'est exactement le cas critique vise par le constat.",
+        "src/components/tabs/TabIFI.tsx:132 — en-tete de colonne « Valeur taxable »",
+        "src/components/tabs/TabRevenus.tsx:511 — libelle « Madelin — deduction prevoyance »",
+        "src/components/tabs/TabRevenus.tsx:545 — libelle « Activite secondaire »",
+        "src/components/tabs/TabSuccession.tsx:291 — bouton outline (texte + bordure)",
+        "src/components/tabs/TabIR.tsx:647 — pastille de tranche 30 % (a qualifier : pastille de couleur ou texte ?)"
+      ],
+      "statut": "partiel",
+      "lot_audit": "A"
+    },
+    {
+      "id": "3.5",
+      "severite": 3,
+      "constat": "ProjectionChart : 9 series / 5 couleurs, 2 paires strictement identiques, navy triple distingue par la seule opacite",
+      "preuve": "Composant reecrit (aire empilee stepAfter, PAYEUR_COLORS + couleurEtage). Les hex jumeaux #A9B8D4 et #B5806B ont disparu de ProjectionChart.tsx.",
+      "corrige_par": "1eb8e6f (Lot 11 G1) + 06ce094 (Lot 10c)",
+      "reste_ouvert": "ProjectionChart.tsx:307 — fillOpacity={e.opacity} : l'encodage d'un etage par la SEULE opacite subsiste. Le grief de fond (la legende Recharts rend l'icone a pleine opacite -> pastilles jumelles) n'est pas leve.",
+      "statut": "partiel",
+      "lot_audit": "C"
+    }
+  ],
+
+  "ouverts": [
+    {
+      "id": "3.2",
+      "severite": 4,
+      "constat": "MoneyField sans etat d'erreur visuel ni aria-invalid — une saisie aberrante fausse le calcul en silence",
+      "preuve": "grep (aria-invalid|error) sur src/components/shared.tsx = 0",
+      "statut": "ouvert",
+      "lot_audit": "hors presentation (revue-code)"
+    },
+    {
+      "id": "3.3",
+      "severite": 4,
+      "constat": "MetricCard tronque les montants en silence (nowrap + overflow:hidden + text-overflow:ellipsis)",
+      "preuve": "src/components/shared.tsx:108 — inchange",
+      "statut": "ouvert",
+      "lot_audit": "hors presentation (revue-code)"
+    },
+    {
+      "id": "3.4",
+      "severite": 4,
+      "constat": "Select shadcn inerte : panneau sans fond opaque, option focus non surlignee, separateur invisible",
+      "preuve": "select.tsx:66 bg-popover / :120 focus:bg-accent / :141 bg-muted, et tailwind.config theme.extend:{} TOUJOURS vide -> les classes restent sans effet",
+      "statut": "ouvert",
+      "lot_audit": "B"
+    },
+    {
+      "id": "3.7",
+      "severite": 4,
+      "constat": "Actions cles inatteignables au clavier",
+      "preuve": [
+        "AppHeader.tsx:186 — input[type=file] class=\"hidden\" : hors ordre de tabulation",
+        "shared.tsx:34 — bouton d'aide tabIndex={-1}",
+        "TabSuccession.tsx — aucun role=\"button\" / tabIndex / onKeyDown sur les cartes heritier et le KPI Actif net"
+      ],
+      "statut": "ouvert",
+      "lot_audit": "hors presentation (revue-code)"
+    },
+    {
+      "id": "M2",
+      "severite": 3,
+      "constat": "Palettes de graphiques 8 series : 2 paires confondues par palette en deutan/protan",
+      "preuve": "src/constants/index.ts:408-410 — CHART_COLORS / RECEIVED_COLORS / LEGUE_COLORS strictement identiques a l'audit",
+      "statut": "ouvert",
+      "lot_audit": "C",
+      "note": "C'est ce constat qui absorbe les 477 collisions brutes de findings.json."
+    },
+    {
+      "id": "M8",
+      "severite": 3,
+      "constat": "HelpMenu : bouton « Envoyer » disabled mais au style actif -> parait cliquable",
+      "preuve": "HelpMenu.tsx:326 disabled={!subject||!body||sent} ; le style (cursor, background) est pilote par `sent` seul, jamais par l'etat disabled",
+      "statut": "ouvert",
+      "lot_audit": "D"
+    },
+    {
+      "id": "M9",
+      "severite": 3,
+      "constat": "CTA sans hover effectif ni focus chartre (retombe sur l'anneau natif du navigateur)",
+      "preuve": "grep (focus-visible|hover:) sur src/components/ui/button.tsx = 0",
+      "statut": "ouvert",
+      "lot_audit": "B"
+    },
+    {
+      "id": "F1",
+      "severite": 1,
+      "constat": "src/App.css ~90 % de gabarit Vite mort (.hero / .framework / .vite / #docs ...)",
+      "preuve": "src/App.css present, 2891 octets, 7 lignes hero|framework|vite",
+      "statut": "ouvert",
+      "lot_audit": "F"
+    }
+  ],
+
+  "non_reverifies": [
+    {
+      "id": "3.6",
+      "constat": "Chiffres financiers pastel illisibles (TabMission, « +20 % » / « -13 % » peints en #fbbf24 ~1,7:1)",
+      "observe": "Les hex #34d399 / #fbbf24 subsistent (TabMission.tsx:119-120) mais portes par des objets {label, color} de barres. Je n'ai PAS confirme que les CHIFFRES sont encore peints avec.",
+      "action": "revalidation visuelle requise"
+    },
+    {
+      "id": "M6",
+      "constat": "TabIR : tous les titres de section au meme style, aucune hierarchie visuelle",
+      "observe": "`text-xs uppercase tracking-widest` = 0 occurrence dans TabIR.tsx : le style plat a disparu. Je n'ai PAS verifie qu'il existe bien 2 niveaux typographiques distincts.",
+      "action": "revalidation visuelle requise"
+    },
+    {
+      "id": "M3",
+      "constat": "En-tete d'ecran incoherent sur les 7 onglets",
+      "observe": "non revu dans ce passage (budget de temps)",
+      "action": "a revoir"
+    },
+    {
+      "id": "M4",
+      "constat": "Modales et champs hors design system (DonationModal natif, HelpMenu overlay maison sans Echap ni piege de focus)",
+      "observe": "non revu dans ce passage (budget de temps)",
+      "action": "a revoir"
+    },
+    {
+      "id": "M7",
+      "constat": "Carte « bien immobilier » : empilement identite/fiscalite/valeurs/demembrement/credits sans intertitres",
+      "observe": "non revu dans ce passage (budget de temps)",
+      "action": "a revoir"
+    }
+  ],
+
+  "regressions": [
+    {
+      "id": "R1",
+      "severite": 2,
+      "constat": "Hex en dur dans src/components/ : 278 lignes au 07/07 -> 291 au 10/07, soit +13.",
+      "detail": "Nouveaux composants des lots 10c/10e : BlocEcartsDepliables +4, BlocContexteCollectif +4, TabRevenus +4, CarteRoiConformite +3, collecte/densite +3, TabPrevoyancePerso +2, shared +1, TabFamiliale +1, TableauEuroPayeurs +1, BlocConstatsCompacts +1, TabParametres +1, PopcardImpression +1.",
+      "portee": "Homogeneite seulement — aucune regression fonctionnelle ni de contraste identifiee.",
+      "lecture": "L'attente « aucune regression » n'est donc pas tout a fait tenue : le grief d'homogeneite (jetons BRAND/FIELD court-circuites) s'est legerement aggrave pendant les lots 10-11."
+    }
+  ],
+
+  "hors_audit_ux": {
+    "note": "Ces entrees ne proviennent PAS de findings.json (audit revue-ui). Elles appartiennent au tracker d'anomalies « N » et au chantier PDF. Elles sont listees ici parce que la demande les citait, mais leur source est distincte et doit etre fournie.",
+    "entrees": [
+      {
+        "id": "N11",
+        "constat": "Suppression d'une note de synthese non persistee : la note effacee revenait",
+        "cause": "le chargement traitait la chaine vide comme une absence, et la synchro de fond ecrasait le premier plan",
+        "corrige_par": "d1ae2e0 + bcd3189 (Lot 10d) — resolveLoadedNotes, pur et teste",
+        "statut": "corrige"
+      },
+      {
+        "id": "PDF-devolution",
+        "constat": "Bloc Devolution (page 11) construit depuis les enfants du foyer au lieu du moteur",
+        "corrige_par": "205b30e (Lot 11 G5-A)",
+        "statut": "corrige"
+      },
+      {
+        "id": "N9",
+        "statut": "SANS SOURCE",
+        "note": "Aucune trace de « N9 » dans l'historique git ni dans findings.json. Liste d'origine a fournir."
+      },
+      {
+        "id": "N10",
+        "statut": "SANS SOURCE",
+        "note": "Aucune trace de « N10 » dans l'historique git ni dans findings.json. Liste d'origine a fournir."
+      }
+    ]
+  }
+}

@@ -1,0 +1,1556 @@
+{
+  "source": "C:\\Users\\davla\\AppData\\Local\\Temp\\claude\\C--Users-davla-Ploutos\\ff7aa843-69fa-4fdf-8f90-5c4a593ca432\\scratchpad\\ui-scope",
+  "form": "react",
+  "files_read": 69,
+  "colors": [
+    {
+      "value": "#0f172a",
+      "count": 88,
+      "role": "accent"
+    },
+    {
+      "value": "#ffffff",
+      "count": 81,
+      "role": "bg"
+    },
+    {
+      "value": "#26428b",
+      "count": 35,
+      "role": "border"
+    },
+    {
+      "value": "#d8d2c6",
+      "count": 34,
+      "role": "border"
+    },
+    {
+      "value": "#637896",
+      "count": 21,
+      "role": "text"
+    },
+    {
+      "value": "#e3af64",
+      "count": 20,
+      "role": "accent"
+    },
+    {
+      "value": "#101b3b",
+      "count": 19,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(81,106,199,0.1)",
+      "count": 17,
+      "role": "bg"
+    },
+    {
+      "value": "#e8e3d9",
+      "count": 13,
+      "role": "border"
+    },
+    {
+      "value": "rgba(81,106,199,0.2)",
+      "count": 13,
+      "role": "border"
+    },
+    {
+      "value": "rgba(227,175,100,0.3)",
+      "count": 12,
+      "role": "text"
+    },
+    {
+      "value": "rgba(81,106,199,0.15)",
+      "count": 11,
+      "role": "text"
+    },
+    {
+      "value": "#a67f32",
+      "count": 11,
+      "role": "border"
+    },
+    {
+      "value": "#516ac7",
+      "count": 10,
+      "role": "text"
+    },
+    {
+      "value": "#c4973d",
+      "count": 10,
+      "role": "bg"
+    },
+    {
+      "value": "#f0ece6",
+      "count": 10,
+      "role": "border"
+    },
+    {
+      "value": "rgba(81,106,199,0.06)",
+      "count": 9,
+      "role": "bg"
+    },
+    {
+      "value": "#7e8f9f",
+      "count": 9,
+      "role": "text"
+    },
+    {
+      "value": "#fdfcfa",
+      "count": 9,
+      "role": "bg"
+    },
+    {
+      "value": "#6b7280",
+      "count": 9,
+      "role": "text"
+    },
+    {
+      "value": "#888888",
+      "count": 9,
+      "role": "text"
+    },
+    {
+      "value": "#92400e",
+      "count": 8,
+      "role": "text"
+    },
+    {
+      "value": "#2f7d5b",
+      "count": 8,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(81,106,199,0.04)",
+      "count": 8,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(255,255,255,0.15)",
+      "count": 7,
+      "role": "bg"
+    },
+    {
+      "value": "#9ca3af",
+      "count": 7,
+      "role": "text"
+    },
+    {
+      "value": "rgba(16,27,59,0.07)",
+      "count": 7,
+      "role": "accent"
+    },
+    {
+      "value": "#7c3aed",
+      "count": 7,
+      "role": "text"
+    },
+    {
+      "value": "#94a3b8",
+      "count": 6,
+      "role": "text"
+    },
+    {
+      "value": "rgba(255,255,255,0.98)",
+      "count": 6,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(16,27,59,0.45)",
+      "count": 6,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(0,0,0,0.08)",
+      "count": 6,
+      "role": "border"
+    },
+    {
+      "value": "rgba(227,175,100,0.4)",
+      "count": 6,
+      "role": "border"
+    },
+    {
+      "value": "#c8bfb5",
+      "count": 5,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(16,27,59,0.35)",
+      "count": 5,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(0,0,0,0.06)",
+      "count": 5,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(255,255,255,0.6)",
+      "count": 5,
+      "role": "text"
+    },
+    {
+      "value": "#f59e0b",
+      "count": 5,
+      "role": "border"
+    },
+    {
+      "value": "#7c4a04",
+      "count": 5,
+      "role": "text"
+    },
+    {
+      "value": "#b0413e",
+      "count": 5,
+      "role": "accent"
+    },
+    {
+      "value": "#e8e0d6",
+      "count": 4,
+      "role": "bg"
+    },
+    {
+      "value": "#e2e8f0",
+      "count": 4,
+      "role": "bg"
+    },
+    {
+      "value": "#166534",
+      "count": 4,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(15,23,42,0.06)",
+      "count": 4,
+      "role": "accent"
+    },
+    {
+      "value": "#8e8078",
+      "count": 4,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(16,27,59,0.05)",
+      "count": 4,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(16,27,59,0.25)",
+      "count": 4,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(245, 158, 11, 0.08)",
+      "count": 4,
+      "role": "accent"
+    },
+    {
+      "value": "#86efac",
+      "count": 4,
+      "role": "text"
+    },
+    {
+      "value": "rgba(255,255,255,0.7)",
+      "count": 4,
+      "role": "text"
+    },
+    {
+      "value": "#aaaaaa",
+      "count": 4,
+      "role": "text"
+    },
+    {
+      "value": "rgba(81,106,199,0.08)",
+      "count": 4,
+      "role": "bg"
+    },
+    {
+      "value": "#f97316",
+      "count": 4,
+      "role": "text"
+    },
+    {
+      "value": "#f8f7f4",
+      "count": 3,
+      "role": "text"
+    },
+    {
+      "value": "#8b6914",
+      "count": 3,
+      "role": "border"
+    },
+    {
+      "value": "#b91c1c",
+      "count": 3,
+      "role": "text"
+    },
+    {
+      "value": "#fef2f2",
+      "count": 3,
+      "role": "bg"
+    },
+    {
+      "value": "#ccc5b8",
+      "count": 3,
+      "role": "border"
+    },
+    {
+      "value": "#f6f4ef",
+      "count": 3,
+      "role": "accent"
+    },
+    {
+      "value": "#e6e6e6",
+      "count": 3,
+      "role": "accent"
+    },
+    {
+      "value": "#a29377",
+      "count": 3,
+      "role": "border"
+    },
+    {
+      "value": "#cfcfcf",
+      "count": 3,
+      "role": "border"
+    },
+    {
+      "value": "#8c8678",
+      "count": 3,
+      "role": "accent"
+    },
+    {
+      "value": "#6b8dd6",
+      "count": 3,
+      "role": "accent"
+    },
+    {
+      "value": "#a0b4e8",
+      "count": 3,
+      "role": "accent"
+    },
+    {
+      "value": "#d4a96a",
+      "count": 3,
+      "role": "accent"
+    },
+    {
+      "value": "#c8956e",
+      "count": 3,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(15,23,42,0.08)",
+      "count": 3,
+      "role": "accent"
+    },
+    {
+      "value": "#991b1b",
+      "count": 3,
+      "role": "text"
+    },
+    {
+      "value": "#fcd34d",
+      "count": 3,
+      "role": "accent"
+    },
+    {
+      "value": "#4b5563",
+      "count": 3,
+      "role": "text"
+    },
+    {
+      "value": "rgba(227,175,100,0.06)",
+      "count": 3,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(81,106,199,0.18)",
+      "count": 3,
+      "role": "text"
+    },
+    {
+      "value": "rgba(0,0,0,0.07)",
+      "count": 3,
+      "role": "border"
+    },
+    {
+      "value": "rgba(196,151,61,0.05)",
+      "count": 3,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(15,23,42,.55)",
+      "count": 3,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(15,23,42,.4)",
+      "count": 3,
+      "role": "accent"
+    },
+    {
+      "value": "#f4f2ec",
+      "count": 3,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(15,23,42,.05)",
+      "count": 3,
+      "role": "accent"
+    },
+    {
+      "value": "#a06a1a",
+      "count": 3,
+      "role": "accent"
+    },
+    {
+      "value": "#64748b",
+      "count": 3,
+      "role": "text"
+    },
+    {
+      "value": "#d97706",
+      "count": 3,
+      "role": "text"
+    },
+    {
+      "value": "rgba(81,106,199,0.25)",
+      "count": 3,
+      "role": "border"
+    },
+    {
+      "value": "rgba(227,175,100,0.15)",
+      "count": 3,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(38,66,139,0.25)",
+      "count": 3,
+      "role": "text"
+    },
+    {
+      "value": "#0f766e",
+      "count": 3,
+      "role": "text"
+    },
+    {
+      "value": "rgba(255,255,255,0.3)",
+      "count": 3,
+      "role": "text"
+    },
+    {
+      "value": "rgba(0,0,0,0.12)",
+      "count": 3,
+      "role": "border"
+    },
+    {
+      "value": "rgba(255,255,255,0.65)",
+      "count": 3,
+      "role": "text"
+    },
+    {
+      "value": "#fbecd7",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(227,175,100,0.18)",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(248,246,247,1)",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(251,236,215,0.62)",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(238,242,255,1)",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "#1e293b",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "#fecaca",
+      "count": 2,
+      "role": "border"
+    },
+    {
+      "value": "#fef9ee",
+      "count": 2,
+      "role": "semantic"
+    },
+    {
+      "value": "#f5d78e",
+      "count": 2,
+      "role": "border"
+    },
+    {
+      "value": "#8ca2f0",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "#a07a2e",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(99,120,150,0.1)",
+      "count": 2,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(0,0,0,0.5)",
+      "count": 2,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(16,27,59,0.18)",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(227,175,100,0.35)",
+      "count": 2,
+      "role": "border"
+    },
+    {
+      "value": "rgba(0,0,0,0.1)",
+      "count": 2,
+      "role": "border"
+    },
+    {
+      "value": "#fef3c7",
+      "count": 2,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(227,175,100,0.12)",
+      "count": 2,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(16,27,59,0.04)",
+      "count": 2,
+      "role": "bg"
+    },
+    {
+      "value": "#f0f4ff",
+      "count": 2,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(38,66,139,0.1)",
+      "count": 2,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(81,106,199,0.07)",
+      "count": 2,
+      "role": "bg"
+    },
+    {
+      "value": "#f8f6f7",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "#eef2ff",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(38,66,139,0.2)",
+      "count": 2,
+      "role": "border"
+    },
+    {
+      "value": "rgba(38,66,139,0.06)",
+      "count": 2,
+      "role": "semantic"
+    },
+    {
+      "value": "rgba(81,106,199,0.16)",
+      "count": 2,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(196,151,61,.06)",
+      "count": 2,
+      "role": "bg"
+    },
+    {
+      "value": "#1e5238",
+      "count": 2,
+      "role": "border"
+    },
+    {
+      "value": "#dc2626",
+      "count": 2,
+      "role": "border"
+    },
+    {
+      "value": "#7a1f1f",
+      "count": 2,
+      "role": "border"
+    },
+    {
+      "value": "rgba(47, 125, 91, 0.08)",
+      "count": 2,
+      "role": "border"
+    },
+    {
+      "value": "rgba(220, 38, 38, 0.08)",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(107, 114, 128, 0.06)",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "#5b7fb0",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "#a9b8d4",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "#888780",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(81,106,199,0.05)",
+      "count": 2,
+      "role": "surface"
+    },
+    {
+      "value": "rgba(134,239,172,0.2)",
+      "count": 2,
+      "role": "bg"
+    },
+    {
+      "value": "#059669",
+      "count": 2,
+      "role": "text"
+    },
+    {
+      "value": "rgba(16,185,129,0.06)",
+      "count": 2,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(16,185,129,0.2)",
+      "count": 2,
+      "role": "border"
+    },
+    {
+      "value": "rgba(251,236,215,0.4)",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(200,195,185,0.18)",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(81,106,199,0.03)",
+      "count": 2,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(38,66,139,0.08)",
+      "count": 2,
+      "role": "bg"
+    },
+    {
+      "value": "#c4a882",
+      "count": 2,
+      "role": "text"
+    },
+    {
+      "value": "rgba(0,0,0,0.04)",
+      "count": 2,
+      "role": "bg"
+    },
+    {
+      "value": "#999999",
+      "count": 2,
+      "role": "text"
+    },
+    {
+      "value": "#3730a3",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(15,23,42,.04)",
+      "count": 2,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(16,185,129,0.3)",
+      "count": 2,
+      "role": "border"
+    },
+    {
+      "value": "#1a2d6b",
+      "count": 2,
+      "role": "bg"
+    },
+    {
+      "value": "#1a2e6b",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "#fdf6e8",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#f0fdf4",
+      "count": 1,
+      "role": "semantic"
+    },
+    {
+      "value": "#bbf7d0",
+      "count": 1,
+      "role": "border"
+    },
+    {
+      "value": "#fff7ea",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#993c1d",
+      "count": 1,
+      "role": "border"
+    },
+    {
+      "value": "#faece7",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#3b6d11",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#eaf3de",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#993556",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#fbeaf0",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#5f5e5a",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#f1efe8",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#0f6e56",
+      "count": 1,
+      "role": "border"
+    },
+    {
+      "value": "#e1f5ee",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#185fa5",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#e6f1fb",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#854f0b",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#faeeda",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#534ab7",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#eeedfe",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#7d95e8",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(15,23,42,0.04)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(15,23,42,0.12)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(196,151,61,0.15)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#f0ede6",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(196,151,61,0.30)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#f5f0e8",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "#fdf8f0",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#f0ece4",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(255,255,255,0.94)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(16,27,59,0.22)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(227,175,100,0.28)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(227,175,100,0.30)",
+      "count": 1,
+      "role": "border"
+    },
+    {
+      "value": "#374151",
+      "count": 1,
+      "role": "text"
+    },
+    {
+      "value": "#10b981",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(255,255,255,0.12)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(255,255,255,0.25)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(227,175,100,0.2)",
+      "count": 1,
+      "role": "border"
+    },
+    {
+      "value": "#fca5a5",
+      "count": 1,
+      "role": "border"
+    },
+    {
+      "value": "rgba(16,27,59,0.08)",
+      "count": 1,
+      "role": "border"
+    },
+    {
+      "value": "#fafafa",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#c49040",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(16,27,59,0.10)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(227,175,100,0.08)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(38,66,139,0.04)",
+      "count": 1,
+      "role": "surface"
+    },
+    {
+      "value": "#f9f1e3",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#fdf0e2",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#7c9e6f",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#c07850",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#6b7fd4",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#3b8a7a",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(38,66,139,0.05)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(196,151,61,0.12)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(0,0,0,0.25)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#e9e6e1",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(15,23,42,.18)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#cbd5e1",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(124,58,237,.06)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(124,58,237,.2)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(124,58,237,.08)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(196,151,61,.10)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(146,64,14,.4)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(124,58,237,.04)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(124,58,237,.1)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(15,23,42,.25)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(38,66,139,.05)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(227,175,100,0.05)",
+      "count": 1,
+      "role": "surface"
+    },
+    {
+      "value": "rgba(255,255,255,0.72)",
+      "count": 1,
+      "role": "text"
+    },
+    {
+      "value": "rgba(245,158,11,0.08)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(227,175,100,0.07)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "#b5806b",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(239,68,68,0.06)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(239,68,68,0.2)",
+      "count": 1,
+      "role": "border"
+    },
+    {
+      "value": "rgba(251,236,215,0.3)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(239,68,68,0.25)",
+      "count": 1,
+      "role": "border"
+    },
+    {
+      "value": "rgba(239,68,68,0.04)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(16,185,129,0.25)",
+      "count": 1,
+      "role": "border"
+    },
+    {
+      "value": "rgba(16,185,129,0.04)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(227,175,100,0.6)",
+      "count": 1,
+      "role": "text"
+    },
+    {
+      "value": "rgba(255,255,255,0.45)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(81,106,199,0.4)",
+      "count": 1,
+      "role": "border"
+    },
+    {
+      "value": "rgba(196,151,61,0.1)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(196,151,61,0.35)",
+      "count": 1,
+      "role": "text"
+    },
+    {
+      "value": "rgba(196,151,61,0.07)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(229,231,235,0.5)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#22c55e",
+      "count": 1,
+      "role": "text"
+    },
+    {
+      "value": "#c2410c",
+      "count": 1,
+      "role": "text"
+    },
+    {
+      "value": "#f1f5f9",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(81,106,199,0.12)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(0,0,0,0.03)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(81,106,199,0.3)",
+      "count": 1,
+      "role": "border"
+    },
+    {
+      "value": "#60a5fa",
+      "count": 1,
+      "role": "text"
+    },
+    {
+      "value": "#34d399",
+      "count": 1,
+      "role": "text"
+    },
+    {
+      "value": "#fbbf24",
+      "count": 1,
+      "role": "text"
+    },
+    {
+      "value": "#f87171",
+      "count": 1,
+      "role": "text"
+    },
+    {
+      "value": "rgba(0,0,0,0.18)",
+      "count": 1,
+      "role": "border"
+    },
+    {
+      "value": "rgba(146,64,14,0.05)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(146,64,14,0.25)",
+      "count": 1,
+      "role": "border"
+    },
+    {
+      "value": "rgba(196,151,61,.08)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(196,151,61,.02)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#e5e7eb",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "#dcfce7",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#15803d",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#16a34a",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#fef9c3",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#854d0e",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#ca8a04",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#fce7f3",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#9d174d",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#db2777",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#e0f2fe",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#075985",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#0284c7",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#d5a350",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "#8094d4",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(0,0,0,0.4)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(239,68,68,0.35)",
+      "count": 1,
+      "role": "border"
+    },
+    {
+      "value": "rgba(239,68,68,0.05)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(15,23,42,.08)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(15,23,42,.10)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(16,27,59,0.14)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(255,255,255,0.8)",
+      "count": 1,
+      "role": "text"
+    },
+    {
+      "value": "rgba(255,255,255,0.75)",
+      "count": 1,
+      "role": "text"
+    },
+    {
+      "value": "rgba(227,175,100,0.1)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(16,27,59,0.12)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(220,38,38,0.15)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(220,38,38,0.3)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(220,38,38,0.2)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(16,185,129,0.03)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(16,185,129,0.12)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(255,255,255,0.2)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(16,185,129,0.08)",
+      "count": 1,
+      "role": "bg"
+    },
+    {
+      "value": "rgba(15,23,42,0.2)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(196,151,61,0.3)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(15,23,42,0.07)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(15,23,42,0.10)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(15,23,42,0.05)",
+      "count": 1,
+      "role": "accent"
+    },
+    {
+      "value": "rgba(38,66,139,0.13)",
+      "count": 1,
+      "role": "bg"
+    }
+  ],
+  "pairs": [
+    {
+      "fg": "var(--field-text)",
+      "bg": "var(--field-fill)",
+      "src": "css"
+    },
+    {
+      "fg": "var(--field-text-disabled)",
+      "bg": "var(--field-fill-disabled)",
+      "src": "css"
+    },
+    {
+      "fg": "#0F172A",
+      "bg": "#F0EDE6",
+      "src": "css"
+    }
+  ],
+  "fonts": [
+    {
+      "family": "tw-semibold",
+      "count": 169
+    },
+    {
+      "family": "tw-bold",
+      "count": 120
+    },
+    {
+      "family": "tw-medium",
+      "count": 70
+    },
+    {
+      "family": "tw-black",
+      "count": 19
+    },
+    {
+      "family": "inherit",
+      "count": 9
+    },
+    {
+      "family": "monospace",
+      "count": 4
+    },
+    {
+      "family": "tw-size",
+      "count": 2
+    },
+    {
+      "family": "tw-mono",
+      "count": 2
+    },
+    {
+      "family": "tw-normal",
+      "count": 2
+    },
+    {
+      "family": "tw-extrabold",
+      "count": 2
+    },
+    {
+      "family": "tw-weight",
+      "count": 1
+    }
+  ],
+  "spacing": {
+    "distinct_values": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      14,
+      16,
+      18,
+      20,
+      22,
+      24,
+      25,
+      30,
+      32,
+      34,
+      37,
+      40,
+      44,
+      60,
+      80,
+      100,
+      107,
+      160
+    ],
+    "grid": "grille 4px"
+  },
+  "tokens": {
+    "defined": [
+      "--field-border",
+      "--field-border-disabled",
+      "--field-border-focus",
+      "--field-fill",
+      "--field-fill-disabled",
+      "--field-placeholder",
+      "--field-text",
+      "--field-text-disabled"
+    ],
+    "used_count": 66,
+    "hardcoded_color_uses": 964,
+    "token_ratio": 0.06
+  },
+  "interaction": {
+    "buttons": 156,
+    "inputs": 214,
+    "links": 5,
+    "hover": 43,
+    "focus": 60,
+    "active": 3,
+    "disabled": 57,
+    "feedback": 44,
+    "aria": 47,
+    "alt": 7,
+    "error_handling": 284,
+    "confirm_undo": 35
+  },
+  "structure": {
+    "headings": 366,
+    "components": 234
+  },
+  "criticite": {
+    "hits": 936,
+    "terms": {
+      "euro": 300,
+      "capital": 100,
+      "calcul": 61,
+      "rente": 61,
+      "montant": 60,
+      "abattement": 58,
+      "patrimoine": 51,
+      "fiscal": 44
+    }
+  }
+}

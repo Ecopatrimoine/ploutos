@@ -37,3 +37,32 @@ out/
 
 # TypeScript incremental build artifact (tsc -b, references mode)
 *.tsbuildinfo
+
+# ─── Intendance 2026-07-10 : mémoire de travail à la racine ───────────────────
+# Notes de reconnaissance, specs de cadrage, sourcing, checklists : documents de
+# travail adressés à Claude Code, pas des livrables. Motifs ancrés à la racine
+# (« / ») pour ne jamais masquer les specs versionnées de docs/.
+/RECON_*.md
+/SOURCING_*.md
+/CHECKLIST_VERIFICATION_SOURCE*.md
+/SPEC_*.md
+!/SPEC_MODULE_PREVOYANCE.md
+# Provenance CARMF : pendant de docs/SPEC_PREVOYANCE_{CIPAV,CARPIMKO}.md,
+# en attente de promotion vers docs/ (cf. audits-ux/decisions-assumees.md).
+!/SPEC_PREVOYANCE_CARMF.md
+
+# Paquets de livraison et previews : reconstructibles, lourds.
+/livraison-*/
+/revue-preview/
+/_previews/
+/_dossiers-test-pcoll/
+
+# Artefacts ponctuels
+/golden-file-*.md
+/maquette-*.html
+/prompt-claude-code-*.md
+
+# Jeux d'essai du harnais de migration. Volontairement non versionné :
+# src/tests/dossiers.migration.test.ts dégrade sans échec si le dossier est absent.
+# NE PAS SUPPRIMER — le test passerait alors en ne prouvant plus rien.
+/src/tests/Dossiers test/

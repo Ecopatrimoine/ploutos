@@ -1,0 +1,1932 @@
+REVUE UI/UX — RAPPORT
+========================================================
+Forme détectée : react · fichiers lus : 69 · contexte à enjeu : oui
+Cible de confort : 6.0:1
+
+SCORE GLOBAL : 81/100
+  Contraste 100 · Daltonisme 0 · Guidage 100 · Homogénéité 66 · Erreurs 100 · Charge 88
+
+CONSTATS PAR SÉVÉRITÉ (4 critique → 1 cosmétique)
+--------------------------------------------------------
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a06a1a et #db2777 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #92400e et #ca8a04 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f1efe8 et #fef9c3 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #d4a96a et #b5806b se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b8dd6 et #7c3aed se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a07a2e et #c07850 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a0b4e8 et #e6f1fb se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #d4a96a et #db2777 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #6b7fd4 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a06a1a et #dc2626 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b8dd6 et #a9b8d4 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #854f0b et #9d174d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #534ab7 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #26428b et #3730a3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #c4973d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3730a3 et #7c3aed se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #ffffff et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #1e293b se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f0ece4 et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #993556 et #854f0b se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #26428b et #534ab7 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #15803d se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dc2626 et #d5a350 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5f5e5a et #16a34a se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #993556 et #5f5e5a se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a07a2e et #9d174d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c49040 et #b5806b se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fafafa et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fef9c3 et #fce7f3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #888780 et #7c9e6f se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3730a3 et #185fa5 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #15803d et #101b3b se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #16a34a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8956e et #c4973d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b7280 et #5b7fb0 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3730a3 et #16a34a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #e3af64 et #fcd34d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f6f4ef et #fef9c3 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #e6e6e6 et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8956e et #c49040 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #26428b se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dc2626 et #c4973d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #534ab7 et #8094d4 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a0b4e8 et #e0f2fe se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a06a1a et #c07850 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #993556 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c4973d et #c07850 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #8c8678 et #db2777 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #d4a96a et #c07850 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #8ca2f0 et #7c3aed se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b7280 et #16a34a se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #a07a2e se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #993556 et #854d0e se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #166534 et #16a34a se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #8c8678 et #b5806b se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fdf6e8 et #fef9c3 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #eef2ff et #c8c3b9 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dc2626 et #c49040 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #185fa5 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #92400e se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #6b7280 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #e5e7eb et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a0b4e8 et #7c3aed se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b7fd4 et #7c3aed se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fdf8f0 et #fef9c3 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a9b8d4 et #eaf3de se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #534ab7 et #6b7fd4 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3730a3 et #075985 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #faece7 et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c49040 et #c07850 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c4973d et #9d174d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #166534 et #0f172a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c07850 et #d5a350 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #7c9e6f et #b5806b se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a9b8d4 et #eeedfe se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #eef2ff et #dcfce7 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a06a1a et #db2777 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #d4a96a et #b5806b se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c07850 et #e3af64 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #0f172a et #166534 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #7c9e6f et #7c3aed se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a0b4e8 et #7d95e8 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b7280 et #7c3aed se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c49040 et #9d174d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fbeaf0 et #dcfce7 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fbecd7 et #eeedfe se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #16a34a se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3b6d11 et #0f172a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #075985 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #eeedfe et #dcfce7 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #92400e et #9d174d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #185fa5 et #7c3aed se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #8c8678 et #7c9e6f se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #9d174d et #db2777 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #e6e6e6 et #a0b4e8 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fef9ee et #fef9c3 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #15803d et #075985 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #993556 et #854f0b se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #26428b et #075985 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #7d95e8 et #7c3aed se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #1e293b et #15803d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #3730a3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #534ab7 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b8dd6 et #534ab7 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8956e et #db2777 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3b8a7a et #15803d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #e3af64 et #c07850 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #16a34a et #075985 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #eaf3de et #fce7f3 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f4f2ec et #fef9c3 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f59e0b et #fcd34d se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8c3b9 et #f0fdf4 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #101b3b et #15803d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #e6f1fb et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8c3b9 et #eeedfe se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3b6d11 et #993556 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #534ab7 et #7c3aed se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8956e et #c4973d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #7c3aed et #8094d4 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dc2626 et #ca8a04 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #c07850 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #166534 et #1e293b se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #101b3b et #166534 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #5b7fb0 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #dc2626 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b5806b et #9d174d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #993556 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #185fa5 et #534ab7 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #993556 et #db2777 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fff7ea et #fef9c3 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #eef2ff et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #888780 et #993556 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #26428b et #3b8a7a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fbeaf0 et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #c8956e se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #3b8a7a se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #9d174d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #eeedfe et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #92400e se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fcd34d et #d5a350 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #166534 et #26428b se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #26428b et #3730a3 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3730a3 et #7c3aed se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f0ece4 et #fef9c3 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dcfce7 et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b7fd4 et #7c3aed se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #a06a1a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f0fdf4 et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #993556 et #92400e se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #534ab7 et #16a34a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #185fa5 et #16a34a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #0f172a et #3b6d11 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #7d95e8 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #db2777 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #15803d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #888780 et #7c9e6f se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3730a3 et #185fa5 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #16a34a se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fcd34d et #e3af64 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #8ca2f0 et #a9b8d4 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fdf0e2 et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #7c9e6f et #9d174d se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #888780 et #7c3aed se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a07a2e et #dc2626 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fbeaf0 et #dcfce7 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3b8a7a et #16a34a se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #eeedfe et #dcfce7 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #534ab7 et #075985 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3b6d11 et #5f5e5a se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c4973d et #c07850 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b5806b et #d5a350 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f6f4ef et #fef9c3 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a07a2e et #993556 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8956e et #c49040 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #a07a2e se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #db2777 et #c4973d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a06a1a et #92400e se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #6b7280 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #eaf3de et #fce7f3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fcd34d et #c07850 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f9f1e3 et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #8c8678 et #993556 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #534ab7 et #6b7fd4 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #166534 et #075985 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3730a3 et #075985 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #faece7 et #fef9c3 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #ca8a04 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #993556 et #b5806b se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c49040 et #c07850 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #eef2ff et #c8c3b9 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #7c3aed et #8094d4 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dc2626 et #ca8a04 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dc2626 et #c49040 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #c07850 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #166534 et #0f172a se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8c3b9 et #dcfce7 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #e3af64 et #db2777 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #854d0e se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f59e0b et #dc2626 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a9b8d4 et #dcfce7 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dcfce7 et #fce7f3 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c07850 et #d5a350 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #d4a96a et #b5806b se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8956e et #d5a350 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #3b8a7a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a06a1a et #993556 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a06a1a et #dc2626 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c07850 et #db2777 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #9d174d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b7280 et #7c9e6f se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #185fa5 et #7c3aed se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #8c8678 et #7c9e6f se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dc2626 et #854f0b se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fcd34d et #d5a350 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #9d174d et #db2777 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #854f0b se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c07850 et #e3af64 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b5806b et #e3af64 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #0f172a et #166534 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5f5e5a et #15803d se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b7280 et #3730a3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #7c3aed se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b5806b et #db2777 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #993556 et #c07850 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #9d174d et #c4973d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3b8a7a et #15803d se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #7d95e8 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fef9ee et #fef9c3 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #5f5e5a se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5f5e5a et #7c9e6f se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #8ca2f0 et #5b7fb0 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f59e0b et #db2777 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a07a2e et #b5806b se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #15803d et #0f172a se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #534ab7 et #7c3aed se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8956e et #c4973d se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b8dd6 et #534ab7 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fcd34d et #e3af64 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8956e et #db2777 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f1efe8 et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #e3af64 et #c07850 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a07a2e et #c07850 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8c3b9 et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f59e0b et #fcd34d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8c3b9 et #f0fdf4 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #6b7fd4 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3b8a7a et #16a34a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #854f0b et #9d174d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dc2626 et #c4973d se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #993556 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #c4973d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #185fa5 et #534ab7 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3b6d11 et #5f5e5a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3b8a7a et #7c3aed se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #26428b et #534ab7 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #854d0e et #9d174d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #534ab7 et #3b8a7a se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a9b8d4 et #6b7fd4 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #166534 et #101b3b se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c49040 et #db2777 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #101b3b et #000000 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #db2777 et #e3af64 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b5806b et #c4973d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a06a1a et #92400e se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #ca8a04 et #db2777 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8956e et #fcd34d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #92400e se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a0b4e8 et #dcfce7 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a07a2e et #9d174d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b7fd4 et #7c3aed se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c4973d et #db2777 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #a06a1a se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #3730a3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #db2777 et #d5a350 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #b5806b se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b7280 et #3b8a7a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #26428b et #3730a3 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #26428b et #16a34a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f0ece4 et #fef9c3 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8c3b9 et #dcfce7 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #db2777 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a06a1a et #ca8a04 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fcd34d et #c4973d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a06a1a et #c07850 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #854d0e se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #d4a96a et #c07850 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #8ca2f0 et #7c3aed se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #993556 et #7c9e6f se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fdf0e2 et #fef9c3 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dcfce7 et #fce7f3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b8dd6 et #7c3aed se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #993556 et #854d0e se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #166534 et #16a34a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dc2626 et #92400e se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fbeaf0 et #dcfce7 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fdf6e8 et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #000000 et #101b3b se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fef9c3 et #fce7f3 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #888780 et #7c9e6f se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3730a3 et #185fa5 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #16a34a se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c07850 et #c4973d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a9b8d4 et #e1f5ee se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8956e et #a07a2e se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #534ab7 et #075985 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #26428b et #6b7280 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3b8a7a et #075985 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #7c3aed se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c4973d et #c07850 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #eaf3de et #fce7f3 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a07a2e et #92400e se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f9f1e3 et #fef9c3 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a9b8d4 et #e5e7eb se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #993556 et #b5806b se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #eef2ff et #dcfce7 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dc2626 et #ca8a04 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #c07850 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #993556 et #c4973d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a0b4e8 et #e1f5ee se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #16a34a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #534ab7 et #6b7fd4 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3730a3 et #075985 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c49040 et #c07850 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #26428b et #075985 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #1e293b et #15803d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #d4a96a et #fcd34d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8956e et #d5a350 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8c3b9 et #fafafa se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #1e293b et #3b6d11 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #534ab7 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #166534 et #101b3b se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c49040 et #db2777 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a06a1a et #9d174d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #3b8a7a se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c07850 et #db2777 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #9d174d se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c4973d et #b5806b se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #854f0b se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #7d95e8 et #0284c7 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c4973d et #db2777 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #101b3b et #3b6d11 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #c49040 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dc2626 et #c07850 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f8f6f7 et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b8dd6 et #3b8a7a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #166534 et #1e293b se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #101b3b et #166534 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #92400e et #9d174d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a9b8d4 et #c8c3b9 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #8c8678 et #7c9e6f se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #db2777 et #d5a350 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #9d174d et #db2777 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #7d95e8 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5f5e5a et #7c9e6f se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fdf8f0 et #fef9c3 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #7d95e8 et #7c3aed se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #8ca2f0 et #5b7fb0 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3b6d11 et #9d174d se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #26428b et #5b7fb0 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a07a2e et #b5806b se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b5806b et #db2777 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fff7ea et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3730a3 et #15803d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f1efe8 et #fef9c3 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3b8a7a et #15803d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fbecd7 et #e0f2fe se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a07a2e et #c07850 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #6b7fd4 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #e6e6e6 et #a9b8d4 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3b8a7a et #16a34a se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a0b4e8 et #e5e7eb se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #0f172a et #15803d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #534ab7 et #7c3aed se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c07850 et #c4973d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8956e et #a07a2e se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #26428b et #534ab7 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a0b4e8 et #7d95e8 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dc2626 et #d5a350 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fbecd7 et #eeedfe se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3b6d11 et #101b3b se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a06a1a et #92400e se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #15803d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fcd34d et #c49040 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fbeaf0 et #fef9c3 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #166534 et #3730a3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a9b8d4 et #8094d4 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b7280 et #534ab7 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b7280 et #3b8a7a se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f4f2ec et #fef9c3 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a9b8d4 et #7d95e8 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8c3b9 et #dcfce7 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #a06a1a se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8c3b9 et #eeedfe se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b7280 et #15803d se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a06a1a et #c07850 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #854d0e se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dc2626 et #854d0e se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f6f4ef et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #d4a96a et #c07850 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #b5806b se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8956e et #c49040 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #dcfce7 et #fce7f3 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #db2777 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #db2777 et #c4973d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #166534 et #16a34a se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fdf6e8 et #fef9c3 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #993556 et #db2777 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b7280 et #16a34a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fdf0e2 et #fef9c3 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #1e293b et #16a34a se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a9b8d4 et #f1efe8 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #3730a3 et #3b8a7a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b8dd6 et #7c3aed se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #c49040 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #993556 et #c49040 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fdf8f0 et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a07a2e et #993556 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #e3af64 et #b5806b se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #7c9e6f et #db2777 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #eef2ff et #dcfce7 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5f5e5a et #9d174d se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c07850 et #d5a350 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a07a2e et #92400e se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f9f1e3 et #fef9c3 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #534ab7 et #7c9e6f se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b7280 et #7c9e6f se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #eeedfe et #dcfce7 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #993556 et #b5806b se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #e3af64 et #fcd34d se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c07850 et #e3af64 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #26428b et #075985 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #0f172a et #166534 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #1e293b et #15803d se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a0b4e8 et #7d95e8 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #888780 et #db2777 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fbecd7 et #eeedfe se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5b7fb0 et #534ab7 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a07a2e et #db2777 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fef9ee et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c07850 et #9d174d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #a07a2e se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8956e et #d5a350 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8c3b9 et #fafafa se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #534ab7 et #15803d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a0b4e8 et #6b7fd4 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #e1f5ee et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b8dd6 et #534ab7 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c07850 et #db2777 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #26428b et #15803d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #166534 et #1e293b se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #2f7d5b et #6b7280 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #e3af64 et #c07850 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #185fa5 et #15803d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #f4f2ec et #fef9c3 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #ca8a04 et #9d174d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #854f0b se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a9b8d4 et #e6f1fb se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a9b8d4 et #f0ece4 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #faece7 et #fef9c3 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a9b8d4 et #e0f2fe se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b7fd4 et #0284c7 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #6b7fd4 et #3b8a7a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #eef2ff et #a9b8d4 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #166534 et #5f5e5a se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #fff7ea et #fef9c3 se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #166534 et #0f172a se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #854d0e et #9d174d se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #166534 et #3b6d11 se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #5f5e5a et #7c9e6f se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #8ca2f0 et #5b7fb0 se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #534ab7 et #3b8a7a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #b0413e et #c8956e se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a07a2e et #b5806b se confondent en deutéranopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #185fa5 et #3b8a7a se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #a9b8d4 et #7c3aed se confondent en tritanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c07850 et #c4973d se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Signifiance des codes · Daltonisme
+    Constat : #c8956e et #a07a2e se confondent en protanopie.
+    Reco    : Ne jamais coder l'information par la couleur seule : doubler d'un libellé, d'une icône ou d'un motif, ou écarter les teintes.
+
+[MAJEUR] Homogénéité / Cohérence · Centralisation des couleurs
+    Constat : 964 couleurs codées en dur, peu de jetons (ratio 0.06). Toute évolution de charte oblige à chasser les valeurs partout.
+    Reco    : Centraliser les couleurs en variables/jetons (idéalement OKLCH) : une source unique, réutilisée. Préserver les teintes de marque via une variable dédiée pour les usages texte.
+
+[MINEUR] Charge de travail · Densité informationnelle
+    Constat : Densité élevée (366 titres/grandes tailles détectés).
+    Reco    : Vérifier qu'aucun écran ne sature : hiérarchiser, regrouper, masquer le secondaire (divulgation progressive).
+
+[MINEUR] Homogénéité / Cohérence · Équilibre 60-30-10
+    Constat : Plus de couleurs d'accent (117) que de fonds/surfaces (79) : risque de surcharge.
+    Reco    : Garder une teinte dominante (≈60 %), une secondaire (≈30 %), l'accent réservé aux ≈10 % (CTA, états actifs).
+
+--------------------------------------------------------
+Méthode : Bastien & Scapin (INRIA) · Nielsen · Saffer · Casey · WCAG 2.2 · APCA · 60-30-10.
