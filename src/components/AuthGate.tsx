@@ -5,9 +5,44 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { useAuth } from "../hooks/useAuth";
+import { supabase } from "../lib/supabase";
 
+// Email de bienvenue — déplacé de l'inscription au PREMIER login (tranche P4).
+// Motif : l'inscription exige une confirmation email, donc AUCUNE session n'existe
+// à ce moment ; on ne peut pas satisfaire le mode « JWT + to === email » de
+// send-email. On l'envoie donc au premier login authentifié, une fois (marqueur
+// localStorage par utilisateur = best-effort par appareil), et seulement pour un
+// compte récent (< 3 j) afin de ne pas arroser les comptes existants.
+async function sendWelcomeIfNeeded() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    const token = session?.access_token;
+    if (!user?.email || !token) return;
 
+    const markerKey = `ploutos_welcome_sent_${user.id}`;
+    if (localStorage.getItem(markerKey)) return;
 
+    // Compte non récent : onboarding déjà passé → on pose le marqueur et on sort
+    // (aucun email aux utilisateurs installés).
+    const createdAt = user.created_at ? new Date(user.created_at).getTime() : 0;
+    const isRecent = createdAt > 0 && (Date.now() - createdAt) < 3 * 24 * 3600 * 1000;
+    if (!isRecent) { localStorage.setItem(markerKey, "1"); return; }
+
+    const isMac = typeof navigator !== "undefined" &&
+      (navigator.platform?.toLowerCase().includes("mac") ||
+       navigator.userAgent?.toLowerCase().includes("macintosh"));
+    const emailType = isMac ? "welcome_trial_mac" : "welcome_trial";
+    const cabinet_name = (user.user_metadata as { cabinet_name?: string } | undefined)?.cabinet_name;
+
+    const res = await fetch("https://ysbgfiqsuvdwzkcsiqir.supabase.co/functions/v1/send-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ to: user.email, type: emailType, cabinet_name }),
+    });
+    if (res.ok) localStorage.setItem(markerKey, "1");
+  } catch { /* fire-and-forget : ne bloque jamais le login */ }
+}
 
 type AuthGateProps = {
   authHook: ReturnType<typeof useAuth>;
@@ -45,8 +80,10 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
   const handleLogin = async () => {
     setLocalError("");
     setLoading(true);
-    await signIn(email, password);
+    const ok = await signIn(email, password);
     setLoading(false);
+    // Envoi du mail de bienvenue au premier login (voir sendWelcomeIfNeeded).
+    if (ok) void sendWelcomeIfNeeded();
   };
 
   const handleRegister = async () => {
@@ -58,17 +95,9 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
     const ok = await signUp(email, password, cabinetName);
     setLoading(false);
     if (ok) {
-      // Détecter Mac pour envoyer les instructions de lancement spécifiques
-      const isMac = typeof navigator !== "undefined" &&
-        (navigator.platform?.toLowerCase().includes("mac") ||
-         navigator.userAgent?.toLowerCase().includes("macintosh"));
-      const emailType = isMac ? "welcome_trial_mac" : "welcome_trial";
-      // Fire-and-forget — ne bloque pas l UI si la fonction échoue
-      fetch("https://ysbgfiqsuvdwzkcsiqir.supabase.co/functions/v1/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: email, type: emailType, cabinet_name: cabinetName }),
-      }).catch(() => {});
+      // L'email de bienvenue n'est plus envoyé ici : l'inscription exige une
+      // confirmation email (pas de session), donc send-email ne peut pas
+      // authentifier l'appel. Il part au premier login (sendWelcomeIfNeeded).
       setSuccessMsg("Compte créé ! Vérifiez votre email pour confirmer votre inscription.");
       setMode("login");
     }
