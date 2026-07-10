@@ -209,13 +209,13 @@ exports[`CONTRAT — pageSuccessionA (flux paged.js) > 9. blocs declares : heade
   </div>
 <div style="break-inside:avoid"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px">
     <div style="background:#0F172A;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
-        <div class="lt" style="font-size:9px;color:#E3C485cc;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Masse successorale nette</div>
+        <div class="lt" style="font-size:9px;color:#E3C485cc;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Actif successoral net</div>
         <div class="lt" style="font-weight:700;font-size:15px;color:#E3C485;margin-top:5px;line-height:1">500 000 €</div>
       </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
       <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Droits de succession</div>
       <div class="lt" style="font-weight:700;font-size:15px;color:#0F172A;margin-top:5px;line-height:1">20 000 €</div>
     </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
-      <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Net transmis</div>
+      <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Net transmis — succession civile</div>
       <div class="lt" style="font-weight:700;font-size:15px;color:#0F172A;margin-top:5px;line-height:1">480 000 €</div>
     </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
       <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Taux moyen</div>
@@ -283,7 +283,7 @@ exports[`CONTRAT — pageSuccessionB (flux paged.js) > 10. blocs declares : head
       <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Fiscalité totale</div>
       <div class="lt" style="font-weight:700;font-size:15px;color:#2F7D5B;margin-top:5px;line-height:1">0 €</div>
     </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
-      <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Net aux bénéficiaires</div>
+      <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Net transmis — assurances-vie (tous bénéficiaires)</div>
       <div class="lt" style="font-weight:700;font-size:15px;color:#0F172A;margin-top:5px;line-height:1">100 000 €</div>
     </div><div style="border:0.5px solid #E4DDCF;border-radius:9px;padding:11px 9px;display:flex;flex-direction:column">
       <div class="lt" style="font-size:9px;color:#6B6353;letter-spacing:.04em;text-transform:uppercase;min-height:24px;line-height:1.25">Abattement restant</div>

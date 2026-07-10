@@ -29,8 +29,16 @@ export type BeneficiaireAV = {
   nom: string;           // "Lucas Dubreuil"
   lien: string;          // "Enfant"
   capital: number;       // 94 000
-  abattement990I: number; // 152 500 (abattement individuel pour 990 I)
-  fiscalite: number;     // 0 (si exonéré → afficher en vert)
+  // Abattement 990 I INDIVIDUEL (152 500 € par bénéficiaire) — présent (> 0) UNIQUEMENT si
+  // le bénéficiaire a une part issue de versements AVANT 70 ans. Un bénéficiaire purement
+  // 757 B (après 70 ans) porte 0 ici : l'abattement 757 B est GLOBAL (30 500 € partagé,
+  // jamais par bénéficiaire), rappelé en note — cf. présentation écran (TabSuccession).
+  abattement990I: number;
+  // Décomposition de la fiscalité par régime (propagée depuis successionPresentation) :
+  // 990 I = versements avant 70 ans ; 757 B = après 70 ans. Optionnelles (fixtures legacy).
+  tax990I?: number;
+  tax757B?: number;
+  fiscalite: number;     // 990 I + 757 B (0 si exonéré → afficher en vert)
   net: number;           // 94 000
 };
 
@@ -62,11 +70,13 @@ export type SuccessionBPageData = {
 
 export function pageSuccessionB(t: Tokens, d: SuccessionBPageData): string {
   // ─── KPI band (compact, 4 KPI ; le 2e en vert succès quand fiscalité=0) ──
+  // Libellé aligné MOT POUR MOT sur l'écran 10a (TabSuccession, modale AV) : le net AV
+  // porte le même nom des deux côtés (« Net transmis — assurances-vie (tous bénéficiaires) »).
   const kpis = [
     { label: "Capitaux transmis",      value: euro(d.capitauxTransmis),    type: "main"   as const },
     { label: "Fiscalité totale",       value: euro(d.fiscaliteTotale),
       type: (d.fiscaliteTotale === 0 ? "success" : "normal") as "success" | "normal" },
-    { label: "Net aux bénéficiaires",  value: euro(d.netAuxBeneficiaires), type: "normal" as const },
+    { label: "Net transmis — assurances-vie (tous bénéficiaires)", value: euro(d.netAuxBeneficiaires), type: "normal" as const },
     { label: "Abattement restant",     value: euro(d.abattementRestant),   type: "normal" as const },
   ];
 
@@ -79,16 +89,31 @@ export function pageSuccessionB(t: Tokens, d: SuccessionBPageData): string {
     { label: "Fiscalité",    align: "right", width: "12%" },
     { label: "Net",          align: "right", width: "16%" },
   ];
-  const rendreLigne = (b: BeneficiaireAV): Cell[] => ([
-    { value: b.nom },
-    { value: b.lien, color: t.texteFaible },
-    { value: euro(b.capital), align: "right" },
-    { value: euro(b.abattement990I), align: "right" },
-    b.fiscalite === 0
+  const rendreLigne = (b: BeneficiaireAV): Cell[] => {
+    // Abattement selon le RÉGIME RÉEL : 152 500 € (990 I individuel) uniquement si le
+    // bénéficiaire a une part avant 70 ans ; sinon « — » (l'abattement 757 B est GLOBAL
+    // 30 500 €, rappelé en note, JAMAIS affiché par bénéficiaire).
+    const abatt: Cell = b.abattement990I > 0
+      ? { value: euro(b.abattement990I), align: "right" }
+      : { value: "—", align: "right", color: t.texteFaibleClair };
+    // Décomposition 990 I / 757 B en sous-ligne quand les DEUX régimes coexistent.
+    const t990 = b.tax990I ?? 0;
+    const t757 = b.tax757B ?? 0;
+    const decompo = t990 > 0 && t757 > 0
+      ? `<div style="font-size:8.5px;color:${t.texteFaibleClair};margin-top:1px;line-height:1.25">990 I : ${euro(t990)} · 757 B : ${euro(t757)}</div>`
+      : "";
+    const fisc: Cell = b.fiscalite === 0
       ? { value: euro(0), align: "right", color: t.succes, bold: true }
-      : { value: euro(b.fiscalite), align: "right", color: t.thOr },
-    { value: euro(b.net), align: "right", bold: true },
-  ]);
+      : { value: `${euro(b.fiscalite)}${decompo}`, align: "right", color: t.thOr };
+    return [
+      { value: b.nom },
+      { value: b.lien, color: t.texteFaible },
+      { value: euro(b.capital), align: "right" },
+      abatt,
+      fisc,
+      { value: euro(b.net), align: "right", bold: true },
+    ];
+  };
   const rows: Cell[][] = d.beneficiaires.map(rendreLigne);
   const { enteteHtml, lignesHtml } = construireTableEcoulable(t, { cols, rows });
 

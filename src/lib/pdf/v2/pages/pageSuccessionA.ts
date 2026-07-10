@@ -68,11 +68,15 @@ export type SuccessionAPageData = {
 
 export function pageSuccessionA(t: Tokens, d: SuccessionAPageData): string {
   // ─── KPI band (compact, 4 KPI, 1 navy + 3 cernés) ──
+  // Libellés alignés MOT POUR MOT sur l'écran 10a (TabSuccession) :
+  //   - « Actif successoral net » = valeur = activeNet (Σ parts civiles) → même nom écran/PDF ;
+  //   - « Net transmis — succession civile » = perimètre civil SEUL (masse − droits), à
+  //     distinguer du « Net transmis — tous bénéficiaires » (page B) et du net AV.
   const kpis = [
-    { label: "Masse successorale nette", value: euro(d.masseSuccessoraleNette), type: "main"   as const },
-    { label: "Droits de succession",     value: euro(d.droitsSuccession),       type: "normal" as const },
-    { label: "Net transmis",             value: euro(d.netTransmis),            type: "normal" as const },
-    { label: "Taux moyen",               value: d.tauxMoyen,                    type: "normal" as const },
+    { label: "Actif successoral net",           value: euro(d.masseSuccessoraleNette), type: "main"   as const },
+    { label: "Droits de succession",            value: euro(d.droitsSuccession),       type: "normal" as const },
+    { label: "Net transmis — succession civile", value: euro(d.netTransmis),           type: "normal" as const },
+    { label: "Taux moyen",                      value: d.tauxMoyen,                    type: "normal" as const },
   ];
 
   // ─── Détail par héritier (tableau 6 colonnes) ──
