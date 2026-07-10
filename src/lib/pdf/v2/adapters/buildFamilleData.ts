@@ -55,7 +55,12 @@ export function buildFamilleData(p: BuildFamilleDataParams): FamillePageData {
     dateNaissance: formatDateNaissance(c.birthDate),
     lien: composeLienEnfant(c.parentLink, p1Prenom, p2Prenom),
     garde: composeGarde(c.custody),
-    rattache: !!c.rattached,
+    // Rattachement fiscal : MEME convention que le moteur (ir.ts:671/694-695), l'IFI,
+    // getChildrenFiscalParts (utils.ts:352), la succession et la prevoyance — un enfant
+    // est rattache SAUF si rattached === false (defaut absent = rattache). `!!c.rattached`
+    // (truthy) faisait tomber les enfants sans champ explicite -> "1 rattache" alors que
+    // parts=4 en compte 3 (Perry : riri/nono sans rattached => a tort detaches). G5-B.
+    rattache: c.rattached !== false,
     handicap: !!c.handicap,
   }));
 
