@@ -62,22 +62,38 @@ export function useLicense(userId: string | null) {
       if (cached) { setLicence(cached); return; }
     }
 
+    // Licence considérée absente : aucun accès, LicenceGate s'affiche (avec le
+    // bouton « Contacter le support »). Fail-closed, aucune écriture cliente.
+    const absente: LicenceInfo = {
+      type: null, status: "none", trialEnd: null,
+      trialDaysLeft: 0, isValid: false, loading: false,
+    };
+
     try {
       const { data, error } = await supabase
         .from("licences")
         .select("type, status, trial_end")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
-      if (error || !data) {
-        // Aucune ligne → créer un trial (cas migration anciens comptes)
-        await supabase.from("licences").upsert({
-          user_id: userId,
-          type: "trial",
-          status: "active",
-          trial_end: new Date(Date.now() + 15 * 24 * 3600 * 1000).toISOString(),
-        });
-        return fetchLicence(true);
+      if (error) {
+        // Erreur de lecture (réseau, RLS…) : ne PAS conclure à une absence de
+        // licence (ne pas verrouiller un abonné payant sur un incident). On
+        // conserve un cache valide s'il existe ; sinon fail-closed sans écriture.
+        const cached = getCachedLicence();
+        setLicence(cached ? { ...cached, loading: false } : absente);
+        return;
+      }
+
+      if (!data) {
+        // Aucune ligne licences. Le trigger Supabase la crée normalement à
+        // l'inscription ; une absence est donc une anomalie (compte legacy ou
+        // trigger en échec). On NE crée plus de trial côté client (policy RLS
+        // d'écriture retirée le 2026-07-10) : licence absente → LicenceGate.
+        // Non mis en cache : chaque refresh re-interroge pour capter une ligne
+        // créée entre-temps.
+        setLicence(absente);
+        return;
       }
 
       const trialEnd   = data.trial_end ? new Date(data.trial_end) : null;
