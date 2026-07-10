@@ -14,6 +14,11 @@
 // 🔴 Aucune couleur en dur ailleurs dans pdf/v2 — toutes les primitives et
 // pages consomment ce module. Modifier les couleurs = modifier ici.
 
+// LOT 11 C2 — la palette du barème par tranche suit l'ÉCRAN (décision David : l'écran fait
+// foi). CHART_COLORS est la SOURCE UNIQUE (BracketFillChart) : catégorielle or/bleu, cyclée
+// par rang de tranche. Importée, jamais recopiée en hex.
+import { CHART_COLORS } from "../../../constants";
+
 export type Theme = "encreOr" | "cabinet";
 
 export type Tokens = {
@@ -48,8 +53,12 @@ export type Tokens = {
   // par RANG ABSOLU de tranche via echantillonnerRampe() — indépendant du remplissage.
   // Limité aux GRAPHES DE BARÈME (IFI + IR) ; le reste du rapport garde la palette globale.
   // Identique aux 2 thèmes : la sévérité fiscale est indépendante de la charte cabinet.
-  rampeBareme: string[];        // fill par palier (creme -> rouge profond)
-  rampeBaremeBordure: string[]; // bordure : un cran plus foncé que le fill
+  rampeBareme: string[];        // (dormant depuis C2) fill par palier creme -> rouge
+  rampeBaremeBordure: string[]; // (dormant depuis C2) bordure un cran plus foncé
+  // ── Palette catégorielle du barème par tranche (C2 : miroir écran BracketFillChart) ──
+  // or/bleu cyclée par rang de tranche (= CHART_COLORS). Bordure un cran plus foncé.
+  paletteBareme: string[];
+  paletteBaremeBordure: string[];
   // ── Palette qualitative des scénarios (bar chart Hypothèses) ──
   paletteScenarios: string[];
 };
@@ -119,6 +128,13 @@ export const SEMANTIC_DANGER = "#992F2D";
 // entre teintes NON adjacentes, à ≥ 5 scénarios → légende + position de barre lèvent l'ambiguïté.
 const PALETTE_SCENARIOS = ["#D95F02", "#1B9E77", "#7570B3", "#595959", "#E7298A", "#117733"];
 
+// ─── Palette catégorielle du barème par tranche (C2) ─────────────────────
+// SOURCE UNIQUE = CHART_COLORS de l'écran (BracketFillChart). Bordure dérivée un cran plus
+// foncé (mix noir 0,16), comme la rampe. Identique aux 2 thèmes (catégorielle, indépendante
+// de la charte cabinet — comme paletteScenarios).
+const PALETTE_BAREME = CHART_COLORS;
+const PALETTE_BAREME_BORDURE = CHART_COLORS.map((c) => darken(c, 0.16));
+
 /** Échantillonne une rampe hex à la position de la tranche i parmi n : couleur = rampe(i/(n-1)),
  *  interpolation linéaire entre arrêts. n = stops.length → arrêts exacts ; n différent → interpolé.
  *  Garantit que la DERNIÈRE tranche (i=n-1) tombe toujours sur le dernier arrêt (rouge profond),
@@ -157,6 +173,8 @@ const ENCRE_OR: Tokens = {
   danger:            SEMANTIC_DANGER,
   rampeBareme:        RAMPE_BAREME,
   rampeBaremeBordure: RAMPE_BAREME_BORDURE,
+  paletteBareme:        PALETTE_BAREME,
+  paletteBaremeBordure: PALETTE_BAREME_BORDURE,
   paletteScenarios:   PALETTE_SCENARIOS,
 };
 
@@ -209,6 +227,8 @@ export function buildTokens(theme: Theme, cabinet?: CouleursCabinet): Tokens {
     // Rampe de sévérité barème + palette scénarios : identiques aux 2 thèmes (a11y-réglées, indépendantes de la charte).
     rampeBareme:        RAMPE_BAREME,
     rampeBaremeBordure: RAMPE_BAREME_BORDURE,
+    paletteBareme:        PALETTE_BAREME,
+    paletteBaremeBordure: PALETTE_BAREME_BORDURE,
     paletteScenarios:   PALETTE_SCENARIOS,
   };
 }

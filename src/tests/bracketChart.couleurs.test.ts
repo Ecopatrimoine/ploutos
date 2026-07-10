@@ -1,16 +1,18 @@
-// ─── TEST DE RÈGLE — Rampe de couleur du graphe de barème (bracketChart) ─────
+// ─── TEST DE RÈGLE — Palette du graphe de barème (bracketChart) ──────────────
 //
-// La couleur de chaque barre est échantillonnée sur le RANG ABSOLU de la tranche
-// dans la rampe de sévérité crème → rouge (t.rampeBareme), indépendamment du
-// remplissage. L'« active » est marquée par CONTOUR + badge, jamais par un fill
-// différent (daltonien-safe). Asserts structurels sur data-* du SVG.
+// C2 : la couleur de chaque barre suit l'ÉCRAN — palette CATÉGORIELLE or/bleu
+// (t.paletteBareme = CHART_COLORS), cyclée sur le RANG ABSOLU de la tranche,
+// indépendamment du remplissage. L'« active » est marquée par CONTOUR or + badge,
+// jamais par un fill différent (daltonien-safe). En N&B, les valeurs affichées
+// (taux + impôt) distinguent deux teintes voisines devenues proches en gris.
 
 import { describe, it, expect } from "vitest";
-import { buildTokens, echantillonnerRampe } from "../lib/pdf/v2/tokens";
+import { buildTokens } from "../lib/pdf/v2/tokens";
 import { renderBracketChartSVG } from "../lib/pdf/v2/bracketChart";
 import type { FilledBracket } from "../types/patrimoine";
 
 const t = buildTokens("encreOr");
+const couleurRang = (i: number) => t.paletteBareme[i % t.paletteBareme.length];
 
 type Barre = { type: "filled" | "empty"; index: number; color: string; active: boolean };
 
@@ -36,81 +38,58 @@ function brackets(n: number, remplies: boolean[]): FilledBracket[] {
   }));
 }
 
-const rougeProfond = (n: number) => echantillonnerRampe(t.rampeBareme, n - 1, n); // dernier arrêt
-
-describe("bracketChart — rampe de sévérité par rang absolu", () => {
-  it("(1) chaque barre prend la couleur de rampe de son index ; T1 != T6 ; T6 = rouge profond", () => {
+describe("bracketChart — palette catégorielle par rang absolu (miroir écran)", () => {
+  it("(1) chaque barre prend la teinte catégorielle de son rang ; T0 != T5", () => {
     const html = renderBracketChartSVG(brackets(6, Array(6).fill(true)), t);
     const barres = lireBarres(html);
     expect(barres).toHaveLength(6);
-    for (const b of barres) {
-      expect(b.color).toBe(echantillonnerRampe(t.rampeBareme, b.index, 6));
-    }
-    const c0 = barres[0].color, c5 = barres[5].color;
-    expect(c0).not.toBe(c5);
-    expect(c5).toBe(rougeProfond(6));
+    for (const b of barres) expect(b.color).toBe(couleurRang(b.index));
+    expect(barres[0].color).not.toBe(barres[5].color); // teintes distinctes
   });
 
-  it("(2) le mapping ne dépend PAS du remplissage : T1-T2 seules remplies -> T2 n'est pas rouge, T6 reste rouge", () => {
+  it("(2) le mapping ne dépend PAS du remplissage : T2 remplie / T6 vide gardent leur teinte de rang", () => {
     const html = renderBracketChartSVG(brackets(6, [true, true, false, false, false, false]), t);
     const barres = lireBarres(html);
     const t2 = barres.find(b => b.index === 1)!;
     const t6 = barres.find(b => b.index === 5)!;
     expect(t2.type).toBe("filled");
     expect(t6.type).toBe("empty");          // vide mais colorée
-    expect(t2.color).not.toBe(rougeProfond(6));
-    expect(t6.color).toBe(rougeProfond(6)); // couleur = rang absolu, pas remplissage
+    expect(t2.color).toBe(couleurRang(1));
+    expect(t6.color).toBe(couleurRang(5));  // couleur = rang absolu, pas remplissage
   });
 
-  it("(3) l'active est marquée par contour or + badge, son fill reste la couleur de rampe (pas navy/or)", () => {
+  it("(3) l'active est marquée par contour or + badge, son fill reste la teinte de palette", () => {
     const html = renderBracketChartSVG(brackets(6, [true, true, true, false, false, false]), t);
     const barres = lireBarres(html);
     const actives = barres.filter(b => b.active);
     expect(actives).toHaveLength(1);
     const active = actives[0];
     expect(active.index).toBe(2);                 // dernière remplie
-    // fill = couleur de rampe de son index, surtout PAS un fill spécial (navy/or)
-    expect(active.color).toBe(echantillonnerRampe(t.rampeBareme, 2, 6));
+    expect(active.color).toBe(couleurRang(2));    // fill = palette, PAS un fill spécial
     expect(active.color).not.toBe(t.navy.toLowerCase());
-    expect(active.color).not.toBe(t.or.toLowerCase());
     // marqueurs non chromatiques : contour or + badge chevron
     expect(html).toContain("data-active-badge");
     expect(compteActiveBadge(html)).toBe(1);
     expect(html).toMatch(new RegExp(`data-bar-active="true"[^>]*stroke="${t.or}"`));
   });
 
-  it("(4) générique : n=5 et n=6 -> la dernière tranche tombe sur le rouge profond dans les deux cas", () => {
-    const html6 = renderBracketChartSVG(brackets(6, Array(6).fill(true)), t);
-    const html5 = renderBracketChartSVG(brackets(5, Array(5).fill(true)), t);
-    const b6 = lireBarres(html6), b5 = lireBarres(html5);
+  it("(4) générique n=5 et n=6 : teinte par rang, identique à rang égal, cyclée sur la palette", () => {
+    const b6 = lireBarres(renderBracketChartSVG(brackets(6, Array(6).fill(true)), t));
+    const b5 = lireBarres(renderBracketChartSVG(brackets(5, Array(5).fill(true)), t));
     expect(b6).toHaveLength(6);
     expect(b5).toHaveLength(5);
-    expect(b6[5].color).toBe(rougeProfond(6));
-    expect(b5[4].color).toBe(rougeProfond(5));
-    expect(b5[4].color).toBe(b6[5].color);        // même rouge final quel que soit n
-    // et le 1er palier reste la crème dans les deux cas
-    expect(b5[0].color).toBe(b6[0].color);
+    expect(b5[0].color).toBe(b6[0].color);   // rang 0 identique quel que soit n
+    expect(b5[4].color).toBe(b6[4].color);   // rang 4 identique
+    expect(b6[5].color).toBe(couleurRang(5)); // rang 5 = 6e teinte de la palette
   });
 
-  it("(5) rampe : luminance strictement monotone décroissante (ordre lisible en niveaux de gris)", () => {
-    const Ls = t.rampeBareme.map(luminanceL);
-    for (let i = 1; i < Ls.length; i++) {
-      expect(Ls[i]).toBeLessThan(Ls[i - 1]);
-    }
+  it("(5) N&B : chaque barre porte sa valeur (taux + impôt) → distinction sans couleur", () => {
+    const html = renderBracketChartSVG(brackets(6, Array(6).fill(true)), t);
+    for (let i = 0; i < 6; i++) expect(html).toContain(`>${i} %<`);         // taux de chaque tranche
+    expect((html.match(/data-bar-amount/g) || []).length).toBeGreaterThan(0); // impôt affiché
   });
 });
 
 function compteActiveBadge(html: string): number {
   return (html.match(/data-active-badge/g) || []).length;
-}
-
-// L* approx (sRGB -> XYZ -> Lab) pour le contrôle de monotonie de luminance.
-function luminanceL(hex: string): number {
-  const h = hex.replace("#", "");
-  const lin = [0, 2, 4].map(i => {
-    const c = parseInt(h.slice(i, i + 2), 16) / 255;
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  const Y = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
-  return Y > (6 / 29) ** 3 ? 116 * Math.cbrt(Y) - 16 : 116 * (Y / (3 * (6 / 29) ** 2) + 4 / 29) - 16;
 }
