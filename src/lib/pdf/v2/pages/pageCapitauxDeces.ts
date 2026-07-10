@@ -21,6 +21,7 @@ import {
 } from "../primitives";
 import { compilerPageContrat, type Bloc } from "../engine/contrat";
 import { pct } from "../../../calculs/utils";
+import { labelRelationSuccession } from "../../../presentation/relationsSuccession";
 import type { Tokens } from "../tokens";
 
 // ─── Types de page ─────────────────────────────────────────────────────────
@@ -194,17 +195,6 @@ export function pageCapitauxDeces(t: Tokens, d: CapitauxDecesPageData): string {
 
 // ─── Helpers de présentation (pure mise en forme, aucun calcul fiscal) ──────
 
-function relationLabel(r: string): string {
-  const map: Record<string, string> = {
-    conjoint: "Conjoint",
-    pacs_partner: "Partenaire PACS",
-    enfant: "Enfant",
-    ascendant: "Ascendant",
-    autre: "Autre",
-  };
-  return map[String(r || "").toLowerCase()] || (r || "—");
-}
-
 function renteLabel(type: CapitauxDecesRente["type"]): string {
   switch (type) {
     case "conjoint": return "Rente de survie du conjoint";
@@ -230,7 +220,7 @@ function carteCaisse(t: Tokens, c: CapitauxDecesCaisse): string {
   const devo = c.devolution.length > 0
     ? `<div style="margin-top:8px;border-top:1px solid ${t.bordureClaire};padding-top:7px">
         ${c.devolution.map(r => `<div style="display:flex;justify-content:space-between;gap:10px;padding:2px 0">
-          <span class="lt" style="font-size:10.5px;color:${t.texte}">${r.beneficiaire} <span style="color:${t.texteFaible}">(${relationLabel(r.relation)}${r.origine === "capital_orphelin" ? " · orphelin" : ""})</span></span>
+          <span class="lt" style="font-size:10.5px;color:${t.texte}">${r.beneficiaire} <span style="color:${t.texteFaible}">(${labelRelationSuccession(r.relation)}${r.origine === "capital_orphelin" ? " · orphelin" : ""})</span></span>
           <span class="lt" style="font-size:10.5px;font-weight:700;color:${t.navy}">${euro(r.montant)}</span>
         </div>`).join("")}
       </div>`
@@ -263,7 +253,7 @@ function listePrivesSimple(t: Tokens, prives: CapitauxDecesPrive[]): string {
   const lignes = prives.map((l, i) => {
     const border = i === prives.length - 1 ? "" : `border-bottom:1px solid ${t.bordureClaire};`;
     return `<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;${border}">
-      <span class="lt" style="font-size:11px;color:${t.texte}">${l.beneficiary || "Bénéficiaire à renseigner"} <span style="color:${t.texteFaible}">(${relationLabel(l.relation)}) · ${l.contrat}</span></span>
+      <span class="lt" style="font-size:11px;color:${t.texte}">${l.beneficiary || "Bénéficiaire à renseigner"} <span style="color:${t.texteFaible}">(${labelRelationSuccession(l.relation)}) · ${l.contrat}</span></span>
       <span class="lt" style="font-size:11.5px;font-weight:700;color:${t.navy}">${euro(l.montant)}</span>
     </div>`;
   }).join("");
@@ -306,7 +296,7 @@ function sousGroupeNature(t: Tokens, nature: "temporaire" | "rachetable", lignes
   const tag = `<span data-nature-tag="${nature}" class="lt" style="display:inline-block;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:${t.thOr};background:${t.fondTableau};border:0.5px solid ${t.bordureSeuilRail};border-radius:5px;padding:2px 8px;margin-top:9px">${label}</span>`;
 
   const rows = lignes.map(l => `<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0">
-      <span class="lt" style="font-size:11px;color:${t.texte}">${l.beneficiary || "Bénéficiaire à renseigner"} <span style="color:${t.texteFaible}">(${relationLabel(l.relation)}${l.sharePct ? ` · ${pct(l.sharePct / 100)}` : ""})</span></span>
+      <span class="lt" style="font-size:11px;color:${t.texte}">${l.beneficiary || "Bénéficiaire à renseigner"} <span style="color:${t.texteFaible}">(${labelRelationSuccession(l.relation)}${l.sharePct ? ` · ${pct(l.sharePct / 100)}` : ""})</span></span>
       <span class="lt" style="font-size:11px;font-weight:700;color:${t.navy}">${euro(l.montant)}</span>
     </div>`).join("");
 

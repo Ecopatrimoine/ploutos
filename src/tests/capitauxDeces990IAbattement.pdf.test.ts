@@ -41,6 +41,9 @@ describe("Capitaux décès 990 I — abattement imputé (restant), pas le forfai
     expect(html).toContain("consommé par l'assurance-vie");
     // Droits calculés sur l'assiette PLEINE (moteur), inchangés.
     expect(html).toContain(euro(8000));
+    // Résidu G5-D sur cette page : le lien passe aussi par le mapping partagé (plus de clé brute).
+    expect(html).toContain("Enfant du conjoint");
+    expect(html).not.toContain("enfant_conjoint");
   });
 
   it("abattement disponible (AV ne l'a pas consommé) → montant imputé réel, AUCUNE mention de consommation", () => {
