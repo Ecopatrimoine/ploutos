@@ -10,9 +10,8 @@ import {
   euroCompactFr,
   renderProjectionSVG,
 } from "../lib/pdf/v2/prevoyanceChart";
-import { libelleJalon } from "../lib/pdf/v2/adapters/buildPrevoyancePersoData";
 import { buildTokens } from "../lib/pdf/v2/tokens";
-import { axeTemps } from "../lib/presentation/echelleTemps";
+import { axeTemps, labelExact } from "../lib/presentation/echelleTemps";
 
 const arr = (n: number) => Array(n).fill(0);
 
@@ -160,10 +159,10 @@ describe("formats", () => {
     expect(euroCompactFr(999)).toBe("999 €");
   });
 
-  it("libelleJalon : « 1 an » / « 2 ans », jamais « 1.0 ans »", () => {
-    expect(libelleJalon(365)).toBe("1 an");
-    expect(libelleJalon(730)).toBe("2 ans");
-    expect(libelleJalon(365)).not.toMatch(/\d\.\d\s*ans?/);
+  it("labelExact (étiquette des jalons table ET graphe) : « 1 an » / « 2 ans », jamais « 1.0 ans »", () => {
+    expect(labelExact(365)).toBe("1 an");
+    expect(labelExact(730)).toBe("2 ans");
+    expect(labelExact(365)).not.toMatch(/\d\.\d\s*ans?/);
   });
 });
 

@@ -24,6 +24,8 @@ import { mentionDDAPrevoyance } from "../textesLegaux";
 import { formatDureeArret, plur, euro } from "../../../calculs/utils";
 import { libelleStatut } from "../../../presentation/statutsPrevoyance";
 import { compositionAtIdx, bornesPalier } from "../../../presentation/prevoyancePerso";
+import { labelExact } from "../../../presentation/echelleTemps";
+import { ticksPdf } from "../prevoyanceChart";
 
 export type BuildPrevoyancePersoDataParams = {
   data: Record<string, any>;
@@ -68,29 +70,32 @@ function totalAtIdx(s: ProjectionResult["series"], i: number): number {
   );
 }
 
-const JALONS = [0, 7, 30, 90, 180, 365, 1095];
-
-export function libelleJalon(jour: number): string {
-  if (jour === 0) return "J0";
-  if (jour < 30) return `J${jour}`;
-  if (jour < 365) return `${Math.round(jour / 30)} mois`;
-  if (jour === 1095) return "3 ans (inval.)";
-  // C3 — durée en français naturel (« 1 an », « 2 ans ») au lieu de « 1.0 ans ».
-  return formatDureeArret(jour);
+// Jalons du tableau « Points clés » = EXACTEMENT les ruptures marquées sur le graphe.
+// SOURCE UNIQUE : ticksPdf(projection) — la fonction que le graphe (renderProjectionSVG)
+// consomme lui-même — filtrée sur niveau 1 (chaque rupture de la frise : tout étage change
+// de valeur), PLUS J0 (état initial, carence). Fini le gabarit fixe [0,7,30,90,180,365,1095]
+// qui masquait les VRAIES ruptures et affichait des horizons génériques : David J30 (IJ
+// Madelin après franchise 30 j) et Erika J37/J67 (maintien légal 90→66→0) n'apparaissaient
+// pas. Le tableau montre désormais les mêmes points que le graphe, ligne pour ligne.
+function joursJalonsTable(projection: ProjectionResult): number[] {
+  const ruptures = ticksPdf(projection)
+    .filter((tk) => tk.niveau === 1)
+    .map((tk) => tk.jour)
+    .filter((j) => j > 0);
+  return [0, ...ruptures];
 }
 
-function buildJalons(projection: ProjectionResult): PrevoyancePersoJalon[] {
+export function buildJalons(projection: ProjectionResult): PrevoyancePersoJalon[] {
   const ref = projection.revenuReferenceMensuel;
-  return JALONS.map((j) => {
-    const idx =
-      j === 1095
-        ? projection.axe.findIndex((p) => p.jour >= 1095)
-        : projection.axe.findIndex((p) => p.jour === j);
+  return joursJalonsTable(projection).map((j) => {
+    const idx = projection.axe.findIndex((p) => p.jour === j);
     if (idx < 0) return null;
     const total = totalAtIdx(projection.series, idx);
     const pct = ref > 0 ? Math.round((total / ref) * 100) : 0;
     return {
-      libelle: libelleJalon(j),
+      // labelExact = l'ÉTIQUETTE DU TICK DU GRAPHE (« J30 », « J37 », « 3 ans » à la bascule
+      // invalidité) : jour exact sous 61 j, jamais arrondi au mois. Cohérence table↔graphe.
+      libelle: labelExact(j),
       revenu: euro(total),
       pct: `${pct} %`,
       detail: compositionAtIdx(projection.series, idx, j),
