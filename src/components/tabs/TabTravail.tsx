@@ -7,8 +7,9 @@ import { Briefcase, ShieldCheck, Stethoscope } from "lucide-react";
 import { BRAND, SURFACE, PCS_GROUPES, PCS_CATEGORIES } from "../../constants";
 import type { PayloadTravail, PayloadTravailPair, PayloadPrevoyancePerso } from "../../types/patrimoine";
 import { isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, isIndependant } from "../../lib/calculs/utils";
-import { Field, SectionTitle, Pastille } from "../shared";
-import { ContinuerCollecte } from "../collecte/densite";
+import { SectionTitle, Pastille } from "../shared";
+import { ContinuerCollecte, ChampCollecte, InvitePersonne2, NoteDormante, INPUT_COLLECTE_CLS, INPUT_COLLECTE_STYLE } from "../collecte/densite";
+import { person2Mode, person2Dormant } from "../../lib/collecte/person2";
 import { BlocStatutEmployeur } from "../travail/BlocStatutEmployeur";
 import { createEmptyTravail, getPrevoyancePerso, patchPrevoyancePair, suggestStatutFromCsp } from "../../lib/prevoyance/utils";
 import { STATUTS_TNS, STATUTS_SALARIE } from "../../lib/prevoyance/constants";
@@ -37,6 +38,12 @@ const TabTravail = React.memo(function TabTravail(props: any) {
     data.coupleStatus === "married" ||
     data.coupleStatus === "pacs" ||
     data.coupleStatus === "cohab";
+
+  // U3 — mode d'affichage de la Personne 2 (card / invite / none) : partage la meme
+  // regle que les autres sous-onglets (identite dormante toujours affichee, invite si
+  // couple sans identite, rien si seul sans identite).
+  const p2mode = person2Mode(data);
+  const goFamille = () => setCollecteSubTab && setCollecteSubTab("famille");
 
   function getTravail(which: 1 | 2): PayloadTravail {
     if (which === 1) return data.travail?.p1 ?? createEmptyTravail();
@@ -112,33 +119,44 @@ const TabTravail = React.memo(function TabTravail(props: any) {
   }
 
   const blocCaisseP1 = caisseBloc(1);
-  const blocCaisseP2 = isCouple ? caisseBloc(2) : null;
+  // U3 : bloc caisse P2 uniquement si identite P2 renseignee (caisse liee a la personne).
+  const blocCaisseP2 = p2mode === "card" ? caisseBloc(2) : null;
 
   return (
-<TabsContent value="travail" className="space-y-4">
+<TabsContent value="travail" className="space-y-3">
   <Card className="border-0" style={{ borderRadius: 20 }}>
-    <CardHeader><SectionTitle icon={Briefcase} title="Situation professionnelle" subtitle="Statut, catégorie socioprofessionnelle et régime fiscal" /></CardHeader>
+    <CardHeader><SectionTitle icon={Briefcase} title="Situation professionnelle & statut" subtitle="PCS, régime fiscal, statut prévoyance, caisse et employeur — par personne" /></CardHeader>
     <CardContent className="space-y-4">
-  <div className="grid gap-4 md:grid-cols-2">
+  <div className={`grid gap-4 ${p2mode === "none" ? "md:grid-cols-1" : "md:grid-cols-2"}`}>
     {([1, 2] as const).map((which) => {
+      // U3 : Personne 2 conditionnelle — seul sans identite -> rien ; couple sans
+      // identite -> invite compacte vers Donnees familiales ; identite -> carte.
+      if (which === 2) {
+        if (p2mode === "none") return null;
+        if (p2mode === "invite") return <InvitePersonne2 key="p2-invite" onGo={goFamille} />;
+      }
       const groupe = which === 1 ? data.person1PcsGroupe : data.person2PcsGroupe;
       const categorie = which === 1 ? data.person1Csp : data.person2Csp;
       const categories = groupe ? PCS_CATEGORIES[groupe] ?? [] : [];
       return (
-        <div key={which} className="border p-3 space-y-2.5" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 12, boxShadow: SURFACE.cardShadow }}>
-          <div className="text-xs font-black uppercase tracking-widest" style={{ color: BRAND.navy }}>{which === 1 ? person1 : person2}</div>
+        <div key={which} className="border p-3 space-y-2.5" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
+          <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: BRAND.sky }}>{which === 1 ? person1 : person2}</div>
+          {which === 2 && person2Dormant(data) && (
+            <NoteDormante>Situation actuelle « seul » — données de la personne 2 conservées. Modifiable dans Données familiales.</NoteDormante>
+          )}
 
           {/* Intitulé du poste */}
-          <Field label="Intitulé du poste">
+          <ChampCollecte label="Intitulé du poste">
             <Input
               value={which === 1 ? data.person1JobTitle : data.person2JobTitle}
               onChange={(e) => setField(which === 1 ? "person1JobTitle" : "person2JobTitle", e.target.value)}
-              className="rounded-xl"
+              className={INPUT_COLLECTE_CLS}
+              style={INPUT_COLLECTE_STYLE}
             />
-          </Field>
+          </ChampCollecte>
 
           {/* Sélecteur 1 — Groupe PCS */}
-          <Field label="Groupe socioprofessionnel (PCS)">
+          <ChampCollecte label="Groupe socioprofessionnel (PCS)">
             <Select
               value={groupe}
               onValueChange={(v) => {
@@ -152,7 +170,7 @@ const TabTravail = React.memo(function TabTravail(props: any) {
                 if (v === "7" || v === "8") maybeSuggestStatut(which, v, "");
               }}
             >
-              <SelectTrigger className="rounded-xl"><SelectValue placeholder="Sélectionner un groupe…" /></SelectTrigger>
+              <SelectTrigger className="rounded-lg" style={INPUT_COLLECTE_STYLE}><SelectValue placeholder="Sélectionner un groupe…" /></SelectTrigger>
               <SelectContent>
                 {PCS_GROUPES.map((g) => (
                   <SelectItem key={g.code} value={g.code}>
@@ -161,11 +179,11 @@ const TabTravail = React.memo(function TabTravail(props: any) {
                 ))}
               </SelectContent>
             </Select>
-          </Field>
+          </ChampCollecte>
 
           {/* Sélecteur 2 — Catégorie PCS (affiché seulement si groupe choisi) */}
           {groupe && categories.length > 0 && (
-            <Field label="Catégorie socioprofessionnelle">
+            <ChampCollecte label="Catégorie socioprofessionnelle">
               <Select
                 value={categorie}
                 onValueChange={(v) => {
@@ -173,7 +191,7 @@ const TabTravail = React.memo(function TabTravail(props: any) {
                   maybeSuggestStatut(which, groupe, v);
                 }}
               >
-                <SelectTrigger className="rounded-xl">
+                <SelectTrigger className="rounded-lg" style={INPUT_COLLECTE_STYLE}>
                   <SelectValue placeholder="Sélectionner une catégorie…">
                     {categorie ? (() => { const found = categories.find(c => c.code === categorie); return found ? `${found.code} — ${found.label}` : categorie; })() : "Sélectionner une catégorie…"}
                   </SelectValue>
@@ -186,7 +204,7 @@ const TabTravail = React.memo(function TabTravail(props: any) {
                   ))}
                 </SelectContent>
               </Select>
-            </Field>
+            </ChampCollecte>
           )}
 
           {/* Badge récapitulatif fiscal */}
@@ -223,6 +241,12 @@ const TabTravail = React.memo(function TabTravail(props: any) {
               </div>
             );
           })()}
+
+          {/* C6 : Statut / caisse / employeur / champs statut — FUSIONNES dans la meme
+               card-personne, sous le meme en-tete (mode embedded, sans wrapper ni titre). */}
+          <div className="pt-2.5" style={{ borderTop: `1px solid ${SURFACE.border}` }}>
+            <BlocStatutEmployeur personLabel={which === 1 ? person1 : person2} value={getTravail(which)} onChange={(patch) => patchTravail(which, patch)} embedded />
+          </div>
         </div>
       );
     })}
@@ -230,32 +254,8 @@ const TabTravail = React.memo(function TabTravail(props: any) {
     </CardContent>
   </Card>
 
-  {/* ── Statut professionnel détaillé + Employeur (module Prévoyance) ── */}
-  <Card className="border-0" style={{ borderRadius: 20 }}>
-    <CardHeader>
-      <SectionTitle
-        icon={ShieldCheck}
-        title="Statut professionnel & employeur"
-        subtitle="Saisie utilisée par le module Prévoyance : caisse d'affiliation, employeur, IDCC, salaire brut."
-      />
-    </CardHeader>
-    <CardContent className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
-        <BlocStatutEmployeur
-          personLabel={person1}
-          value={getTravail(1)}
-          onChange={(patch) => patchTravail(1, patch)}
-        />
-        {isCouple && (
-          <BlocStatutEmployeur
-            personLabel={person2}
-            value={getTravail(2)}
-            onChange={(patch) => patchTravail(2, patch)}
-          />
-        )}
-      </div>
-    </CardContent>
-  </Card>
+  {/* Section "Statut professionnel & employeur" FUSIONNEE dans la card-personne
+      ci-dessus (C6) — plus de 2e carte separee. */}
 
   {/* ── Activité caisse (prévoyance) — saisie propre aux caisses libérales,
         affichée seulement si la personne est affiliée CARMF/CIPAV/CARPIMKO ── */}

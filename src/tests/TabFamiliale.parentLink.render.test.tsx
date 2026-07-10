@@ -71,14 +71,14 @@ describe("TabFamiliale — selecteur parentLink selon le foyer", () => {
   it("couple (married) : le select Parente est rendu avec ses 3 options", () => {
     renderTab("married");
     expect(screen.getByText("Enfant commun")).toBeInTheDocument();
-    expect(screen.getByText("Enfant de personne 1 uniquement")).toBeInTheDocument();
-    expect(screen.getByText("Enfant de personne 2 uniquement")).toBeInTheDocument();
+    expect(screen.getByText("Pierre uniquement")).toBeInTheDocument();
+    expect(screen.getByText("Sophie uniquement")).toBeInTheDocument();
   });
 
   it("mono-adulte (single) : le select Parente n'est PAS rendu, libelle statique a la place", () => {
     renderTab("single");
-    expect(screen.queryByText("Enfant de personne 2 uniquement")).toBeNull();
-    expect(screen.queryByText("Enfant de personne 1 uniquement")).toBeNull();
+    expect(screen.queryByText("Sophie uniquement")).toBeNull();
+    expect(screen.queryByText("Pierre uniquement")).toBeNull();
     expect(screen.getByText("Enfant de Pierre")).toBeInTheDocument();
   });
 

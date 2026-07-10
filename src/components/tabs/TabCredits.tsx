@@ -16,7 +16,7 @@ import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, comput
 import { computeTauxEndettement } from "../../lib/calculs/endettement";
 import { resolveOtherLoan } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
-import { KpiBandeCollecte, KpiCollecte } from "../collecte/densite";
+import { KpiBandeCollecte, KpiCollecte, ChampCollecte, MoneyCollecte, INPUT_COLLECTE_CLS, INPUT_COLLECTE_STYLE } from "../collecte/densite";
 
 
 // ── TabCredits ─────────────────────────────────────────────────────────────────────
@@ -26,7 +26,7 @@ const TabCredits = React.memo(function TabCredits(props: any) {
   const addOtherLoan = useDebouncedAction(() => setData(prev => ({ ...prev, otherLoans: [...(prev.otherLoans || []), { name: "", loanType: "personnel", owner: "person1", capitalRemaining: "", monthlyPayment: "", rate: "", durationRemaining: "", purpose: "", hasInsurance: false, insuranceGuarantees: "dc", insurancePremium: "" }] }))); // Lot 8 C2 — anti double-clic
 
   return (
-<TabsContent value="credits" className="space-y-4">
+<TabsContent value="credits" className="space-y-3">
   <div className="flex items-center justify-between gap-4">
     <div>
       <h3 className="font-semibold" style={{ color: BRAND.navy }}>Autres crédits</h3>
@@ -45,10 +45,10 @@ const TabCredits = React.memo(function TabCredits(props: any) {
       <CardContent className="p-4 space-y-3">
         <div className="flex items-end gap-2">
           <div className="flex-1 grid gap-2 grid-cols-[1fr_1.2fr_0.9fr_1.1fr]">
-            <Field label="Nom"><Input value={loan.name} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, name: e.target.value } : l) }))} className="rounded-xl h-8 text-sm" placeholder="ex: Crédit auto" /></Field>
-            <Field label="Type">
+            <ChampCollecte label="Nom"><Input value={loan.name} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, name: e.target.value } : l) }))} className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE} placeholder="ex: Crédit auto" /></ChampCollecte>
+            <ChampCollecte label="Type">
               <Select value={loan.loanType} onValueChange={(v) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, loanType: v } : l) }))}>
-                <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                <SelectTrigger className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="conso">Crédit consommation</SelectItem>
                   <SelectItem value="personnel">Prêt personnel</SelectItem>
@@ -58,26 +58,26 @@ const TabCredits = React.memo(function TabCredits(props: any) {
                   <SelectItem value="familial">Prêt familial</SelectItem>
                 </SelectContent>
               </Select>
-            </Field>
-            <Field label="Titulaire">
+            </ChampCollecte>
+            <ChampCollecte label="Titulaire">
               <Select value={loan.owner} onValueChange={(v) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, owner: v } : l) }))}>
-                <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                <SelectTrigger className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="person1">{person1}</SelectItem>
                   <SelectItem value="person2">{person2 || "Personne 2"}</SelectItem>
                   <SelectItem value="common">Commun</SelectItem>
                 </SelectContent>
               </Select>
-            </Field>
-            <MoneyField label="Capital restant dû (€)" value={loan.capitalRemaining} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, capitalRemaining: e.target.value } : l) }))} compact />
+            </ChampCollecte>
+            <MoneyCollecte label="Capital restant dû (€)" value={loan.capitalRemaining} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, capitalRemaining: e.target.value } : l) }))} />
           </div>
           <Button variant="outline" aria-label="Supprimer le credit" className="h-8 w-8 shrink-0 rounded-xl p-0 mb-0.5" onClick={() => confirmRemove(!!(loan.name || loan.capitalRemaining || loan.monthlyPayment), "le credit", () => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.filter((_, i) => i !== li) })))}><Trash2 className="h-3.5 w-3.5" /></Button>
         </div>
         <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(145px,1fr))]">
-          <MoneyField label="Mensualité (€)" value={loan.monthlyPayment} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, monthlyPayment: e.target.value } : l) }))} compact />
-          <Field label="Taux (%)"><Input type="number" step="0.01" placeholder="4.5" value={loan.rate} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, rate: e.target.value } : l) }))} className="rounded-xl h-8 text-sm" /></Field>
-          <Field label="Durée restante (mois)"><Input type="number" placeholder="36" value={loan.durationRemaining} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, durationRemaining: e.target.value } : l) }))} className="rounded-xl h-8 text-sm" /></Field>
-          <Field label="Objet"><Input placeholder="ex: Véhicule" value={loan.purpose} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, purpose: e.target.value } : l) }))} className="rounded-xl h-8 text-sm" /></Field>
+          <MoneyCollecte label="Mensualité (€)" value={loan.monthlyPayment} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, monthlyPayment: e.target.value } : l) }))} />
+          <ChampCollecte label="Taux (%)"><Input type="number" step="0.01" placeholder="4.5" value={loan.rate} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, rate: e.target.value } : l) }))} className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE} /></ChampCollecte>
+          <ChampCollecte label="Durée restante (mois)"><Input type="number" placeholder="36" value={loan.durationRemaining} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, durationRemaining: e.target.value } : l) }))} className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE} /></ChampCollecte>
+          <ChampCollecte label="Objet"><Input placeholder="ex: Véhicule" value={loan.purpose} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, purpose: e.target.value } : l) }))} className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE} /></ChampCollecte>
         </div>
         {/* Mensualité auto-calculée (barrière douce) : badge lecture seule seulement si NON saisie. */}
         {/* Badge lecture seule du champ DÉDUIT (un seul à la fois selon autoField). */}
@@ -101,9 +101,9 @@ const TabCredits = React.memo(function TabCredits(props: any) {
           </div>
           {loan.hasInsurance && (
             <div className="grid gap-2 grid-cols-2">
-              <Field label="Garanties">
+              <ChampCollecte label="Garanties">
                 <Select value={loan.insuranceGuarantees || "dc"} onValueChange={(v) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, insuranceGuarantees: v } : l) }))}>
-                  <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className={INPUT_COLLECTE_CLS} style={INPUT_COLLECTE_STYLE}><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="dc">Décès (DC)</SelectItem>
                     <SelectItem value="dc_ptia">DC + PTIA</SelectItem>
@@ -111,8 +111,8 @@ const TabCredits = React.memo(function TabCredits(props: any) {
                     <SelectItem value="dc_ptia_itt_ipp">DC + PTIA + ITT + IPP</SelectItem>
                   </SelectContent>
                 </Select>
-              </Field>
-              <MoneyField label="Prime annuelle (€)" value={loan.insurancePremium} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, insurancePremium: e.target.value } : l) }))} compact />
+              </ChampCollecte>
+              <MoneyCollecte label="Prime annuelle (€)" value={loan.insurancePremium} onChange={(e) => setData(prev => ({ ...prev, otherLoans: prev.otherLoans.map((l, i) => i === li ? { ...l, insurancePremium: e.target.value } : l) }))} />
             </div>
           )}
         </div>

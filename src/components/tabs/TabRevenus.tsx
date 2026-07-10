@@ -15,7 +15,8 @@ import type { Child, Property, Placement, PatrimonialData, IrOptions, Succession
 import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, computeTaxFromBrackets, personLabel, fractionRVTO, childMatchesDeceased, getAgeFromBirthDate, buildCollectedHeirs, getFamilyBeneficiaries, isSpouseHeirEligible, getAvailableSpouseOptions, computeKilometricAllowance, isIndependant, isProfessionLiberale, isRetraite, isSansActivite, isFonctionnaire, getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts, placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate, placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance, propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName } from "../../lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "../../lib/calculs/credit";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
-import { KpiBandeCollecte, KpiCollecte, ValeurCalculee, ContinuerCollecte, LabelCollecte } from "../collecte/densite";
+import { KpiBandeCollecte, KpiCollecte, ValeurCalculee, ContinuerCollecte, LabelCollecte, InvitePersonne2, NoteDormante } from "../collecte/densite";
+import { person2Mode, person2Dormant } from "../../lib/collecte/person2";
 import { computeBeneficeImposable, resolveBeneficeTns, resolveBeneficeAuReel } from "../../lib/calculs/ir";
 import { computeBudget } from "../../lib/calculs/budget";
 import { estEligibleMadelin, sommeCotisationsMadelin, plafondMadelinPrevoyance, enveloppeMadelinPrevoyance } from "../../lib/prevoyance/madelin";
@@ -67,6 +68,9 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
   const ccPostesRenseignes = [ccDetail.loyerRP, ccDetail.energie, ccDetail.assurancesPerso, ccDetail.scolarite, ccDetail.transport, ccDetail.autres]
     .filter((v) => String(v ?? "").trim() !== "").length;
 
+  // U3 — mode d'affichage de la carte Personne 2 (card / invite / none).
+  const p2mode = person2Mode(data);
+
   return (
 <TabsContent value="revenus" className="space-y-3">
   {/* 1. Bande KPI dense (Lot 10e) : source UNIQUE computeBudget, valeurs ~24px */}
@@ -76,9 +80,15 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
     <KpiCollecte label="Capacité d'épargne /mois" value={euro(budget.capaciteEpargne)}   accent={budget.capaciteEpargne >= 0 ? "green" : "red"} note={budget.hasChargesCourantes ? undefined : "hors charges courantes non renseignées"} />
   </KpiBandeCollecte>
 
-  {/* 2. Cartes personnes — grille 2 colonnes : une par personne (contenu inchange) */}
-  <div className="grid gap-3 md:grid-cols-2">
+  {/* 2. Cartes personnes — Personne 2 conditionnelle (U3) : grille 1 colonne si P2 absente */}
+  <div className={`grid gap-3 ${p2mode === "none" ? "md:grid-cols-1" : "md:grid-cols-2"}`}>
   {([1, 2] as const).map((which) => {
+    // U3 : Personne 2 conditionnelle — seul sans identite -> rien ; couple sans
+    // identite -> invite compacte vers Donnees familiales. Identite renseignee -> carte.
+    if (which === 2) {
+      if (p2mode === "none") return null;
+      if (p2mode === "invite") return <InvitePersonne2 key="p2-invite" onGo={() => setCollecteSubTab && setCollecteSubTab("famille")} />;
+    }
     const groupe = which === 1 ? data.person1PcsGroupe : data.person2PcsGroupe;
     const cat = which === 1 ? data.person1Csp : data.person2Csp;
     const personName = which === 1 ? person1 : person2;
@@ -160,7 +170,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
               <div className="col-span-2">
                 <LabelCollecte label="Nature de l'activité BIC" />
                 <Select value={bicTypeVal} onValueChange={(v) => setField(bicTypeKey, v)}>
-                  <SelectTrigger className="rounded-lg text-sm" style={{ height: 30 }}><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg text-sm" style={{ height: 32 }}><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="services">Prestations de services (abatt. 50%)</SelectItem>
                     <SelectItem value="vente">Achat-revente / commerce (abatt. 71%)</SelectItem>
@@ -178,18 +188,18 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
                     ? "CA HT annuel. Abattement forfaitaire de 71% en micro pour activités de vente/commerce."
                     : "CA HT annuel. Abattement forfaitaire de 50% en micro pour prestations de services BIC."}
               />
-              <Input value={caVal || ""} onChange={(e) => setField(caKey, e.target.value)} className="rounded-lg text-sm" style={{ height: 30, fontWeight: 700 }} inputMode="decimal" />
+              <Input value={caVal || ""} onChange={(e) => setField(caKey, e.target.value)} className="rounded-lg text-sm" style={{ height: 32, fontWeight: 700 }} inputMode="decimal" />
             </div>
             {/* Charges reelles (regime reel uniquement) */}
             {!micro && (
               <div>
                 <LabelCollecte label="Charges pro déductibles" tooltip="Total des charges réelles déductibles. Bouton Détailler : ventilation par nature. Bénéfice imposable = CA − charges." />
                 <div className="flex items-stretch gap-1">
-                  <Input value={chargesVal || ""} onChange={(e) => setField(chargesKey, e.target.value)} className="rounded-lg text-sm flex-1 min-w-0" style={{ height: 30, fontWeight: 700 }} inputMode="decimal" />
+                  <Input value={chargesVal || ""} onChange={(e) => setField(chargesKey, e.target.value)} className="rounded-lg text-sm flex-1 min-w-0" style={{ height: 32, fontWeight: 700 }} inputMode="decimal" />
                   <button
                     onClick={() => setChargesDialogOpen(which)}
                     className="flex items-center gap-1 rounded-lg px-2 text-xs font-medium shrink-0"
-                    style={{ height: 30, background: hasDetail ? BRAND.navy : "rgba(81,106,199,0.1)", color: hasDetail ? "#fff" : BRAND.sky, border: hasDetail ? "none" : "1px solid rgba(81,106,199,0.2)" }}
+                    style={{ height: 32, background: hasDetail ? BRAND.navy : "rgba(81,106,199,0.1)", color: hasDetail ? "#fff" : BRAND.sky, border: hasDetail ? "none" : "1px solid rgba(81,106,199,0.2)" }}
                     title="Détailler les charges par nature"
                   >
                     <FileText className="h-3 w-3" />{hasDetail ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : "Détail"}
@@ -236,7 +246,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
         <>
           {/* Switch Micro / Réel */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400">Régime fiscal</span>
+            <span className="text-[11px] font-bold" style={{ color: BRAND.muted }}>Régime fiscal</span>
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <span className="text-xs font-medium" style={{ color: micro ? BRAND.sky : BRAND.gold }}>
                 {micro ? "Micro-BA" : "Réel"}
@@ -344,13 +354,13 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
     const seuilMicroP = isBNC ? 77700 : (bicTypeVal === "vente" ? 188700 : 77700);
     const depasseSeuilP = isIndep && !isBA && micro && caNum > 0 && caNum > seuilMicroP;
     const inputCls = "rounded-lg text-sm";
-    const inputSty = { height: 30, fontWeight: 700 } as const;
+    const inputSty = { height: 32, fontWeight: 700 } as const;
     // Seconde activite (selecteur) — cellule de la grille (les sous-blocs restent dessous)
     const secondeCell = !isRetr ? (
       <div>
         <LabelCollecte label="Seconde activité" tooltip="Déclare une seconde source de revenu sur la même personne (cumul salarié + indépendant). Les champs correspondants apparaissent sous la carte ; le calcul IR additionne les deux revenus." />
         <Select value={sec || "none"} onValueChange={(v) => setField(secKey, v === "none" ? "" : v)}>
-          <SelectTrigger className="rounded-lg text-sm" style={{ height: 30 }}><SelectValue /></SelectTrigger>
+          <SelectTrigger className="rounded-lg text-sm" style={{ height: 32 }}><SelectValue /></SelectTrigger>
           <SelectContent>
             {isIndep
               ? (<><SelectItem value="none">Aucune</SelectItem><SelectItem value="salariat">Salariat</SelectItem></>)
@@ -363,7 +373,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
     const perCell = (
       <div>
         <LabelCollecte label="PER — plafond restant" tooltip={tipPER} />
-        <div className="rounded-lg px-2.5 flex flex-col justify-center" style={{ height: 30, background: "rgba(47,107,58,0.08)", border: "1px dashed #9DBB9A" }}>
+        <div className="rounded-lg px-2.5 flex flex-col justify-center" style={{ height: 32, background: "rgba(47,107,58,0.08)", border: "1px dashed #9DBB9A" }}>
           <div className="text-[12px] font-semibold leading-none" style={{ color: BRAND.success }}>{eurR(perRestant)}</div>
           <div className="mt-1 h-1 rounded-full overflow-hidden" style={{ background: "#E9E1CC" }}>
             <div className="h-full" style={{ width: `${perPct}%`, background: BRAND.gold }} />
@@ -400,13 +410,16 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
             </div>
           </div>
         </div>
+        {which === 2 && person2Dormant(data) && (
+          <NoteDormante>Situation actuelle « seul » — données de la personne 2 conservées (non supprimées). Modifiable dans Données familiales.</NoteDormante>
+        )}
 
         {/* Nature BIC (BIC uniquement) — au-dessus de la grille */}
         {isIndep && !isBA && !isBNC && (
           <div>
             <LabelCollecte label="Nature de l'activité BIC" />
             <Select value={bicTypeVal} onValueChange={(v) => setField(bicTypeKey, v)}>
-              <SelectTrigger className="rounded-lg text-sm" style={{ height: 30 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger className="rounded-lg text-sm" style={{ height: 32 }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="services">Prestations de services (abatt. 50%)</SelectItem>
                 <SelectItem value="vente">Achat-revente / commerce (abatt. 71%)</SelectItem>
@@ -450,7 +463,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
                 <LabelCollecte label="Charges pro déductibles" tooltip="Total des charges réelles déductibles. Bouton Détail : ventilation par nature. Bénéfice = CA − charges." />
                 <div className="flex items-stretch gap-1">
                   <Input value={chargesVal || ""} onChange={(e) => setField(chargesKey, e.target.value)} className="rounded-lg text-sm flex-1 min-w-0" style={inputSty} inputMode="decimal" />
-                  <button onClick={() => setChargesDialogOpen(which)} className="flex items-center gap-1 rounded-lg px-2 text-xs font-medium shrink-0" style={{ height: 30, background: hasDetailCharges ? BRAND.navy : "rgba(81,106,199,0.1)", color: hasDetailCharges ? "#fff" : BRAND.sky, border: hasDetailCharges ? "none" : "1px solid rgba(81,106,199,0.2)" }} title="Détailler les charges par nature">
+                  <button onClick={() => setChargesDialogOpen(which)} className="flex items-center gap-1 rounded-lg px-2 text-xs font-medium shrink-0" style={{ height: 32, background: hasDetailCharges ? BRAND.navy : "rgba(81,106,199,0.1)", color: hasDetailCharges ? "#fff" : BRAND.sky, border: hasDetailCharges ? "none" : "1px solid rgba(81,106,199,0.2)" }} title="Détailler les charges par nature">
                     <FileText className="h-3 w-3" />{hasDetailCharges ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : "Détail"}
                   </button>
                 </div>
@@ -499,7 +512,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
             <div className="grid grid-cols-4 gap-x-2 gap-y-2 items-end">
               <div>
                 <LabelCollecte label="Cotisation Madelin (€)" tooltip="Cotisations Madelin prévoyance-santé de l'année (contrats marqués Madelin + cette saisie), déductibles dans l'enveloppe art. 154 bis CGI." />
-                <Input type="number" min={0} value={madelinAutre ?? ""} onChange={(e) => setField("madelinAutreCotisation" + which, Number(e.target.value) || 0)} className="rounded-lg text-sm" style={{ height: 30 }} placeholder="ex. 600" />
+                <Input type="number" min={0} value={madelinAutre ?? ""} onChange={(e) => setField("madelinAutreCotisation" + which, Number(e.target.value) || 0)} className="rounded-lg text-sm" style={{ height: 32 }} placeholder="ex. 600" />
               </div>
               <div>
                 <LabelCollecte label="Prévoyance-santé déduct." tooltip={tipPrevSante} />
@@ -508,7 +521,7 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
               {perCell}
               <div>
                 <LabelCollecte label="Bénéfice déjà net ?" tooltip="Cochez si vous avez déjà déduit les cotisations Madelin du bénéfice renseigné — sinon Ploutos applique la déduction (art. 154 bis)." />
-                <label className="flex items-center gap-1.5 text-[11px] cursor-pointer select-none" style={{ height: 30, color: BRAND.navy }}>
+                <label className="flex items-center gap-1.5 text-[11px] cursor-pointer select-none" style={{ height: 32, color: BRAND.navy }}>
                   <input type="checkbox" checked={dejaDeduit} onChange={(e) => setDejaDeduit(e.target.checked)} />
                   <span>Déjà net</span>
                 </label>
@@ -555,26 +568,26 @@ const TabRevenus = React.memo(function TabRevenus(props: any) {
       {!isRetraite(data.person1PcsGroupe) && (
         <div>
           <LabelCollecte label={`Pensions /an — ${person1}`} tooltip="Retraite, pension complémentaire, rente. Abattement de 10% appliqué automatiquement (plafonné à 4 123 €)." />
-          <Input value={data.pensions1 || ""} onChange={(e) => setField("pensions1", e.target.value)} className="rounded-lg text-sm" style={{ height: 30, fontWeight: 700 }} inputMode="decimal" placeholder="0" />
+          <Input value={data.pensions1 || ""} onChange={(e) => setField("pensions1", e.target.value)} className="rounded-lg text-sm" style={{ height: 32, fontWeight: 700 }} inputMode="decimal" placeholder="0" />
         </div>
       )}
       {!isRetraite(data.person2PcsGroupe) && (data.person2FirstName || data.person2LastName) && (
         <div>
           <LabelCollecte label={`Pensions /an — ${person2 || "Personne 2"}`} tooltip="Retraite, pension complémentaire, rente. Abattement de 10% appliqué automatiquement (plafonné à 4 123 €)." />
-          <Input value={data.pensions2 || ""} onChange={(e) => setField("pensions2", e.target.value)} className="rounded-lg text-sm" style={{ height: 30, fontWeight: 700 }} inputMode="decimal" placeholder="0" />
+          <Input value={data.pensions2 || ""} onChange={(e) => setField("pensions2", e.target.value)} className="rounded-lg text-sm" style={{ height: 32, fontWeight: 700 }} inputMode="decimal" placeholder="0" />
         </div>
       )}
       <div>
         <LabelCollecte label="Pension alim. versée /an" tooltip="Pensions alimentaires versées à un enfant majeur ou à un ex-conjoint, déductibles du revenu global sous conditions." />
-        <Input value={data.pensionDeductible || ""} onChange={(e) => setField("pensionDeductible", e.target.value)} className="rounded-lg text-sm" style={{ height: 30, fontWeight: 700 }} inputMode="decimal" placeholder="0" />
+        <Input value={data.pensionDeductible || ""} onChange={(e) => setField("pensionDeductible", e.target.value)} className="rounded-lg text-sm" style={{ height: 32, fontWeight: 700 }} inputMode="decimal" placeholder="0" />
       </div>
       <div>
         <LabelCollecte label="Autres charges déduct. /an" tooltip="Autres déductions du revenu global : épargne retraite PERP, déduction épargne handicap, etc. Les cotisations Madelin ont leur poste dédié dans les cartes personnes ci-dessus." />
-        <Input value={data.otherDeductible || ""} onChange={(e) => setField("otherDeductible", e.target.value)} className="rounded-lg text-sm" style={{ height: 30, fontWeight: 700 }} inputMode="decimal" placeholder="0" />
+        <Input value={data.otherDeductible || ""} onChange={(e) => setField("otherDeductible", e.target.value)} className="rounded-lg text-sm" style={{ height: 32, fontWeight: 700 }} inputMode="decimal" placeholder="0" />
       </div>
       <div>
         <LabelCollecte label="CSG fonciers N-1 /an (6DE)" tooltip="CSG déductible sur les revenus fonciers de l'année précédente (6,8% des revenus fonciers nets N-1). Ligne 6DE de l'avis d'imposition — à reporter directement." />
-        <Input value={data.csgDeductibleFoncier || ""} onChange={(e) => setField("csgDeductibleFoncier", e.target.value)} className="rounded-lg text-sm" style={{ height: 30, fontWeight: 700 }} inputMode="decimal" placeholder="0" />
+        <Input value={data.csgDeductibleFoncier || ""} onChange={(e) => setField("csgDeductibleFoncier", e.target.value)} className="rounded-lg text-sm" style={{ height: 32, fontWeight: 700 }} inputMode="decimal" placeholder="0" />
       </div>
     </div>
 

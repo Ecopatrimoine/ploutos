@@ -18,7 +18,7 @@ import { computeExpositionMarche } from "../../lib/calculs/exposition";
 import { referentiels } from "../../data/prevoyance";
 import { PlacementPickerModal } from "../PlacementPickerModal";
 import { Field, MoneyField, MetricCard, HelpTooltip, BracketFillChart, SectionTitle, DifferenceBadge } from "../shared";
-import { ContinuerCollecte } from "../collecte/densite";
+import { ContinuerCollecte, LisereCategorie, ChampCollecte, MoneyCollecte } from "../collecte/densite";
 
 
 // ── TabPlacements ─────────────────────────────────────────────────────────────────────
@@ -87,7 +87,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
   })), [setData]);
 
   return (
-<TabsContent value="placements" className="space-y-4">
+<TabsContent value="placements" className="space-y-3">
   <div className="flex items-center justify-between gap-4">
     <h3 className="font-semibold" style={{ color: BRAND.navy }}>Placements et comptes</h3>
     <button
@@ -116,41 +116,52 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
       ))}
     </div>
   )}
-  {data.placements.map((placement, index) => {
-    const fiscal = placementFiscalSummary(placement.type);
-    const totalShare = placement.beneficiaries.reduce((s, b) => s + n(b.share), 0);
-    const shareOverflow = totalShare > 100.0001;
-    const isAVType = isAV(placement.type);
-    const isCash = isCashPlacement(placement.type);
-    // Liseré catégoriel (Lot 10e) : couleur de la FAMILLE de placement (jeton existant
-    // FAMILY_COLORS) ; le libellé de la famille est TOUJOURS ecrit (jamais couleur seule).
-    const famVal = Object.keys(PLACEMENT_TYPES_BY_FAMILY).find((f) => PLACEMENT_TYPES_BY_FAMILY[f].includes(placement.type));
-    const famColor = (famVal ? FAMILY_COLORS[famVal] : undefined)?.solid ?? BRAND.muted;
-    const famLabel = PLACEMENT_FAMILIES.find((f) => f.value === famVal)?.label ?? "Autre";
+  {/* C5 : UNE card par FAMILLE (en-tete + barrette uniques). Chaque placement devient une
+       rangee compacte + son contenu riche (AV : primes / beneficiaires) deplie dessous.
+       Ex. Livret A + LDDS = une seule card Liquidites a 2 rangees. */}
+  {[...PLACEMENT_FAMILIES, { value: "__autre__", label: "Autre" }].map((fam) => {
+    const famItems = data.placements
+      .map((placement, index) => ({ placement, index }))
+      .filter(({ placement }) => {
+        const fv = Object.keys(PLACEMENT_TYPES_BY_FAMILY).find((f) => PLACEMENT_TYPES_BY_FAMILY[f].includes(placement.type));
+        return fam.value === "__autre__" ? !fv : fv === fam.value;
+      });
+    if (famItems.length === 0) return null;
+    const famColor = fam.value === "__autre__" ? BRAND.muted : (FAMILY_COLORS[fam.value]?.solid ?? BRAND.muted);
     return (
-      <Card key={placement.id} className="border " style={{ borderColor: SURFACE.border, borderLeft: `4px solid ${famColor}`, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
-        <CardContent className="p-4 space-y-2">
-          {/* Categorie (liseré Lot 10e) — libellé de la famille ecrit en toutes lettres */}
+      <Card key={fam.value} className="border " style={{ borderColor: SURFACE.border, borderRadius: 14, boxShadow: SURFACE.cardShadow, position: "relative", overflow: "hidden" }}>
+        {/* Barrette categorielle interieure arrondie (I1) — couleur de la famille */}
+        <LisereCategorie color={famColor} />
+        <CardContent className="p-4 space-y-3">
+          {/* En-tete de FAMILLE (unique) */}
           <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ color: famColor }}>
-            <span className="inline-block h-2 w-2 rounded-full" style={{ background: famColor }} aria-hidden="true" />{famLabel}
+            <span className="inline-block h-2 w-2 rounded-full" style={{ background: famColor }} aria-hidden="true" />{fam.label}
           </div>
+          {famItems.map(({ placement, index }) => {
+            const fiscal = placementFiscalSummary(placement.type);
+            const totalShare = placement.beneficiaries.reduce((s, b) => s + n(b.share), 0);
+            const shareOverflow = totalShare > 100.0001;
+            const isAVType = isAV(placement.type);
+            const isCash = isCashPlacement(placement.type);
+            return (
+              <div key={placement.id} className="rounded-lg border p-3 space-y-2" style={{ borderColor: SURFACE.border, background: "rgba(255,255,255,0.45)" }}>
           {/* Ligne identité + suppression compacte */}
           <div className="flex items-end gap-2">
             <div className="flex-1 grid gap-2 grid-cols-[1fr_1.8fr_0.9fr_1fr]">
-              <Field label="Nom"><Input value={placement.name} onChange={(e) => updatePlacementStr(placement.id, "name", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
-              <Field label="Type">
+              <ChampCollecte label="Nom"><Input value={placement.name} onChange={(e) => updatePlacementStr(placement.id, "name", e.target.value)} className="rounded-lg h-8 text-sm" /></ChampCollecte>
+              <ChampCollecte label="Type">
                 <Select value={placement.type} onValueChange={(v) => changePlacementType(placement.id, v)}>
-                  <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>{ALL_PLACEMENTS.map((type) => <SelectItem key={type} value={type}>{labelPlacement(type)}</SelectItem>)}</SelectContent>
                 </Select>
-              </Field>
-              <Field label="Titulaire">
+              </ChampCollecte>
+              <ChampCollecte label="Titulaire">
                 <Select value={placement.ownership} onValueChange={(v) => updatePlacementStr(placement.id, "ownership", v)}>
-                  <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>{ownerOptions.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
-              </Field>
-              <MoneyField label="Encours" tooltip="Valeur actuelle du placement (valeur de rachat pour une assurance-vie, solde pour un compte). Utilisée pour le calcul du patrimoine net et de l'IFI le cas échéant." value={placement.value} onChange={(e) => updatePlacementStr(placement.id, "value", e.target.value)} compact />
+              </ChampCollecte>
+              <MoneyCollecte label="Encours" tooltip="Valeur actuelle du placement (valeur de rachat pour une assurance-vie, solde pour un compte). Utilisée pour le calcul du patrimoine net et de l'IFI le cas échéant." value={placement.value} onChange={(e) => updatePlacementStr(placement.id, "value", e.target.value)} />
             </div>
             {(isAV(placement.type) || isPERType(placement.type)) && placement.openDate && (() => {
               const years = Math.floor((Date.now() - new Date(placement.openDate).getTime()) / (365.25 * 24 * 3600 * 1000));
@@ -193,22 +204,22 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
 
           {/* Champs selon type — grille dense sans divs vides */}
           <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(145px,1fr))]">
-            {!isAVType && !isCash && !isPERType(placement.type) && <MoneyField label="Revenu annuel" tooltip="Revenus générés par le placement sur l'année (coupons, dividendes, intérêts). Utilisés dans le calcul de l'impôt sur le revenu." value={placement.annualIncome} onChange={(e) => updatePlacementStr(placement.id, "annualIncome", e.target.value)} compact />}
-            {placementNeedsTaxableIncome(placement.type) && !isPERType(placement.type) && <MoneyField label="Part taxable" tooltip="Fraction des revenus soumise à l'impôt après abattements éventuels. Pour les dividendes : abattement de 40% en régime au barème. À saisir après abattement." value={placement.taxableIncome} onChange={(e) => updatePlacementStr(placement.id, "taxableIncome", e.target.value)} compact />}
-            {!isAVType && !isCash && !isPERType(placement.type) && <MoneyField label="Valeur au décès" tooltip="Valeur du placement retenue pour le calcul de la succession. Peut différer de l'encours (ex : contrat de capitalisation transmis par testament)." value={placement.deathValue} onChange={(e) => updatePlacementStr(placement.id, "deathValue", e.target.value)} compact />}
+            {!isAVType && !isCash && !isPERType(placement.type) && <MoneyCollecte label="Revenu annuel" tooltip="Revenus générés par le placement sur l'année (coupons, dividendes, intérêts). Utilisés dans le calcul de l'impôt sur le revenu." value={placement.annualIncome} onChange={(e) => updatePlacementStr(placement.id, "annualIncome", e.target.value)} />}
+            {placementNeedsTaxableIncome(placement.type) && !isPERType(placement.type) && <MoneyCollecte label="Part taxable" tooltip="Fraction des revenus soumise à l'impôt après abattements éventuels. Pour les dividendes : abattement de 40% en régime au barème. À saisir après abattement." value={placement.taxableIncome} onChange={(e) => updatePlacementStr(placement.id, "taxableIncome", e.target.value)} />}
+            {!isAVType && !isCash && !isPERType(placement.type) && <MoneyCollecte label="Valeur au décès" tooltip="Valeur du placement retenue pour le calcul de la succession. Peut différer de l'encours (ex : contrat de capitalisation transmis par testament)." value={placement.deathValue} onChange={(e) => updatePlacementStr(placement.id, "deathValue", e.target.value)} />}
             {!isAVType && placementNeedsOpenDate(placement.type) && (
-              <Field label="Date d'ouverture"><DateFr value={placement.openDate} onChange={(iso) => updatePlacementStr(placement.id, "openDate", iso || "")} className="rounded-xl h-8 text-sm" /></Field>
+              <ChampCollecte label="Date d'ouverture"><DateFr value={placement.openDate} onChange={(iso) => updatePlacementStr(placement.id, "openDate", iso || "")} className="rounded-lg h-8 text-sm" /></ChampCollecte>
             )}
             {!isAVType && !isCash && placementNeedsPFU(placement.type) && (
-              <Field label="PFU">
+              <ChampCollecte label="PFU">
                 <Select value={placement.pfuEligible ? "yes" : "no"} onValueChange={(v) => updatePlacementBool(placement.id, v === "yes")}>
-                  <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="yes">Oui</SelectItem><SelectItem value="no">Non</SelectItem></SelectContent>
                 </Select>
-              </Field>
+              </ChampCollecte>
             )}
             {!isAVType && !isCash && placement.pfuEligible && (
-              <Field label="Régime fiscal" tooltip="PFU (flat tax 31,4%) : taux forfaitaire depuis 2026 (12,8% IR + 18,6% PS). Option barème IR : avantageux si votre TMI est inférieure à 30% (tranches 0% ou 11%). Comparez avec votre taux marginal affiché dans l'onglet IR.">
+              <ChampCollecte label="Régime fiscal" tooltip="PFU (flat tax 31,4%) : taux forfaitaire depuis 2026 (12,8% IR + 18,6% PS). Option barème IR : avantageux si votre TMI est inférieure à 30% (tranches 0% ou 11%). Comparez avec votre taux marginal affiché dans l'onglet IR.">
                 <button
                   onClick={() => setData((prev) => ({ ...prev, placements: prev.placements.map((p, i) => i === index ? { ...p, pfuOptOut: !p.pfuOptOut } : p) }))}
                   className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-xs font-medium w-full"
@@ -220,31 +231,30 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
                 >
                   {placement.pfuOptOut ? <><BarChart3 className="h-3.5 w-3.5" aria-hidden="true" /> Option barème IR</> : <><ClipboardList className="h-3.5 w-3.5" aria-hidden="true" /> PFU 31,4%</>}
                 </button>
-              </Field>
+              </ChampCollecte>
             )}
-            {(isAVType || isPERType(placement.type)) && <MoneyField label="Primes nettes" tooltip="Total des versements effectués sur le contrat nets de retraits partiels. Sert de base au calcul de la fiscalité succession 990I/757B." value={placement.totalPremiumsNet} onChange={(e) => updatePlacementStr(placement.id, "totalPremiumsNet", e.target.value)} compact />}
-            {(isAVType || isPERType(placement.type)) && <MoneyField label="Primes < 70 ans" tooltip="Versements avant les 70 ans de l'assuré. Abattement 152 500 € par bénéficiaire hors succession (art. 990 I CGI) — même régime que l'AV pour les PER assurantiels." value={placement.premiumsBefore70} onChange={(e) => updatePlacementStr(placement.id, "premiumsBefore70", e.target.value)} compact />}
-            {(isAVType || isPERType(placement.type)) && <MoneyField label="Primes ≥ 70 ans" tooltip="Versements après les 70 ans de l'assuré. Abattement global 30 500 € (art. 757 B CGI) — même régime pour les PER assurantiels et Madelin." value={placement.premiumsAfter70} onChange={(e) => updatePlacementStr(placement.id, "premiumsAfter70", e.target.value)} compact />}
+            {(isAVType || isPERType(placement.type)) && <MoneyCollecte label="Primes nettes" tooltip="Total des versements effectués sur le contrat nets de retraits partiels. Sert de base au calcul de la fiscalité succession 990I/757B." value={placement.totalPremiumsNet} onChange={(e) => updatePlacementStr(placement.id, "totalPremiumsNet", e.target.value)} />}
+            {(isAVType || isPERType(placement.type)) && <MoneyCollecte label="Primes < 70 ans" tooltip="Versements avant les 70 ans de l'assuré. Abattement 152 500 € par bénéficiaire hors succession (art. 990 I CGI) — même régime que l'AV pour les PER assurantiels." value={placement.premiumsBefore70} onChange={(e) => updatePlacementStr(placement.id, "premiumsBefore70", e.target.value)} />}
+            {(isAVType || isPERType(placement.type)) && <MoneyCollecte label="Primes ≥ 70 ans" tooltip="Versements après les 70 ans de l'assuré. Abattement global 30 500 € (art. 757 B CGI) — même régime pour les PER assurantiels et Madelin." value={placement.premiumsAfter70} onChange={(e) => updatePlacementStr(placement.id, "premiumsAfter70", e.target.value)} />}
             {isAVType && placementNeedsOpenDate(placement.type) && (
-              <Field label="Date d'ouverture"><DateFr value={placement.openDate} onChange={(iso) => updatePlacementStr(placement.id, "openDate", iso || "")} className="rounded-xl h-8 text-sm" /></Field>
+              <ChampCollecte label="Date d'ouverture"><DateFr value={placement.openDate} onChange={(iso) => updatePlacementStr(placement.id, "openDate", iso || "")} className="rounded-lg h-8 text-sm" /></ChampCollecte>
             )}
-            {(isAVType || isPERType(placement.type)) && <MoneyField label="Capital exonéré succ." tooltip="Capital transmis hors succession via la clause bénéficiaire (art. 990 I pour primes < 70 ans). Même régime AV/PER assurantiel/Madelin." value={placement.exemptFromSuccession} onChange={(e) => updatePlacementStr(placement.id, "exemptFromSuccession", e.target.value)} compact />}
+            {(isAVType || isPERType(placement.type)) && <MoneyCollecte label="Capital exonéré succ." tooltip="Capital transmis hors succession via la clause bénéficiaire (art. 990 I pour primes < 70 ans). Même régime AV/PER assurantiel/Madelin." value={placement.exemptFromSuccession} onChange={(e) => updatePlacementStr(placement.id, "exemptFromSuccession", e.target.value)} />}
             {isUCorCapi(placement.type) && (
-              <Field label="Part UC (%)">
-                <Input type="number" min="0" max="100" placeholder="ex: 70" value={placement.ucRatio} onChange={(e) => updatePlacementStr(placement.id, "ucRatio", e.target.value)} className="rounded-xl h-8 text-sm" />
-              </Field>
+              <ChampCollecte label="Part UC (%)">
+                <Input type="number" min="0" max="100" placeholder="ex: 70" value={placement.ucRatio} onChange={(e) => updatePlacementStr(placement.id, "ucRatio", e.target.value)} className="rounded-lg h-8 text-sm" />
+              </ChampCollecte>
             )}
             {/* PER : versement annuel + switch déductible + part UC dans la grille */}
             {isPERType(placement.type) && (
               <>
-                <MoneyField
+                <MoneyCollecte
                   label="Versement annuel (€)"
                   tooltip="Versements annuels sur ce PER. Activez le switch 'Déductible IR' pour que ce montant réduise votre revenu imposable, dans la limite du plafond (art. 163 quatervicies CGI)."
                   value={placement.annualContribution || ""}
                   onChange={(e) => updatePlacementStr(placement.id, "annualContribution", e.target.value)}
-                  compact
                 />
-                <Field label="Déductible IR" tooltip="ON = versement déduit du revenu imposable (dans la limite du plafond — art. 163 quatervicies CGI). OFF = versement non déductible (plafond épuisé, abondement employeur, etc.)">
+                <ChampCollecte label="Déductible IR" tooltip="ON = versement déduit du revenu imposable (dans la limite du plafond — art. 163 quatervicies CGI). OFF = versement non déductible (plafond épuisé, abondement employeur, etc.)">
                   <div className="flex items-center gap-2 h-8">
                     <button
                       role="switch"
@@ -260,10 +270,10 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
                       {placement.perDeductible !== false ? "Oui" : "Non"}
                     </span>
                   </div>
-                </Field>
-                <Field label="Part UC (%)">
-                  <Input type="number" min="0" max="100" placeholder="ex: 30" value={placement.ucRatio} onChange={(e) => updatePlacementStr(placement.id, "ucRatio", e.target.value)} className="rounded-xl h-8 text-sm" />
-                </Field>
+                </ChampCollecte>
+                <ChampCollecte label="Part UC (%)">
+                  <Input type="number" min="0" max="100" placeholder="ex: 30" value={placement.ucRatio} onChange={(e) => updatePlacementStr(placement.id, "ucRatio", e.target.value)} className="rounded-lg h-8 text-sm" />
+                </ChampCollecte>
               </>
             )}
           </div>
@@ -299,50 +309,50 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
 
                 <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(160px,1fr))]">
                   {eligibles.length > 1 && (
-                    <Field label={placement.type === "FIP" ? "Type de FIP" : "Nature"}>
+                    <ChampCollecte label={placement.type === "FIP" ? "Type de FIP" : "Nature"}>
                       <Select value={dispositif} onValueChange={(v) => set({ dispositif: v })}>
-                        <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue /></SelectTrigger>
                         <SelectContent>{eligibles.map((id) => <SelectItem key={id} value={id}>{DISPOSITIFS_FINANCIERS_LABELS[id] ?? id}</SelectItem>)}</SelectContent>
                       </Select>
-                    </Field>
+                    </ChampCollecte>
                   )}
 
                   {dispositif === "girardinIndustriel" ? (
                     <>
-                      <MoneyField label="Réduction d'impôt (attestation opérateur)" tooltip="Montant de réduction d'IR figurant sur l'attestation de l'opérateur Girardin. Saisie directe (le calcul dépend du montage)." value={d?.montantReductionGirardin ?? ""} onChange={(e) => set({ montantReductionGirardin: e.target.value })} compact />
-                      <Field label="Régime" tooltip="Plein droit : rétrocession 56 %, fraction consommant le plafond des niches 44 %. Avec agrément (> 250 000 €) : rétrocession 66 %, fraction 34 %.">
+                      <MoneyCollecte label="Réduction d'impôt (attestation opérateur)" tooltip="Montant de réduction d'IR figurant sur l'attestation de l'opérateur Girardin. Saisie directe (le calcul dépend du montage)." value={d?.montantReductionGirardin ?? ""} onChange={(e) => set({ montantReductionGirardin: e.target.value })} />
+                      <ChampCollecte label="Régime" tooltip="Plein droit : rétrocession 56 %, fraction consommant le plafond des niches 44 %. Avec agrément (> 250 000 €) : rétrocession 66 %, fraction 34 %.">
                         <Select value={d?.regimeGirardin ?? "pleinDroit"} onValueChange={(v) => set({ regimeGirardin: v })}>
-                          <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="pleinDroit">Plein droit</SelectItem>
                             <SelectItem value="agrement">Avec agrément</SelectItem>
                           </SelectContent>
                         </Select>
-                      </Field>
-                      <MoneyField label="Apport versé (optionnel)" tooltip="Trésorerie réellement versée à l'opérateur (information de flux, sans effet sur la réduction)." value={d?.montantSouscrit ?? ""} onChange={(e) => set({ montantSouscrit: e.target.value })} compact />
+                      </ChampCollecte>
+                      <MoneyCollecte label="Apport versé (optionnel)" tooltip="Trésorerie réellement versée à l'opérateur (information de flux, sans effet sur la réduction)." value={d?.montantSouscrit ?? ""} onChange={(e) => set({ montantSouscrit: e.target.value })} />
                     </>
                   ) : (
-                    <MoneyField label="Montant souscrit (€)" tooltip="Versement au dispositif. La base de réduction est plafonnée selon la situation familiale (et, pour la SOFICA, à 25 % du revenu net global et 18 000 €)." value={d?.montantSouscrit ?? ""} onChange={(e) => set({ montantSouscrit: e.target.value })} compact />
+                    <MoneyCollecte label="Montant souscrit (€)" tooltip="Versement au dispositif. La base de réduction est plafonnée selon la situation familiale (et, pour la SOFICA, à 25 % du revenu net global et 18 000 €)." value={d?.montantSouscrit ?? ""} onChange={(e) => set({ montantSouscrit: e.target.value })} />
                   )}
 
                   {dispositif === "sofica" && (
-                    <Field label="Taux" tooltip="Taux selon les engagements pris par la SOFICA (art. 199 unvicies). 48 % = engagements de dépenses les plus favorables (défaut).">
+                    <ChampCollecte label="Taux" tooltip="Taux selon les engagements pris par la SOFICA (art. 199 unvicies). 48 % = engagements de dépenses les plus favorables (défaut).">
                       <Select value={d?.tauxSofica ?? "48"} onValueChange={(v) => set({ tauxSofica: v })}>
-                        <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="30">30 %</SelectItem>
                           <SelectItem value="36">36 %</SelectItem>
                           <SelectItem value="48">48 %</SelectItem>
                         </SelectContent>
                       </Select>
-                    </Field>
+                    </ChampCollecte>
                   )}
 
-                  <Field label="Date d'investissement"><DateFr value={d?.dateInvestissement ?? ""} onChange={(iso) => set({ dateInvestissement: iso || "" })} className="rounded-xl h-8 text-sm" /></Field>
-                  <Field label="Sortie prévue (optionnel)"><DateFr value={d?.dateSortiePrevue ?? ""} onChange={(iso) => set({ dateSortiePrevue: iso || "" })} className="rounded-xl h-8 text-sm" /></Field>
+                  <ChampCollecte label="Date d'investissement"><DateFr value={d?.dateInvestissement ?? ""} onChange={(iso) => set({ dateInvestissement: iso || "" })} className="rounded-lg h-8 text-sm" /></ChampCollecte>
+                  <ChampCollecte label="Sortie prévue (optionnel)"><DateFr value={d?.dateSortiePrevue ?? ""} onChange={(iso) => set({ dateSortiePrevue: iso || "" })} className="rounded-lg h-8 text-sm" /></ChampCollecte>
 
                   {dispositif === "fcpiJei" && (
-                    <MoneyField label="Réduction JEI déjà consommée (€)" tooltip="Réductions FCPI JEI déjà imputées sur la période 2024-2028 (plafond propre 50 000 €). 0 par défaut." value={d?.reductionJeiDejaConsommee ?? ""} onChange={(e) => set({ reductionJeiDejaConsommee: e.target.value })} compact />
+                    <MoneyCollecte label="Réduction JEI déjà consommée (€)" tooltip="Réductions FCPI JEI déjà imputées sur la période 2024-2028 (plafond propre 50 000 €). 0 par défaut." value={d?.reductionJeiDejaConsommee ?? ""} onChange={(e) => set({ reductionJeiDejaConsommee: e.target.value })} />
                   )}
                 </div>
 
@@ -441,11 +451,11 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
               <div className="space-y-2">
                 {/* Ligne 1 : montants */}
                 <div className="grid gap-2" style={{ gridTemplateColumns: "1fr 1fr 1fr auto" }}>
-                  <MoneyField label="Retrait annuel (€)" tooltip="Montant total retiré du PER par an en sortie capital. Le capital (versements) est imposé au barème IR, les intérêts au PFU 31,4%." value={placement.perWithdrawal || ""} onChange={(e) => updatePlacementStr(placement.id, "perWithdrawal", e.target.value)} compact />
-                  <MoneyField label="dont Capital (€)" tooltip="Part capital des versements déductibles dans le retrait. Si non renseigné, calculé automatiquement selon le ratio encours/versements." value={placement.perWithdrawalCapital || ""} onChange={(e) => updatePlacementStr(placement.id, "perWithdrawalCapital", e.target.value)} compact />
-                  <MoneyField label="dont Intérêts (€)" tooltip="Part des intérêts/plus-values dans le retrait. Taxés au PFU 31,4%. Si non renseigné, calculé automatiquement." value={placement.perWithdrawalInterest || ""} onChange={(e) => updatePlacementStr(placement.id, "perWithdrawalInterest", e.target.value)} compact />
+                  <MoneyCollecte label="Retrait annuel (€)" tooltip="Montant total retiré du PER par an en sortie capital. Le capital (versements) est imposé au barème IR, les intérêts au PFU 31,4%." value={placement.perWithdrawal || ""} onChange={(e) => updatePlacementStr(placement.id, "perWithdrawal", e.target.value)} />
+                  <MoneyCollecte label="dont Capital (€)" tooltip="Part capital des versements déductibles dans le retrait. Si non renseigné, calculé automatiquement selon le ratio encours/versements." value={placement.perWithdrawalCapital || ""} onChange={(e) => updatePlacementStr(placement.id, "perWithdrawalCapital", e.target.value)} />
+                  <MoneyCollecte label="dont Intérêts (€)" tooltip="Part des intérêts/plus-values dans le retrait. Taxés au PFU 31,4%. Si non renseigné, calculé automatiquement." value={placement.perWithdrawalInterest || ""} onChange={(e) => updatePlacementStr(placement.id, "perWithdrawalInterest", e.target.value)} />
                   {/* Switch déblocage anticipé */}
-                  <Field label="Anticipé" tooltip="Déblocage anticipé (cas exceptionnel : invalidité, décès conjoint, fin droits chômage, liquidation, achat RP). Le capital est alors exonéré d'IR, seuls les intérêts sont taxés au PFU.">
+                  <ChampCollecte label="Anticipé" tooltip="Déblocage anticipé (cas exceptionnel : invalidité, décès conjoint, fin droits chômage, liquidation, achat RP). Le capital est alors exonéré d'IR, seuls les intérêts sont taxés au PFU.">
                     <div className="flex items-center h-8 gap-1.5">
                       <button role="switch" aria-checked={anticipe}
                         onClick={() => setData(prev => ({ ...prev, placements: prev.placements.map((p, i) => i === index ? { ...p, perAnticiped: !anticipe } : p) }))}
@@ -456,7 +466,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
                       </button>
                       <span className="text-xs" style={{ color: anticipe ? BRAND.warning : BRAND.muted }}>{anticipe ? "Oui" : "Non"}</span>
                     </div>
-                  </Field>
+                  </ChampCollecte>
                 </div>
                 {/* Ligne 2 : simulation fiscale */}
                 {retrait > 0 && (
@@ -494,7 +504,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
               </div>
             ) : (
               /* Champ retrait visible même si vide */
-              <MoneyField label="Retrait annuel (€)" tooltip="Montant annuel retiré du PER en sortie capital. Capital taxé au barème IR, intérêts au PFU 31,4%." value={placement.perWithdrawal || ""} onChange={(e) => updatePlacementStr(placement.id, "perWithdrawal", e.target.value)} compact />
+              <MoneyCollecte label="Retrait annuel (€)" tooltip="Montant annuel retiré du PER en sortie capital. Capital taxé au barème IR, intérêts au PFU 31,4%." value={placement.perWithdrawal || ""} onChange={(e) => updatePlacementStr(placement.id, "perWithdrawal", e.target.value)} />
             );
           })()}
 
@@ -515,7 +525,7 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
             const above150k = primesNettes > 150000;
             return (
               <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(145px,1fr))]">
-                <MoneyField label="Retrait annuel (€)" tooltip="Montant du retrait annuel programmé. Permet d'estimer la fiscalité des rachats partiels et l'impact sur l'encours projeté." value={placement.annualWithdrawal || ""} onChange={(e) => updatePlacementStr(placement.id, "annualWithdrawal", e.target.value)} compact />
+                <MoneyCollecte label="Retrait annuel (€)" tooltip="Montant du retrait annuel programmé. Permet d'estimer la fiscalité des rachats partiels et l'impact sur l'encours projeté." value={placement.annualWithdrawal || ""} onChange={(e) => updatePlacementStr(placement.id, "annualWithdrawal", e.target.value)} />
                 {retrait > 0 && (
                   <div className="col-span-full rounded-xl border px-3 py-2.5 text-xs space-y-1.5" style={{ borderColor: SURFACE.border, background: SURFACE.card, borderRadius: 14, boxShadow: SURFACE.cardShadow }}>
                     <div className="font-semibold" style={{ color: BRAND.sky }}>Simulation fiscale rachat</div>
@@ -559,19 +569,22 @@ const TabPlacements = React.memo(function TabPlacements(props: any) {
               </div>
               {placement.beneficiaries.map((beneficiary, bIndex) => (
                 <div key={bIndex} className="grid gap-2 grid-cols-[1fr_1fr_0.6fr_auto] items-end">
-                  <Field label="Nom"><Input value={beneficiary.name} onChange={(e) => updatePlacementBeneficiary(index, bIndex, "name", e.target.value)} className="rounded-xl h-8 text-sm" /></Field>
-                  <Field label="Lien">
+                  <ChampCollecte label="Nom"><Input value={beneficiary.name} onChange={(e) => updatePlacementBeneficiary(index, bIndex, "name", e.target.value)} className="rounded-lg h-8 text-sm" /></ChampCollecte>
+                  <ChampCollecte label="Lien">
                     <Select value={beneficiary.relation || "autre"} onValueChange={(v) => updatePlacementBeneficiary(index, bIndex, "relation", v)}>
-                      <SelectTrigger className="rounded-xl h-8 text-sm"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="rounded-lg h-8 text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>{BENEFICIARY_RELATION_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                     </Select>
-                  </Field>
-                  <MoneyField label="% part" value={beneficiary.share} onChange={(e) => updatePlacementBeneficiary(index, bIndex, "share", e.target.value)} compact />
+                  </ChampCollecte>
+                  <MoneyCollecte label="% part" value={beneficiary.share} onChange={(e) => updatePlacementBeneficiary(index, bIndex, "share", e.target.value)} />
                   <Button variant="outline" aria-label="Supprimer le beneficiaire" className="h-8 w-8 rounded-xl p-0" onClick={() => confirmRemove(!!(beneficiary.name || beneficiary.share), "le beneficiaire", () => removePlacementBeneficiary(index, bIndex))}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               ))}
             </div>
           )}
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
     );
