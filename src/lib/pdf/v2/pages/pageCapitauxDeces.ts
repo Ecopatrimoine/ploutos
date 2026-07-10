@@ -20,6 +20,7 @@ import {
   type KpiItem,
 } from "../primitives";
 import { compilerPageContrat, type Bloc } from "../engine/contrat";
+import { pct } from "../../../calculs/utils";
 import type { Tokens } from "../tokens";
 
 // ─── Types de page ─────────────────────────────────────────────────────────
@@ -305,7 +306,7 @@ function sousGroupeNature(t: Tokens, nature: "temporaire" | "rachetable", lignes
   const tag = `<span data-nature-tag="${nature}" class="lt" style="display:inline-block;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:${t.thOr};background:${t.fondTableau};border:0.5px solid ${t.bordureSeuilRail};border-radius:5px;padding:2px 8px;margin-top:9px">${label}</span>`;
 
   const rows = lignes.map(l => `<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0">
-      <span class="lt" style="font-size:11px;color:${t.texte}">${l.beneficiary || "Bénéficiaire à renseigner"} <span style="color:${t.texteFaible}">(${relationLabel(l.relation)}${l.sharePct ? ` · ${l.sharePct}%` : ""})</span></span>
+      <span class="lt" style="font-size:11px;color:${t.texte}">${l.beneficiary || "Bénéficiaire à renseigner"} <span style="color:${t.texteFaible}">(${relationLabel(l.relation)}${l.sharePct ? ` · ${pct(l.sharePct / 100)}` : ""})</span></span>
       <span class="lt" style="font-size:11px;font-weight:700;color:${t.navy}">${euro(l.montant)}</span>
     </div>`).join("");
 

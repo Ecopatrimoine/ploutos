@@ -5,7 +5,7 @@
 // les calculs sont locaux (pas de moteur dédié dans l'app actuelle).
 
 import type { BilanEndettementPageData } from "../pages/pageBilanEndettement";
-import { isAV, isPERType } from "../../../calculs/utils";
+import { isAV, isPERType, euro, pct } from "../../../calculs/utils";
 import { resolveLoanValuesMulti, resolveOtherLoan } from "../../../calculs/credit";
 import { resolveBeneficeTns } from "../../../calculs/ir";
 import { computeTauxEndettement } from "../../../calculs/endettement";
@@ -48,7 +48,7 @@ export function buildBilanEndettementData(p: BuildBilanEndettementDataParams): B
   // ─── Taux d'endettement : SOURCE UNIQUE (computeTauxEndettement, ecran + PDF) ──
   const res = computeTauxEndettement(data as any);
   const tauxEndettementPct = res.tauxPct;
-  const tauxEndettement = `${res.tauxPct.toFixed(1).replace(".", ",")} %`;
+  const tauxEndettement = pct(res.tauxPct / 100, 1);
 
   // ─── Sous-totaux de DETAIL pour l'encart pedagogique. Ils refletent la meme
   // formule que res (assurance autres, CA TNS net, pensions fallback) : leur
@@ -133,6 +133,8 @@ export function buildBilanEndettementData(p: BuildBilanEndettementDataParams): B
       const seuilHCSF = 35;
       const sousSeuil = tauxEndettementPct < seuilHCSF;
       const margePoints = Math.abs(seuilHCSF - tauxEndettementPct);
+      // Points d'écart HCSF (unité = points de %, pas €/%) — format FR sans toFixed rendu.
+      const margePointsFmt = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(margePoints);
       const capaciteResiduelle = Math.max(0, Math.round((seuilHCSF * totalRevenus / 100) - (chargesCreditAnnuelles + assuranceCreditAnnuelle)));
 
       // Leviers contextuels
@@ -142,7 +144,7 @@ export function buildBilanEndettementData(p: BuildBilanEndettementDataParams): B
         leviers.push("rachat de crédits si plusieurs prêts en cours");
         leviers.push("vente d'un actif non stratégique pour désendetter");
       } else if (tauxEndettementPct < 20) {
-        leviers.push(`capacité résiduelle d'endettement estimée à ${formatEuro(capaciteResiduelle)}/an avant plafond HCSF — opportunité d'investissement immobilier`);
+        leviers.push(`capacité résiduelle d'endettement estimée à ${euro(capaciteResiduelle)}/an avant plafond HCSF — opportunité d'investissement immobilier`);
       } else {
         leviers.push("marge présente mais limitée — un nouveau crédit doit être calibré");
       }
@@ -153,9 +155,9 @@ export function buildBilanEndettementData(p: BuildBilanEndettementDataParams): B
       return `
         <p style="margin:0 0 10px 0">Votre bilan patrimonial révèle la <strong>structure de votre patrimoine</strong> (immobilier, financier, dettes) et votre <strong>capacité d'endettement</strong> selon la méthode bancaire (charges crédit ÷ revenus retenus, loyers à 70 %).</p>
         <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
-          <li><strong>Patrimoine net</strong> — ${formatEuro(patrimoineNet)} (actif ${formatEuro(actifBrut)} − dettes ${formatEuro(passifTotal)}). Répartition : immobilier ${formatEuro(immobilier)}, AV/PER ${formatEuro(avEtPER)}, autres placements ${formatEuro(placementsFinanciers)}.</li>
-          <li><strong>Charges crédit annuelles</strong> — ${formatEuro(chargesCreditAnnuelles)} de mensualités + ${formatEuro(assuranceCreditAnnuelle)} d'assurance, sur ${formatEuro(totalRevenus)}/an de revenus retenus.</li>
-          <li><strong>Position vs plafond HCSF (${seuilHCSF} %)</strong> — Taux d'endettement <strong>${tauxEndettement}</strong>, ${sousSeuil ? `sous le seuil avec une marge de ${margePoints.toFixed(1).replace(".", ",")} points` : `<span style="color:${SEMANTIC_DANGER}">au-dessus du seuil de ${margePoints.toFixed(1).replace(".", ",")} points — refinancement contraint</span>`}.</li>
+          <li><strong>Patrimoine net</strong> — ${euro(patrimoineNet)} (actif ${euro(actifBrut)} − dettes ${euro(passifTotal)}). Répartition : immobilier ${euro(immobilier)}, AV/PER ${euro(avEtPER)}, autres placements ${euro(placementsFinanciers)}.</li>
+          <li><strong>Charges crédit annuelles</strong> — ${euro(chargesCreditAnnuelles)} de mensualités + ${euro(assuranceCreditAnnuelle)} d'assurance, sur ${euro(totalRevenus)}/an de revenus retenus.</li>
+          <li><strong>Position vs plafond HCSF (${seuilHCSF} %)</strong> — Taux d'endettement <strong>${tauxEndettement}</strong>, ${sousSeuil ? `sous le seuil avec une marge de ${margePointsFmt} points` : `<span style="color:${SEMANTIC_DANGER}">au-dessus du seuil de ${margePointsFmt} points — refinancement contraint</span>`}.</li>
         </ul>
         <p style="margin:0;font-style:italic;color:#6B6353"><strong>Leviers à étudier :</strong> ${leviers.join(" ; ")}.</p>
       `.trim();
@@ -170,9 +172,6 @@ function num(v: any): number {
   return Number.isFinite(n) ? Math.round(n) : 0;
 }
 
-function formatEuro(n: number): string {
-  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n) + " €";
-}
 
 function formatDateFr(d: Date): string {
   return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });

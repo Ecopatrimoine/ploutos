@@ -4,6 +4,7 @@
 // la masse civile, les droits par héritier, les abattements.
 
 import type { SuccessionAPageData } from "../pages/pageSuccessionA";
+import { euro, pct, plur } from "../../../calculs/utils";
 
 export type BuildSuccessionADataParams = {
   succession: any;
@@ -75,7 +76,7 @@ export function buildSuccessionAData(p: BuildSuccessionADataParams): SuccessionA
   const tauxMoyenPct = masseSuccessoraleNette > 0
     ? (droitsSuccession / masseSuccessoraleNette) * 100
     : 0;
-  const tauxMoyen = `${tauxMoyenPct.toFixed(1).replace(".", ",")} %`;
+  const tauxMoyen = pct(tauxMoyenPct / 100, 1);
 
   // Réserve héréditaire / Quotité disponible — calcul selon nb enfants
   const nbEnfants = Array.isArray(data.childrenData) ? data.childrenData.length : 0;
@@ -129,12 +130,12 @@ export function buildSuccessionAData(p: BuildSuccessionADataParams): SuccessionA
       return `
         <p style="margin:0 0 10px 0">La transmission civile dépend du <strong>régime matrimonial</strong>, du <strong>nombre d'enfants</strong> et de l'<strong>option du conjoint</strong>. Le conjoint marié ou pacsé est exonéré de droits (CGI art. 796-0 bis) ; chaque enfant bénéficie d'un abattement de 100 000 €.</p>
         <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
-          <li><strong>Masse civile nette</strong> — ${formatEuroLocal(masseSuccessoraleNette)} (hors assurance-vie, voir page suivante).</li>
+          <li><strong>Masse civile nette</strong> — ${euro(masseSuccessoraleNette)} (hors assurance-vie, voir page suivante).</li>
           <li><strong>Droits estimés</strong> — ${droitsSuccession > 0
-            ? `${formatEuroLocal(droitsSuccession)} (taux moyen ${tauxMoyen}). Net transmis : ${formatEuroLocal(netTransmis)}.`
+            ? `${euro(droitsSuccession)} (taux moyen ${tauxMoyen}). Net transmis : ${euro(netTransmis)}.`
             : `Aucun droit dû (exonération conjoint/PACS ou base sous abattements).`}</li>
           <li><strong>Quotité civile</strong> — ${nbEnfants > 0
-            ? `Réserve héréditaire ${reserveFraction} = ${formatEuroLocal(reserveMontant)} (bloquée pour les enfants). Quotité disponible ${quotiteFraction} = ${formatEuroLocal(quotiteMontant)} (libre allocation).`
+            ? `Réserve héréditaire ${reserveFraction} = ${euro(reserveMontant)} (bloquée pour les enfants). Quotité disponible ${quotiteFraction} = ${euro(quotiteMontant)} (libre allocation).`
             : `Pas d'enfant : quotité disponible = totalité du patrimoine.`}</li>
         </ul>
         <p style="margin:0;font-style:italic;color:#6B6353"><strong>Leviers à étudier :</strong> ${leviers.join(" ; ")}.</p>
@@ -150,9 +151,6 @@ function num(v: any): number {
   return Number.isFinite(n) ? Math.round(n) : 0;
 }
 
-function formatEuroLocal(n: number): string {
-  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Math.round(n)) + " €";
-}
 
 function relationLabel(r: any): string {
   if (!r) return "Héritier";
@@ -170,7 +168,7 @@ function relationLabel(r: any): string {
 function describeDevolution(data: Record<string, any>, nbEnfants: number): string {
   const status = data.coupleStatus;
   const parts: string[] = [];
-  if (nbEnfants > 0) parts.push(`${nbEnfants} enfant${nbEnfants > 1 ? "s" : ""}`);
+  if (nbEnfants > 0) parts.push(plur(nbEnfants, "enfant"));
   if (status === "married" || status === "pacs") {
     parts.push("conjoint — option ¼ en pleine propriété");
   } else if (status === "cohab") {

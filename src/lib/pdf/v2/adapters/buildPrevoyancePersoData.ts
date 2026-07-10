@@ -21,7 +21,7 @@ import { evaluerToutesLesRegles } from "../../../prevoyance/regles";
 import { WARNING_MICRO_TNS } from "../../../prevoyance/constants";
 import { referentiels } from "../../../../data/prevoyance";
 import { mentionDDAPrevoyance } from "../textesLegaux";
-import { formatDureeArret, plur } from "../../../calculs/utils";
+import { formatDureeArret, plur, euro } from "../../../calculs/utils";
 import { libelleStatut } from "../../../presentation/statutsPrevoyance";
 import { compositionAtIdx, bornesPalier } from "../../../presentation/prevoyancePerso";
 
@@ -51,7 +51,7 @@ const LIBELLE_CAISSE: Record<string, string> = {
 };
 
 function euroMois(v: number): string {
-  return `${Math.round(v).toLocaleString("fr-FR")} €/mois`;
+  return `${euro(v)}/mois`;
 }
 
 function totalAtIdx(s: ProjectionResult["series"], i: number): number {
@@ -91,7 +91,7 @@ function buildJalons(projection: ProjectionResult): PrevoyancePersoJalon[] {
     const pct = ref > 0 ? Math.round((total / ref) * 100) : 0;
     return {
       libelle: libelleJalon(j),
-      revenu: `${Math.round(total).toLocaleString("fr-FR")} €`,
+      revenu: euro(total),
       pct: `${pct} %`,
       detail: compositionAtIdx(projection.series, idx, j),
     };

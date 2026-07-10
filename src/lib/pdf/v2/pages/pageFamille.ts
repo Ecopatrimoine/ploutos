@@ -16,6 +16,7 @@ import {
   type Cell,
 } from "../primitives";
 import { compilerPageContrat, type Bloc } from "../engine/contrat";
+import { plur } from "../../../calculs/utils";
 import type { Tokens } from "../tokens";
 
 export type PersonneFamille = {
@@ -136,7 +137,7 @@ export function pageFamille(t: Tokens, d: FamillePageData): string {
     blocs.push({
       kind: "insecable",
       solidaireAvecSuivant: true,
-      html: `<div style="margin-top:18px">${sousTitreSection(t, `Enfants — ${d.enfants.length} enregistré${d.enfants.length > 1 ? "s" : ""}`)}</div>`,
+      html: `<div style="margin-top:18px">${sousTitreSection(t, `Enfants — ${plur(d.enfants.length, "enregistré")}`)}</div>`,
     });
     blocs.push({
       kind: "liste",

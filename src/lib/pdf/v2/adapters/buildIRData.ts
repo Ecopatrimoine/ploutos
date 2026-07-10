@@ -6,7 +6,7 @@
 
 import type { IRPageData } from "../pages/pageIR";
 import { DISPOSITIFS_FISCAUX } from "../../../../constants";
-import { labelDispositifReduction, estReductionFinanciere } from "../../../calculs/utils";
+import { labelDispositifReduction, estReductionFinanciere, euro, pct, plur } from "../../../calculs/utils";
 import { referentiels } from "../../../../data/prevoyance";
 import { detectLmp } from "../../../calculs/locationMeublee";
 import { collecteRevenusActiviteFoyer } from "../../../calculs/ir";
@@ -63,14 +63,14 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
   const tranchePctInt = Math.round((Number(ir.marginalRate) || 0) * 100);
   const totalPFU = Number(ir.totalPFU) || 0;
   const forfaitPFUPhrase = (totalPFU > 0 && tmiCase !== "forfaitaire")
-    ? ` Vos revenus de capitaux sont par ailleurs imposés au forfait (${formatEuro(totalPFU)} — PFU 31,4 %), indépendamment de la tranche.`
+    ? ` Vos revenus de capitaux sont par ailleurs imposés au forfait (${euro(totalPFU)} — PFU 31,4 %), indépendamment de la tranche.`
     : "";
-  const tauxMoyenTxt = `Impôt dû : ${formatEuro(impotNetDu)}, soit ${formatPct(ir.averageRate)} en taux moyen.`;
+  const tauxMoyenTxt = `Impôt dû : ${euro(impotNetDu)}, soit ${pct(Number(ir.averageRate) || 0, 1)} en taux moyen.`;
   let pressionFiscale: string;
   if (impotNetDu <= 0) {
     pressionFiscale = "Aucun impôt dû à ce stade (revenus sous le seuil ou compensés par les déductions).";
   } else if (tmiCase === "forfaitaire") {
-    pressionFiscale = `Barème : 0 % — l'essentiel de votre impôt (${formatEuro(impotNetDu)}) provient de l'imposition forfaitaire de vos revenus de capitaux.`;
+    pressionFiscale = `Barème : 0 % — l'essentiel de votre impôt (${euro(impotNetDu)}) provient de l'imposition forfaitaire de vos revenus de capitaux.`;
   } else if (tmiCase === "frontiere") {
     pressionFiscale = `${tauxMoyenTxt} Tranche marginale ${tranchePctInt} % — vous approchez de la tranche supérieure : voir l'encadré ci-dessus.`;
   } else if (tmiCase === "normal") {
@@ -85,10 +85,10 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
 
   // ─── Analyse "masque" structurée — cadrage métier + chiffres + leviers ──
   const composition: string[] = [];
-  if (salaires       > 0) composition.push(`salaires ${formatEuro(salaires)}`);
-  if (fonciers       > 0) composition.push(`fonciers bruts ${formatEuro(fonciers)}`);
-  if (mobiliers      > 0) composition.push(`placements taxables ${formatEuro(mobiliers)}`);
-  if (pensionsAutres > 0) composition.push(`pensions ${formatEuro(pensionsAutres)}`);
+  if (salaires       > 0) composition.push(`salaires ${euro(salaires)}`);
+  if (fonciers       > 0) composition.push(`fonciers bruts ${euro(fonciers)}`);
+  if (mobiliers      > 0) composition.push(`placements taxables ${euro(mobiliers)}`);
+  if (pensionsAutres > 0) composition.push(`pensions ${euro(pensionsAutres)}`);
 
   // Leviers contextuels selon le profil fiscal (logique déductive, pas IA).
   const leviers: string[] = [];
@@ -109,8 +109,8 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
   const notreLectureCalculee = `
     <p style="margin:0 0 10px 0">Votre fiscalité personnelle reflète la <strong>composition de vos revenus</strong> et la mécanique du <strong>quotient familial</strong>. Les abattements et déductions ramènent l'assiette brute à l'assiette taxable.</p>
     <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
-      <li><strong>Composition</strong> — Revenus bruts annuels : ${formatEuro(revenusBruts)} (${composition.join(", ") || "à compléter dans la collecte"}).</li>
-      <li><strong>Assiette</strong> — Revenu net imposable : ${formatEuro(revenuNetImposable)} pour ${ir.parts || "—"} part${(ir.parts || 0) > 1 ? "s" : ""} fiscale${(ir.parts || 0) > 1 ? "s" : ""}.</li>
+      <li><strong>Composition</strong> — Revenus bruts annuels : ${euro(revenusBruts)} (${composition.join(", ") || "à compléter dans la collecte"}).</li>
+      <li><strong>Assiette</strong> — Revenu net imposable : ${euro(revenuNetImposable)} pour ${ir.parts ? plur(ir.parts, "part fiscale", "parts fiscales") : "— part fiscale"}.</li>
       <li><strong>Pression fiscale</strong> — ${pressionFiscale}</li>
     </ul>
     <p style="margin:0;font-style:italic;color:#6B6353"><strong>Leviers à étudier :</strong> ${leviers.join(" ; ")}.</p>
@@ -164,12 +164,14 @@ export function buildIRData(p: BuildIRDataParams): IRPageData {
     clientName,
     dateStr,
     impotNetDu,
-    trancheMarginale: formatPct(ir.marginalRate),
+    // % harmonisés à la précision de l'écran 10b : TMI en ENTIER (Math.round côté écran) ;
+    // taux moyen à 1 décimale (pct(...,1) côté écran).
+    trancheMarginale: pct(Number(ir.marginalRate) || 0, 0),
     // Lot C2 révisé : valeur principale tuile « TRANCHE MARG. » = tranche affichée (réf sous
     // plafonnement, statutaire sinon). Normal ⇒ = trancheMarginale (byte-identique).
-    tmiAffichee: formatPct(tmiView.tmiAffichee),
-    tauxMoyen: formatPct(ir.averageRate),
-    quotient: ir.parts ? `${ir.parts} part${ir.parts > 1 ? "s" : ""}` : "—",
+    tmiAffichee: pct(tmiView.tmiAffichee, 0),
+    tauxMoyen: pct(Number(ir.averageRate) || 0, 1),
+    quotient: ir.parts ? plur(ir.parts, "part") : "—",
     salaires,
     fonciers,
     mobiliers,
@@ -212,19 +214,6 @@ function num(v: any): number {
   return Number.isFinite(n) ? Math.round(n) : 0;
 }
 
-function formatPct(v: any): string {
-  if (v === undefined || v === null || v === "") return "—";
-  const n = typeof v === "string" ? parseFloat(v.replace(/\s|%/g, "").replace(",", ".")) : v;
-  if (!Number.isFinite(n)) return "—";
-  // Si la valeur est déjà entre 0 et 1 (taux décimal), multiplier par 100
-  const pct = n <= 1 ? n * 100 : n;
-  return `${pct.toFixed(1).replace(".", ",")} %`;
-}
-
 function formatDateFr(d: Date): string {
   return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
-}
-
-function formatEuro(n: number): string {
-  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Math.round(n)) + " €";
 }

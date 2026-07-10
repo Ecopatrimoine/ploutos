@@ -17,6 +17,7 @@ import {
   type CascadeItem,
 } from "../primitives";
 import { compilerPageContrat, type Bloc } from "../engine/contrat";
+import { pct } from "../../../calculs/utils";
 import type { Tokens } from "../tokens";
 
 // Section budget (valeurs MENSUELLES) — miroir plat de computeBudget pour le
@@ -107,7 +108,7 @@ export function pageBilanEndettement(t: Tokens, d: BilanEndettementPageData): st
       <div>
         <div class="lt" style="font-size:9px;letter-spacing:.04em;text-transform:uppercase;color:${t.eyebrowOr};font-weight:700;margin-bottom:5px">Revenus retenus</div>
         ${ligneCalc("Salaires nets",            euro(d.calculTaux.salairesNetsAnnuels))}
-        ${ligneCalc(`Loyers retenus (${Math.round(q * 100)} %)`, euro(loyersRetenus))}
+        ${ligneCalc(`Loyers retenus (${pct(q)})`, euro(loyersRetenus))}
         ${autresRev > 0 ? ligneCalc("Autres revenus", euro(autresRev)) : ""}
         ${ligneCalc("Total revenus",            euro(totalRevenus), { gras: true, topSeparator: true })}
       </div>
@@ -159,14 +160,14 @@ export function pageBilanEndettement(t: Tokens, d: BilanEndettementPageData): st
   // ─── Cascade répartition : échelle = actif brut (immobilier + placements
   //     + AV/PER). Les crédits s'affichent en or pâle bordé. Le total à 100 %.
   const echelle = d.actifBrut || 1;
-  const pct = (v: number) => Math.min(100, Math.round((v / echelle) * 100));
+  const pctLargeur = (v: number) => Math.min(100, Math.round((v / echelle) * 100));
 
   const items: CascadeItem[] = [
-    { label: "Immobilier (valeur brute)",       pct: pct(d.immobilier),           valeur: euro(d.immobilier),           type: "revenu" },
-    { label: "Placements financiers",            pct: pct(d.placementsFinanciers), valeur: euro(d.placementsFinanciers), type: "netImposable" },
-    { label: "Assurance-vie & PER",              pct: pct(d.assuranceVieEtPER),    valeur: euro(d.assuranceVieEtPER),    type: "impot" },
-    { label: "− Crédit affecté à l'immobilier",  pct: pct(d.creditImmobilier),     valeur: `− ${euro(d.creditImmobilier)}`, type: "deduction" },
-    { label: "− Autres crédits (auto, conso)",   pct: pct(d.autresCredits),       valeur: `− ${euro(d.autresCredits)}`,   type: "deduction" },
+    { label: "Immobilier (valeur brute)",       pct: pctLargeur(d.immobilier),           valeur: euro(d.immobilier),           type: "revenu" },
+    { label: "Placements financiers",            pct: pctLargeur(d.placementsFinanciers), valeur: euro(d.placementsFinanciers), type: "netImposable" },
+    { label: "Assurance-vie & PER",              pct: pctLargeur(d.assuranceVieEtPER),    valeur: euro(d.assuranceVieEtPER),    type: "impot" },
+    { label: "− Crédit affecté à l'immobilier",  pct: pctLargeur(d.creditImmobilier),     valeur: `− ${euro(d.creditImmobilier)}`, type: "deduction" },
+    { label: "− Autres crédits (auto, conso)",   pct: pctLargeur(d.autresCredits),       valeur: `− ${euro(d.autresCredits)}`,   type: "deduction" },
     { label: "= Patrimoine net",                 pct: 100,                          valeur: euro(d.patrimoineNet),         type: "total",   valeurFontSize: "12.5px" },
   ];
 

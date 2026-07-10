@@ -54,9 +54,9 @@ describe("IFI — libellés écran + tuiles Tranche marginale / Taux moyen IFI",
     expect(patrimoineNet).toBeGreaterThan(ifi.netTaxable); // le total dépasse l'assiette IFI
     const d = buildIFIData({ ifi, data: dataRiche, cabinet });
     const roi = buildIfiRoiCard(ifi, { patrimoineNet });
-    expect(d.trancheMarginaleIFI).toBe(pct(roi.marginalRate));       // 1 % (tranche 2,57–5 M€)
-    expect(d.tauxMoyenIFI).toBe(pct(roi.tauxMoyen));                 // ÷ patrimoine total
-    expect(d.tauxMoyenIFI).not.toBe(pct(buildIfiRoiCard(ifi).tauxMoyen)); // ≠ ÷ actif net taxable
+    expect(d.trancheMarginaleIFI).toBe(pct(roi.marginalRate, 2));    // 1 % (tranche 2,57–5 M€)
+    expect(d.tauxMoyenIFI).toBe(pct(roi.tauxMoyen, 2));              // ÷ patrimoine total, 2 décimales (écran)
+    expect(d.tauxMoyenIFI).not.toBe(pct(buildIfiRoiCard(ifi).tauxMoyen, 2)); // ≠ ÷ actif net taxable
     // Garde-fou : dénominateur ≤ 0 → « — » (aucun actif, aucun patrimoine).
     const dVide = buildIFIData({ ifi: { netTaxable: 0, ifi: 0, bracketFill: [] }, data, cabinet });
     expect(dVide.tauxMoyenIFI).toBe("—");

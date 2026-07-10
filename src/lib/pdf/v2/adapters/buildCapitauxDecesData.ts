@@ -15,6 +15,7 @@ import type {
   CapitauxDecesRenteEducationBranche,
   CapitauxDecesRenteConjointBranche,
 } from "../pages/pageCapitauxDeces";
+import { euro } from "../../../calculs/utils";
 
 export type BuildCapitauxDecesDataParams = {
   succession: any;
@@ -173,18 +174,18 @@ function construireNotreLecture(v: {
     : "";
 
   const capitauxBullet = sourcesConnues.length
-    ? `<li><strong>Capitaux exonérés</strong> — ${formatEuro(exonereConnu)} via ${joinFr(sourcesConnues)}, transmis aux bénéficiaires désignés hors fiscalité.${indispoPhrase}</li>`
+    ? `<li><strong>Capitaux exonérés</strong> — ${euro(exonereConnu)} via ${joinFr(sourcesConnues)}, transmis aux bénéficiaires désignés hors fiscalité.${indispoPhrase}</li>`
     : `<li><strong>Capitaux exonérés</strong> — montants à compléter : le capital décès ${joinFr(indispo)} n'est pas disponible.</li>`;
 
   return `
     <p style="margin:0 0 10px 0">Ces capitaux et rentes sont versés <strong>hors actif successoral</strong> : ils n'entrent dans aucune masse civile ni dans aucun droit de succession. Les rentes sont des flux <strong>annuels</strong> (€/an), <strong>jamais additionnés</strong> aux capitaux.</p>
     <ul style="margin:0 0 10px 0;padding-left:18px;line-height:1.7">
       ${capitauxBullet}
-      <li><strong>Prévoyance décès assurance</strong> — ${formatEuro(v.capitalAssurance)} transmis. ${v.priveDuties > 0
-        ? `Fiscalité 990 I estimée : ${formatEuro(v.priveDuties)} (après abattement de 152 500 € par bénéficiaire).`
+      <li><strong>Prévoyance décès assurance</strong> — ${euro(v.capitalAssurance)} transmis. ${v.priveDuties > 0
+        ? `Fiscalité 990 I estimée : ${euro(v.priveDuties)} (après abattement de 152 500 € par bénéficiaire).`
         : `Aucune fiscalité 990 I (les abattements de 152 500 € par bénéficiaire absorbent les capitaux).`}</li>
       ${v.totalRentesAnnuelles > 0
-        ? `<li><strong>Rentes de survie</strong> — ${formatEuro(v.totalRentesAnnuelles)} / an au total (conjoint, éducation), versées en complément et jamais sommées aux capitaux.</li>`
+        ? `<li><strong>Rentes de survie</strong> — ${euro(v.totalRentesAnnuelles)} / an au total (conjoint, éducation), versées en complément et jamais sommées aux capitaux.</li>`
         : ""}
     </ul>
     <p style="margin:0;font-style:italic;color:#6B6353">Vérifiez les montants « Donnée non disponible » auprès des caisses et de la convention collective : ils complètent le besoin de prévoyance sans modifier la succession.</p>
@@ -209,9 +210,6 @@ function num(v: any): number {
   return Number.isFinite(n) ? Math.round(n) : 0;
 }
 
-function formatEuro(n: number): string {
-  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Math.round(n)) + " €";
-}
 
 function formatDateFr(d: Date): string {
   return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });

@@ -6,6 +6,7 @@
 // PrevoyanceCollPageData consommé par pagePrevoyanceColl.
 
 import type { PrevoyanceCollPageData } from "../pages/pagePrevoyanceColl";
+import { plur } from "../../../calculs/utils";
 import type { EntrepriseAudit } from "../../../../types/patrimoine";
 import { runAuditConformite } from "../../../prevoyance/audit-collectif";
 import { buildVueObligationsFusionnee } from "../../../prevoyance/comparaison-branche-vue";
@@ -126,7 +127,7 @@ export function buildPrevoyanceCollData(p: BuildPrevoyanceCollDataParams): Prevo
     dateStr,
     sousTitre,
     scoreGlobal: `${audit.scoreGlobal} %`,
-    effectifLibelle: entreprise.effectif !== null ? `${entreprise.effectif} salarié${entreprise.effectif > 1 ? "s" : ""}` : "Non renseigné",
+    effectifLibelle: entreprise.effectif !== null ? plur(entreprise.effectif, "salarié") : "Non renseigné",
     entrepriseLibelle: entreprise.nom || "Entreprise",
     ccnLibelle: entreprise.idccCCN ? `IDCC ${entreprise.idccCCN}` : "—",
     controles: audit.controles,
