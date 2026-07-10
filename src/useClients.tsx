@@ -815,10 +815,15 @@ export function ClientManager({
   // Les deux URLs préexistent dans le code (portail + app.ploutos-cgp.fr).
   const handleAbonnement = async () => {
     if (licence?.type === "paid") {
+      // L'utilisateur est identifié côté fonction via le JWT ; plus de user_id
+      // dans le body (anti-IDOR, cf. L2). Sans session valide, on n'appelle pas.
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) { console.error("Portail Stripe : session absente"); return; }
       const res = await fetch("https://ysbgfiqsuvdwzkcsiqir.supabase.co/functions/v1/create-portal-session", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId, return_url: window.location.origin }),
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ return_url: window.location.origin }),
       });
       const data = await res.json();
       if (data.url) window.open(data.url, "_blank");

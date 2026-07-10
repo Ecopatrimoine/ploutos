@@ -8,60 +8,67 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
   httpClient: Stripe.createFetchHttpClient(),
 });
 
+// Client service_role — sert à valider le JWT (getUser) et à lire la table
+// licences. La session n'est jamais persistée côté fonction.
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+  { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+const JSON_HEADERS = { ...CORS, "Content-Type": "application/json" };
+
 serve(async (req) => {
-  // CORS
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "authorization, content-type",
-      },
-    });
+    return new Response(null, { headers: CORS });
   }
 
   try {
-    const { user_id, return_url } = await req.json();
-
-    if (!user_id) {
-      return new Response(JSON.stringify({ error: "user_id requis" }), { status: 400 });
+    // ── Authentification ──────────────────────────────────────────────────
+    // L'utilisateur est dérivé du JWT de session, JAMAIS d'un user_id du body
+    // (sinon IDOR : n'importe qui ouvrirait le portail d'un tiers). cf. L2.
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.replace("Bearer ", "").trim();
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Non autorisé" }), { status: 401, headers: JSON_HEADERS });
     }
 
-    // Récupérer le stripe_sub depuis la table licences
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Token invalide" }), { status: 401, headers: JSON_HEADERS });
+    }
+
+    // return_url est le seul paramètre accepté du body ; body vide toléré.
+    const { return_url } = await req.json().catch(() => ({ return_url: undefined }));
+
+    // stripe_sub de CET utilisateur uniquement.
     const { data: licence, error } = await supabase
       .from("licences")
       .select("stripe_sub")
-      .eq("user_id", user_id)
-      .single();
+      .eq("user_id", user.id)
+      .maybeSingle();
 
     if (error || !licence?.stripe_sub) {
-      return new Response(JSON.stringify({ error: "Aucun abonnement Stripe trouvé" }), { status: 404 });
+      return new Response(JSON.stringify({ error: "Aucun abonnement Stripe trouvé" }), { status: 404, headers: JSON_HEADERS });
     }
 
-    // Récupérer le customer_id depuis la subscription Stripe
+    // customer_id depuis la subscription Stripe.
     const subscription = await stripe.subscriptions.retrieve(licence.stripe_sub);
     const customerId = subscription.customer as string;
 
-    // Créer la session portail
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: return_url || "https://app.ploutos-cgp.fr",
     });
 
-    return new Response(JSON.stringify({ url: session.url }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
+    return new Response(JSON.stringify({ url: session.url }), { status: 200, headers: JSON_HEADERS });
 
   } catch (err) {
     console.error("Erreur create-portal-session:", err);
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500 });
+    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: JSON_HEADERS });
   }
 });

@@ -1374,7 +1374,6 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     <div className="fixed inset-0 overflow-y-scroll" style={{ background: SURFACE.app, scrollbarWidth: "thin", scrollbarColor: `${BRAND.sky} ${SURFACE.border}`, scrollbarGutter: "stable" }}>
       <LicenceBanner
         licence={licence}
-        userId={userId}
         colorGold={cabinet.colorGold || "#E3AF64"}
         colorNavy={cabinet.colorNavy || "#101B3B"}
       />
