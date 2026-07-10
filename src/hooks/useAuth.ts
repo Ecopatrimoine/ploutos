@@ -168,17 +168,6 @@ export function useAuth() {
     return true;
   }, []);
 
-  // Utilitaire admin : attribuer une licence lifetime (à appeler manuellement)
-  const grantLifetimeLicence = useCallback(async (targetUserId: string) => {
-    const { error } = await supabase.from("licences").upsert({
-      user_id: targetUserId,
-      type: "lifetime",
-      status: "active",
-      trial_end: null,
-    });
-    return !error;
-  }, []);
-
   const signIn = useCallback(async (email: string, password: string) => {
     setError("");
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -234,5 +223,5 @@ export function useAuth() {
 
   const clearPasswordRecovery = useCallback(() => setIsPasswordRecovery(false), []);
 
-  return { user, session, authState, error, signUp, signIn, signOut, resetPassword, updatePassword, grantLifetimeLicence, isPasswordRecovery, clearPasswordRecovery };
+  return { user, session, authState, error, signUp, signIn, signOut, resetPassword, updatePassword, isPasswordRecovery, clearPasswordRecovery };
 }
