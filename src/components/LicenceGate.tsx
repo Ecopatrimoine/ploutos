@@ -3,10 +3,8 @@ import { Clock, Lock, Mail, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { LicenceInfo } from "../hooks/useLicense";
-
-// ─── Liens Stripe LIVE ───────────────────────────────────────────────────────
-const STRIPE_SOLO_URL   = "https://buy.stripe.com/aFaeVe90DdKM5lMeQD9fW01";
-const STRIPE_ANNUEL_URL = "https://buy.stripe.com/28E7sMdgT5eg29A8sf9fW00";
+// Payment Links Stripe : source unique factorisée (cf. src/lib/abonnement.ts).
+import { STRIPE_SOLO_URL, STRIPE_ANNUEL_URL } from "../lib/abonnement";
 
 // ─── Couleurs Ploutos ─────────────────────────────────────────────────────────
 const colorNavy = "#101B3B";

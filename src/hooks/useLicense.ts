@@ -15,6 +15,7 @@ export interface LicenceInfo {
   status:     LicenceStatus;
   trialEnd:   Date | null;     // null sauf pour trial
   trialDaysLeft: number;       // 0 sauf pour trial actif
+  cancelAt:   Date | null;     // échéance de résiliation (status "cancelling"), sinon null
   isValid:    boolean;         // raccourci : peut utiliser l'app ?
   loading:    boolean;
 }
@@ -47,7 +48,7 @@ function clearLicenceCache() {
 export function useLicense(userId: string | null) {
   const [licence, setLicence] = useState<LicenceInfo>({
     type: null, status: "none", trialEnd: null,
-    trialDaysLeft: 0, isValid: false, loading: true,
+    trialDaysLeft: 0, cancelAt: null, isValid: false, loading: true,
   });
 
   const fetchLicence = useCallback(async (force = false) => {
@@ -66,13 +67,13 @@ export function useLicense(userId: string | null) {
     // bouton « Contacter le support »). Fail-closed, aucune écriture cliente.
     const absente: LicenceInfo = {
       type: null, status: "none", trialEnd: null,
-      trialDaysLeft: 0, isValid: false, loading: false,
+      trialDaysLeft: 0, cancelAt: null, isValid: false, loading: false,
     };
 
     try {
       const { data, error } = await supabase
         .from("licences")
-        .select("type, status, trial_end")
+        .select("type, status, trial_end, cancel_at")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -97,6 +98,7 @@ export function useLicense(userId: string | null) {
       }
 
       const trialEnd   = data.trial_end ? new Date(data.trial_end) : null;
+      const cancelAt   = data.cancel_at ? new Date(data.cancel_at) : null;
       const now        = new Date();
       const msLeft     = trialEnd ? trialEnd.getTime() - now.getTime() : 0;
       const daysLeft   = trialEnd ? Math.max(0, Math.ceil(msLeft / 86400000)) : 0;
@@ -112,6 +114,7 @@ export function useLicense(userId: string | null) {
         status:        effectiveStatus,
         trialEnd,
         trialDaysLeft: data.type === "trial" ? daysLeft : 0,
+        cancelAt,
         isValid:       effectiveStatus === "active",
         loading:       false,
       };
