@@ -15,8 +15,11 @@ const supabase = createClient(
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const INTERNAL_EMAIL_KEY = Deno.env.get("INTERNAL_EMAIL_KEY") ?? "";
 
-// Envoie un email via la Edge Function send-email
+// Envoie un email via la Edge Function send-email (mode serveur-à-serveur : le
+// header X-Internal-Key authentifie l'appel côté send-email — cf. L3). Le Bearer
+// anon reste pour franchir la passerelle si verify_jwt=true.
 async function sendEmail(to: string, type: string, cabinet_name?: string) {
   if (!to) return;
   try {
@@ -25,6 +28,7 @@ async function sendEmail(to: string, type: string, cabinet_name?: string) {
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "X-Internal-Key": INTERNAL_EMAIL_KEY,
       },
       body: JSON.stringify({ to, type, cabinet_name }),
     });

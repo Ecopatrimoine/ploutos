@@ -2,24 +2,27 @@
 import React, { useState } from "react";
 import { AlertTriangle, Settings, ArrowRight, Sparkles } from "lucide-react";
 import type { LicenceInfo } from "../hooks/useLicense";
+import { supabase, SUPABASE_FUNCTIONS_URL } from "../lib/supabase";
 
 interface LicenceBannerProps {
   licence:   LicenceInfo;
-  userId:    string;
   colorGold: string;
   colorNavy: string;
 }
 
-async function openStripePortal(userId: string) {
+async function openStripePortal() {
+  // L'utilisateur est identifié côté fonction via le JWT ; on n'envoie plus de
+  // user_id (anti-IDOR, cf. L2). Sans session valide, on n'appelle pas.
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) { console.error("Portail Stripe : session absente"); return; }
+
   const res = await fetch(
-    "https://ysbgfiqsuvdwzkcsiqir.supabase.co/functions/v1/create-portal-session",
+    `${SUPABASE_FUNCTIONS_URL}/create-portal-session`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: userId,
-        return_url: window.location.origin,
-      }),
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ return_url: window.location.origin }),
     }
   );
   const data = await res.json();
@@ -27,12 +30,12 @@ async function openStripePortal(userId: string) {
   else console.error("Portail Stripe indisponible:", data.error);
 }
 
-export function LicenceBanner({ licence, userId, colorGold, colorNavy }: LicenceBannerProps) {
+export function LicenceBanner({ licence, colorGold, colorNavy }: LicenceBannerProps) {
   const [loading, setLoading] = useState(false);
 
   const handlePortal = async () => {
     setLoading(true);
-    await openStripePortal(userId);
+    await openStripePortal();
     setLoading(false);
   };
 

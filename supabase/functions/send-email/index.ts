@@ -1,8 +1,22 @@
 // supabase/functions/send-email/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const FROM = "Ploutos <contact@ploutos-cgp.fr>";
+
+// Auth. SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY sont injectés par la plateforme
+// (validation des JWT, mode utilisateur). INTERNAL_EMAIL_KEY est un secret À POSER
+// au dashboard (mode serveur-à-serveur) — sans lui, les emails du webhook Stripe
+// (licence_activated) ne partent plus.
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const INTERNAL_EMAIL_KEY = Deno.env.get("INTERNAL_EMAIL_KEY") ?? "";
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-internal-key",
+};
 
 const LOGO_SRC = "https://app.ploutos-cgp.fr/logo.ploutos.lettrage.svg";
 
@@ -338,11 +352,40 @@ function getEmailContent(payload: EmailPayload): { subject: string; html: string
 }
 
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: CORS });
+  }
+
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+
   try {
     const payload: EmailPayload = await req.json();
 
     if (!payload.to || !payload.type) {
-      return new Response(JSON.stringify({ error: "Missing to or type" }), { status: 400 });
+      return json({ error: "Missing to or type" }, 400);
+    }
+
+    // ── Authentification : deux modes, tout le reste rejeté en 401 (L3) ──────
+    // (a) serveur-à-serveur : X-Internal-Key === INTERNAL_EMAIL_KEY.
+    const internalKey = req.headers.get("X-Internal-Key") ?? "";
+    const isInternal = INTERNAL_EMAIL_KEY !== "" && internalKey === INTERNAL_EMAIL_KEY;
+
+    if (!isInternal) {
+      // (b) utilisateur : JWT valide ET to === email du JWT.
+      const authHeader = req.headers.get("Authorization") ?? "";
+      const token = authHeader.replace("Bearer ", "").trim();
+      if (!token) return json({ error: "Non autorisé" }, 401);
+
+      const supabaseAuth = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+      const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
+      if (authError || !user?.email) return json({ error: "Token invalide" }, 401);
+
+      if (user.email.toLowerCase() !== String(payload.to).toLowerCase()) {
+        return json({ error: "Destinataire non autorisé" }, 403);
+      }
     }
 
     const { subject, html } = getEmailContent(payload);
@@ -360,14 +403,14 @@ serve(async (req) => {
 
     if (!res.ok) {
       console.error("Resend error:", data);
-      return new Response(JSON.stringify({ error: data }), { status: 500 });
+      return json({ error: data }, 500);
     }
 
     console.log(`✅ Email ${payload.type} envoyé à ${payload.to}`);
-    return new Response(JSON.stringify({ success: true, id: data.id }), { status: 200 });
+    return json({ success: true, id: data.id }, 200);
 
   } catch (err) {
     console.error("Erreur send-email:", err);
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500 });
+    return json({ error: String(err) }, 500);
   }
 });
