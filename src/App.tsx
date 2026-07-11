@@ -1358,6 +1358,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
         onSignOut={onSignOut}
         licence={licence}
         userId={userId}
+        userEmail={userEmail}
       />
       {quickCalcOpen && (
         <AccueilCalculs

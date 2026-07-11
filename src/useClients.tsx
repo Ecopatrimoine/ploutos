@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Trash2, Copy, Pencil, FolderOpen, Folder, MoreHorizontal, LayoutGrid, List, CloudOff, RefreshCw, AlertTriangle, ArrowRight, ChevronRight } from "lucide-react";
-import { supabase, SUPABASE_FUNCTIONS_URL } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { BRAND, SURFACE, FIELD } from "./constants";
 import {
   EMPTY_CRITERIA,
@@ -19,6 +19,8 @@ import {
   type DossierData,
 } from "./lib/accueil/dossierResume";
 import { AccueilHeader } from "./components/AccueilHeader";
+import AbonnementModal from "./components/AbonnementModal";
+import type { LicenceInfo } from "./hooks/useLicense";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -734,8 +736,9 @@ type ClientManagerProps = {
   onInstall?: () => void;
   // Nouveaux props
   onSignOut?: () => void;
-  licence?: { type: string | null; status: string; isValid: boolean; trialDaysLeft?: number } | null;
+  licence?: LicenceInfo | null;
   userId?: string;
+  userEmail?: string;
   // C2 — suppression honnete : message d'echec (refus serveur) + acquittement.
   deleteError?: string | null;
   dismissDeleteError?: () => void;
@@ -766,6 +769,7 @@ export function ClientManager({
   onSignOut,
   licence,
   userId = "",
+  userEmail = "",
   deleteError,
   dismissDeleteError,
 }: ClientManagerProps) {
@@ -778,6 +782,8 @@ export function ClientManager({
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("modif");
   const [view, setView] = useState<"cards" | "list">("cards");
+  // Modal d'abonnement — accessible en permanence (cf. AbonnementModal).
+  const [abonnementOpen, setAbonnementOpen] = useState(false);
 
   const setCrit = (key: keyof SearchCriteria, value: string) =>
     setCriteria((c) => ({ ...c, [key]: value }));
@@ -804,33 +810,17 @@ export function ClientManager({
   const isTrial = licence?.type === "trial";
   const trialDays = licence?.trialDaysLeft ?? 0;
   const abonnementBadge = isTrial && licence?.status === "active" ? `Essai · ${trialDays} j` : undefined;
-  // Bouton Abonnement visible pour l'essai (badge) OU l'abonnement payant actif.
-  const showAbonnement =
-    !!userId && (isTrial || (licence?.type === "paid" && licence?.status === "active"));
+  // Bouton Abonnement PERMANENT : présent dès qu'un utilisateur est identifié,
+  // quel que soit l'état de la licence (le contenu détaillé est porté par le modal).
+  const showAbonnement = !!userId;
   // Bannière pleine largeur seulement si essai <= 5 jours restants OU expiré.
   const showTrialBanner =
     !!userId && isTrial && ((licence?.status === "active" && trialDays <= 5) || licence?.status === "expired");
 
-  // Action Abonnement : portail Stripe si payant, page d'abonnement sinon (essai).
-  // Les deux URLs préexistent dans le code (portail + app.ploutos-cgp.fr).
-  const handleAbonnement = async () => {
-    if (licence?.type === "paid") {
-      // L'utilisateur est identifié côté fonction via le JWT ; plus de user_id
-      // dans le body (anti-IDOR, cf. L2). Sans session valide, on n'appelle pas.
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) { console.error("Portail Stripe : session absente"); return; }
-      const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/create-portal-session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ return_url: window.location.origin }),
-      });
-      const data = await res.json();
-      if (data.url) window.open(data.url, "_blank");
-    } else {
-      window.open("https://app.ploutos-cgp.fr", "_blank");
-    }
-  };
+  // Action Abonnement : ouvre le modal permanent (identité + statut + actions).
+  // Le portail Stripe et les Payment Links sont désormais portés par le modal, ce
+  // qui évite toute duplication de la logique de facturation ici.
+  const handleAbonnement = () => setAbonnementOpen(true);
 
   // Couleurs de l'accueil v2 : custom properties posées inline depuis les tokens
   // BRAND / SURFACE / FIELD (aucune couleur codée en dur dans index.css).
@@ -1087,6 +1077,20 @@ export function ClientManager({
           isInstallable={isInstallable}
           onInstall={onInstall}
         />
+
+        {/* Modal d'abonnement — permanent, quel que soit l'état de la licence */}
+        {userId && licence && (
+          <AbonnementModal
+            open={abonnementOpen}
+            onClose={() => setAbonnementOpen(false)}
+            licence={licence}
+            userEmail={userEmail}
+            cabinetName={cabinetName}
+            userId={userId}
+            colorNavy={colorNavy}
+            colorGold={colorGold}
+          />
+        )}
 
         {/* Reprendre là où vous en étiez — dossiers récents */}
         {clients.length > 0 && (
