@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { CardAccentTop } from "../CardAccentTop";
 import { TabsContent } from "@/components/ui/tabs";
 import { Upload, Settings, RotateCcw, Undo2, Lightbulb, X, Download, Loader2, Trash2, AlertTriangle } from "lucide-react";
-import { BRAND, CABINET_COLOR_DEFAULTS } from "../../constants";
+import { BRAND, SURFACE, CABINET_COLOR_DEFAULTS } from "../../constants";
 import { SectionTitle } from "../shared";
 import { supabase, SUPABASE_FUNCTIONS_URL } from "@/lib/supabase";
 
@@ -574,6 +574,75 @@ const TabParametres = React.memo(function TabParametres(props: any) {
                 </div>
               </SubCard>
 
+              {/* Card 13 — Mes données : export intégral (C2-c) + effacement RGPD (C3-b) */}
+              <SubCard fullSpan>
+                <CardHead
+                  title="Mes données"
+                  sub={<>Téléchargez une archive complète de vos données cabinet : clients, documents, paramètres, CRM et commissions. L'export peut prendre quelques instants.</>}
+                />
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={handleExport}
+                    disabled={exporting}
+                    className="bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-sm hover:bg-slate-800 transition-colors inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {exporting
+                      ? <><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> Préparation de l'archive…</>
+                      : <><Download className="h-3.5 w-3.5" aria-hidden="true" /> Exporter toutes mes données</>}
+                  </button>
+                  {exportInfo && (
+                    <span className="text-xs text-slate-500 leading-snug">{exportInfo}</span>
+                  )}
+                </div>
+                {exportError && (
+                  <div role="alert" className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded px-2.5 py-1.5 mt-2 leading-snug">
+                    {exportError}
+                  </div>
+                )}
+
+                {/* ─── Effacement RGPD — demandes actives + demande cabinet (C3-b) ─── */}
+                <div className="border-t border-[#E8E3D9] pt-4 mt-4">
+                  {requests.length > 0 && (
+                    <div className="space-y-2 mb-3">
+                      <div className="text-xs font-bold tracking-wide text-slate-600">Demandes d'effacement en cours</div>
+                      {requests.map(r => (
+                        <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 bg-white border border-[#E8E3D9] rounded-xl px-3 py-2">
+                          <div className="text-xs text-slate-600 leading-snug">
+                            <strong className="text-slate-900">{r.scope === "cabinet" ? "Toutes mes données (cabinet)" : "Dossier client"}</strong>
+                            {" · "}{DELETION_STATUS_LABEL[r.status] ?? r.status}
+                            {r.grace_ends_at && <> · suppression définitive le {new Date(r.grace_ends_at).toLocaleDateString("fr-FR")}</>}
+                          </div>
+                          <button
+                            onClick={() => handleCancelRequest(r.id)}
+                            disabled={cancellingId === r.id}
+                            className="text-xs font-bold text-slate-700 border border-[#D8D2C6] bg-white hover:border-[#C4973D] rounded-lg px-3 py-1.5 transition-colors inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            {cancellingId === r.id
+                              ? <><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> Annulation…</>
+                              : "Annuler"}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {!hasActiveCabinetRequest && (
+                    <button
+                      onClick={() => { setEraseWord(""); setEraseError(null); setConfirmOpen(true); }}
+                      className="text-xs font-bold text-red-700 border border-red-200 bg-white hover:bg-red-50 rounded-lg px-3 py-2 transition-colors inline-flex items-center gap-1.5"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> Demander l'effacement de toutes mes données
+                    </button>
+                  )}
+
+                  {reqError && (
+                    <div role="alert" className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded px-2.5 py-1.5 mt-2 leading-snug">
+                      {reqError}
+                    </div>
+                  )}
+                </div>
+              </SubCard>
+
             </div>
           )}
 
@@ -713,75 +782,6 @@ const TabParametres = React.memo(function TabParametres(props: any) {
           )}
 
 
-          {/* ─── Mes données — export intégral (C2-c) ─── */}
-          <SubCard>
-            <CardHead
-              title="Mes données"
-              sub={<>Téléchargez une archive complète de vos données cabinet : clients, documents, paramètres, CRM et commissions. L'export peut prendre quelques instants.</>}
-            />
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={handleExport}
-                disabled={exporting}
-                className="bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-sm hover:bg-slate-800 transition-colors inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {exporting
-                  ? <><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> Préparation de l'archive…</>
-                  : <><Download className="h-3.5 w-3.5" aria-hidden="true" /> Exporter toutes mes données</>}
-              </button>
-              {exportInfo && (
-                <span className="text-xs text-slate-500 leading-snug">{exportInfo}</span>
-              )}
-            </div>
-            {exportError && (
-              <div role="alert" className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded px-2.5 py-1.5 mt-2 leading-snug">
-                {exportError}
-              </div>
-            )}
-
-            {/* ─── Effacement RGPD — demandes actives + demande cabinet (C3-b) ─── */}
-            <div className="border-t border-[#E8E3D9] pt-4 mt-4">
-              {requests.length > 0 && (
-                <div className="space-y-2 mb-3">
-                  <div className="text-xs font-bold tracking-wide text-slate-600">Demandes d'effacement en cours</div>
-                  {requests.map(r => (
-                    <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 bg-white border border-[#E8E3D9] rounded-xl px-3 py-2">
-                      <div className="text-xs text-slate-600 leading-snug">
-                        <strong className="text-slate-900">{r.scope === "cabinet" ? "Toutes mes données (cabinet)" : "Dossier client"}</strong>
-                        {" · "}{DELETION_STATUS_LABEL[r.status] ?? r.status}
-                        {r.grace_ends_at && <> · suppression définitive le {new Date(r.grace_ends_at).toLocaleDateString("fr-FR")}</>}
-                      </div>
-                      <button
-                        onClick={() => handleCancelRequest(r.id)}
-                        disabled={cancellingId === r.id}
-                        className="text-xs font-bold text-slate-700 border border-[#D8D2C6] bg-white hover:border-[#C4973D] rounded-lg px-3 py-1.5 transition-colors inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        {cancellingId === r.id
-                          ? <><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> Annulation…</>
-                          : "Annuler"}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {!hasActiveCabinetRequest && (
-                <button
-                  onClick={() => { setEraseWord(""); setEraseError(null); setConfirmOpen(true); }}
-                  className="text-xs font-bold text-red-700 border border-red-200 bg-white hover:bg-red-50 rounded-lg px-3 py-2 transition-colors inline-flex items-center gap-1.5"
-                >
-                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> Demander l'effacement de toutes mes données
-                </button>
-              )}
-
-              {reqError && (
-                <div role="alert" className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded px-2.5 py-1.5 mt-2 leading-snug">
-                  {reqError}
-                </div>
-              )}
-            </div>
-          </SubCard>
-
           {/* Encart pédagogique final (préservé) */}
           <div className="rounded-2xl p-4 text-sm" style={{ background: "rgba(251,236,215,0.4)", border: "1px solid rgba(227,175,100,0.3)" }}>
             <p className="font-semibold mb-2 flex items-center gap-1.5" style={{ color: BRAND.navy }}><Lightbulb className="h-4 w-4" aria-hidden="true" />Ces paramètres alimentent automatiquement :</p>
@@ -801,7 +801,7 @@ const TabParametres = React.memo(function TabParametres(props: any) {
 
       {/* ─── Confirmation TRÈS explicite — effacement cabinet (C3-b) ─── */}
       <Dialog open={confirmOpen} onOpenChange={(o) => { if (!o) { setConfirmOpen(false); setEraseError(null); } }}>
-        <DialogContent aria-describedby="erase-desc" className="max-w-md rounded-2xl">
+        <DialogContent aria-describedby="erase-desc" className="max-w-md rounded-2xl" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}>
           <DialogHeader>
             <DialogTitle className="inline-flex items-center gap-2 text-red-700">
               <AlertTriangle className="h-5 w-5" aria-hidden="true" /> Effacer toutes mes données

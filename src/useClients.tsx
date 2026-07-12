@@ -1139,7 +1139,7 @@ export function ClientManager({
 
         {/* C3-b — Confirmation explicite d'effacement RGPD d'un dossier (scope dossier) */}
         <Dialog open={!!rgpdClient} onOpenChange={(o) => { if (!o) closeRgpd(); }}>
-          <DialogContent aria-describedby="rgpd-dossier-desc" className="max-w-md rounded-2xl">
+          <DialogContent aria-describedby="rgpd-dossier-desc" className="max-w-md rounded-2xl" style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}>
             <DialogHeader>
               <DialogTitle className="inline-flex items-center gap-2 text-red-700">
                 <AlertTriangle className="h-5 w-5" aria-hidden="true" /> Effacement RGPD du dossier
