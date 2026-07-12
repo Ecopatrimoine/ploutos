@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Trash2, Copy, Pencil, FolderOpen, Folder, MoreHorizontal, LayoutGrid, List, CloudOff, RefreshCw, AlertTriangle, ArrowRight, ChevronRight } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { Trash2, Copy, Pencil, FolderOpen, Folder, MoreHorizontal, LayoutGrid, List, CloudOff, RefreshCw, AlertTriangle, ArrowRight, ChevronRight, Eraser, Loader2 } from "lucide-react";
+import { supabase, SUPABASE_FUNCTIONS_URL } from "@/lib/supabase";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BRAND, SURFACE, FIELD } from "./constants";
 import {
   EMPTY_CRITERIA,
@@ -785,6 +786,47 @@ export function ClientManager({
   // Modal d'abonnement — accessible en permanence (cf. AbonnementModal).
   const [abonnementOpen, setAbonnementOpen] = useState(false);
 
+  // C3-b — Effacement RGPD d'un dossier (scope 'dossier' → EF deletion-request).
+  // Confirmation explicite sans saisie du mot (réservée au scope cabinet, côté
+  // Paramètres). Patron d'appel EF d'AbonnementModal : JWT de session, Bearer.
+  const [rgpdClient, setRgpdClient] = useState<{ id: string; name: string } | null>(null);
+  const [rgpdErasing, setRgpdErasing] = useState(false);
+  const [rgpdError, setRgpdError] = useState<string | null>(null);
+  const [rgpdDone, setRgpdDone] = useState(false);
+
+  const closeRgpd = () => { setRgpdClient(null); setRgpdError(null); setRgpdDone(false); };
+
+  const handleRequestErasure = async () => {
+    if (!rgpdClient) return;
+    setRgpdErasing(true);
+    setRgpdError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        setRgpdError("Votre session a expiré. Reconnectez-vous puis réessayez.");
+        return;
+      }
+      const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/deletion-request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ action: "create", scope: "dossier", targetClientId: rgpdClient.id }),
+      });
+      const data = await res.json().catch(() => ({} as { id?: string; error?: string }));
+      if (res.ok && data.id) {
+        setRgpdDone(true);
+      } else {
+        console.error("Effacement RGPD dossier échoué:", data.error ?? res.status);
+        setRgpdError(data.error || "La demande d'effacement a échoué. Réessayez dans un instant.");
+      }
+    } catch (e) {
+      console.error("Effacement RGPD dossier — échec réseau:", e);
+      setRgpdError("Connexion impossible. Vérifiez votre accès internet puis réessayez.");
+    } finally {
+      setRgpdErasing(false);
+    }
+  };
+
   const setCrit = (key: keyof SearchCriteria, value: string) =>
     setCriteria((c) => ({ ...c, [key]: value }));
 
@@ -979,6 +1021,9 @@ export function ClientManager({
                 <button className="dg" onClick={() => { setOpenMenuId(null); setMenuPos(null); setConfirmDeleteId(client.id); }}>
                   <Trash2 /> Supprimer…
                 </button>
+                <button className="dg" onClick={() => { setOpenMenuId(null); setMenuPos(null); setRgpdError(null); setRgpdDone(false); setRgpdClient({ id: client.id, name }); }}>
+                  <Eraser /> Demander l'effacement RGPD
+                </button>
               </div>
             </>,
             document.body,
@@ -1091,6 +1136,62 @@ export function ClientManager({
             colorGold={colorGold}
           />
         )}
+
+        {/* C3-b — Confirmation explicite d'effacement RGPD d'un dossier (scope dossier) */}
+        <Dialog open={!!rgpdClient} onOpenChange={(o) => { if (!o) closeRgpd(); }}>
+          <DialogContent aria-describedby="rgpd-dossier-desc" className="max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="inline-flex items-center gap-2 text-red-700">
+                <AlertTriangle className="h-5 w-5" aria-hidden="true" /> Effacement RGPD du dossier
+              </DialogTitle>
+            </DialogHeader>
+            {rgpdDone ? (
+              <div id="rgpd-dossier-desc" className="text-sm text-slate-600 leading-relaxed space-y-2">
+                <p>La demande d'effacement du dossier <strong>{rgpdClient?.name}</strong> est enregistrée.</p>
+                <p>Un <strong>export complet</strong> de vos données vous a été remis (lien valable 7 jours). Vous disposez d'un <strong>délai de 30 jours pour annuler</strong> depuis les paramètres du cabinet, section « Mes données ».</p>
+              </div>
+            ) : (
+              <div id="rgpd-dossier-desc" className="text-sm text-slate-600 leading-relaxed space-y-2">
+                <p>Cette demande déclenche l'effacement <strong>définitif</strong> des données du dossier <strong>{rgpdClient?.name}</strong>.</p>
+                <p>Un <strong>export complet</strong> de vos données vous est remis <strong>immédiatement</strong> (lien valable 7 jours).</p>
+                <p>Vous disposez ensuite d'un <strong>délai de 30 jours pour annuler</strong>. Passé ce délai, la suppression est <strong>définitive et irréversible</strong>.</p>
+              </div>
+            )}
+            {rgpdError && (
+              <div role="alert" className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded px-2.5 py-1.5 leading-snug">
+                {rgpdError}
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              {rgpdDone ? (
+                <button
+                  onClick={closeRgpd}
+                  className="text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg px-3 py-2 transition-colors"
+                >
+                  Fermer
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={closeRgpd}
+                    className="text-xs font-bold text-slate-700 border border-[#D8D2C6] bg-white hover:border-[#C4973D] rounded-lg px-3 py-2 transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleRequestErasure}
+                    disabled={rgpdErasing}
+                    className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg px-3 py-2 transition-colors inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {rgpdErasing
+                      ? <><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> Envoi…</>
+                      : <><Eraser className="h-3.5 w-3.5" aria-hidden="true" /> Demander l'effacement</>}
+                  </button>
+                </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Reprendre là où vous en étiez — dossiers récents */}
         {clients.length > 0 && (
