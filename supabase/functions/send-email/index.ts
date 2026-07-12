@@ -102,7 +102,7 @@ function getEmailContent(payload: EmailPayload): { subject: string; html: string
               </div>
               <p>Retrouvez ce document dans l'onglet <strong>GED</strong> de la fiche client, marqué « ⬆ Client ».</p>
               <div style="text-align:center;margin:32px 0">
-                <a href="https://crm.ploutos-cgp.fr" style="background:#101B3B;color:#E3AF64;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px">
+                <a href="https://kleios.ploutos-cgp.fr" style="background:#101B3B;color:#E3AF64;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px">
                   Accéder à Kleios →
                 </a>
               </div>
@@ -129,7 +129,7 @@ function getEmailContent(payload: EmailPayload): { subject: string; html: string
               </div>
               <p>Les réponses ont été automatiquement intégrées dans la fiche de conformité du client.</p>
               <div style="text-align:center;margin:32px 0">
-                <a href="https://crm.ploutos-cgp.fr" style="background:#101B3B;color:#E3AF64;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px">
+                <a href="https://kleios.ploutos-cgp.fr" style="background:#101B3B;color:#E3AF64;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px">
                   Voir la fiche conformité →
                 </a>
               </div>
