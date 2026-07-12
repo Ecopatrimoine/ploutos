@@ -32,7 +32,7 @@ const FOOTER = `
 
 interface EmailPayload {
   to: string;
-  type: "welcome_trial" | "welcome_trial_mac" | "licence_activated" | "trial_expiring" | "demo_invite" | "trial_feedback";
+  type: "welcome_trial" | "welcome_trial_mac" | "licence_activated" | "trial_expiring" | "demo_invite" | "trial_feedback" | "document_shared" | "document_uploaded_by_client" | "questionnaire_submitted";
   cabinet_name?: string;
   trial_end?: string;
   first_name?: string;
@@ -41,12 +41,103 @@ interface EmailPayload {
   monthly_link?: string;
   annual_link?: string;
   feedback_link?: string;
+  // Portail client / GED (document_shared, document_uploaded_by_client, questionnaire_submitted)
+  clientName?: string;
+  documentName?: string;
+  documentRef?: string;
+  downloadUrl?: string;
+  category?: string;
+  questionnaireType?: string;
 }
 
-function getEmailContent(payload: EmailPayload): { subject: string; html: string } {
+function getEmailContent(payload: EmailPayload): { subject: string; html: string } | null {
   const name = payload.cabinet_name || "votre cabinet";
 
   switch (payload.type) {
+
+    // ── Portail client / GED — restaurés (perdus au durcissement v34) ─────────
+
+    case "document_shared":
+      return {
+        subject: `Document partagé — ${payload.documentName ?? "Document"}`,
+        html: `
+          <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#101B3B">
+            ${HEADER}
+            <div style="padding:32px;background:#fff">
+              <h2 style="color:#101B3B">Un document vous a été transmis</h2>
+              <p>Bonjour <strong>${payload.clientName ?? ""}${payload.clientName ? "," : ""}</strong></p>
+              <p>Votre conseiller vous a partagé le document suivant :</p>
+              <div style="background:#F8F9FB;border:1px solid #E2E5EC;border-radius:10px;padding:16px 20px;margin:24px 0">
+                <div style="font-size:16px;font-weight:600;color:#101B3B;margin-bottom:4px">📄 ${payload.documentName ?? "Document"}</div>
+                ${payload.documentRef ? `<div style="font-family:monospace;font-size:12px;color:#6B7280;background:#F0F2F6;padding:3px 8px;border-radius:4px;display:inline-block;margin-top:4px">Réf. ${payload.documentRef}</div>` : ""}
+              </div>
+              <div style="text-align:center;margin:32px 0">
+                <a href="${payload.downloadUrl ?? "#"}" style="background:#101B3B;color:#E3AF64;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px">
+                  Télécharger le document →
+                </a>
+              </div>
+              <p style="color:#888;font-size:12px;text-align:center">Ce lien est valide pendant 7 jours.</p>
+              <p style="color:#888;font-size:13px">Une question ? Contactez votre conseiller par retour de cet email.</p>
+            </div>
+            ${FOOTER}
+          </div>`
+      };
+
+    case "document_uploaded_by_client": {
+      const catLabel: Record<string, string> = {
+        lettre_mission: "Lettre de mission", rapport_patrimonial: "Rapport patrimonial",
+        contrat: "Contrat", der: "DER", kyc: "KYC / Identité", autre: "Autre",
+      };
+      return {
+        subject: `Document reçu de ${payload.clientName ?? "votre client"}`,
+        html: `
+          <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#101B3B">
+            ${HEADER}
+            <div style="padding:32px;background:#fff">
+              <h2 style="color:#101B3B">📤 Nouveau document client</h2>
+              <p><strong>${payload.clientName ?? "Votre client"}</strong> vient d'envoyer un document depuis son espace client.</p>
+              <div style="background:#F8F9FB;border:1px solid #E2E5EC;border-radius:10px;padding:16px 20px;margin:24px 0">
+                <div style="font-size:16px;font-weight:600;color:#101B3B;margin-bottom:4px">📄 ${payload.documentName ?? "Document"}</div>
+                ${payload.category ? `<div style="font-size:13px;color:#6B7280;margin-top:4px">Catégorie : ${catLabel[payload.category ?? ""] ?? payload.category}</div>` : ""}
+              </div>
+              <p>Retrouvez ce document dans l'onglet <strong>GED</strong> de la fiche client, marqué « ⬆ Client ».</p>
+              <div style="text-align:center;margin:32px 0">
+                <a href="https://crm.ploutos-cgp.fr" style="background:#101B3B;color:#E3AF64;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px">
+                  Accéder à Kleios →
+                </a>
+              </div>
+            </div>
+            ${FOOTER}
+          </div>`
+      };
+    }
+
+    case "questionnaire_submitted": {
+      const qLabel = payload.questionnaireType === "kyc"
+        ? "Connaissance client (KYC)" : "Profil investisseur (MIF2)";
+      return {
+        subject: `Questionnaire complété — ${payload.clientName ?? "un client"}`,
+        html: `
+          <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#101B3B">
+            ${HEADER}
+            <div style="padding:32px;background:#fff">
+              <h2 style="color:#101B3B">📋 Questionnaire reçu</h2>
+              <p><strong>${payload.clientName ?? "Votre client"}</strong> vient de compléter son questionnaire réglementaire depuis l'espace client.</p>
+              <div style="background:#ECFDF5;border:1px solid #A7F3D0;border-radius:10px;padding:16px 20px;margin:24px 0">
+                <div style="font-size:16px;font-weight:600;color:#065F46">✓ ${qLabel}</div>
+                <div style="font-size:13px;color:#047857;margin-top:4px">Réponses enregistrées et disponibles dans l'onglet Conformité</div>
+              </div>
+              <p>Les réponses ont été automatiquement intégrées dans la fiche de conformité du client.</p>
+              <div style="text-align:center;margin:32px 0">
+                <a href="https://crm.ploutos-cgp.fr" style="background:#101B3B;color:#E3AF64;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px">
+                  Voir la fiche conformité →
+                </a>
+              </div>
+            </div>
+            ${FOOTER}
+          </div>`
+      };
+    }
 
     case "welcome_trial_mac":
       return {
@@ -349,6 +440,8 @@ function getEmailContent(payload: EmailPayload): { subject: string; html: string
       };
     }
   }
+
+  return null;
 }
 
 serve(async (req) => {
@@ -388,7 +481,11 @@ serve(async (req) => {
       }
     }
 
-    const { subject, html } = getEmailContent(payload);
+    const content = getEmailContent(payload);
+    if (!content) {
+      return json({ error: "Type d'email inconnu" }, 400);
+    }
+    const { subject, html } = content;
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
