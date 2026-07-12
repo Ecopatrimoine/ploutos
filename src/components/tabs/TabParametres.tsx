@@ -4,9 +4,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CardAccentTop } from "../CardAccentTop";
 import { TabsContent } from "@/components/ui/tabs";
-import { Upload, Settings, RotateCcw, Undo2, Lightbulb, X } from "lucide-react";
+import { Upload, Settings, RotateCcw, Undo2, Lightbulb, X, Download, Loader2 } from "lucide-react";
 import { BRAND, CABINET_COLOR_DEFAULTS } from "../../constants";
 import { SectionTitle } from "../shared";
+import { supabase, SUPABASE_FUNCTIONS_URL } from "@/lib/supabase";
 
 // R4 — Couleurs cabinet : libellés de ROLE stables (mapping 1-1 sur les clés
 // existantes, ordre inchangé — on ne réordonne pas les valeurs stockées).
@@ -39,6 +40,45 @@ const TabParametres = React.memo(function TabParametres(props: any) {
   const { cabinet, updateCabinet, logoSrc, signatureSrc, setSignatureSrc, handleLogoUpload, handleSignatureUpload } = props;
 
   const [activeTab, setActiveTab] = useState<"statuts" | "identite" | "apparence">("statuts");
+
+  // ─── Export intégral des données cabinet (C2-c → EF export-cabinet) ──
+  // Réplique le patron d'appel EF d'AbonnementModal.openPortal : JWT de session
+  // via getSession, POST Bearer, erreur visible + bouton jamais mort.
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportInfo, setExportInfo] = useState<string | null>(null);
+
+  const handleExport = async () => {
+    setExporting(true);
+    setExportError(null);
+    setExportInfo(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        setExportError("Votre session a expiré. Reconnectez-vous puis réessayez.");
+        return;
+      }
+      const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/export-cabinet`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json().catch(() => ({} as { url?: string; error?: string }));
+      if (res.ok && data.url) {
+        window.open(data.url, "_blank");
+        setExportInfo("Archive prête — le téléchargement démarre. Le lien reste valable 7 jours.");
+      } else {
+        console.error("Export cabinet indisponible:", data.error ?? res.status);
+        setExportError("L'export est momentanément indisponible. Réessayez dans un instant ou contactez le support.");
+      }
+    } catch (e) {
+      console.error("Export cabinet — échec réseau:", e);
+      setExportError("Connexion impossible. Vérifiez votre accès internet puis réessayez.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // R4 — Snapshot des 5 couleurs pris a l'ouverture de la vue (montage du composant :
   // vue autonome ET onglet intra-dossier remontent a chaque ouverture). Les modifs
@@ -563,6 +603,33 @@ const TabParametres = React.memo(function TabParametres(props: any) {
             </div>
           )}
 
+
+          {/* ─── Mes données — export intégral (C2-c) ─── */}
+          <SubCard>
+            <CardHead
+              title="Mes données"
+              sub={<>Téléchargez une archive complète de vos données cabinet : clients, documents, paramètres, CRM et commissions. L'export peut prendre quelques instants.</>}
+            />
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-sm hover:bg-slate-800 transition-colors inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {exporting
+                  ? <><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> Préparation de l'archive…</>
+                  : <><Download className="h-3.5 w-3.5" aria-hidden="true" /> Exporter toutes mes données</>}
+              </button>
+              {exportInfo && (
+                <span className="text-xs text-slate-500 leading-snug">{exportInfo}</span>
+              )}
+            </div>
+            {exportError && (
+              <div role="alert" className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded px-2.5 py-1.5 mt-2 leading-snug">
+                {exportError}
+              </div>
+            )}
+          </SubCard>
 
           {/* Encart pédagogique final (préservé) */}
           <div className="rounded-2xl p-4 text-sm" style={{ background: "rgba(251,236,215,0.4)", border: "1px solid rgba(227,175,100,0.3)" }}>
