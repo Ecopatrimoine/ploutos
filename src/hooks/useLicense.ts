@@ -44,6 +44,21 @@ function clearLicenceCache() {
   try { localStorage.removeItem(CACHE_KEY); } catch { /* ignore */ }
 }
 
+// ── Validité d'accès (logique pure, testable) ─────────────────────────────────
+// 'active' → valide. 'cancelling' → accès MAINTENU tant que cancel_at n'est pas
+// atteint (client payant en résiliation programmée) ; sans cancel_at on reste
+// favorable au client (le webhook subscription.deleted posera 'cancelled' le
+// moment venu). Tout autre statut → invalide.
+export function computeIsValid(
+  status: LicenceStatus,
+  cancelAt: Date | null,
+  now: Date,
+): boolean {
+  if (status === "active") return true;
+  if (status === "cancelling") return !cancelAt || now < cancelAt;
+  return false;
+}
+
 // ── Hook principal ─────────────────────────────────────────────────────────────
 export function useLicense(userId: string | null) {
   const [licence, setLicence] = useState<LicenceInfo>({
@@ -115,7 +130,7 @@ export function useLicense(userId: string | null) {
         trialEnd,
         trialDaysLeft: data.type === "trial" ? daysLeft : 0,
         cancelAt,
-        isValid:       effectiveStatus === "active",
+        isValid:       computeIsValid(effectiveStatus, cancelAt, now),
         loading:       false,
       };
 
