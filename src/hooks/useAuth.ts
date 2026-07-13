@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
+import { markUsageDay } from "../lib/usageTelemetry";
 import type { User, Session } from "@supabase/supabase-js";
 
 const LAST_VERIFIED_KEY = "ecopatrimoine_last_verified";
@@ -75,6 +76,8 @@ export function useAuth() {
         setSession(refreshData.session);
         setUser(refreshData.user);
         setAuthState("authenticated");
+        // Telemetrie best-effort : marqueur du jour, une fois par chargement.
+        markUsageDay(refreshData.user.id);
         return;
       }
 
