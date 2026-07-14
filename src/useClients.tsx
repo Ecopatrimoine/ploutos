@@ -691,6 +691,35 @@ export function useClients(userId: string, authState = "authenticated") {
     if (updatedClient) { setSyncStatus("pending"); syncOne(userId, updatedClient); }
   }, [userId, persist, syncOne]);
 
+  // ── C7 — Import en masse d'une sauvegarde chiffree ──
+  // Upsert PAR ID en preservant le record complet (id/createdAt/updatedAt/payload),
+  // via la meme couche que le reste : ecriture locale + marquage pending + push
+  // best-effort. Un id deja tombstone (dossier supprime puis re-importe) voit son
+  // tombstone leve — sinon il serait refiltre a l'affichage puis re-supprime au
+  // prochain sync. L'ecrasement d'un id existant est un choix EXPLICITE de
+  // l'appelant (rapport d'import) : ici on ecrit simplement ce qu'on recoit. Un
+  // echec de push laisse l'id "pending" (retente a la prochaine synchro), jamais
+  // avale en silence.
+  const importClients = useCallback(async (records: ClientRecord[]): Promise<void> => {
+    if (!userId || records.length === 0) return;
+    setClients((prev) => {
+      const byId = new Map(prev.map((c) => [c.id, c]));
+      for (const r of records) byId.set(r.id, r);
+      const next = [...byId.values()];
+      saveClientsLocal(userId, next);
+      return next;
+    });
+    for (const r of records) {
+      pendingRef.current.add(r.id);
+      deletedRef.current.delete(r.id); // re-import -> lever un eventuel tombstone
+    }
+    savePendingIds(userId, pendingRef.current);
+    saveDeletedIds(userId, deletedRef.current);
+    setSyncStatus("pending");
+    // Push best-effort : chaque echec laisse l'id "pending" pour la prochaine synchro.
+    await Promise.all(records.map((r) => syncOne(userId, r)));
+  }, [userId, syncOne]);
+
   const dismissDeleteError = useCallback(() => setDeleteError(null), []);
 
   const sortedClients = [...clients].sort((a, b) =>
@@ -706,6 +735,7 @@ export function useClients(userId: string, authState = "authenticated") {
     deleteClient,
     duplicateClient,
     renameClient,
+    importClients,
     deleteError,
     dismissDeleteError,
   };
