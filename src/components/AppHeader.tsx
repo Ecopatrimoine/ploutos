@@ -172,7 +172,7 @@ export function AppHeader(p: AppHeaderProps) {
             )}
           </IconBtn>
 
-          <label title="Charger un dossier" style={{
+          <label title="Importer une sauvegarde chiffrée (.ploutosbackup)" style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center",
             width: 44, height: 44, borderRadius: 12,
             border: `2px solid ${BORDER_REPOS}`,
@@ -183,7 +183,7 @@ export function AppHeader(p: AppHeaderProps) {
             onMouseEnter={e => { e.currentTarget.style.background = `${p.cabColors.gold}26`; e.currentTarget.style.borderColor = p.cabColors.gold; }}
             onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = BORDER_REPOS; }}>
             <Upload className="h-5 w-5" />
-            <input type="file" accept="application/json" className="hidden" onChange={p.onLoad} />
+            <input type="file" accept=".ploutosbackup" className="hidden" onChange={p.onLoad} />
           </label>
 
           <Sep colorGold={p.cabColors.gold} />
