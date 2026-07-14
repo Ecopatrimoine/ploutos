@@ -76,8 +76,6 @@ export function useAuth() {
         setSession(refreshData.session);
         setUser(refreshData.user);
         setAuthState("authenticated");
-        // Telemetrie best-effort : marqueur du jour, une fois par chargement.
-        markUsageDay(refreshData.user.id);
         return;
       }
 
@@ -159,6 +157,16 @@ export function useAuth() {
 
     return () => subscription.unsubscribe();
   }, [verifySession]);
+
+  // Telemetrie best-effort : marqueur du jour des que l'utilisateur est
+  // authentifie, quel que soit le chemin emprunte (restauration directe,
+  // SIGNED_IN, TOKEN_REFRESHED, refresh explicite). Observer l'etat `user`
+  // au lieu d'un seul embranchement de verifySession garantit que tous les
+  // chemins passent par le marqueur. La garde module-level (user:jour, une
+  // tentative par chargement) assure la deduplication. Silencieux en echec.
+  useEffect(() => {
+    if (user) markUsageDay(user.id);
+  }, [user]);
 
   const signUp = useCallback(async (email: string, password: string, cabinetName: string) => {
     setError("");
