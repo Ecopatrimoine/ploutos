@@ -14,6 +14,8 @@ import {
 } from "recharts";
 import { useClients, ClientManager, resolveLoadedNotes } from "./useClients";
 import type { ClientRecord, ClientPayload } from "./useClients";
+import BackupExportModal from "./components/backup/BackupExportModal";
+import BackupImportModal from "./components/backup/BackupImportModal";
 import { useAuth } from "./hooks/useAuth";
 import { useLicense } from "./hooks/useLicense";
 import  LicenceGate  from "./components/LicenceGate";
@@ -58,7 +60,7 @@ import { n, euro, deepClone, isAV, isPERType, getDemembrementPercentages, comput
   getGroupeLabel, getCategorieLabel, sumChargesDetail, getBaseFiscalParts, getChildrenFiscalParts,
   placementFiscalSummary, placementNeedsTaxableIncome, placementNeedsDeathValue, placementNeedsOpenDate,
   placementNeedsPFU, isCashPlacement, propertyNeedsRent, propertyNeedsPropertyTax, propertyNeedsInsurance,
-  propertyNeedsWorks, propertyNeedsLoan, safeFilePart, buildExportFileName
+  propertyNeedsWorks, propertyNeedsLoan, safeFilePart
 } from "./lib/calculs/utils";
 import { resolveLoanValues, resolveLoanValuesMulti, resolveOneLoan, calcMonthlyPayment } from "./lib/calculs/credit";
 import type { Loan } from "./types/patrimoine";
@@ -409,7 +411,7 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
       return next;
     });
   };
-  const { clients, syncStatus, syncNow, createClient, saveClient, deleteClient, duplicateClient, renameClient, deleteError, dismissDeleteError } = useClients(userId, authState)
+  const { clients, syncStatus, syncNow, createClient, saveClient, deleteClient, duplicateClient, renameClient, importClients, deleteError, dismissDeleteError } = useClients(userId, authState)
   const [activeClient, setActiveClient] = useState<ClientRecord | null>(null)
   // Vue autonome de l'accueil (hors dossier). Patron prévu pour d'autres modules
   // (activeModule). Lot 2 : "parametres". Lot 3+ : calculettes.
@@ -536,8 +538,9 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
   // Picker famille pour les legs
   const [legsPickerOpen, setLegsPickerOpen] = useState<"global" | "precis" | null>(null);
   const [loanModalPropertyId, setLoanModalPropertyId] = useState<string | null>(null); // id du bien dont on édite les crédits
-  const [exportStatus, setExportStatus] = useState("");
-  const [exportFallbackOpen, setExportFallbackOpen] = useState(false);
+  // C7 — Sauvegarde locale chiffree : cible d'export (1 ou N dossiers) + fichier a importer.
+  const [backupExport, setBackupExport] = useState<{ records: ClientRecord[]; filenameBase: string; scopeLabel: string } | null>(null);
+  const [backupImportFile, setBackupImportFile] = useState<File | null>(null);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   // Lot Dossier client — pop-card universelle d'impression (panier multi-docs)
@@ -553,8 +556,6 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     setCollecteSubTab(sub);
   }, []);
   const [chargesPdfLoading, setChargesPdfLoading] = useState(false);
-  const [exportFallbackContent, setExportFallbackContent] = useState("");
-  const [exportFallbackFileName, setExportFallbackFileName] = useState("");
   const [activeDonations, setActiveDonations] = useState<import("./types/patrimoine").DonationItem[]>([]);
   const [hypotheses, setHypotheses] = useState<Hypothesis[]>([
     { id: 1, name: "Hypothèse 1", notes: "", objective: "", savedAt: null, data: null, successionData: null, irOptions: null },
@@ -1221,69 +1222,61 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
     }
   };
 
-  // ── Export JSON ──
-  const exportDataFile = async () => {
-    try {
-      setExportStatus("");
-      const payload = { version: 2, exportedAt: new Date().toISOString(), clientName, notes, data, successionData, irOptions, hypotheses, baseSnapshot };
-      const json = JSON.stringify(payload, null, 2);
-      const blob = new Blob([json], { type: "application/json;charset=utf-8" });
-      const fileName = buildExportFileName(clientName);
-      const pickerWindow = window as any;
-      if (pickerWindow.showSaveFilePicker) {
-        const handle = await pickerWindow.showSaveFilePicker({ suggestedName: fileName, types: [{ description: "Fichier Ploutos", accept: { "application/json": [".json"] } }] });
-        const writable = await handle.createWritable();
-        await writable.write(blob);
-        await writable.close();
-        setAutoSaveStatus("saved"); setLastSavedAt(new Date()); setTimeout(() => setAutoSaveStatus("idle"), 2500);
-        return;
-      }
-      const url = window.URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url; anchor.download = fileName; anchor.rel = "noopener noreferrer"; anchor.style.display = "none";
-      document.body.appendChild(anchor); anchor.click();
-      window.setTimeout(() => { anchor.parentNode?.removeChild(anchor); window.URL.revokeObjectURL(url); }, 500);
-      setAutoSaveStatus("saved"); setLastSavedAt(new Date()); setTimeout(() => setAutoSaveStatus("idle"), 2500);
-    } catch (error) {
-      console.error("Export impossible", error);
-      const payload = { version: 2, exportedAt: new Date().toISOString(), clientName, notes, data, successionData, irOptions, hypotheses, baseSnapshot };
-      const fallbackJson = JSON.stringify(payload, null, 2);
-      const fallbackFileName = buildExportFileName(clientName);
-      setExportFallbackContent(fallbackJson); setExportFallbackFileName(fallbackFileName); setExportFallbackOpen(true);
-      setExportStatus("L'aperçu bloque l'enregistrement direct. Utilise la fenêtre qui s'ouvre.");
-    }
-  };
-
-  const copyExportFallback = async () => {
-    try {
-      await navigator.clipboard.writeText(exportFallbackContent);
-      setExportStatus(`Contenu copié. Enregistre-le dans un fichier nommé ${exportFallbackFileName}.`);
-    } catch { setExportStatus("Copie automatique impossible. Sélectionne le contenu manuellement."); }
-  };
-
-  // ── Import JSON ──
-  const importDataFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(String(reader.result || "{}"));
-        if (parsed.clientName !== undefined) setClientName(String(parsed.clientName || "Client"));
-        if (parsed.notes !== undefined) setNotes(String(parsed.notes || ""));
-        // Meme normalisation que handleOpenClient (recon #5 : l'import contournait
-        // migrateLoans) + ensureAssetIds (ids stables).
-        const norm = normalizeClientData(parsed);
-        if (parsed.data) setData(norm.data as PatrimonialData);
-        if (parsed.successionData) setSuccessionData(norm.successionData as SuccessionData);
-        if (parsed.irOptions) setIrOptions(parsed.irOptions as IrOptions);
-        if (Array.isArray(parsed.hypotheses)) setHypotheses(norm.hypotheses as Hypothesis[]);
-        if (parsed.baseSnapshot) setBaseSnapshot(parsed.baseSnapshot as BaseSnapshot);
-      } catch (error) { console.error("Import impossible", error); }
+  // ── C7 — Sauvegarde locale chiffree (remplace l'ancien export/import lossy) ──
+  // Construit un ClientRecord COMPLET a partir de l'etat vivant du dossier actif
+  // (meme payload que handleSaveAndClose) : c'est lui qu'on archive pour l'archive
+  // de 1 declenchee depuis le header.
+  const buildCurrentRecord = (): ClientRecord | null => {
+    if (!activeClient) return null;
+    const payload: ClientPayload = {
+      clientName, notes, data, irOptions, successionData, hypotheses, baseSnapshot, mission, recommandations, piecesJointes,
     };
-    reader.readAsText(file, "utf-8");
-    event.target.value = "";
+    const displayName = [(data as any).person1LastName, (data as any).person1FirstName].filter(Boolean).join(" ") || clientName;
+    return { id: activeClient.id, displayName, createdAt: activeClient.createdAt, updatedAt: new Date().toISOString(), payload };
   };
+
+  // Header "Sauvegarder le dossier" -> archive chiffree du dossier courant (1).
+  const openBackupCurrent = () => {
+    const record = buildCurrentRecord();
+    if (!record) return;
+    setBackupExport({ records: [record], filenameBase: clientName || "dossier", scopeLabel: "ce dossier" });
+  };
+
+  // Parametres "Sauvegarder tous mes dossiers" -> archive chiffree de tous les
+  // ClientRecord du user (forme complete, jamais l'export lossy).
+  const openBackupAll = () => {
+    setBackupExport({ records: clients, filenameBase: "tous-mes-dossiers", scopeLabel: `vos ${clients.length} dossiers` });
+  };
+
+  // Point d'entree unique d'import (header + Parametres) : un fichier .ploutosbackup.
+  const openBackupImportFromEvent = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // autorise a re-selectionner le meme fichier plus tard
+    if (file) setBackupImportFile(file);
+  };
+
+  // Modals de sauvegarde chiffree : rendus a l'identique dans les vues qui peuvent
+  // les declencher (dossier actif via header/onglet Parametres, et Parametres
+  // autonome). L'import passe par la couche useClients (importClients) : il n'ouvre
+  // aucun dossier et ne touche pas l'etat du dossier actif.
+  const backupModals = (
+    <>
+      <BackupExportModal
+        open={!!backupExport}
+        onClose={() => setBackupExport(null)}
+        records={backupExport?.records ?? []}
+        filenameBase={backupExport?.filenameBase ?? "sauvegarde"}
+        scopeLabel={backupExport?.scopeLabel ?? ""}
+      />
+      <BackupImportModal
+        open={!!backupImportFile}
+        file={backupImportFile}
+        existing={clients}
+        onClose={() => setBackupImportFile(null)}
+        onImport={importClients}
+      />
+    </>
+  );
 
   // ─── RENDER ───────────────────────────────────────────────────────────────
 
@@ -1323,9 +1316,11 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
                 logoSrc={logoSrc} setLogoSrc={setLogoSrc}
                 signatureSrc={signatureSrc} setSignatureSrc={setSignatureSrc}
                 handleLogoUpload={handleLogoUpload} handleSignatureUpload={handleSignatureUpload}
+                onBackupAll={openBackupAll} onBackupImport={openBackupImportFromEvent} backupCount={clients.length}
               />
             </Tabs>
           </div>
+          {backupModals}
         </div>
       )
     }
@@ -1390,12 +1385,12 @@ function AppInner({ userId, userEmail, authState, onSignOut }: { userId: string;
           setClientName={setClientName}
           autoSaveStatus={autoSaveStatus}
           lastSavedAt={lastSavedAt}
-          onSave={() => { void exportDataFile(); }}
-          onLoad={importDataFile}
+          onSave={openBackupCurrent}
+          onLoad={openBackupImportFromEvent}
           onBackToDossiers={handleSaveAndClose}
           onSignOut={() => { handleSaveAndClose(); onSignOut(); }}
         />
-        {exportStatus && <div className="mt-2 text-xs text-slate-500">{exportStatus}</div>}
+        {backupModals}
 
         {/* ── Dialog détail charges professionnelles ── */}
         <Dialog open={chargesDialogOpen !== null} onOpenChange={(o) => { if (!o) setChargesDialogOpen(null); }}>
@@ -1574,20 +1569,6 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
           </DialogContent>
         </Dialog>
 
-        {/* ── Dialogue export fallback ── */}
-        <Dialog open={exportFallbackOpen} onOpenChange={setExportFallbackOpen}>
-          <DialogContent className="max-w-4xl rounded-2xl">
-            <DialogHeader><DialogTitle style={{ color: BRAND.navy }}>Sauvegarde manuelle des données</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-                L'aperçu bloque l'enregistrement direct. Copie le contenu ci-dessous et enregistre-le dans un fichier nommé <strong>{exportFallbackFileName}</strong>.
-              </div>
-              <Button className="rounded-xl" style={{ background: BRAND.navy }} onClick={() => { void copyExportFallback(); }}>Copier le contenu</Button>
-              <Textarea value={exportFallbackContent} readOnly className="min-h-[420px] rounded-xl font-mono text-xs" />
-            </div>
-          </DialogContent>
-        </Dialog>
-
         {/* ── Navigation ── */}
         <Tabs value={mainTab} onValueChange={setMainTab} className="space-y-6">
           <div className="flex gap-2" style={{ alignItems: "stretch" }}>
@@ -1707,6 +1688,7 @@ Mets 0 si la catégorie n'est pas trouvée. Arrondis à l'euro. Ne jamais inclur
             logoSrc={logoSrc} setLogoSrc={setLogoSrc}
             signatureSrc={signatureSrc} setSignatureSrc={setSignatureSrc}
             handleLogoUpload={handleLogoUpload} handleSignatureUpload={handleSignatureUpload}
+            onBackupAll={openBackupAll} onBackupImport={openBackupImportFromEvent} backupCount={clients.length}
           />
         </Tabs>
       </div>
