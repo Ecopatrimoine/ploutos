@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CardAccentTop } from "../CardAccentTop";
 import { TabsContent } from "@/components/ui/tabs";
-import { Upload, Settings, RotateCcw, Undo2, Lightbulb, X, Download, Loader2, Trash2, AlertTriangle } from "lucide-react";
+import { Upload, Settings, RotateCcw, Undo2, Lightbulb, X, Download, Loader2, Trash2, AlertTriangle, ShieldCheck } from "lucide-react";
 import { BRAND, SURFACE, CABINET_COLOR_DEFAULTS } from "../../constants";
 import { SectionTitle } from "../shared";
 import { supabase, SUPABASE_FUNCTIONS_URL } from "@/lib/supabase";
@@ -54,6 +54,12 @@ const CABINET_COLOR_ROLES: { key: string; label: string }[] = [
 
 const TabParametres = React.memo(function TabParametres(props: any) {
   const { cabinet, updateCabinet, logoSrc, signatureSrc, setSignatureSrc, handleLogoUpload, handleSignatureUpload } = props;
+  // C7 — Sauvegarde locale chiffree : declencheurs passes par App (export de tous
+  // les dossiers, import d'un fichier .ploutosbackup). Optionnels (composant memo,
+  // props: any) — les boutons se gardent si absents.
+  const onBackupAll: (() => void) | undefined = props.onBackupAll;
+  const onBackupImport: ((e: React.ChangeEvent<HTMLInputElement>) => void) | undefined = props.onBackupImport;
+  const backupCount: number = props.backupCount ?? 0;
 
   const [activeTab, setActiveTab] = useState<"statuts" | "identite" | "apparence">("statuts");
 
@@ -642,6 +648,29 @@ const TabParametres = React.memo(function TabParametres(props: any) {
                   )}
                 </div>
               </SubCard>
+
+              {/* Card 14 — Sauvegarde locale chiffree (C7) : archive .ploutosbackup */}
+              {(onBackupAll || onBackupImport) && (
+                <SubCard fullSpan>
+                  <CardHead
+                    title="Sauvegarde locale chiffree"
+                    sub={<>Archive chiffree (AES-256, mot de passe que vous choisissez) de <strong>tous vos dossiers</strong> dans un fichier <code>.ploutosbackup</code>, a conserver hors de l'application. Les pieces jointes integrees sont incluses ; les documents GED stockes dans le cloud ne le sont pas. <strong>Mot de passe perdu = sauvegarde definitivement illisible.</strong></>}
+                  />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      onClick={onBackupAll}
+                      disabled={!onBackupAll || backupCount === 0}
+                      className="bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-sm hover:bg-slate-800 transition-colors inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" /> Sauvegarder tous mes dossiers (chiffre){backupCount > 0 ? ` — ${backupCount}` : ""}
+                    </button>
+                    <label className="text-xs font-bold text-slate-700 border border-[#D8D2C6] bg-white hover:border-[#C4973D] rounded-lg px-3 py-2 transition-colors inline-flex items-center gap-1.5 cursor-pointer">
+                      <Upload className="h-3.5 w-3.5" aria-hidden="true" /> Importer une sauvegarde
+                      <input type="file" accept=".ploutosbackup" className="hidden" onChange={onBackupImport} />
+                    </label>
+                  </div>
+                </SubCard>
+              )}
 
             </div>
           )}
