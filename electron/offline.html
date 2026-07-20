@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ploutos — Hors ligne</title>
+  <style>
+    /* Ecran autonome : aucune dependance externe (police systeme, styles inline). */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(135deg, #f5f0e8 0%, #fdf8f0 40%, #f0ece4 100%);
+      color: #101B3B;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 460px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(227, 175, 100, 0.30);
+      border-radius: 24px;
+      box-shadow: 0 24px 64px rgba(16, 27, 59, 0.18);
+      padding: 40px 36px;
+      text-align: center;
+    }
+    .badge {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 20px;
+      border-radius: 50%;
+      background: #FBECD7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      line-height: 1;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #101B3B;
+    }
+    p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #4b5563;
+      margin-bottom: 24px;
+    }
+    button {
+      appearance: none;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      height: 46px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(135deg, #101B3B 0%, #26428B 55%, #E3AF64 100%);
+      box-shadow: 0 4px 20px rgba(16, 27, 59, 0.35);
+      transition: transform 0.08s ease, box-shadow 0.2s ease;
+    }
+    button:hover { box-shadow: 0 6px 24px rgba(16, 27, 59, 0.42); }
+    button:active { transform: translateY(1px); }
+    .hint {
+      margin-top: 18px;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge" aria-hidden="true">&#128246;</div>
+    <h1>Connexion internet indisponible</h1>
+    <p>
+      Ploutos n'a pas pu joindre l'application en ligne. Verifiez votre connexion
+      internet, puis reessayez.
+    </p>
+    <button id="retry" type="button">Reessayer</button>
+    <div class="hint">Une connexion est requise pour utiliser Ploutos.</div>
+  </div>
+
+  <script>
+    // Retry = navigation top-level vers l'app distante. Le main process autorise
+    // cette navigation (meme origine qu'APP_URL) dans son garde will-navigate ;
+    // en cas de nouvel echec, l'ecran offline est re-affiche (aucune boucle,
+    // relance uniquement au clic).
+    var APP_URL = "https://app.ploutos-cgp.fr";
+    document.getElementById("retry").addEventListener("click", function () {
+      window.location.assign(APP_URL);
+    });
+  </script>
+</body>
+</html>
