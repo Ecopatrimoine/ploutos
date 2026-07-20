@@ -168,20 +168,20 @@ export function useAuth() {
     if (user) markUsageDay(user.id);
   }, [user]);
 
-  const signUp = useCallback(async (email: string, password: string, cabinetName: string) => {
+  const signUp = useCallback(async (email: string, password: string, cabinetName: string, captchaToken?: string) => {
     setError("");
     const { error } = await supabase.auth.signUp({
       email, password,
-      options: { data: { cabinet_name: cabinetName, active: true } },
+      options: { data: { cabinet_name: cabinetName, active: true }, captchaToken },
     });
     if (error) { setError(error.message); return false; }
     // Le trigger Supabase crée automatiquement une licence trial de 15 jours
     return true;
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string, captchaToken?: string) => {
     setError("");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } });
     if (error) {
       setError(error.message === "Invalid login credentials"
         ? "Email ou mot de passe incorrect." : error.message);
@@ -198,10 +198,11 @@ export function useAuth() {
     setAuthState("unauthenticated");
   }, []);
 
-  const resetPassword = useCallback(async (email: string) => {
+  const resetPassword = useCallback(async (email: string, captchaToken?: string) => {
     setError("");
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin,
+      captchaToken,
     });
     if (error) { setError(error.message); return false; }
     return true;

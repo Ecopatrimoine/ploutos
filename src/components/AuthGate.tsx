@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Check, AlertTriangle, ArrowLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { useAuth } from "../hooks/useAuth";
 import { supabase, SUPABASE_FUNCTIONS_URL } from "../lib/supabase";
+import { getTurnstileSiteKey, loadTurnstileScript } from "../lib/turnstile";
 
 // Email de bienvenue — déplacé de l'inscription au PREMIER login (tranche P4).
 // Motif : l'inscription exige une confirmation email, donc AUCUNE session n'existe
@@ -68,6 +69,15 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
+  // ── Turnstile (captcha anti-robot) ──────────────────────────────────────────
+  // Rendu en login / register / forgot ; JAMAIS en reset (mode arrivé depuis un
+  // lien de récupération, décision validée). Token à usage unique : vidé + widget
+  // remis à zéro après chaque tentative.
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<HTMLDivElement | null>(null);
+  const widgetIdRef = useRef<string | null>(null);
+  const showCaptcha = mode !== "reset";
+
   // Basculer en mode reset quand Supabase détecte un lien de récupération
   React.useEffect(() => {
     if (isPasswordRecovery) {
@@ -75,13 +85,61 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
     }
   }, [isPasswordRecovery]);
 
+  // Charge le script puis rend le widget quand un mode à captcha est actif.
+  // Le widget persiste tant que showCaptcha reste vrai (bascules
+  // login/register/forgot) ; il est retiré au passage en reset ou au démontage.
+  useEffect(() => {
+    if (!showCaptcha) return;
+    let cancelled = false;
+
+    loadTurnstileScript()
+      .then(() => {
+        if (cancelled || !turnstileRef.current || !window.turnstile) return;
+        if (widgetIdRef.current) return; // déjà rendu (garde double-effet StrictMode)
+        widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+          sitekey: getTurnstileSiteKey(),
+          callback: (token: string) => setCaptchaToken(token),
+          "expired-callback": () => {
+            setCaptchaToken(null);
+            setLocalError("Vérification anti-robot expirée, merci de recommencer.");
+          },
+          "error-callback": () => {
+            setCaptchaToken(null);
+            setLocalError("Vérification anti-robot indisponible, merci de réessayer.");
+          },
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setLocalError("Impossible de charger la vérification anti-robot.");
+      });
+
+    return () => {
+      cancelled = true;
+      if (widgetIdRef.current && window.turnstile) {
+        try { window.turnstile.remove(widgetIdRef.current); } catch { /* déjà retiré */ }
+        widgetIdRef.current = null;
+      }
+      setCaptchaToken(null);
+    };
+  }, [showCaptcha]);
+
+  // Tokens à usage unique : après chaque tentative (succès ou échec), on remet le
+  // widget à zéro et on vide le token en state.
+  const resetCaptcha = () => {
+    if (widgetIdRef.current && window.turnstile) {
+      try { window.turnstile.reset(widgetIdRef.current); } catch { /* ignore */ }
+    }
+    setCaptchaToken(null);
+  };
+
   const displayError = localError || error;
 
   const handleLogin = async () => {
     setLocalError("");
     setLoading(true);
-    const ok = await signIn(email, password);
+    const ok = await signIn(email, password, captchaToken ?? undefined);
     setLoading(false);
+    resetCaptcha();
     // Envoi du mail de bienvenue au premier login (voir sendWelcomeIfNeeded).
     if (ok) void sendWelcomeIfNeeded();
   };
@@ -92,8 +150,9 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
     if (password.length < 8) { setLocalError("Le mot de passe doit faire au moins 8 caractères."); return; }
     if (password !== confirmPassword) { setLocalError("Les mots de passe ne correspondent pas."); return; }
     setLoading(true);
-    const ok = await signUp(email, password, cabinetName);
+    const ok = await signUp(email, password, cabinetName, captchaToken ?? undefined);
     setLoading(false);
+    resetCaptcha();
     if (ok) {
       // L'email de bienvenue n'est plus envoyé ici : l'inscription exige une
       // confirmation email (pas de session), donc send-email ne peut pas
@@ -128,8 +187,9 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
     setLocalError("");
     if (!email) { setLocalError("Entrez votre email."); return; }
     setLoading(true);
-    const ok = await resetPassword(email);
+    const ok = await resetPassword(email, captchaToken ?? undefined);
     setLoading(false);
+    resetCaptcha();
     if (ok) setSuccessMsg("Email de réinitialisation envoyé !");
   };
 
@@ -319,10 +379,17 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
             </div>
           )}
 
+          {/* Widget Turnstile — login / register / forgot ; jamais en reset */}
+          {showCaptcha && (
+            <div className="flex justify-center pt-1">
+              <div ref={turnstileRef} />
+            </div>
+          )}
+
           {/* Bouton action */}
           <Button
             onClick={mode === "login" ? handleLogin : mode === "register" ? handleRegister : mode === "reset" ? handleReset : handleForgot}
-            disabled={loading || (mode !== "reset" && !email)}
+            disabled={loading || (mode !== "reset" && !email) || (showCaptcha && !captchaToken)}
             className="w-full rounded-xl h-11 font-semibold text-sm shadow-md mt-2"
             style={{ background: `linear-gradient(135deg, ${colorNavy} 0%, ${colorSky} 55%, ${colorGold} 100%)`, color: "#fff", boxShadow:"0 4px 20px rgba(16,27,59,0.35)" }}
           >
