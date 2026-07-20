@@ -5,9 +5,33 @@ const os = require("os");
 const { autoUpdater } = require("electron-updater");
 const APP_ICON_B64 = "PHN2ZyB3aWR0aD0iMjUxIiBoZWlnaHQ9IjI3NiIgdmlld0JveD0iMCAwIDI1MSAyNzYiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xNjdfMTA0KSI+CjxwYXRoIGQ9Ik0xMDAuMjMgMjIwLjA4Qzg5LjAyMDEgMjIwLjA4IDc5LjYzMDEgMjE0Ljg3IDc0LjQ2MDEgMjA1Ljc5QzY1LjcxMDEgMTkwLjQxIDc0LjYzMDEgMTc3LjI4IDgxLjgwMDEgMTY2LjcyQzg2Ljk2MDEgMTU5LjEyIDkyLjgxMDEgMTUwLjUxIDk1LjkwMDEgMTM4LjU3Qzk3LjgwMDEgMTMxLjIyIDk3LjY0MDEgMTE3LjYxIDk2LjA4MDEgMTE5LjgyQzkzLjE0MDEgMTIzLjk4IDg3LjY2MDEgMTMxLjczIDc3LjMwMDEgMTMxLjczQzc0LjgzMDEgMTMxLjczIDcyLjM2MDEgMTMxLjI1IDY5Ljk1MDEgMTMwLjMxQzYyLjcyMDEgMTI3LjQ4IDU4Ljg0MDEgMTE5LjYxIDYwLjk4MDEgMTEyLjE2QzY0Ljc2MDEgOTkuMDIwMSA3NC44MDAxIDY0LjEyIDExMC43NyA2NC4wM0MxMTAuNzcgNjQuMDMgMjA2LjUgNjMuOCAyMDYuNTEgNjMuOEMyMTIuMjggNjMuOCAyMTcuNyA2Ny4xMTAxIDIyMC4yNCA3Mi42OTAxQzIyMS4yIDc0Ljc5MDEgMjIxLjU2IDc3LjEyMDEgMjIxLjU0IDc5LjQzTDIyMS4zNCA5OC4xN0MyMjEuMjUgMTA2LjMyIDIxNC42OSAxMTIuOTEgMjA2LjU0IDExMy4wNEwxOTAuMiAxMTMuMjlDMTg5Ljg0IDExMy4yOSAxODkuNTUgMTEzLjU3IDE4OS41MyAxMTMuOTNMMTg3LjAyIDE1Mi4xOEMxODYuNzQgMTU2LjUxIDE4OC45NiAxNjEuMTYgMTkwLjY3IDE1OC45OUMxOTMuODIgMTU0Ljk5IDE5OC43OSAxNTIuNiAyMDMuOTYgMTUyLjZDMjA5LjkyIDE1Mi42IDIxNS40IDE1NS42NyAyMTguNjEgMTYwLjgyQzIyNS4yMiAxNzEuNDEgMjE5LjYgMTg2LjA0IDIxMy45NiAxOTcuNjFDMjA3LjA1IDIxMS43NyAxOTMuMTMgMjIwLjIzIDE3Ni43MSAyMjAuMjNDMTc2LjcxIDIyMC4yMyAxMDIuMzkgMjIwLjEgMTAwLjI0IDIyMC4xTDEwMC4yMyAyMjAuMDhaIiBmaWxsPSIjMTAxQjNCIi8+CjxwYXRoIGQ9Ik0xNTYuNDkgMTAxLjM1QzE0Ny4yNSA5OS41OSAxMzguOTUgMTAwLjUyIDEyOS42NCAxMDAuODVDMTI3LjYyIDEyNi41OSAxMjUuOTEgMTY4LjU1IDExNy4zNSAxOTAuOTFDMTE1LjIxIDE5Ni41IDExMC45NyAyMDAuNDUgMTA2LjMxIDIwMS4yNEMxMDAgMjAyLjMxIDkzLjcxIDIwMC45NiA5MC40NiAxOTUuMjVDODMuMTUgMTgyLjQxIDEwNC41NiAxNzEuNTggMTEyLjEzIDE0Mi4zMUMxMTUuNjUgMTI4LjcgMTE3LjIyIDExNS4zOSAxMTguMTIgMTAxLjI4Qzg2LjAzIDk1LjMyIDg4LjU3IDEyMS40NSA3OS4wMyAxMTcuNzJDODQuMDMgMTAwLjMzIDkxLjkxIDgyLjU3IDExMi40NiA4Mi41MkwyMDIuOSA4Mi4zTDIwMi43IDEwMC40MkwxNzMuNTcgMTAwLjg2TDE3MC4zIDE1MC42N0MxNjkuNzggMTU4LjUyIDE2OS44NiAxNjYuNSAxNzIuMTMgMTc0LjAyQzE3NC4wMyAxODAuMzIgMTgwLjQ2IDE4Mi4zNCAxODYuMyAxODEuODdDMTk3LjU0IDE4MC45NiAxOTguNjcgMTY2LjcyIDE5OC44OSAxNjcuNjNDMTk4LjI4IDE2NS4xMiAyMDkuNSAxNjMuMDIgMTk3LjE3IDE4OC4zMUMxOTIuNzQgMTk3LjM5IDE4NC4yMSAyMDEuODQgMTc0LjMgMjAxLjdDMTU5Ljk5IDIwMS41MSAxNTAuMzcgMTkxIDE1MC42NCAxNzYuNEMxNTEuMDkgMTUxLjY1IDE1NC41MSAxMjcuODcgMTU2LjUxIDEwMS4zNkwxNTYuNDkgMTAxLjM1WiIgZmlsbD0iI0Y4RjZGNyIvPgo8cGF0aCBkPSJNMTE0Ljk5IDI2Mi45OEM4NC4wNCAyNTcuMSA1Ni43NiAyNDAuMTkgMzcuNjggMjE0Ljg2QzE3LjM0IDE4Ny44NyA4LjczMDAyIDE1NC41NyAxMy40MyAxMjEuMUMxOC4xMyA4Ny42MyAzNS41OSA1OCA2Mi41OCAzNy42NUM4OC4zMSAxOC4yNiAxMTkuNzcgOS41Mzk5NiAxNTEuNjUgMTIuODRDMTUzLjIxIDEzIDE1NC43OCAxMy4xOCAxNTYuMzQgMTMuNEMxODkuODEgMTguMSAyMTkuNDQgMzUuNTYgMjM5Ljc5IDYyLjU1TDI0Ny43MiA1Ni41OEMyMjUuMDQgMjYuNDkgMTkyLjMxIDguNDI5OTYgMTU3LjczIDMuNTY5OTZDMTU2LjE3IDMuMzQ5OTYgMTU0LjYxIDMuMTY5OTYgMTUzLjA0IDIuOTk5OTZDMTE5Ljg2IC0wLjUwMDA0NSA4NS4zNCA4LjA2OTk2IDU2LjYgMjkuNzJDLTMuNTg5OTggNzUuMDggLTE1LjYxIDE2MC42NCAyOS43NCAyMjAuODNDNTEuMDcgMjQ5LjE0IDgxLjMxIDI2Ni43OCAxMTMuNjEgMjcyLjgyTDExNC45OCAyNjIuOThIMTE0Ljk5WiIgZmlsbD0iIzEwMUIzQiIvPgo8cGF0aCBkPSJNNDAuNyAyMzYuODRDMzYuMTQgMjMyLjI4IDMxLjg4IDIyNy4zOCAyNy45NSAyMjIuMTdDNS42NjAwMSAxOTIuNTkgLTMuNzc5OTkgMTU2LjA5IDEuMzgwMDEgMTE5LjRDNi41MzAwMSA4Mi43MSAyNS42NyA1MC4yMyA1NS4yNSAyNy45M0M4My40MSA2LjcyMDAxIDExOC4yMSAtMi45Mjk5OSAxNTMuMjYgMC43ODAwMTRDMTU1LjA3IDAuOTcwMDE0IDE1Ni41OSAxLjE1MDAxIDE1OC4wMyAxLjM2MDAxQzE5NC43MiA2LjUyMDAxIDIyNy4yIDI1LjY1IDI0OS41IDU1LjI0TDI1MC44NSA1Ny4wM0wyMzkuMzUgNjUuN0wyMzggNjMuOTFDMjE4LjAyIDM3LjQgMTg4LjkxIDIwLjI1IDE1Ni4wMyAxNS42M0MxNTQuNjUgMTUuNDQgMTUzLjE0IDE1LjI1IDE1MS40MiAxNS4wOEMxMjAuMTUgMTEuODQgODkuMDggMjAuNSA2My45MyAzOS40NUMzNy40MiA1OS40MyAyMC4yNyA4OC41NCAxNS42NSAxMjEuNDJDMTEuMDMgMTU0LjMgMTkuNDkgMTg3LjAxIDM5LjQ3IDIxMy41MkM1OC4xIDIzOC4yNCA4NS4wNyAyNTUuMDMgMTE1LjQxIDI2MC43OUwxMTcuNTEgMjYxLjE5TDExNS41MiAyNzUuNDZMMTEzLjIxIDI3NS4wM0M4NS41MyAyNjkuODUgNjAuMzcgMjU2LjUxIDQwLjcxIDIzNi44Nkw0MC43IDIzNi44NFpNMjMzLjQ1IDQzLjU4QzIxMi45OSAyMy4xMiAxODYuNTcgOS44OTAwMSAxNTcuNCA1Ljc5MDAxQzE1Ni4wMSA1LjYwMDAxIDE1NC41NSA1LjQyMDAxIDE1Mi43OSA1LjIzMDAxQzExOC44NyAxLjY1MDAxIDg1LjE5IDEwLjk4IDU3Ljk1IDMxLjUxQzI5LjMyIDUzLjA5IDEwLjggODQuNTIgNS44MTAwMSAxMjAuMDJDMC44MjAwMDkgMTU1LjUyIDkuOTUwMDEgMTkwLjg0IDMxLjUzIDIxOS40N0M1MS4yNiAyNDUuNjUgNzkuNjYgMjYzLjU4IDExMS43MiAyNzAuMTVMMTEyLjQ3IDI2NC43NUM4MS44OCAyNTguNDIgNTQuNzUgMjQxLjIzIDM1Ljg4IDIxNi4xOUMxNS4xOCAxODguNzIgNi40MjAwMSAxNTQuODMgMTEuMiAxMjAuNzdDMTUuOTkgODYuNzEgMzMuNzUgNTYuNTUgNjEuMjIgMzUuODVDODcuMjggMTYuMjEgMTE5LjQ3IDcuMjUwMDEgMTUxLjg3IDEwLjZDMTUzLjY1IDEwLjc4IDE1NS4yMSAxMC45NyAxNTYuNjUgMTEuMTdDMTg5Ljk3IDE1Ljg1IDIxOS41NiAzMi45NSAyNDAuMjEgNTkuNDJMMjQ0LjU2IDU2LjE0QzI0MS4wOSA1MS42OSAyMzcuMzggNDcuNSAyMzMuNDYgNDMuNTdMMjMzLjQ1IDQzLjU4WiIgZmlsbD0iIzEwMUIzQiIvPgo8cGF0aCBkPSJNMjA2LjczIDQ5LjQ5OTlDMjE5LjI4OSA0OS40OTk5IDIyOS40NyAzOS4zMTg5IDIyOS40NyAyNi43NTk5QzIyOS40NyAxNC4yMDA5IDIxOS4yODkgNC4wMTk5IDIwNi43MyA0LjAxOTlDMTk0LjE3MSA0LjAxOTkgMTgzLjk5IDE0LjIwMDkgMTgzLjk5IDI2Ljc1OTlDMTgzLjk5IDM5LjMxODkgMTk0LjE3MSA0OS40OTk5IDIwNi43MyA0OS40OTk5WiIgZmlsbD0iI0UzQUY2NCIvPgo8cGF0aCBkPSJNMjI0LjI2IDkuMTk5OTVMMjE3LjkyIDE1LjUzOTlDMjIxLjQ4IDE5LjA5OTkgMjIzLjEyIDIzLjk4OTkgMjIyLjQyIDI4Ljk1OTlDMjIxLjIgMzcuNjA5OSAyMTMuMTcgNDMuNjYgMjA0LjUyIDQyLjQ1QzIwMS4wOCA0MS45NyAxOTcuOTggNDAuNDE5OSAxOTUuNTMgMzcuOTc5OUMxOTEuOTcgMzQuNDE5OSAxOTAuMzMgMjkuNTI5OSAxOTEuMDMgMjQuNTQ5OUMxOTIuMjUgMTUuODk5OSAyMDAuMjggOS44NDk5NSAyMDguOTMgMTEuMDU5OUMyMTIuMzcgMTEuNTM5OSAyMTUuNDcgMTMuMDg5OSAyMTcuOTIgMTUuNTI5OUwyMjQuMjYgOS4xODk5NU0yMjQuMjYgOS4xOTk5NUMyMjAuNTggNS41MTk5NSAyMTUuNzMgMi45Njk5NSAyMTAuMTggMi4xODk5NUMxOTYuNjEgMC4yNzk5NDkgMTg0LjA2IDkuNzM5OTUgMTgyLjE2IDIzLjMwOTlDMTgxLjAzIDMxLjMzOTkgMTgzLjg4IDM5IDE4OS4yIDQ0LjMyQzE5Mi44OCA0OCAxOTcuNzMgNTAuNTUgMjAzLjI4IDUxLjMzQzIxNi44NSA1My4yNCAyMjkuNCA0My43Nzk5IDIzMS4zIDMwLjIwOTlDMjMyLjQzIDIyLjE3OTkgMjI5LjU4IDE0LjUxOTkgMjI0LjI2IDkuMTk5OTVaIiBmaWxsPSIjMTAxQjNCIi8+CjwvZz4KPGRlZnM+CjxjbGlwUGF0aCBpZD0iY2xpcDBfMTY3XzEwNCI+CjxyZWN0IHdpZHRoPSIyNTAuODUiIGhlaWdodD0iMjc1LjQ1IiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo=";
 
+const { isTrustedFrameUrl } = require("./trustedFrame.cjs");
+
 const isDev = process.env.NODE_ENV === "development";
 
+// URL du front distant charge en PRODUCTION. Motif : Turnstile ne se rend pas
+// sous file:// (login desktop casse depuis l'enforcement captcha) ; bonus, plus
+// de desynchronisation desktop/web. Le comportement DEV reste sur localhost:5173.
+const APP_URL = "https://app.ploutos-cgp.fr";
+
 let mainWindow;
+
+// ─── Durcissement IPC ─────────────────────────────────────────────────────────
+// N'accepter les invocations IPC QUE des frames de confiance (meme origine
+// qu'APP_URL, ou localhost:5173 en dev). Defense en profondeur contre une frame
+// tierce injectee (iframe, redirection) qui tenterait d'atteindre le systeme de
+// fichiers via les handlers.
+function isTrustedFrame(event) {
+  return isTrustedFrameUrl(event?.senderFrame?.url ?? "", { appUrl: APP_URL, isDev });
+}
+
+// Rejette un appel IPC provenant d'une frame non autorisee (log + throw : la
+// promesse cote renderer est rejetee). N'arrive jamais pour l'app legitime.
+function rejectUntrusted(channel, event) {
+  const from = event?.senderFrame?.url ?? "(frame inconnue)";
+  console.error(`[ipc] appel refuse sur '${channel}' depuis une frame non fiable: ${from}`);
+  throw new Error("IPC refuse: frame non autorisee");
+}
 
 // ─── Stockage fichier ─────────────────────────────────────────────────────────
 
@@ -38,7 +62,8 @@ function getClientsFile(userId, storageDir) {
 }
 
 // IPC — Lire les clients
-ipcMain.handle("read-clients", (_event, userId) => {
+ipcMain.handle("read-clients", (event, userId) => {
+  if (!isTrustedFrame(event)) return rejectUntrusted("read-clients", event);
   try {
     const dir = getStorageDir();
     const file = getClientsFile(userId, dir);
@@ -51,7 +76,8 @@ ipcMain.handle("read-clients", (_event, userId) => {
 });
 
 // IPC — Écrire les clients
-ipcMain.handle("write-clients", (_event, userId, data) => {
+ipcMain.handle("write-clients", (event, userId, data) => {
+  if (!isTrustedFrame(event)) return rejectUntrusted("write-clients", event);
   try {
     const dir = getStorageDir();
     const file = getClientsFile(userId, dir);
@@ -64,12 +90,14 @@ ipcMain.handle("write-clients", (_event, userId, data) => {
 });
 
 // IPC — Obtenir le dossier actuel
-ipcMain.handle("get-storage-dir", () => {
+ipcMain.handle("get-storage-dir", (event) => {
+  if (!isTrustedFrame(event)) return rejectUntrusted("get-storage-dir", event);
   return getStorageDir();
 });
 
 // IPC — Choisir un nouveau dossier (ex: OneDrive)
-ipcMain.handle("set-storage-dir", async () => {
+ipcMain.handle("set-storage-dir", async (event) => {
+  if (!isTrustedFrame(event)) return rejectUntrusted("set-storage-dir", event);
   const result = await dialog.showOpenDialog(mainWindow, {
     title: "Choisir le dossier de stockage Ploutos",
     defaultPath: getStorageDir(),
@@ -92,7 +120,8 @@ function getCabinetFile(storageDir) {
   return path.join(storageDir, "cabinet.json");
 }
 
-ipcMain.handle("read-cabinet", (_event) => {
+ipcMain.handle("read-cabinet", (event) => {
+  if (!isTrustedFrame(event)) return rejectUntrusted("read-cabinet", event);
   try {
     const dir = getStorageDir();
     const file = getCabinetFile(dir);
@@ -104,7 +133,8 @@ ipcMain.handle("read-cabinet", (_event) => {
   }
 });
 
-ipcMain.handle("write-cabinet", (_event, data) => {
+ipcMain.handle("write-cabinet", (event, data) => {
+  if (!isTrustedFrame(event)) return rejectUntrusted("write-cabinet", event);
   try {
     const dir = getStorageDir();
     const file = getCabinetFile(dir);
@@ -139,7 +169,8 @@ const EXPORT_POLL_INTERVAL_MS = 250;
 const EXPORT_STALL_TIMEOUT_MS = 20000; // abandon si AUCUNE progression pendant 20 s
 const EXPORT_HARD_CAP_MS = 180000;     // plafond absolu de garde (3 min)
 
-ipcMain.handle("export-pdf", async (_event, html, suggestedName) => {
+ipcMain.handle("export-pdf", async (event, html, suggestedName) => {
+  if (!isTrustedFrame(event)) return rejectUntrusted("export-pdf", event);
   let win = null;
   let tmpHtml = null; // portée fonction → accessible au finally pour le nettoyage
   try {
@@ -244,8 +275,23 @@ function createWindow() {
     mainWindow.loadURL("http://localhost:5173");
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
+    // Prod : front distant (le dist/ local n'est plus embarque).
+    mainWindow.loadURL(APP_URL);
   }
+
+  // Ecran hors-ligne : si le chargement du frame principal echoue (reseau coupe,
+  // DNS…), afficher offline.html (local, autonome). Garde anti-boucle : on ignore
+  // les echecs de sous-frames, les navigations annulees (ERR_ABORTED = -3) et
+  // l'ecran offline lui-meme (file://). En dev, comportement inchange (localhost
+  // est disponible via wait-on avant le lancement d'Electron).
+  mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    if (isDev) return;
+    if (!isMainFrame) return;
+    if (errorCode === -3) return;
+    if (validatedURL && validatedURL.startsWith("file://")) return;
+    console.error(`[main] chargement echoue (${errorCode} ${errorDescription}) pour ${validatedURL} — ecran offline`);
+    mainWindow.loadFile(path.join(__dirname, "offline.html"));
+  });
 
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
@@ -525,8 +571,20 @@ app.on("window-all-closed", () => {
 
 app.on("web-contents-created", (_, contents) => {
   contents.on("will-navigate", (event, url) => {
-    const parsedUrl = new URL(url);
-    if (isDev && parsedUrl.hostname === "localhost") return;
+    let dest;
+    try {
+      dest = new URL(url);
+    } catch {
+      event.preventDefault(); // url malformee : bloquer
+      return;
+    }
+    // Dev : navigations localhost autorisees (inchange).
+    if (isDev && dest.hostname === "localhost") return;
+    // Prod : autoriser toute navigation top-level de MEME ORIGINE qu'APP_URL,
+    // quelle que soit l'origine de depart (couvre le retry depuis
+    // file://…offline.html vers APP_URL).
+    if (dest.origin === new URL(APP_URL).origin) return;
+    // Tout le reste : comportement actuel (ouvrir dans le navigateur externe).
     event.preventDefault();
     shell.openExternal(url);
   });
