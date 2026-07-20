@@ -90,7 +90,6 @@
       "output": "dist-electron"
     },
     "files": [
-      "dist/**/*",
       "electron/**/*",
       "public/**/*"
     ],
