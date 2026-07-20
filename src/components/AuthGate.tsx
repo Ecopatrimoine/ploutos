@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import type { useAuth } from "../hooks/useAuth";
 import { supabase, SUPABASE_FUNCTIONS_URL } from "../lib/supabase";
 import { getTurnstileSiteKey, loadTurnstileScript } from "../lib/turnstile";
+import { validateSignupEmail } from "../lib/signupValidation";
 
 // Email de bienvenue — déplacé de l'inscription au PREMIER login (tranche P4).
 // Motif : l'inscription exige une confirmation email, donc AUCUNE session n'existe
@@ -150,6 +151,16 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
     if (password.length < 8) { setLocalError("Le mot de passe doit faire au moins 8 caractères."); return; }
     if (password !== confirmPassword) { setLocalError("Les mots de passe ne correspondent pas."); return; }
     setLoading(true);
+    // Validation du domaine email (EF, FAIL-OPEN) AVANT signUp — inscription
+    // uniquement (jamais login ni forgot). Un refus explicite bloque et le
+    // widget Turnstile est remis a zero (le token a ete consomme par la tentative).
+    const emailCheck = await validateSignupEmail(email);
+    if (!emailCheck.allowed) {
+      setLoading(false);
+      resetCaptcha();
+      setLocalError("Cette adresse email semble invalide ou jetable. Merci d'utiliser une adresse professionnelle.");
+      return;
+    }
     const ok = await signUp(email, password, cabinetName, captchaToken ?? undefined);
     setLoading(false);
     resetCaptcha();
