@@ -258,3 +258,64 @@ describe("useAuth — verrou synchrone au boot (correctif 21/07)", () => {
     expect(localStorage.getItem(FLAG)).toBeNull();
   });
 });
+
+// Micro-lot : fin de reset sans fenetre de transition. updatePassword doit
+// DECONNECTER avant de lever l'etat recovery ; sinon un rendu authenticated &&
+// !isPasswordRecovery arme le latch de transition d'App.tsx puis la session
+// meurt dessous (symptome prod : bloque sur "chargement du profil").
+describe("useAuth — fin de reset : invariant de transition (micro-lot)", () => {
+  it("updatePassword -> signOut : aucun rendu authenticated && !isPasswordRecovery", async () => {
+    localStorage.setItem(FLAG, "1");
+    authMock.getSession.mockResolvedValue({ data: { session: { access_token: RECOVERY_TOKEN } } });
+    authMock.refreshSession.mockResolvedValue({
+      data: { session: { access_token: RECOVERY_TOKEN }, user: { id: "u1", user_metadata: {} } },
+      error: null,
+    });
+    authMock.updateUser.mockResolvedValue({ error: null });
+    // signOut TENU en attente (deferred) : on garde la session "en cours de
+    // fermeture" pour observer l'etat pendant que la session reelle n'est pas
+    // encore morte -- exactement la fenetre que la latence reseau ouvre en prod
+    // et que act() masquerait avec un mock qui resout tout de suite.
+    let resolveSignOut: ((v: unknown) => void) | null = null;
+    authMock.signOut.mockImplementation(() => new Promise((r) => { resolveSignOut = r; }));
+
+    const seen: Array<{ auth: string; rec: boolean }> = [];
+    function useProbe() {
+      const a = useAuth();
+      seen.push({ auth: a.authState, rec: a.isPasswordRecovery });
+      return a;
+    }
+    const { result } = renderHook(() => useProbe());
+    await settle();
+    // Depart : session recovery active et verrouillee.
+    expect(result.current.authState).toBe("authenticated");
+    expect(result.current.isPasswordRecovery).toBe(true);
+
+    seen.length = 0; // on ne surveille que la sequence updatePassword -> signOut
+    let updatePromise: Promise<boolean> | undefined;
+    await act(async () => {
+      updatePromise = result.current.updatePassword("nouveaupass12");
+      // Flush des microtaches : React committe les updates deja posees ALORS que
+      // signOut est encore en attente (session pas encore fermee).
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // signOut appele, session pas encore fermee : c'est ICI que la faille se
+    // manifeste si setIsPasswordRecovery(false) precede la deconnexion.
+    expect(authMock.signOut).toHaveBeenCalled();
+    const faille = seen.filter((s) => s.auth === "authenticated" && s.rec === false);
+    expect(faille).toEqual([]);
+
+    // On termine la deconnexion.
+    let ok: boolean | undefined;
+    await act(async () => {
+      resolveSignOut?.({ error: null });
+      ok = await updatePromise;
+    });
+    expect(ok).toBe(true);
+    // Fin de sequence : deconnecte, verrou leve.
+    expect(result.current.authState).toBe("unauthenticated");
+    expect(result.current.isPasswordRecovery).toBe(false);
+  });
+});
