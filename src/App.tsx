@@ -1736,8 +1736,24 @@ export default function App() {
   const [showAuthScreen, setShowAuthScreen] = useState(true);
   const prevAuthState = React.useRef<string>("");
   const prevRecovery = React.useRef(false);
+  // Verrou recovery : id du timer de transition (pour l'annuler si une session
+  // recovery se (re)verrouille avant l'échéance) et miroir de la valeur live lue
+  // par le callback différé (460 ms).
+  const transitionTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recoveryLiveRef = React.useRef(false);
 
   useEffect(() => {
+    // Miroir live : le callback différé lit la valeur à l'échéance, pas celle
+    // capturée à l'armement.
+    recoveryLiveRef.current = auth.isPasswordRecovery;
+
+    // Si une session recovery (re)verrouille avant l'échéance, on annule la
+    // transition en vol : le verrou doit toujours l'emporter.
+    if (auth.isPasswordRecovery && transitionTimerRef.current !== null) {
+      clearTimeout(transitionTimerRef.current);
+      transitionTimerRef.current = null;
+    }
+
     // Transition vers l'app déclenchée quand :
     //  - on est authentifié
     //  - on n'est PAS en flow recovery (sinon on doit d'abord montrer l'écran "Définir mot de passe")
@@ -1749,7 +1765,11 @@ export default function App() {
 
     if (justBecameReadyForApp) {
       setAuthExiting(true);
-      setTimeout(() => {
+      transitionTimerRef.current = setTimeout(() => {
+        transitionTimerRef.current = null;
+        // Re-test à l'échéance : ne JAMAIS entrer dans l'app si une session
+        // recovery s'est (re)verrouillée entre-temps.
+        if (recoveryLiveRef.current) { setAuthExiting(false); return; }
         setAuthExiting(false);
         setShowAuthScreen(false);
         setShowTransition(true);
