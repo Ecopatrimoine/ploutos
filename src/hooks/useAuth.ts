@@ -1,10 +1,18 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { markUsageDay } from "../lib/usageTelemetry";
+import { isRecoverySession } from "../lib/sessionOrigin";
 import type { User, Session } from "@supabase/supabase-js";
 
 const LAST_VERIFIED_KEY = "ecopatrimoine_last_verified";
 const GRACE_PERIOD_MS = 72 * 60 * 60 * 1000; // 72 heures
+// Filet du verrou recovery : marqueur persiste, pose au PASSWORD_RECOVERY et lu
+// au boot, au cas ou l'amr du JWT ne survivrait pas a un refresh de token.
+const PW_RECOVERY_FLAG = "ploutos_pw_recovery";
+
+function hasRecoveryFlag(): boolean {
+  try { return localStorage.getItem(PW_RECOVERY_FLAG) === "1"; } catch { return false; }
+}
 
 export type AuthState =
   | "loading"
@@ -18,7 +26,10 @@ export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
   const [authState, setAuthState] = useState<AuthState>("loading");
   const [error, setError] = useState<string>("");
-  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  // Init PARESSEUSE depuis le flag : le rendu 0 est deja verrouille si une
+  // session recovery est en cours (survit au F5). Elimine toute fenetre de
+  // rendu deverrouille avant que verifySession / TOKEN_REFRESHED ne s'executent.
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(() => hasRecoveryFlag());
   // Éviter le double appel verifySession (getSession + onAuthStateChange INITIAL_SESSION)
   const initializedRef = useRef(false);
 
@@ -40,6 +51,8 @@ export function useAuth() {
       Object.keys(localStorage)
         .filter((k) => k.startsWith("sb-") || k.includes("supabase"))
         .forEach((k) => localStorage.removeItem(k));
+      // Toute purge des tokens sb-* efface aussi le filet recovery.
+      localStorage.removeItem(PW_RECOVERY_FLAG);
     } catch { /* ignore */ }
   }, []);
 
@@ -76,6 +89,12 @@ export function useAuth() {
         setSession(refreshData.session);
         setUser(refreshData.user);
         setAuthState("authenticated");
+        // Verrou session recovery : une session issue d'un lien de reset ne doit
+        // JAMAIS entrer dans l'app. Verite portee par le token RAFRAICHI (amr:
+        // recovery) ; filet = flag persiste si l'amr ne survit pas au refresh.
+        if (isRecoverySession(refreshData.session?.access_token) || hasRecoveryFlag()) {
+          setIsPasswordRecovery(true);
+        }
         return;
       }
 
@@ -131,6 +150,8 @@ export function useAuth() {
 
       // PASSWORD_RECOVERY : l'utilisateur arrive depuis un lien de reset
       if (event === "PASSWORD_RECOVERY") {
+        // Filet persiste : survit au F5 meme si l'amr du JWT disparait au refresh.
+        try { localStorage.setItem(PW_RECOVERY_FLAG, "1"); } catch { /* ignore */ }
         setIsPasswordRecovery(true);
         return;
       }
@@ -187,16 +208,25 @@ export function useAuth() {
         ? "Email ou mot de passe incorrect." : error.message);
       return false;
     }
+    // Connexion mot de passe reussie : aucun changement force n'est en cours. On
+    // leve tout flag recovery orphelin (ex. lien de reset abandonne sans signOut)
+    // pour ne jamais enfermer a tort l'utilisateur sur l'ecran de reset.
+    try { localStorage.removeItem(PW_RECOVERY_FLAG); } catch { /* ignore */ }
+    setIsPasswordRecovery(false);
     return true;
   }, []);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     localStorage.removeItem(LAST_VERIFIED_KEY);
+    // Purge complete (tokens sb-* + filet recovery) : aucune trace de session
+    // recovery ne doit subsister apres une deconnexion.
+    purgeSupabaseTokens();
     setUser(null);
     setSession(null);
+    setIsPasswordRecovery(false);
     setAuthState("unauthenticated");
-  }, []);
+  }, [purgeSupabaseTokens]);
 
   const resetPassword = useCallback(async (email: string, captchaToken?: string) => {
     setError("");
@@ -225,13 +255,18 @@ export function useAuth() {
       );
       const { error } = await Promise.race([updatePromise, timeoutPromise]) as any;
       if (error) { setError(error.message === "timeout" ? "Délai dépassé. Réessayez." : error.message); return false; }
+      // Mot de passe change avec succes : on leve le verrou recovery (filet +
+      // etat) puis on DECONNECTE pour forcer une reconnexion propre avec le
+      // nouveau mot de passe (la session recovery ne doit jamais entrer dans l'app).
+      try { localStorage.removeItem(PW_RECOVERY_FLAG); } catch { /* ignore */ }
       setIsPasswordRecovery(false);
+      await signOut();
       return true;
     } catch (e) {
       setError("Erreur réseau. Vérifiez votre connexion.");
       return false;
     }
-  }, []);
+  }, [signOut]);
 
   const clearPasswordRecovery = useCallback(() => setIsPasswordRecovery(false), []);
 

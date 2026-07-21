@@ -58,7 +58,7 @@ type AuthGateProps = {
 type Mode = "login" | "register" | "forgot" | "reset";
 
 export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, colorCream }: AuthGateProps) {
-  const { authState, error, signIn, signUp, resetPassword, updatePassword, isPasswordRecovery, clearPasswordRecovery } = authHook;
+  const { authState, error, signIn, signUp, resetPassword, updatePassword, signOut, isPasswordRecovery, clearPasswordRecovery } = authHook;
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -182,16 +182,34 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
       const ok = await updatePassword(newPassword);
       setLoading(false);
       if (ok) {
-        setSuccessMsg("Mot de passe enregistré — connexion en cours…");
+        // updatePassword a deconnecte la session recovery (verrou de securite) :
+        // on revient a l'ecran de connexion, l'utilisateur doit se reconnecter
+        // avec son nouveau mot de passe.
         window.history.replaceState(null, "", window.location.pathname);
         clearPasswordRecovery();
-        // App.tsx détecte la fin de la recovery (prevRecovery true → isPasswordRecovery false)
-        // et déclenche automatiquement la transition vers l'app. Pas de setMode("login") nécessaire.
+        setNewPassword("");
+        setConfirmNewPassword("");
+        setSuccessMsg("Mot de passe enregistré. Reconnectez-vous avec votre nouveau mot de passe.");
+        setMode("login");
       }
     } catch {
       setLoading(false);
       setLocalError("Erreur lors de la mise à jour. Réessayez.");
     }
+  };
+
+  // Annuler explicitement une session recovery : deconnexion + purge (tokens
+  // sb-* + flag, gerees par signOut) puis retour a la connexion normale. Evite
+  // qu'une session recovery reste vivante si l'utilisateur renonce a changer son
+  // mot de passe.
+  const handleCancelReset = async () => {
+    setLocalError("");
+    setSuccessMsg("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+    await signOut();
+    clearPasswordRecovery();
+    setMode("login");
   };
 
   const handleForgot = async () => {
@@ -422,6 +440,11 @@ export function AuthGate({ authHook, logoSrc, colorNavy, colorGold, colorSky, co
             {(mode === "register" || mode === "forgot") && (
               <button onClick={() => { setMode("login"); setLocalError(""); setSuccessMsg(""); }} className="inline-flex items-center gap-1 hover:underline hover:text-slate-700">
                 <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Retour à la connexion
+              </button>
+            )}
+            {mode === "reset" && (
+              <button onClick={() => void handleCancelReset()} className="inline-flex items-center gap-1 hover:underline hover:text-slate-700">
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Annuler
               </button>
             )}
           </div>
