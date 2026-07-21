@@ -174,3 +174,87 @@ describe("useAuth — verrou session recovery", () => {
     expect(result.current.isPasswordRecovery).toBe(true);
   });
 });
+
+// Correctif 21/07 : le verrou doit etre synchrone des le rendu 0 (init
+// paresseuse), tenir pendant l'enchainement reel TOKEN_REFRESHED + verifySession,
+// et etre leve par une connexion mot de passe reussie (flag orphelin).
+describe("useAuth — verrou synchrone au boot (correctif 21/07)", () => {
+  it("(a) flag pose : le rendu 0 est deja verrouille (lecture immediate, sans settle)", async () => {
+    localStorage.setItem(FLAG, "1");
+    authMock.getSession.mockResolvedValue({ data: { session: null } });
+
+    // Lecture AVANT toute macrotache : l'init paresseuse doit deja avoir verrouille.
+    const { result } = renderHook(() => useAuth());
+    expect(result.current.isPasswordRecovery).toBe(true);
+    await settle(); // flush l'effet de montage (getSession) dans act, sans bruit
+  });
+
+  it("(b) enchainement reel : refreshSession emet TOKEN_REFRESHED puis resout, jamais deverrouille", async () => {
+    localStorage.setItem(FLAG, "1");
+    authMock.getSession.mockResolvedValue({ data: { session: { access_token: PASSWORD_TOKEN } } });
+    // gotrue emet TOKEN_REFRESHED PENDANT refreshSession, avant de resoudre : ce
+    // handler pose authState=authenticated SANS lire le flag. Puis la continuation
+    // de verifySession s'execute. Le verrou (init paresseuse) ne doit jamais ceder.
+    authMock.refreshSession.mockImplementation(async () => {
+      authCallback?.("TOKEN_REFRESHED", { access_token: PASSWORD_TOKEN, user: { id: "u1", user_metadata: {} } });
+      return {
+        data: { session: { access_token: PASSWORD_TOKEN }, user: { id: "u1", user_metadata: {} } },
+        error: null,
+      };
+    });
+
+    const seen: boolean[] = [];
+    function useProbe() {
+      const a = useAuth();
+      seen.push(a.isPasswordRecovery);
+      return a;
+    }
+    const { result } = renderHook(() => useProbe());
+    expect(seen[0]).toBe(true); // rendu 0 deja verrouille (init paresseuse)
+    await settle();
+
+    expect(result.current.authState).toBe("authenticated");
+    expect(result.current.isPasswordRecovery).toBe(true);
+    // Invariant cle : aucun rendu intermediaire deverrouille (la fenetre que la
+    // faille reelle exploitait via TOKEN_REFRESHED).
+    expect(seen.every((v) => v === true)).toBe(true);
+  });
+
+  it("(c) signIn succes : flag efface et verrou leve", async () => {
+    localStorage.setItem(FLAG, "1");
+    authMock.getSession.mockResolvedValue({ data: { session: null } });
+
+    const { result } = renderHook(() => useAuth());
+    await settle();
+    expect(result.current.isPasswordRecovery).toBe(true); // verrouille au boot
+
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.signIn("a@b.fr", "password12");
+    });
+
+    expect(ok).toBe(true);
+    expect(authMock.signInWithPassword).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem(FLAG)).toBeNull();
+    expect(result.current.isPasswordRecovery).toBe(false);
+  });
+
+  it("(d) flag orphelin + login normal : l'utilisateur n'est PAS enferme", async () => {
+    // Flag laisse par un lien de reset abandonne sans signOut ; l'utilisateur
+    // revient et se connecte normalement -> il doit pouvoir entrer.
+    localStorage.setItem(FLAG, "1");
+    authMock.getSession.mockResolvedValue({ data: { session: null } });
+
+    const { result } = renderHook(() => useAuth());
+    await settle();
+    expect(result.current.isPasswordRecovery).toBe(true); // verrouille tant qu'aucune preuve
+
+    await act(async () => {
+      await result.current.signIn("a@b.fr", "password12");
+    });
+
+    // Preuve apportee : le verrou tombe et le flag orphelin est nettoye.
+    expect(result.current.isPasswordRecovery).toBe(false);
+    expect(localStorage.getItem(FLAG)).toBeNull();
+  });
+});
