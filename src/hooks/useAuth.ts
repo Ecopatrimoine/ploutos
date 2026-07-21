@@ -224,8 +224,11 @@ export function useAuth() {
     purgeSupabaseTokens();
     setUser(null);
     setSession(null);
-    setIsPasswordRecovery(false);
+    // Session d'abord (authState -> unauthenticated), etat recovery EN DERNIER :
+    // meme si un rendu s'intercalait, on n'observerait jamais authenticated &&
+    // !isPasswordRecovery (la combinaison qui arme la transition d'App.tsx).
     setAuthState("unauthenticated");
+    setIsPasswordRecovery(false);
   }, [purgeSupabaseTokens]);
 
   const resetPassword = useCallback(async (email: string, captchaToken?: string) => {
@@ -255,12 +258,15 @@ export function useAuth() {
       );
       const { error } = await Promise.race([updatePromise, timeoutPromise]) as any;
       if (error) { setError(error.message === "timeout" ? "Délai dépassé. Réessayez." : error.message); return false; }
-      // Mot de passe change avec succes : on leve le verrou recovery (filet +
-      // etat) puis on DECONNECTE pour forcer une reconnexion propre avec le
-      // nouveau mot de passe (la session recovery ne doit jamais entrer dans l'app).
-      try { localStorage.removeItem(PW_RECOVERY_FLAG); } catch { /* ignore */ }
-      setIsPasswordRecovery(false);
+      // Mot de passe change avec succes : on DECONNECTE d'abord. signOut() purge
+      // les tokens sb-* et le flag recovery, et bascule authState -> unauthenticated
+      // AVANT de lever l'etat recovery -> a aucun rendu on n'observe
+      // authenticated && !isPasswordRecovery. Sinon cette fenetre arme le latch de
+      // transition d'App.tsx, puis la session meurt dessous (ecran "chargement du
+      // profil" bloque jusqu'a un refresh manuel). setIsPasswordRecovery(false)
+      // ensuite est un filet (signOut le fait deja) qui verrouille l'invariant.
       await signOut();
+      setIsPasswordRecovery(false);
       return true;
     } catch (e) {
       setError("Erreur réseau. Vérifiez votre connexion.");
