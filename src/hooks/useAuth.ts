@@ -26,7 +26,10 @@ export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
   const [authState, setAuthState] = useState<AuthState>("loading");
   const [error, setError] = useState<string>("");
-  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  // Init PARESSEUSE depuis le flag : le rendu 0 est deja verrouille si une
+  // session recovery est en cours (survit au F5). Elimine toute fenetre de
+  // rendu deverrouille avant que verifySession / TOKEN_REFRESHED ne s'executent.
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(() => hasRecoveryFlag());
   // Éviter le double appel verifySession (getSession + onAuthStateChange INITIAL_SESSION)
   const initializedRef = useRef(false);
 
@@ -205,6 +208,11 @@ export function useAuth() {
         ? "Email ou mot de passe incorrect." : error.message);
       return false;
     }
+    // Connexion mot de passe reussie : aucun changement force n'est en cours. On
+    // leve tout flag recovery orphelin (ex. lien de reset abandonne sans signOut)
+    // pour ne jamais enfermer a tort l'utilisateur sur l'ecran de reset.
+    try { localStorage.removeItem(PW_RECOVERY_FLAG); } catch { /* ignore */ }
+    setIsPasswordRecovery(false);
     return true;
   }, []);
 
